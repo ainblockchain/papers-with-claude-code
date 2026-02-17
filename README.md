@@ -14,6 +14,15 @@ This project builds a knowledge graph to link research papers, code repositories
 - **Educational Content Curation** - Organize papers and repos into structured learning paths
 - **Social Learning** - Share knowledge graphs with peers, compare notes, and learn together
 
+## Roles & Responsibilities
+
+| Member | Module |
+|--------|--------|
+| @chanho | `frontend/` |
+| @haechan | `claudecode-kubernetes/` |
+| @hyeonjeong | `knowledge-graph-builder/` |
+| @minhyun | `ainblockchain-integration/` |
+
 ## Getting Started
 
 Coming soon.
