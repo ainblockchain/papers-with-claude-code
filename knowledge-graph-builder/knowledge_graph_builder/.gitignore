@@ -4,7 +4,3 @@ __pycache__/
 dist/
 build/
 .env
-
-# Analysis results
-analysis.json/
-*.json
