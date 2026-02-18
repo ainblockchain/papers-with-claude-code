@@ -26,7 +26,7 @@ export function Header() {
       <div className="mx-auto flex h-14 max-w-[1280px] items-center px-4">
         {/* Logo */}
         <Link href="/explore" className="flex items-center gap-2 mr-8">
-          <ClaudeMark className="text-[#FF9D00]" size={24} />
+          <ClaudeMark size={24} />
           <span className="font-bold text-lg hidden sm:inline">Papers with Claude Code</span>
         </Link>
 

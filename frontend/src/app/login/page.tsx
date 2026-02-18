@@ -25,7 +25,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-gray-50">
       <div className="w-full max-w-sm mx-4">
         <div className="text-center mb-8">
-          <ClaudeMark className="text-[#FF9D00] mx-auto" size={48} />
+          <ClaudeMark className="mx-auto" size={48} />
           <h1 className="mt-4 text-2xl font-bold text-[#111827]">Papers with Claude Code</h1>
           <p className="mt-2 text-sm text-[#6B7280]">
             Learn research papers interactively with AI
