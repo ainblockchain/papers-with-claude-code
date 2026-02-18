@@ -1,0 +1,2091 @@
+- generic [ref=e2]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - link "Hugging Face's logo Hugging Face" [ref=e7] [cursor=pointer]:
+          - /url: /
+          - img "Hugging Face's logo" [ref=e8]
+          - generic [ref=e9]: Hugging Face
+        - generic [ref=e10]:
+          - textbox "Search models, datasets, users..." [ref=e11]
+          - img [ref=e12]
+      - navigation "Main" [ref=e14]:
+        - list [ref=e15]:
+          - listitem [ref=e16]:
+            - link "Models" [ref=e17] [cursor=pointer]:
+              - /url: /models
+              - img [ref=e18]
+              - text: Models
+          - listitem [ref=e22]:
+            - link "Datasets" [ref=e23] [cursor=pointer]:
+              - /url: /datasets
+              - img [ref=e24]
+              - text: Datasets
+          - listitem [ref=e29]:
+            - link "Spaces" [ref=e30] [cursor=pointer]:
+              - /url: /spaces
+              - img [ref=e31]
+              - text: Spaces
+          - listitem [ref=e35]:
+            - button "Community" [ref=e37] [cursor=pointer]:
+              - img [ref=e38]
+              - text: Community
+          - listitem [ref=e41]:
+            - link "Docs" [ref=e42] [cursor=pointer]:
+              - /url: /docs
+              - img [ref=e43]
+              - text: Docs
+          - listitem [ref=e47]:
+            - link "Enterprise" [ref=e48] [cursor=pointer]:
+              - /url: /enterprise
+              - img [ref=e49]
+              - text: Enterprise
+          - listitem [ref=e51]:
+            - link "Pricing" [ref=e52] [cursor=pointer]:
+              - /url: /pricing
+          - listitem [ref=e53]:
+            - button [ref=e55] [cursor=pointer]:
+              - img [ref=e56]
+          - listitem [ref=e61]:
+            - separator [ref=e62]
+          - listitem [ref=e63]:
+            - link "Log In" [ref=e64] [cursor=pointer]:
+              - /url: /login
+          - listitem [ref=e65]:
+            - link "Sign Up" [ref=e66] [cursor=pointer]:
+              - /url: /join
+  - main [ref=e67]:
+    - generic [ref=e69]:
+      - img [ref=e70]
+      - generic [ref=e72]:
+        - generic [ref=e73]: new
+        - paragraph [ref=e74]: Get trending papers in your email inbox once a day!
+        - link "Subscribe" [ref=e75] [cursor=pointer]:
+          - /url: /login?next=%2Fpapers
+      - img [ref=e76]
+    - generic [ref=e79]:
+      - generic [ref=e80]:
+        - generic [ref=e81]:
+          - heading "Trending Papers" [level=1] [ref=e83]
+          - heading "byAK and the research community" [level=2] [ref=e84]:
+            - text: by
+            - link "AK" [ref=e85] [cursor=pointer]:
+              - /url: /akhaliq
+            - text: and the research community
+        - generic [ref=e87]:
+          - img [ref=e88]
+          - searchbox "Search any paper with AI" [ref=e92]
+          - button [ref=e93] [cursor=pointer]:
+            - img [ref=e94]
+          - button "Roll dice" [ref=e96] [cursor=pointer]
+        - generic [ref=e105]:
+          - generic [ref=e106]:
+            - list [ref=e107]:
+              - listitem [ref=e108]:
+                - button "Daily" [ref=e109] [cursor=pointer]
+              - listitem [ref=e110]:
+                - button "Weekly" [ref=e111] [cursor=pointer]
+              - listitem [ref=e112]:
+                - button "Monthly" [ref=e113] [cursor=pointer]
+            - link "Trending Papers" [ref=e114] [cursor=pointer]:
+              - /url: /papers
+              - img [ref=e115]
+          - generic [ref=e118]: Trending Papers
+      - generic [ref=e119]:
+        - article [ref=e120]:
+          - generic [ref=e121]:
+            - generic [ref=e122]:
+              - link [ref=e123] [cursor=pointer]:
+                - /url: /papers/2602.14041
+              - generic:
+                - text: Submitted by
+                - text: taesiri
+            - generic [ref=e124]:
+              - 'heading "BitDance: Scaling Autoregressive Generative Models with Binary Tokens" [level=3] [ref=e125]':
+                - 'link "BitDance: Scaling Autoregressive Generative Models with Binary Tokens" [ref=e126] [cursor=pointer]':
+                  - /url: /papers/2602.14041
+              - paragraph [ref=e128]: BitDance is a scalable autoregressive image generator that uses binary visual tokens and diffusion-based methods to achieve efficient high-resolution image generation with improved speed and performance.
+              - generic [ref=e129]:
+                - list [ref=e130]:
+                  - listitem "Xuefeng Hu" [ref=e131]
+                  - listitem "Weijia Mao" [ref=e132]
+                  - listitem "Shaobin Zhuang" [ref=e133]
+                  - listitem "Jiaming Han" [ref=e134]
+                  - listitem "Yuang Ai" [ref=e135]
+                  - listitem [ref=e136]:
+                    - generic [ref=e137]: 10 authors
+                - generic [ref=e138]: ·
+                - generic [ref=e139]: Published on Feb 15, 2026
+            - generic [ref=e140]:
+              - link "Upvote 11" [ref=e143] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2602.14041
+                - generic [ref=e144]:
+                  - img [ref=e145]
+                  - text: Upvote
+                  - generic [ref=e147]: "11"
+              - link "GitHub 109" [ref=e148] [cursor=pointer]:
+                - /url: https://github.com/shallowdream204/BitDance
+                - img [ref=e149]
+                - generic [ref=e151]: GitHub
+                - generic [ref=e152]:
+                  - img [ref=e153]
+                  - generic [ref=e155]: "109"
+              - link "arXiv Page" [ref=e156] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2602.14041
+                - img [ref=e157]
+                - generic [ref=e159]: arXiv Page
+        - article [ref=e160]:
+          - generic [ref=e161]:
+            - link [ref=e163] [cursor=pointer]:
+              - /url: /papers/2410.15608
+            - generic [ref=e164]:
+              - 'heading "Moonshine: Speech Recognition for Live Transcription and Voice Commands" [level=3] [ref=e165]':
+                - 'link "Moonshine: Speech Recognition for Live Transcription and Voice Commands" [ref=e166] [cursor=pointer]':
+                  - /url: /papers/2410.15608
+              - paragraph [ref=e168]: Moonshine, an encoder-decoder transformer architecture for speech recognition, uses Rotary Position Embedding, reducing compute requirements without decreasing accuracy.
+              - generic [ref=e169]:
+                - list [ref=e170]:
+                  - listitem "James Wang" [ref=e171]
+                  - listitem "Guy Nicholson" [ref=e172]
+                  - listitem "Manjunath Kudlur" [ref=e173]
+                  - listitem "Nat Jeffries" [ref=e174]
+                  - listitem "evanking" [ref=e175]
+                  - listitem [ref=e176]:
+                    - generic [ref=e177]: 6 authors
+                - generic [ref=e178]: ·
+                - generic [ref=e179]: Published on Oct 21, 2024
+            - generic [ref=e180]:
+              - link "Upvote 1" [ref=e183] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2410.15608
+                - generic [ref=e184]:
+                  - img [ref=e185]
+                  - text: Upvote
+                  - generic [ref=e187]: "1"
+              - link "GitHub 4.15k" [ref=e188] [cursor=pointer]:
+                - /url: https://github.com/usefulsensors/moonshine
+                - img [ref=e189]
+                - generic [ref=e191]: GitHub
+                - generic [ref=e192]:
+                  - img [ref=e193]
+                  - generic [ref=e195]: 4.15k
+              - link "arXiv Page" [ref=e196] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2410.15608
+                - img [ref=e197]
+                - generic [ref=e199]: arXiv Page
+        - article [ref=e200]:
+          - generic [ref=e201]:
+            - generic [ref=e202]:
+              - link [ref=e203] [cursor=pointer]:
+                - /url: /papers/2509.02523
+              - generic:
+                - text: Submitted by
+                - text: evanking
+            - generic [ref=e204]:
+              - 'heading "Flavors of Moonshine: Tiny Specialized ASR Models for Edge Devices" [level=3] [ref=e205]':
+                - 'link "Flavors of Moonshine: Tiny Specialized ASR Models for Edge Devices" [ref=e206] [cursor=pointer]':
+                  - /url: /papers/2509.02523
+              - paragraph [ref=e208]: Monolingual ASR models trained on a balanced mix of high-quality, pseudo-labeled, and synthetic data outperform multilingual models for small model sizes, achieving superior error rates and enabling on-device ASR for underrepresented languages.
+              - generic [ref=e209]:
+                - list [ref=e210]:
+                  - listitem "Pete Warden" [ref=e211]
+                  - listitem "James Wang" [ref=e212]
+                  - listitem "Manjunath Kudlur" [ref=e213]
+                  - listitem "theadamsabra" [ref=e214]
+                  - listitem "evanking" [ref=e215]
+                  - listitem [ref=e216]:
+                    - generic [ref=e217]: 5 authors
+                - generic [ref=e218]: ·
+                - generic [ref=e219]: Published on Sep 3, 2025
+            - generic [ref=e220]:
+              - link "Upvote 10" [ref=e223] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2509.02523
+                - generic [ref=e224]:
+                  - img [ref=e225]
+                  - text: Upvote
+                  - generic [ref=e227]: "10"
+              - link "GitHub 4.15k" [ref=e228] [cursor=pointer]:
+                - /url: https://github.com/moonshine-ai/moonshine
+                - img [ref=e229]
+                - generic [ref=e231]: GitHub
+                - generic [ref=e232]:
+                  - img [ref=e233]
+                  - generic [ref=e235]: 4.15k
+              - link "arXiv Page" [ref=e236] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2509.02523
+                - img [ref=e237]
+                - generic [ref=e239]: arXiv Page
+        - article [ref=e240]:
+          - generic [ref=e241]:
+            - generic [ref=e242]:
+              - link [ref=e243] [cursor=pointer]:
+                - /url: /papers/2510.12323
+              - generic:
+                - text: Submitted by
+                - text: Rbin
+            - generic [ref=e244]:
+              - 'heading "RAG-Anything: All-in-One RAG Framework" [level=3] [ref=e245]':
+                - 'link "RAG-Anything: All-in-One RAG Framework" [ref=e246] [cursor=pointer]':
+                  - /url: /papers/2510.12323
+              - paragraph [ref=e248]: RAG-Anything is a unified framework that enhances multimodal knowledge retrieval by integrating cross-modal relationships and semantic matching, outperforming existing methods on complex benchmarks.
+              - generic [ref=e249]:
+                - link "hkuds Data Intelligence Lab@HKU" [ref=e250] [cursor=pointer]:
+                  - /url: /hkuds
+                  - img "hkuds" [ref=e251]
+                  - generic [ref=e252]: Data Intelligence Lab@HKU
+                - generic [ref=e253]: ·
+                - generic [ref=e254]: Published on Oct 14, 2025
+            - generic [ref=e255]:
+              - link "Upvote 64" [ref=e258] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2510.12323
+                - generic [ref=e259]:
+                  - img [ref=e260]
+                  - text: Upvote
+                  - generic [ref=e262]: "64"
+              - link "GitHub 13.5k" [ref=e263] [cursor=pointer]:
+                - /url: https://github.com/HKUDS/RAG-Anything
+                - img [ref=e264]
+                - generic [ref=e266]: GitHub
+                - generic [ref=e267]:
+                  - img [ref=e268]
+                  - generic [ref=e270]: 13.5k
+              - link "arXiv Page" [ref=e271] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2510.12323
+                - img [ref=e272]
+                - generic [ref=e274]: arXiv Page
+        - article [ref=e275]:
+          - generic [ref=e276]:
+            - generic [ref=e277]:
+              - link [ref=e278] [cursor=pointer]:
+                - /url: /papers/2503.11576
+              - generic:
+                - text: Submitted by
+                - text: andito
+            - generic [ref=e279]:
+              - 'heading "SmolDocling: An ultra-compact vision-language model for end-to-end multi-modal document conversion" [level=3] [ref=e280]':
+                - 'link "SmolDocling: An ultra-compact vision-language model for end-to-end multi-modal document conversion" [ref=e281] [cursor=pointer]':
+                  - /url: /papers/2503.11576
+              - paragraph [ref=e283]: SmolDocling is a compact vision-language model that performs end-to-end document conversion with robust performance across various document types using 256M parameters and a new markup format.
+              - generic [ref=e284]:
+                - link "ibm-granite IBM Granite" [ref=e285] [cursor=pointer]:
+                  - /url: /ibm-granite
+                  - img "ibm-granite" [ref=e286]
+                  - generic [ref=e287]: IBM Granite
+                - generic [ref=e288]: ·
+                - generic [ref=e289]: Published on Mar 15, 2025
+            - generic [ref=e290]:
+              - link "Upvote 142" [ref=e293] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2503.11576
+                - generic [ref=e294]:
+                  - img [ref=e295]
+                  - text: Upvote
+                  - generic [ref=e297]: "142"
+              - link "GitHub 53.3k" [ref=e298] [cursor=pointer]:
+                - /url: https://github.com/docling-project/docling
+                - img [ref=e299]
+                - generic [ref=e301]: GitHub
+                - generic [ref=e302]:
+                  - img [ref=e303]
+                  - generic [ref=e305]: 53.3k
+              - link "arXiv Page" [ref=e306] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2503.11576
+                - img [ref=e307]
+                - generic [ref=e309]: arXiv Page
+        - article [ref=e310]:
+          - generic [ref=e311]:
+            - generic [ref=e312]:
+              - link [ref=e313] [cursor=pointer]:
+                - /url: /papers/2601.23265
+              - generic:
+                - text: Submitted by
+                - text: taesiri
+            - generic [ref=e314]:
+              - 'heading "PaperBanana: Automating Academic Illustration for AI Scientists" [level=3] [ref=e315]':
+                - 'link "PaperBanana: Automating Academic Illustration for AI Scientists" [ref=e316] [cursor=pointer]':
+                  - /url: /papers/2601.23265
+              - paragraph [ref=e318]: _paperbanana is an agentic framework that automates the creation of publication-ready academic illustrations using advanced vision-language models and image generation techniques.
+              - generic [ref=e319]:
+                - link "google Google" [ref=e320] [cursor=pointer]:
+                  - /url: /google
+                  - img "google" [ref=e321]
+                  - generic [ref=e322]: Google
+                - generic [ref=e323]: ·
+                - generic [ref=e324]: Published on Jan 31, 2026
+            - generic [ref=e325]:
+              - link "Upvote 185" [ref=e328] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2601.23265
+                - generic [ref=e329]:
+                  - img [ref=e330]
+                  - text: Upvote
+                  - generic [ref=e332]: "185"
+              - link "GitHub 3.63k" [ref=e333] [cursor=pointer]:
+                - /url: https://github.com/dwzhu-pku/PaperBanana
+                - img [ref=e334]
+                - generic [ref=e336]: GitHub
+                - generic [ref=e337]:
+                  - img [ref=e338]
+                  - generic [ref=e340]: 3.63k
+              - link "arXiv Page" [ref=e341] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2601.23265
+                - img [ref=e342]
+                - generic [ref=e344]: arXiv Page
+        - article [ref=e345]:
+          - generic [ref=e346]:
+            - generic [ref=e347]:
+              - link [ref=e348] [cursor=pointer]:
+                - /url: /papers/2601.15621
+              - generic:
+                - text: Submitted by
+                - text: taesiri
+            - generic [ref=e349]:
+              - heading "Qwen3-TTS Technical Report" [level=3] [ref=e350]:
+                - link "Qwen3-TTS Technical Report" [ref=e351] [cursor=pointer]:
+                  - /url: /papers/2601.15621
+              - paragraph [ref=e353]: The Qwen3-TTS series presents advanced multilingual text-to-speech models with voice cloning and controllable speech generation capabilities, utilizing dual-track LM architecture and specialized speech tokenizers for efficient streaming synthesis.
+              - generic [ref=e354]:
+                - link "Qwen Qwen" [ref=e355] [cursor=pointer]:
+                  - /url: /Qwen
+                  - img "Qwen" [ref=e356]
+                  - generic [ref=e357]: Qwen
+                - generic [ref=e358]: ·
+                - generic [ref=e359]: Published on Jan 22, 2026
+            - generic [ref=e360]:
+              - link "Upvote 67" [ref=e363] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2601.15621
+                - generic [ref=e364]:
+                  - img [ref=e365]
+                  - text: Upvote
+                  - generic [ref=e367]: "67"
+              - link "GitHub 7.83k" [ref=e368] [cursor=pointer]:
+                - /url: https://github.com/QwenLM/Qwen3-TTS
+                - img [ref=e369]
+                - generic [ref=e371]: GitHub
+                - generic [ref=e372]:
+                  - img [ref=e373]
+                  - generic [ref=e375]: 7.83k
+              - link "arXiv Page" [ref=e376] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2601.15621
+                - img [ref=e377]
+                - generic [ref=e379]: arXiv Page
+        - article [ref=e380]:
+          - generic [ref=e381]:
+            - generic [ref=e382]:
+              - link [ref=e383] [cursor=pointer]:
+                - /url: /papers/2309.06180
+              - generic:
+                - text: Submitted by
+                - text: akhaliq
+            - generic [ref=e384]:
+              - heading "Efficient Memory Management for Large Language Model Serving with PagedAttention" [level=3] [ref=e385]:
+                - link "Efficient Memory Management for Large Language Model Serving with PagedAttention" [ref=e386] [cursor=pointer]:
+                  - /url: /papers/2309.06180
+              - paragraph [ref=e388]: PagedAttention algorithm and vLLM system enhance the throughput of large language models by efficiently managing memory and reducing waste in the key-value cache.
+              - generic [ref=e389]:
+                - list [ref=e390]:
+                  - listitem "ProfJoeyG" [ref=e391]
+                  - listitem "comaniac" [ref=e392]
+                  - listitem "ying1123" [ref=e393]
+                  - listitem "zhuohan123" [ref=e394]
+                  - listitem "wskwon" [ref=e395]
+                  - listitem [ref=e396]:
+                    - generic [ref=e397]: 9 authors
+                - generic [ref=e398]: ·
+                - generic [ref=e399]: Published on Sep 12, 2023
+            - generic [ref=e400]:
+              - link "Upvote 36" [ref=e403] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2309.06180
+                - generic [ref=e404]:
+                  - img [ref=e405]
+                  - text: Upvote
+                  - generic [ref=e407]: "36"
+              - link "GitHub 70.5k" [ref=e408] [cursor=pointer]:
+                - /url: https://github.com/vllm-project/vllm
+                - img [ref=e409]
+                - generic [ref=e411]: GitHub
+                - generic [ref=e412]:
+                  - img [ref=e413]
+                  - generic [ref=e415]: 70.5k
+              - link "arXiv Page" [ref=e416] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2309.06180
+                - img [ref=e417]
+                - generic [ref=e419]: arXiv Page
+        - article [ref=e420]:
+          - generic [ref=e421]:
+            - generic [ref=e422]:
+              - link [ref=e423] [cursor=pointer]:
+                - /url: /papers/2601.10547
+              - generic:
+                - text: Submitted by
+                - text: Dongchao
+            - generic [ref=e424]:
+              - 'heading "HeartMuLa: A Family of Open Sourced Music Foundation Models" [level=3] [ref=e425]':
+                - 'link "HeartMuLa: A Family of Open Sourced Music Foundation Models" [ref=e426] [cursor=pointer]':
+                  - /url: /papers/2601.10547
+              - paragraph [ref=e428]: A suite of open-source music foundation models is introduced, featuring components for audio-text alignment, lyric recognition, music coding, and large language model-based song generation with controllable attributes and scalable parameterization.
+              - generic [ref=e429]:
+                - list [ref=e430]:
+                  - listitem "YuanyuanWang" [ref=e431]
+                  - listitem "Gongxizhu" [ref=e432]
+                  - listitem "f1shy1" [ref=e433]
+                  - listitem "bverxie" [ref=e434]
+                  - listitem "Dongchao" [ref=e435]
+                  - listitem [ref=e436]:
+                    - generic [ref=e437]: 28 authors
+                - generic [ref=e438]: ·
+                - generic [ref=e439]: Published on Jan 16, 2026
+            - generic [ref=e440]:
+              - link "Upvote 42" [ref=e443] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2601.10547
+                - generic [ref=e444]:
+                  - img [ref=e445]
+                  - text: Upvote
+                  - generic [ref=e447]: "42"
+              - link "GitHub 3.76k" [ref=e448] [cursor=pointer]:
+                - /url: https://github.com/HeartMuLa/heartlib
+                - img [ref=e449]
+                - generic [ref=e451]: GitHub
+                - generic [ref=e452]:
+                  - img [ref=e453]
+                  - generic [ref=e455]: 3.76k
+              - link "arXiv Page" [ref=e456] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2601.10547
+                - img [ref=e457]
+                - generic [ref=e459]: arXiv Page
+        - article [ref=e460]:
+          - generic [ref=e461]:
+            - link [ref=e463] [cursor=pointer]:
+              - /url: /papers/2410.17799
+            - generic [ref=e464]:
+              - 'heading "OmniFlatten: An End-to-end GPT Model for Seamless Voice Conversation" [level=3] [ref=e465]':
+                - 'link "OmniFlatten: An End-to-end GPT Model for Seamless Voice Conversation" [ref=e466] [cursor=pointer]':
+                  - /url: /papers/2410.17799
+              - paragraph [ref=e468]: A novel GPT-based model, OmniFlatten, enables real-time natural full-duplex spoken dialogue through a multi-stage post-training technique that integrates speech and text without altering the original model's architecture.
+              - generic [ref=e469]:
+                - list [ref=e470]:
+                  - listitem "Wen Wang" [ref=e471]
+                  - listitem "Qian Chen" [ref=e472]
+                  - listitem "Chong Deng" [ref=e473]
+                  - listitem "Qinglin Zhang" [ref=e474]
+                  - listitem "OrangeLuyao" [ref=e475]
+                  - listitem [ref=e476]:
+                    - generic [ref=e477]: 9 authors
+                - generic [ref=e478]: ·
+                - generic [ref=e479]: Published on Oct 23, 2024
+            - generic [ref=e480]:
+              - link "Upvote 9" [ref=e483] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2410.17799
+                - generic [ref=e484]:
+                  - img [ref=e485]
+                  - text: Upvote
+                  - generic [ref=e487]: "9"
+              - link "GitHub 53.3k" [ref=e488] [cursor=pointer]:
+                - /url: https://github.com/karpathy/nanogpt
+                - img [ref=e489]
+                - generic [ref=e491]: GitHub
+                - generic [ref=e492]:
+                  - img [ref=e493]
+                  - generic [ref=e495]: 53.3k
+              - link "arXiv Page" [ref=e496] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2410.17799
+                - img [ref=e497]
+                - generic [ref=e499]: arXiv Page
+        - article [ref=e500]:
+          - generic [ref=e501]:
+            - generic [ref=e502]:
+              - link [ref=e503] [cursor=pointer]:
+                - /url: /papers/2507.03724
+              - generic:
+                - text: Submitted by
+                - text: UglyToilet
+            - generic [ref=e504]:
+              - 'heading "MemOS: A Memory OS for AI System" [level=3] [ref=e505]':
+                - 'link "MemOS: A Memory OS for AI System" [ref=e506] [cursor=pointer]':
+                  - /url: /papers/2507.03724
+              - paragraph [ref=e508]: MemOS, a memory operating system for Large Language Models, addresses memory management challenges by unifying plaintext, activation-based, and parameter-level memories, enabling efficient storage, retrieval, and continual learning.
+              - generic [ref=e509]:
+                - list [ref=e510]:
+                  - listitem "Duguce" [ref=e511]
+                  - listitem "siminniu" [ref=e512]
+                  - listitem "UglyToilet" [ref=e513]
+                  - listitem "xisungod" [ref=e514]
+                  - listitem "Ki-Seki" [ref=e515]
+                  - listitem [ref=e516]:
+                    - generic [ref=e517]: 39 authors
+                - generic [ref=e518]: ·
+                - generic [ref=e519]: Published on Jul 5, 2025
+            - generic [ref=e520]:
+              - link "Upvote 159" [ref=e523] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2507.03724
+                - generic [ref=e524]:
+                  - img [ref=e525]
+                  - text: Upvote
+                  - generic [ref=e527]: "159"
+              - link "GitHub 5.59k" [ref=e528] [cursor=pointer]:
+                - /url: https://github.com/MemTensor/MemOS
+                - img [ref=e529]
+                - generic [ref=e531]: GitHub
+                - generic [ref=e532]:
+                  - img [ref=e533]
+                  - generic [ref=e535]: 5.59k
+              - link "arXiv Page" [ref=e536] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2507.03724
+                - img [ref=e537]
+                - generic [ref=e539]: arXiv Page
+        - article [ref=e540]:
+          - generic [ref=e541]:
+            - generic [ref=e542]:
+              - link [ref=e543] [cursor=pointer]:
+                - /url: /papers/2504.19413
+              - generic:
+                - text: Submitted by
+                - text: akhaliq
+            - generic [ref=e544]:
+              - 'heading "Mem0: Building Production-Ready AI Agents with Scalable Long-Term Memory" [level=3] [ref=e545]':
+                - 'link "Mem0: Building Production-Ready AI Agents with Scalable Long-Term Memory" [ref=e546] [cursor=pointer]':
+                  - /url: /papers/2504.19413
+              - paragraph [ref=e548]: Mem0, a memory-centric architecture with graph-based memory, enhances long-term conversational coherence in LLMs by efficiently extracting, consolidating, and retrieving information, outperforming existing memory systems in terms of accuracy and computational efficiency.
+              - generic [ref=e549]:
+                - list [ref=e550]:
+                  - listitem "Taranjeet Singh" [ref=e551]
+                  - listitem "Saket Aryan" [ref=e552]
+                  - listitem "Dev Khant" [ref=e553]
+                  - listitem "deshrajdry" [ref=e554]
+                  - listitem "prateekchhikara" [ref=e555]
+                  - listitem [ref=e556]:
+                    - generic [ref=e557]: 5 authors
+                - generic [ref=e558]: ·
+                - generic [ref=e559]: Published on Apr 28, 2025
+            - generic [ref=e560]:
+              - link "Upvote 41" [ref=e563] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2504.19413
+                - generic [ref=e564]:
+                  - img [ref=e565]
+                  - text: Upvote
+                  - generic [ref=e567]: "41"
+              - link "GitHub 47.5k" [ref=e568] [cursor=pointer]:
+                - /url: https://github.com/mem0ai/mem0
+                - img [ref=e569]
+                - generic [ref=e571]: GitHub
+                - generic [ref=e572]:
+                  - img [ref=e573]
+                  - generic [ref=e575]: 47.5k
+              - link "arXiv Page" [ref=e576] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2504.19413
+                - img [ref=e577]
+                - generic [ref=e579]: arXiv Page
+        - article [ref=e580]:
+          - generic [ref=e581]:
+            - link [ref=e583] [cursor=pointer]:
+              - /url: /papers/2412.20138
+            - generic [ref=e584]:
+              - 'heading "TradingAgents: Multi-Agents LLM Financial Trading Framework" [level=3] [ref=e585]':
+                - 'link "TradingAgents: Multi-Agents LLM Financial Trading Framework" [ref=e586] [cursor=pointer]':
+                  - /url: /papers/2412.20138
+              - paragraph [ref=e588]: A multi-agent framework using large language models for stock trading simulates real-world trading firms, improving performance metrics like cumulative returns and Sharpe ratio.
+              - generic [ref=e589]:
+                - list [ref=e590]:
+                  - listitem "Wei Wang" [ref=e591]
+                  - listitem "Di Luo" [ref=e592]
+                  - listitem "Edward Sun" [ref=e593]
+                  - listitem "Yijia Xiao" [ref=e594]
+                  - listitem [ref=e595]:
+                    - generic [ref=e596]: 4 authors
+                - generic [ref=e597]: ·
+                - generic [ref=e598]: Published on Dec 28, 2024
+            - generic [ref=e599]:
+              - link "Upvote 16" [ref=e602] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2412.20138
+                - generic [ref=e603]:
+                  - img [ref=e604]
+                  - text: Upvote
+                  - generic [ref=e606]: "16"
+              - link "GitHub 30.1k" [ref=e607] [cursor=pointer]:
+                - /url: https://github.com/tauricresearch/tradingagents
+                - img [ref=e608]
+                - generic [ref=e610]: GitHub
+                - generic [ref=e611]:
+                  - img [ref=e612]
+                  - generic [ref=e614]: 30.1k
+              - link "arXiv Page" [ref=e615] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2412.20138
+                - img [ref=e616]
+                - generic [ref=e618]: arXiv Page
+        - article [ref=e619]:
+          - generic [ref=e620]:
+            - generic [ref=e621]:
+              - link [ref=e622] [cursor=pointer]:
+                - /url: /papers/2508.03680
+              - generic:
+                - text: Submitted by
+                - text: daixufang
+            - generic [ref=e623]:
+              - 'heading "Agent Lightning: Train ANY AI Agents with Reinforcement Learning" [level=3] [ref=e624]':
+                - 'link "Agent Lightning: Train ANY AI Agents with Reinforcement Learning" [ref=e625] [cursor=pointer]':
+                  - /url: /papers/2508.03680
+              - paragraph [ref=e627]: Agent Lightning is a flexible RL framework for training LLMs in various agents, using a hierarchical RL algorithm and decoupling execution from training to handle complex interactions.
+              - generic [ref=e628]:
+                - list [ref=e629]:
+                  - listitem "lunaqiu66" [ref=e630]
+                  - listitem "SiyunZhao" [ref=e631]
+                  - listitem "dddwzl3703" [ref=e632]
+                  - listitem "hzy46" [ref=e633]
+                  - listitem "ultmaster" [ref=e634]
+                  - listitem [ref=e635]:
+                    - generic [ref=e636]: 8 authors
+                - generic [ref=e637]: ·
+                - generic [ref=e638]: Published on Aug 6, 2025
+            - generic [ref=e639]:
+              - link "Upvote 134" [ref=e642] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2508.03680
+                - generic [ref=e643]:
+                  - img [ref=e644]
+                  - text: Upvote
+                  - generic [ref=e646]: "134"
+              - link "GitHub 14.8k" [ref=e647] [cursor=pointer]:
+                - /url: https://github.com/microsoft/agent-lightning
+                - img [ref=e648]
+                - generic [ref=e650]: GitHub
+                - generic [ref=e651]:
+                  - img [ref=e652]
+                  - generic [ref=e654]: 14.8k
+              - link "arXiv Page" [ref=e655] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2508.03680
+                - img [ref=e656]
+                - generic [ref=e658]: arXiv Page
+        - article [ref=e659]:
+          - generic [ref=e660]:
+            - generic [ref=e661]:
+              - link [ref=e662] [cursor=pointer]:
+                - /url: /papers/2511.12884
+              - generic:
+                - text: Submitted by
+                - text: hao-li
+            - generic [ref=e663]:
+              - 'heading "Agent READMEs: An Empirical Study of Context Files for Agentic Coding" [level=3] [ref=e664]':
+                - 'link "Agent READMEs: An Empirical Study of Context Files for Agentic Coding" [ref=e665] [cursor=pointer]':
+                  - /url: /papers/2511.12884
+              - paragraph [ref=e667]: "Agentic coding tools receive goals written in natural language as input, break them down into specific tasks, and write or execute the actual code with minimal human intervention. Central to this process are agent context files (\"READMEs for agents\") that provide persistent, project-level instructions. In this paper, we conduct the first large-scale empirical study of 2,303 agent context files from 1,925 repositories to characterize their structure, maintenance, and content. We find that these files are not static documentation but complex, difficult-to-read artifacts that evolve like configuration code, maintained through frequent, small additions. Our content analysis of 16 instruction types shows that developers prioritize functional context, such as build and run commands (62.3%), implementation details (69.9%), and architecture (67.7%). We also identify a significant gap: non-functional requirements like security (14.5%) and performance (14.5%) are rarely specified. These findings indicate that while developers use context files to make agents functional, they provide few guardrails to ensure that agent-written code is secure or performant, highlighting the need for improved tooling and practices."
+              - generic [ref=e668]:
+                - list [ref=e669]:
+                  - listitem "Kundjanasith Thonglek" [ref=e670]
+                  - listitem "Brittany Reid" [ref=e671]
+                  - listitem "Yutaro Kashiwa" [ref=e672]
+                  - listitem "Worawalan Chatlatanagulchai" [ref=e673]
+                  - listitem "hao-li" [ref=e674]
+                  - listitem [ref=e675]:
+                    - generic [ref=e676]: 11 authors
+                - generic [ref=e677]: ·
+                - generic [ref=e678]: Published on Nov 17, 2025
+            - generic [ref=e679]:
+              - link "Upvote 23" [ref=e682] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2511.12884
+                - generic [ref=e683]:
+                  - img [ref=e684]
+                  - text: Upvote
+                  - generic [ref=e686]: "23"
+              - link "GitHub 17.5k" [ref=e687] [cursor=pointer]:
+                - /url: https://github.com/openai/agents.md
+                - img [ref=e688]
+                - generic [ref=e690]: GitHub
+                - generic [ref=e691]:
+                  - img [ref=e692]
+                  - generic [ref=e694]: 17.5k
+              - link "arXiv Page" [ref=e695] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2511.12884
+                - img [ref=e696]
+                - generic [ref=e698]: arXiv Page
+        - article [ref=e699]:
+          - generic [ref=e700]:
+            - generic [ref=e701]:
+              - link [ref=e702] [cursor=pointer]:
+                - /url: /papers/2602.08234
+              - generic:
+                - text: Submitted by
+                - text: richardxp888
+            - generic [ref=e703]:
+              - 'heading "SkillRL: Evolving Agents via Recursive Skill-Augmented Reinforcement Learning" [level=3] [ref=e704]':
+                - 'link "SkillRL: Evolving Agents via Recursive Skill-Augmented Reinforcement Learning" [ref=e705] [cursor=pointer]':
+                  - /url: /papers/2602.08234
+              - paragraph [ref=e707]: SkillRL enables LLM agents to improve through hierarchical skill discovery and recursive policy evolution, achieving superior performance on complex tasks while reducing computational overhead.
+              - generic [ref=e708]:
+                - link "UNC-ChapelHill University of North Carolina at Chapel Hill" [ref=e709] [cursor=pointer]:
+                  - /url: /UNC-ChapelHill
+                  - img "UNC-ChapelHill" [ref=e710]
+                  - generic [ref=e711]: University of North Carolina at Chapel Hill
+                - generic [ref=e712]: ·
+                - generic [ref=e713]: Published on Feb 9, 2026
+            - generic [ref=e714]:
+              - link "Upvote 65" [ref=e717] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2602.08234
+                - generic [ref=e718]:
+                  - img [ref=e719]
+                  - text: Upvote
+                  - generic [ref=e721]: "65"
+              - link "GitHub 370" [ref=e722] [cursor=pointer]:
+                - /url: https://github.com/aiming-lab/SkillRL
+                - img [ref=e723]
+                - generic [ref=e725]: GitHub
+                - generic [ref=e726]:
+                  - img [ref=e727]
+                  - generic [ref=e729]: "370"
+              - link "arXiv Page" [ref=e730] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2602.08234
+                - img [ref=e731]
+                - generic [ref=e733]: arXiv Page
+        - article [ref=e734]:
+          - generic [ref=e735]:
+            - generic [ref=e736]:
+              - link [ref=e737] [cursor=pointer]:
+                - /url: /papers/2602.09082
+              - generic:
+                - text: Submitted by
+                - text: zhangxgu
+            - generic [ref=e738]:
+              - heading "UI-Venus-1.5 Technical Report" [level=3] [ref=e739]:
+                - link "UI-Venus-1.5 Technical Report" [ref=e740] [cursor=pointer]:
+                  - /url: /papers/2602.09082
+              - paragraph [ref=e742]: UI-Venus-1.5 is a unified GUI agent with improved performance through mid-training stages, online reinforcement learning, and model merging techniques.
+              - generic [ref=e743]:
+                - link "inclusionAI inclusionAI" [ref=e744] [cursor=pointer]:
+                  - /url: /inclusionAI
+                  - img "inclusionAI" [ref=e745]
+                  - generic [ref=e746]: inclusionAI
+                - generic [ref=e747]: ·
+                - generic [ref=e748]: Published on Feb 10, 2026
+            - generic [ref=e749]:
+              - link "Upvote 149" [ref=e752] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2602.09082
+                - generic [ref=e753]:
+                  - img [ref=e754]
+                  - text: Upvote
+                  - generic [ref=e756]: "149"
+              - link "GitHub 969" [ref=e757] [cursor=pointer]:
+                - /url: https://github.com/inclusionAI/UI-Venus
+                - img [ref=e758]
+                - generic [ref=e760]: GitHub
+                - generic [ref=e761]:
+                  - img [ref=e762]
+                  - generic [ref=e764]: "969"
+              - link "arXiv Page" [ref=e765] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2602.09082
+                - img [ref=e766]
+                - generic [ref=e768]: arXiv Page
+        - article [ref=e769]:
+          - generic [ref=e770]:
+            - link [ref=e772] [cursor=pointer]:
+              - /url: /papers/2512.10971
+            - generic [ref=e773]:
+              - 'heading "AI-Trader: Benchmarking Autonomous Agents in Real-Time Financial Markets" [level=3] [ref=e774]':
+                - 'link "AI-Trader: Benchmarking Autonomous Agents in Real-Time Financial Markets" [ref=e775] [cursor=pointer]':
+                  - /url: /papers/2512.10971
+              - paragraph [ref=e777]: AI-Trader presents the first fully automated live benchmark for evaluating large language models in financial decision-making across multiple markets with autonomous information processing.
+              - generic [ref=e778]:
+                - list [ref=e779]:
+                  - listitem "Yuxuan Chen" [ref=e780]
+                  - listitem "Yangqin Jiang" [ref=e781]
+                  - listitem "Yuhao Yang" [ref=e782]
+                  - listitem "amstrongzyf" [ref=e783]
+                  - listitem "T1anyu" [ref=e784]
+                  - listitem [ref=e785]:
+                    - generic [ref=e786]: 6 authors
+                - generic [ref=e787]: ·
+                - generic [ref=e788]: Published on Dec 1, 2025
+            - generic [ref=e789]:
+              - link "Upvote 2" [ref=e792] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2512.10971
+                - generic [ref=e793]:
+                  - img [ref=e794]
+                  - text: Upvote
+                  - generic [ref=e796]: "2"
+              - link "GitHub 11.3k" [ref=e797] [cursor=pointer]:
+                - /url: https://github.com/HKUDS/AI-Trader
+                - img [ref=e798]
+                - generic [ref=e800]: GitHub
+                - generic [ref=e801]:
+                  - img [ref=e802]
+                  - generic [ref=e804]: 11.3k
+              - link "arXiv Page" [ref=e805] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2512.10971
+                - img [ref=e806]
+                - generic [ref=e808]: arXiv Page
+        - article [ref=e809]:
+          - generic [ref=e810]:
+            - generic [ref=e811]:
+              - link [ref=e812] [cursor=pointer]:
+                - /url: /papers/2509.22186
+              - generic:
+                - text: Submitted by
+                - text: taesiri
+            - generic [ref=e813]:
+              - 'heading "MinerU2.5: A Decoupled Vision-Language Model for Efficient High-Resolution Document Parsing" [level=3] [ref=e814]':
+                - 'link "MinerU2.5: A Decoupled Vision-Language Model for Efficient High-Resolution Document Parsing" [ref=e815] [cursor=pointer]':
+                  - /url: /papers/2509.22186
+              - paragraph [ref=e817]: MinerU2.5, a 1.2B-parameter document parsing vision-language model, achieves state-of-the-art recognition accuracy with computational efficiency through a coarse-to-fine parsing strategy.
+              - generic [ref=e818]:
+                - list [ref=e819]:
+                  - listitem "ouyanglinke" [ref=e820]
+                  - listitem "wanderkid" [ref=e821]
+                  - listitem "Chokoyo" [ref=e822]
+                  - listitem "starriver030515" [ref=e823]
+                  - listitem "Niujunbo2002" [ref=e824]
+                  - listitem [ref=e825]:
+                    - generic [ref=e826]: 61 authors
+                - generic [ref=e827]: ·
+                - generic [ref=e828]: Published on Sep 26, 2025
+            - generic [ref=e829]:
+              - link "Upvote 144" [ref=e832] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2509.22186
+                - generic [ref=e833]:
+                  - img [ref=e834]
+                  - text: Upvote
+                  - generic [ref=e836]: "144"
+              - link "GitHub 54.5k" [ref=e837] [cursor=pointer]:
+                - /url: https://github.com/opendatalab/MinerU
+                - img [ref=e838]
+                - generic [ref=e840]: GitHub
+                - generic [ref=e841]:
+                  - img [ref=e842]
+                  - generic [ref=e844]: 54.5k
+              - link "arXiv Page" [ref=e845] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2509.22186
+                - img [ref=e846]
+                - generic [ref=e848]: arXiv Page
+        - article [ref=e849]:
+          - generic [ref=e850]:
+            - generic [ref=e851]:
+              - link [ref=e852] [cursor=pointer]:
+                - /url: /papers/2510.14528
+              - generic:
+                - text: Submitted by
+                - text: taesiri
+            - generic [ref=e853]:
+              - 'heading "PaddleOCR-VL: Boosting Multilingual Document Parsing via a 0.9B Ultra-Compact Vision-Language Model" [level=3] [ref=e854]':
+                - 'link "PaddleOCR-VL: Boosting Multilingual Document Parsing via a 0.9B Ultra-Compact Vision-Language Model" [ref=e855] [cursor=pointer]':
+                  - /url: /papers/2510.14528
+              - paragraph [ref=e857]: PaddleOCR-VL, a vision-language model combining NaViT-style dynamic resolution and ERNIE, achieves state-of-the-art performance in document parsing and element recognition with high efficiency.
+              - generic [ref=e858]:
+                - link "PaddlePaddle PaddlePaddle" [ref=e859] [cursor=pointer]:
+                  - /url: /PaddlePaddle
+                  - img "PaddlePaddle" [ref=e860]
+                  - generic [ref=e861]: PaddlePaddle
+                - generic [ref=e862]: ·
+                - generic [ref=e863]: Published on Oct 16, 2025
+            - generic [ref=e864]:
+              - link "Upvote 116" [ref=e867] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2510.14528
+                - generic [ref=e868]:
+                  - img [ref=e869]
+                  - text: Upvote
+                  - generic [ref=e871]: "116"
+              - link "GitHub 70.9k" [ref=e872] [cursor=pointer]:
+                - /url: https://github.com/PaddlePaddle/PaddleOCR
+                - img [ref=e873]
+                - generic [ref=e875]: GitHub
+                - generic [ref=e876]:
+                  - img [ref=e877]
+                  - generic [ref=e879]: 70.9k
+              - link "arXiv Page" [ref=e880] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2510.14528
+                - img [ref=e881]
+                - generic [ref=e883]: arXiv Page
+        - article [ref=e884]:
+          - generic [ref=e885]:
+            - generic [ref=e886]:
+              - link [ref=e887] [cursor=pointer]:
+                - /url: /papers/2602.09153
+              - generic:
+                - text: Submitted by
+                - text: nepfaff
+            - generic [ref=e888]:
+              - 'heading "SceneSmith: Agentic Generation of Simulation-Ready Indoor Scenes" [level=3] [ref=e889]':
+                - 'link "SceneSmith: Agentic Generation of Simulation-Ready Indoor Scenes" [ref=e890] [cursor=pointer]':
+                  - /url: /papers/2602.09153
+              - paragraph [ref=e892]: SceneSmith is a hierarchical agentic framework that generates simulation-ready indoor environments from natural language prompts through multiple stages involving VLM agents and integrated asset generation techniques.
+              - generic [ref=e893]:
+                - link "TRI-ML Toyota Research Institute" [ref=e894] [cursor=pointer]:
+                  - /url: /TRI-ML
+                  - img "TRI-ML" [ref=e895]
+                  - generic [ref=e896]: Toyota Research Institute
+                - generic [ref=e897]: ·
+                - generic [ref=e898]: Published on Feb 10, 2026
+            - generic [ref=e899]:
+              - link "Upvote 5" [ref=e902] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2602.09153
+                - generic [ref=e903]:
+                  - img [ref=e904]
+                  - text: Upvote
+                  - generic [ref=e906]: "5"
+              - link "GitHub 220" [ref=e907] [cursor=pointer]:
+                - /url: https://github.com/nepfaff/scenesmith
+                - img [ref=e908]
+                - generic [ref=e910]: GitHub
+                - generic [ref=e911]:
+                  - img [ref=e912]
+                  - generic [ref=e914]: "220"
+              - link "arXiv Page" [ref=e915] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2602.09153
+                - img [ref=e916]
+                - generic [ref=e918]: arXiv Page
+        - article [ref=e919]:
+          - generic [ref=e920]:
+            - generic [ref=e921]:
+              - link [ref=e922] [cursor=pointer]:
+                - /url: /papers/2511.01846
+              - generic:
+                - text: Submitted by
+                - text: taesiri
+            - generic [ref=e923]:
+              - heading "Towards Robust Mathematical Reasoning" [level=3] [ref=e924]:
+                - link "Towards Robust Mathematical Reasoning" [ref=e925] [cursor=pointer]:
+                  - /url: /papers/2511.01846
+              - paragraph [ref=e927]: IMO-Bench, a suite of advanced reasoning benchmarks, evaluates mathematical reasoning capabilities of foundation models using IMO-level problems and detailed grading guidelines, achieving gold-level performance with Gemini Deep Think.
+              - generic [ref=e928]:
+                - list [ref=e929]:
+                  - listitem "Yuri Chervonyi" [ref=e930]
+                  - listitem "Golnaz Ghiasi" [ref=e931]
+                  - listitem "Hoang H. Nguyen" [ref=e932]
+                  - listitem "Dawsen Hwang" [ref=e933]
+                  - listitem "Thang Luong" [ref=e934]
+                  - listitem [ref=e935]:
+                    - generic [ref=e936]: 20 authors
+                - generic [ref=e937]: ·
+                - generic [ref=e938]: Published on Nov 4, 2025
+            - generic [ref=e939]:
+              - link "Upvote 9" [ref=e942] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2511.01846
+                - generic [ref=e943]:
+                  - img [ref=e944]
+                  - text: Upvote
+                  - generic [ref=e946]: "9"
+              - link "GitHub 509" [ref=e947] [cursor=pointer]:
+                - /url: https://github.com/google-deepmind/superhuman
+                - img [ref=e948]
+                - generic [ref=e950]: GitHub
+                - generic [ref=e951]:
+                  - img [ref=e952]
+                  - generic [ref=e954]: "509"
+              - link "arXiv Page" [ref=e955] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2511.01846
+                - img [ref=e956]
+                - generic [ref=e958]: arXiv Page
+        - article [ref=e959]:
+          - generic [ref=e960]:
+            - generic [ref=e961]:
+              - link [ref=e962] [cursor=pointer]:
+                - /url: /papers/2512.07921
+              - generic:
+                - text: Submitted by
+                - text: taesiri
+            - generic [ref=e963]:
+              - 'heading "DeepCode: Open Agentic Coding" [level=3] [ref=e964]':
+                - 'link "DeepCode: Open Agentic Coding" [ref=e965] [cursor=pointer]':
+                  - /url: /papers/2512.07921
+              - paragraph [ref=e967]: DeepCode, a fully autonomous framework, addresses the challenges of document-to-codebase synthesis by optimizing information flow through source compression, structured indexing, knowledge injection, and error correction, achieving state-of-the-art performance and surpassing human experts.
+              - generic [ref=e968]:
+                - list [ref=e969]:
+                  - listitem "Chao Huang" [ref=e970]
+                  - listitem "Xubin Ren" [ref=e971]
+                  - listitem "Zirui Guo" [ref=e972]
+                  - listitem "Zhonghang Li" [ref=e973]
+                  - listitem "Zongwei Li" [ref=e974]
+                  - listitem [ref=e975]:
+                    - generic [ref=e976]: 5 authors
+                - generic [ref=e977]: ·
+                - generic [ref=e978]: Published on Dec 9, 2025
+            - generic [ref=e979]:
+              - link "Upvote 33" [ref=e982] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2512.07921
+                - generic [ref=e983]:
+                  - img [ref=e984]
+                  - text: Upvote
+                  - generic [ref=e986]: "33"
+              - link "GitHub 14.5k" [ref=e987] [cursor=pointer]:
+                - /url: https://github.com/HKUDS/DeepCode
+                - img [ref=e988]
+                - generic [ref=e990]: GitHub
+                - generic [ref=e991]:
+                  - img [ref=e992]
+                  - generic [ref=e994]: 14.5k
+              - link "arXiv Page" [ref=e995] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2512.07921
+                - img [ref=e996]
+                - generic [ref=e998]: arXiv Page
+        - article [ref=e999]:
+          - generic [ref=e1000]:
+            - link [ref=e1002] [cursor=pointer]:
+              - /url: /papers/2512.02498
+            - generic [ref=e1003]:
+              - 'heading "dots.ocr: Multilingual Document Layout Parsing in a Single Vision-Language Model" [level=3] [ref=e1004]':
+                - 'link "dots.ocr: Multilingual Document Layout Parsing in a Single Vision-Language Model" [ref=e1005] [cursor=pointer]':
+                  - /url: /papers/2512.02498
+              - paragraph [ref=e1007]: A unified Vision-Language Model, dots.ocr, achieves state-of-the-art performance on document layout parsing by jointly learning layout detection, text recognition, and relational understanding, validated on OmniDocBench and XDocParse benchmarks.
+              - generic [ref=e1008]:
+                - link "rednote-hilab rednote-hilab" [ref=e1009] [cursor=pointer]:
+                  - /url: /rednote-hilab
+                  - img "rednote-hilab" [ref=e1010]
+                  - generic [ref=e1011]: rednote-hilab
+                - generic [ref=e1012]: ·
+                - generic [ref=e1013]: Published on Dec 2, 2025
+            - generic [ref=e1014]:
+              - link "Upvote 2" [ref=e1017] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2512.02498
+                - generic [ref=e1018]:
+                  - img [ref=e1019]
+                  - text: Upvote
+                  - generic [ref=e1021]: "2"
+              - link "GitHub 7.66k" [ref=e1022] [cursor=pointer]:
+                - /url: https://github.com/rednote-hilab/dots.ocr
+                - img [ref=e1023]
+                - generic [ref=e1025]: GitHub
+                - generic [ref=e1026]:
+                  - img [ref=e1027]
+                  - generic [ref=e1029]: 7.66k
+              - link "arXiv Page" [ref=e1030] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2512.02498
+                - img [ref=e1031]
+                - generic [ref=e1033]: arXiv Page
+        - article [ref=e1034]:
+          - generic [ref=e1035]:
+            - generic [ref=e1036]:
+              - link [ref=e1037] [cursor=pointer]:
+                - /url: /papers/2512.24601
+              - generic:
+                - text: Submitted by
+                - text: rajkumarrawal
+            - generic [ref=e1038]:
+              - heading "Recursive Language Models" [level=3] [ref=e1039]:
+                - link "Recursive Language Models" [ref=e1040] [cursor=pointer]:
+                  - /url: /papers/2512.24601
+              - paragraph [ref=e1042]: We study allowing large language models (LLMs) to process arbitrarily long prompts through the lens of inference-time scaling. We propose Recursive Language Models (RLMs), a general inference strategy that treats long prompts as part of an external environment and allows the LLM to programmatically examine, decompose, and recursively call itself over snippets of the prompt. We find that RLMs successfully handle inputs up to two orders of magnitude beyond model context windows and, even for shorter prompts, dramatically outperform the quality of base LLMs and common long-context scaffolds across four diverse long-context tasks, while having comparable (or cheaper) cost per query.
+              - generic [ref=e1043]:
+                - link "MIT Massachusetts Institute of Technology" [ref=e1044] [cursor=pointer]:
+                  - /url: /MIT
+                  - img "MIT" [ref=e1045]
+                  - generic [ref=e1046]: Massachusetts Institute of Technology
+                - generic [ref=e1047]: ·
+                - generic [ref=e1048]: Published on Dec 31, 2025
+            - generic [ref=e1049]:
+              - link "Upvote 87" [ref=e1052] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2512.24601
+                - generic [ref=e1053]:
+                  - img [ref=e1054]
+                  - text: Upvote
+                  - generic [ref=e1056]: "87"
+              - link "GitHub 2.56k" [ref=e1057] [cursor=pointer]:
+                - /url: https://github.com/alexzhang13/rlm
+                - img [ref=e1058]
+                - generic [ref=e1060]: GitHub
+                - generic [ref=e1061]:
+                  - img [ref=e1062]
+                  - generic [ref=e1064]: 2.56k
+              - link "arXiv Page" [ref=e1065] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2512.24601
+                - img [ref=e1066]
+                - generic [ref=e1068]: arXiv Page
+        - article [ref=e1069]:
+          - generic [ref=e1070]:
+            - generic [ref=e1071]:
+              - link [ref=e1072] [cursor=pointer]:
+                - /url: /papers/2407.16741
+              - generic:
+                - text: Submitted by
+                - text: akhaliq
+            - generic [ref=e1073]:
+              - 'heading "OpenDevin: An Open Platform for AI Software Developers as Generalist Agents" [level=3] [ref=e1074]':
+                - 'link "OpenDevin: An Open Platform for AI Software Developers as Generalist Agents" [ref=e1075] [cursor=pointer]':
+                  - /url: /papers/2407.16741
+              - paragraph [ref=e1077]: OpenDevin is a platform for developing AI agents that interact with the world by writing code, using command lines, and browsing the web, with support for multiple agents and evaluation benchmarks.
+              - generic [ref=e1078]:
+                - list [ref=e1079]:
+                  - listitem "RTT1" [ref=e1080]
+                  - listitem "frankxu" [ref=e1081]
+                  - listitem "yufansong" [ref=e1082]
+                  - listitem "liboxuanhk" [ref=e1083]
+                  - listitem "xingyaoww" [ref=e1084]
+                  - listitem [ref=e1085]:
+                    - generic [ref=e1086]: 24 authors
+                - generic [ref=e1087]: ·
+                - generic [ref=e1088]: Published on Jul 24, 2024
+            - generic [ref=e1089]:
+              - link "Upvote 76" [ref=e1092] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2407.16741
+                - generic [ref=e1093]:
+                  - img [ref=e1094]
+                  - text: Upvote
+                  - generic [ref=e1096]: "76"
+              - link "GitHub 67.9k" [ref=e1097] [cursor=pointer]:
+                - /url: https://github.com/opendevin/opendevin
+                - img [ref=e1098]
+                - generic [ref=e1100]: GitHub
+                - generic [ref=e1101]:
+                  - img [ref=e1102]
+                  - generic [ref=e1104]: 67.9k
+              - link "arXiv Page" [ref=e1105] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2407.16741
+                - img [ref=e1106]
+                - generic [ref=e1108]: arXiv Page
+        - article [ref=e1109]:
+          - generic [ref=e1110]:
+            - generic [ref=e1111]:
+              - link [ref=e1112] [cursor=pointer]:
+                - /url: /papers/2602.10090
+              - generic:
+                - text: Submitted by
+                - text: ChilleD
+            - generic [ref=e1113]:
+              - 'heading "Agent World Model: Infinity Synthetic Environments for Agentic Reinforcement Learning" [level=3] [ref=e1114]':
+                - 'link "Agent World Model: Infinity Synthetic Environments for Agentic Reinforcement Learning" [ref=e1115] [cursor=pointer]':
+                  - /url: /papers/2602.10090
+              - paragraph [ref=e1117]: Large language model agents trained in synthetic environments with code-driven simulations and database-backed state transitions demonstrate superior out-of-distribution generalization compared to traditional benchmark-specific approaches.
+              - generic [ref=e1118]:
+                - link "Snowflake Snowflake" [ref=e1119] [cursor=pointer]:
+                  - /url: /Snowflake
+                  - img "Snowflake" [ref=e1120]
+                  - generic [ref=e1121]: Snowflake
+                - generic [ref=e1122]: ·
+                - generic [ref=e1123]: Published on Feb 11, 2026
+            - generic [ref=e1124]:
+              - link "Upvote 48" [ref=e1127] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2602.10090
+                - generic [ref=e1128]:
+                  - img [ref=e1129]
+                  - text: Upvote
+                  - generic [ref=e1131]: "48"
+              - link "GitHub 210" [ref=e1132] [cursor=pointer]:
+                - /url: https://github.com/Snowflake-Labs/agent-world-model
+                - img [ref=e1133]
+                - generic [ref=e1135]: GitHub
+                - generic [ref=e1136]:
+                  - img [ref=e1137]
+                  - generic [ref=e1139]: "210"
+              - link "arXiv Page" [ref=e1140] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2602.10090
+                - img [ref=e1141]
+                - generic [ref=e1143]: arXiv Page
+        - article [ref=e1144]:
+          - generic [ref=e1145]:
+            - link [ref=e1147] [cursor=pointer]:
+              - /url: /papers/2410.05779
+            - generic [ref=e1148]:
+              - 'heading "LightRAG: Simple and Fast Retrieval-Augmented Generation" [level=3] [ref=e1149]':
+                - 'link "LightRAG: Simple and Fast Retrieval-Augmented Generation" [ref=e1150] [cursor=pointer]':
+                  - /url: /papers/2410.05779
+              - paragraph [ref=e1152]: LightRAG improves Retrieval-Augmented Generation by integrating graph structures for enhanced contextual awareness and efficient information retrieval, achieving better accuracy and response times.
+              - generic [ref=e1153]:
+                - list [ref=e1154]:
+                  - listitem "Chao Huang" [ref=e1155]
+                  - listitem "Tu Ao" [ref=e1156]
+                  - listitem "Yanhua Yu" [ref=e1157]
+                  - listitem "Lianghao Xia" [ref=e1158]
+                  - listitem "Zirui Guo" [ref=e1159]
+                  - listitem [ref=e1160]:
+                    - generic [ref=e1161]: 5 authors
+                - generic [ref=e1162]: ·
+                - generic [ref=e1163]: Published on Oct 8, 2024
+            - generic [ref=e1164]:
+              - link "Upvote 28" [ref=e1167] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2410.05779
+                - generic [ref=e1168]:
+                  - img [ref=e1169]
+                  - text: Upvote
+                  - generic [ref=e1171]: "28"
+              - link "GitHub 28.4k" [ref=e1172] [cursor=pointer]:
+                - /url: https://github.com/hkuds/lightrag
+                - img [ref=e1173]
+                - generic [ref=e1175]: GitHub
+                - generic [ref=e1176]:
+                  - img [ref=e1177]
+                  - generic [ref=e1179]: 28.4k
+              - link "arXiv Page" [ref=e1180] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2410.05779
+                - img [ref=e1181]
+                - generic [ref=e1183]: arXiv Page
+        - article [ref=e1184]:
+          - generic [ref=e1185]:
+            - link [ref=e1187] [cursor=pointer]:
+              - /url: /papers/2403.08299
+            - generic [ref=e1188]:
+              - 'heading "AutoDev: Automated AI-Driven Development" [level=3] [ref=e1189]':
+                - 'link "AutoDev: Automated AI-Driven Development" [ref=e1190] [cursor=pointer]':
+                  - /url: /papers/2403.08299
+              - paragraph [ref=e1192]: AutoDev is an AI-driven software development framework that automates complex engineering tasks within a secure Docker environment, achieving high performance in code and test generation.
+              - generic [ref=e1193]:
+                - list [ref=e1194]:
+                  - listitem "Neel Sundaresan" [ref=e1195]
+                  - listitem "Roshanak Zilouchian Moghaddam" [ref=e1196]
+                  - listitem "Jinu Jang" [ref=e1197]
+                  - listitem "Anisha Agarwal" [ref=e1198]
+                  - listitem "Michele Tufano" [ref=e1199]
+                  - listitem [ref=e1200]:
+                    - generic [ref=e1201]: 5 authors
+                - generic [ref=e1202]: ·
+                - generic [ref=e1203]: Published on Mar 13, 2024
+            - generic [ref=e1204]:
+              - link "Upvote 1" [ref=e1207] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2403.08299
+                - generic [ref=e1208]:
+                  - img [ref=e1209]
+                  - text: Upvote
+                  - generic [ref=e1211]: "1"
+              - link "GitHub 1.12k" [ref=e1212] [cursor=pointer]:
+                - /url: https://github.com/vxcontrol/pentagi
+                - img [ref=e1213]
+                - generic [ref=e1215]: GitHub
+                - generic [ref=e1216]:
+                  - img [ref=e1217]
+                  - generic [ref=e1219]: 1.12k
+              - link "arXiv Page" [ref=e1220] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2403.08299
+                - img [ref=e1221]
+                - generic [ref=e1223]: arXiv Page
+        - article [ref=e1224]:
+          - generic [ref=e1225]:
+            - generic [ref=e1226]:
+              - link [ref=e1227] [cursor=pointer]:
+                - /url: /papers/2509.18154
+              - generic:
+                - text: Submitted by
+                - text: taesiri
+            - generic [ref=e1228]:
+              - 'heading "MiniCPM-V 4.5: Cooking Efficient MLLMs via Architecture, Data, and Training Recipe" [level=3] [ref=e1229]':
+                - 'link "MiniCPM-V 4.5: Cooking Efficient MLLMs via Architecture, Data, and Training Recipe" [ref=e1230] [cursor=pointer]':
+                  - /url: /papers/2509.18154
+              - paragraph [ref=e1232]: MiniCPM-V 4.5, a 8B parameter multimodal large language model, achieves high performance and efficiency through a unified 3D-Resampler architecture, a unified learning paradigm, and a hybrid reinforcement learning strategy.
+              - generic [ref=e1233]:
+                - list [ref=e1234]:
+                  - listitem "tc-mb" [ref=e1235]
+                  - listitem "HwwwH" [ref=e1236]
+                  - listitem "yuzaa" [ref=e1237]
+                  - listitem "ZefanW" [ref=e1238]
+                  - listitem "Yirany" [ref=e1239]
+                  - listitem [ref=e1240]:
+                    - generic [ref=e1241]: 34 authors
+                - generic [ref=e1242]: ·
+                - generic [ref=e1243]: Published on Sep 17, 2025
+            - generic [ref=e1244]:
+              - link "Upvote 55" [ref=e1247] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2509.18154
+                - generic [ref=e1248]:
+                  - img [ref=e1249]
+                  - text: Upvote
+                  - generic [ref=e1251]: "55"
+              - link "GitHub 23.8k" [ref=e1252] [cursor=pointer]:
+                - /url: https://github.com/OpenBMB/MiniCPM-V
+                - img [ref=e1253]
+                - generic [ref=e1255]: GitHub
+                - generic [ref=e1256]:
+                  - img [ref=e1257]
+                  - generic [ref=e1259]: 23.8k
+              - link "arXiv Page" [ref=e1260] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2509.18154
+                - img [ref=e1261]
+                - generic [ref=e1263]: arXiv Page
+        - article [ref=e1264]:
+          - generic [ref=e1265]:
+            - generic [ref=e1266]:
+              - link [ref=e1267] [cursor=pointer]:
+                - /url: /papers/2602.12205
+              - generic:
+                - text: Submitted by
+                - text: myownskyW7
+            - generic [ref=e1268]:
+              - 'heading "DeepGen 1.0: A Lightweight Unified Multimodal Model for Advancing Image Generation and Editing" [level=3] [ref=e1269]':
+                - 'link "DeepGen 1.0: A Lightweight Unified Multimodal Model for Advancing Image Generation and Editing" [ref=e1270] [cursor=pointer]':
+                  - /url: /papers/2602.12205
+              - paragraph [ref=e1272]: A lightweight 5B unified multimodal model achieves competitive performance through hierarchical feature extraction, learnable think tokens, and progressive training strategies including alignment pre-training, joint supervised fine-tuning, and reinforcement learning with MR-GRPO.
+              - generic [ref=e1273]:
+                - link "sii-research Shanghai Innovation Institute" [ref=e1274] [cursor=pointer]:
+                  - /url: /sii-research
+                  - img "sii-research" [ref=e1275]
+                  - generic [ref=e1276]: Shanghai Innovation Institute
+                - generic [ref=e1277]: ·
+                - generic [ref=e1278]: Published on Feb 13, 2026
+            - generic [ref=e1279]:
+              - link "Upvote 76" [ref=e1282] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2602.12205
+                - generic [ref=e1283]:
+                  - img [ref=e1284]
+                  - text: Upvote
+                  - generic [ref=e1286]: "76"
+              - link "GitHub 94" [ref=e1287] [cursor=pointer]:
+                - /url: https://github.com/DeepGenTeam/DeepGen
+                - img [ref=e1288]
+                - generic [ref=e1290]: GitHub
+                - generic [ref=e1291]:
+                  - img [ref=e1292]
+                  - generic [ref=e1294]: "94"
+              - link "arXiv Page" [ref=e1295] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2602.12205
+                - img [ref=e1296]
+                - generic [ref=e1298]: arXiv Page
+        - article [ref=e1299]:
+          - generic [ref=e1300]:
+            - link [ref=e1302] [cursor=pointer]:
+              - /url: /papers/2501.13956
+            - generic [ref=e1303]:
+              - 'heading "Zep: A Temporal Knowledge Graph Architecture for Agent Memory" [level=3] [ref=e1304]':
+                - 'link "Zep: A Temporal Knowledge Graph Architecture for Agent Memory" [ref=e1305] [cursor=pointer]':
+                  - /url: /papers/2501.13956
+              - paragraph [ref=e1307]: Zep, a memory layer service, outperforms MemGPT in the DMR benchmark and LongMemEval by excelling in dynamic knowledge integration and temporal reasoning, critical for enterprise use cases.
+              - generic [ref=e1308]:
+                - list [ref=e1309]:
+                  - listitem "Jack Ryan" [ref=e1310]
+                  - listitem "Travis Beauvais" [ref=e1311]
+                  - listitem "Preston Rasmussen" [ref=e1312]
+                  - listitem "danielchalef" [ref=e1313]
+                  - listitem "paulzep" [ref=e1314]
+                  - listitem [ref=e1315]:
+                    - generic [ref=e1316]: 5 authors
+                - generic [ref=e1317]: ·
+                - generic [ref=e1318]: Published on Jan 21, 2025
+            - generic [ref=e1319]:
+              - link "Upvote 9" [ref=e1322] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2501.13956
+                - generic [ref=e1323]:
+                  - img [ref=e1324]
+                  - text: Upvote
+                  - generic [ref=e1326]: "9"
+              - link "GitHub 22.8k" [ref=e1327] [cursor=pointer]:
+                - /url: https://github.com/getzep/graphiti
+                - img [ref=e1328]
+                - generic [ref=e1330]: GitHub
+                - generic [ref=e1331]:
+                  - img [ref=e1332]
+                  - generic [ref=e1334]: 22.8k
+              - link "arXiv Page" [ref=e1335] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2501.13956
+                - img [ref=e1336]
+                - generic [ref=e1338]: arXiv Page
+        - article [ref=e1339]:
+          - generic [ref=e1340]:
+            - generic [ref=e1341]:
+              - link [ref=e1342] [cursor=pointer]:
+                - /url: /papers/2508.19205
+              - generic:
+                - text: Submitted by
+                - text: unilm
+            - generic [ref=e1343]:
+              - heading "VibeVoice Technical Report" [level=3] [ref=e1344]:
+                - link "VibeVoice Technical Report" [ref=e1345] [cursor=pointer]:
+                  - /url: /papers/2508.19205
+              - paragraph [ref=e1347]: VibeVoice synthesizes long-form multi-speaker speech using next-token diffusion and a highly efficient continuous speech tokenizer, achieving superior performance and fidelity.
+              - generic [ref=e1348]:
+                - link "MicrosoftResearch Microsoft Research" [ref=e1349] [cursor=pointer]:
+                  - /url: /MicrosoftResearch
+                  - img "MicrosoftResearch" [ref=e1350]
+                  - generic [ref=e1351]: Microsoft Research
+                - generic [ref=e1352]: ·
+                - generic [ref=e1353]: Published on Aug 27, 2025
+            - generic [ref=e1354]:
+              - link "Upvote 143" [ref=e1357] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2508.19205
+                - generic [ref=e1358]:
+                  - img [ref=e1359]
+                  - text: Upvote
+                  - generic [ref=e1361]: "143"
+              - link "GitHub 23.3k" [ref=e1362] [cursor=pointer]:
+                - /url: https://github.com/microsoft/VibeVoice
+                - img [ref=e1363]
+                - generic [ref=e1365]: GitHub
+                - generic [ref=e1366]:
+                  - img [ref=e1367]
+                  - generic [ref=e1369]: 23.3k
+              - link "arXiv Page" [ref=e1370] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2508.19205
+                - img [ref=e1371]
+                - generic [ref=e1373]: arXiv Page
+        - article [ref=e1374]:
+          - generic [ref=e1375]:
+            - link [ref=e1377] [cursor=pointer]:
+              - /url: /papers/2502.06855
+            - generic [ref=e1378]:
+              - heading "Self-Supervised Prompt Optimization" [level=3] [ref=e1379]:
+                - link "Self-Supervised Prompt Optimization" [ref=e1380] [cursor=pointer]:
+                  - /url: /papers/2502.06855
+              - paragraph [ref=e1382]: A self-supervised framework optimizes prompts for both closed and open-ended tasks by evaluating LLM outputs without external references, reducing costs and required data.
+              - generic [ref=e1383]:
+                - list [ref=e1384]:
+                  - listitem "alexanderwu" [ref=e1385]
+                  - listitem "leavendough" [ref=e1386]
+                  - listitem "MoshiQAQ" [ref=e1387]
+                  - listitem "didiforhugface" [ref=e1388]
+                  - listitem "XiangJinYu" [ref=e1389]
+                  - listitem [ref=e1390]:
+                    - generic [ref=e1391]: 9 authors
+                - generic [ref=e1392]: ·
+                - generic [ref=e1393]: Published on Feb 8, 2025
+            - generic [ref=e1394]:
+              - link "Upvote 16" [ref=e1397] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2502.06855
+                - generic [ref=e1398]:
+                  - img [ref=e1399]
+                  - text: Upvote
+                  - generic [ref=e1401]: "16"
+              - link "GitHub 64.3k" [ref=e1402] [cursor=pointer]:
+                - /url: https://github.com/geekan/metagpt
+                - img [ref=e1403]
+                - generic [ref=e1405]: GitHub
+                - generic [ref=e1406]:
+                  - img [ref=e1407]
+                  - generic [ref=e1409]: 64.3k
+              - link "arXiv Page" [ref=e1410] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2502.06855
+                - img [ref=e1411]
+                - generic [ref=e1413]: arXiv Page
+        - article [ref=e1414]:
+          - generic [ref=e1415]:
+            - link [ref=e1417] [cursor=pointer]:
+              - /url: /papers/2508.02739
+            - generic [ref=e1418]:
+              - 'heading "Kronos: A Foundation Model for the Language of Financial Markets" [level=3] [ref=e1419]':
+                - 'link "Kronos: A Foundation Model for the Language of Financial Markets" [ref=e1420] [cursor=pointer]':
+                  - /url: /papers/2508.02739
+              - paragraph [ref=e1422]: Kronos, a specialized pre-training framework for financial K-line data, outperforms existing models in forecasting and synthetic data generation through a unique tokenizer and autoregressive pre-training on a large dataset.
+              - generic [ref=e1423]:
+                - list [ref=e1424]:
+                  - listitem "Wei Xu" [ref=e1425]
+                  - listitem "Bohan Zhao" [ref=e1426]
+                  - listitem "Shuo Chen" [ref=e1427]
+                  - listitem "Zongliang Fu" [ref=e1428]
+                  - listitem "Yu Shi" [ref=e1429]
+                  - listitem [ref=e1430]:
+                    - generic [ref=e1431]: 7 authors
+                - generic [ref=e1432]: ·
+                - generic [ref=e1433]: Published on Aug 2, 2025
+            - generic [ref=e1434]:
+              - link "Upvote 2" [ref=e1437] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2508.02739
+                - generic [ref=e1438]:
+                  - img [ref=e1439]
+                  - text: Upvote
+                  - generic [ref=e1441]: "2"
+              - link "GitHub 10.6k" [ref=e1442] [cursor=pointer]:
+                - /url: https://github.com/shiyu-coder/Kronos
+                - img [ref=e1443]
+                - generic [ref=e1445]: GitHub
+                - generic [ref=e1446]:
+                  - img [ref=e1447]
+                  - generic [ref=e1449]: 10.6k
+              - link "arXiv Page" [ref=e1450] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2508.02739
+                - img [ref=e1451]
+                - generic [ref=e1453]: arXiv Page
+        - article [ref=e1454]:
+          - generic [ref=e1455]:
+            - generic [ref=e1456]:
+              - link [ref=e1457] [cursor=pointer]:
+                - /url: /papers/2602.07085
+              - generic:
+                - text: Submitted by
+                - text: yangzhi1
+            - generic [ref=e1458]:
+              - 'heading "QuantaAlpha: An Evolutionary Framework for LLM-Driven Alpha Mining" [level=3] [ref=e1459]':
+                - 'link "QuantaAlpha: An Evolutionary Framework for LLM-Driven Alpha Mining" [ref=e1460] [cursor=pointer]':
+                  - /url: /papers/2602.07085
+              - paragraph [ref=e1462]: Financial markets are noisy and non-stationary, making alpha mining highly sensitive to noise in backtesting results and sudden market regime shifts. While recent agentic frameworks improve alpha mining automation, they often lack controllable multi-round search and reliable reuse of validated experience. To address these challenges, we propose QuantaAlpha, an evolutionary alpha mining framework that treats each end-to-end mining run as a trajectory and improves factors through trajectory-level mutation and crossover operations. QuantaAlpha localizes suboptimal steps in each trajectory for targeted revision and recombines complementary high-reward segments to reuse effective patterns, enabling structured exploration and refinement across mining iterations. During factor generation, QuantaAlpha enforces semantic consistency across the hypothesis, factor expression, and executable code, while constraining the complexity and redundancy of the generated factor to mitigate crowding. Extensive experiments on the China Securities Index 300 (CSI 300) demonstrate consistent gains over strong baseline models and prior agentic systems. When utilizing GPT-5.2, QuantaAlpha achieves an Information Coefficient (IC) of 0.1501, with an Annualized Rate of Return (ARR) of 27.75% and a Maximum Drawdown (MDD) of 7.98%. Moreover, factors mined on CSI 300 transfer effectively to the China Securities Index 500 (CSI 500) and the Standard & Poor's 500 Index (S&P 500), delivering 160% and 137% cumulative excess return over four years, respectively, which indicates strong robustness of QuantaAlpha under market distribution shifts.
+              - generic [ref=e1463]:
+                - link "QuantaAlpha QuantaAlpha" [ref=e1464] [cursor=pointer]:
+                  - /url: /QuantaAlpha
+                  - img "QuantaAlpha" [ref=e1465]
+                  - generic [ref=e1466]: QuantaAlpha
+                - generic [ref=e1467]: ·
+                - generic [ref=e1468]: Published on Feb 6, 2026
+            - generic [ref=e1469]:
+              - link "Upvote 180" [ref=e1472] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2602.07085
+                - generic [ref=e1473]:
+                  - img [ref=e1474]
+                  - text: Upvote
+                  - generic [ref=e1476]: "180"
+              - link "GitHub 326" [ref=e1477] [cursor=pointer]:
+                - /url: https://github.com/QuantaAlpha/QuantaAlpha
+                - img [ref=e1478]
+                - generic [ref=e1480]: GitHub
+                - generic [ref=e1481]:
+                  - img [ref=e1482]
+                  - generic [ref=e1484]: "326"
+              - link "arXiv Page" [ref=e1485] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2602.07085
+                - img [ref=e1486]
+                - generic [ref=e1488]: arXiv Page
+        - article [ref=e1489]:
+          - generic [ref=e1490]:
+            - link [ref=e1492] [cursor=pointer]:
+              - /url: /papers/2509.06926
+            - generic [ref=e1493]:
+              - heading "Continuous Audio Language Models" [level=3] [ref=e1494]:
+                - link "Continuous Audio Language Models" [ref=e1495] [cursor=pointer]:
+                  - /url: /papers/2509.06926
+              - paragraph [ref=e1497]: Audio Language Models (ALM) have emerged as the dominant paradigm for speech and music generation by representing audio as sequences of discrete tokens. Yet, unlike text tokens, which are invertible, audio tokens are extracted from lossy codecs with a limited bitrate. As a consequence, increasing audio quality requires generating more tokens, which imposes a trade-off between fidelity and computational cost. We address this issue by studying Continuous Audio Language Models (CALM). These models instantiate a large Transformer backbone that produces a contextual embedding at every timestep. This sequential information then conditions an MLP that generates the next continuous frame of an audio VAE through consistency modeling. By avoiding lossy compression, CALM achieves higher quality at lower computational cost than their discrete counterpart. Experiments on speech and music demonstrate improved efficiency and fidelity over state-of-the-art discrete audio language models, facilitating lightweight, high-quality audio generation. Samples are available at https://continuous-audio-language-models.github.io
+              - generic [ref=e1498]:
+                - list [ref=e1499]:
+                  - listitem "Défossez Alexandre" [ref=e1500]
+                  - listitem "Zeghidour Neil" [ref=e1501]
+                  - listitem "Roebel Axel" [ref=e1502]
+                  - listitem "Orsini Manu" [ref=e1503]
+                  - listitem "Rouard Simon" [ref=e1504]
+                  - listitem [ref=e1505]:
+                    - generic [ref=e1506]: 5 authors
+                - generic [ref=e1507]: ·
+                - generic [ref=e1508]: Published on Sep 9, 2025
+            - generic [ref=e1509]:
+              - link "Upvote 3" [ref=e1512] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2509.06926
+                - generic [ref=e1513]:
+                  - img [ref=e1514]
+                  - text: Upvote
+                  - generic [ref=e1516]: "3"
+              - link "GitHub 3.26k" [ref=e1517] [cursor=pointer]:
+                - /url: https://github.com/kyutai-labs/pocket-tts
+                - img [ref=e1518]
+                - generic [ref=e1520]: GitHub
+                - generic [ref=e1521]:
+                  - img [ref=e1522]
+                  - generic [ref=e1524]: 3.26k
+              - link "arXiv Page" [ref=e1525] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2509.06926
+                - img [ref=e1526]
+                - generic [ref=e1528]: arXiv Page
+        - article [ref=e1529]:
+          - generic [ref=e1530]:
+            - generic [ref=e1531]:
+              - link [ref=e1532] [cursor=pointer]:
+                - /url: /papers/2403.13372
+              - generic:
+                - text: Submitted by
+                - text: akhaliq
+            - generic [ref=e1533]:
+              - 'heading "LlamaFactory: Unified Efficient Fine-Tuning of 100+ Language Models" [level=3] [ref=e1534]':
+                - 'link "LlamaFactory: Unified Efficient Fine-Tuning of 100+ Language Models" [ref=e1535] [cursor=pointer]':
+                  - /url: /papers/2403.13372
+              - paragraph [ref=e1537]: LlamaFactory is a unified framework enabling efficient fine-tuning of large language models across various tasks using a web-based user interface.
+              - generic [ref=e1538]:
+                - list [ref=e1539]:
+                  - listitem "Zheyan Luo" [ref=e1540]
+                  - listitem "Richong Zhang" [ref=e1541]
+                  - listitem "CoolColoury" [ref=e1542]
+                  - listitem "OnlyAR" [ref=e1543]
+                  - listitem "hiyouga" [ref=e1544]
+                  - listitem [ref=e1545]:
+                    - generic [ref=e1546]: 5 authors
+                - generic [ref=e1547]: ·
+                - generic [ref=e1548]: Published on Mar 20, 2024
+            - generic [ref=e1549]:
+              - link "Upvote 178" [ref=e1552] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2403.13372
+                - generic [ref=e1553]:
+                  - img [ref=e1554]
+                  - text: Upvote
+                  - generic [ref=e1556]: "178"
+              - link "GitHub 67.3k" [ref=e1557] [cursor=pointer]:
+                - /url: https://github.com/hiyouga/LLaMA-Factory
+                - img [ref=e1558]
+                - generic [ref=e1560]: GitHub
+                - generic [ref=e1561]:
+                  - img [ref=e1562]
+                  - generic [ref=e1564]: 67.3k
+              - link "arXiv Page" [ref=e1565] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2403.13372
+                - img [ref=e1566]
+                - generic [ref=e1568]: arXiv Page
+        - article [ref=e1569]:
+          - generic [ref=e1570]:
+            - generic [ref=e1571]:
+              - link [ref=e1572] [cursor=pointer]:
+                - /url: /papers/2602.13344
+              - generic:
+                - text: Submitted by
+                - text: taesiri
+            - generic [ref=e1573]:
+              - heading "FireRed-Image-Edit-1.0 Techinical Report" [level=3] [ref=e1574]:
+                - link "FireRed-Image-Edit-1.0 Techinical Report" [ref=e1575] [cursor=pointer]:
+                  - /url: /papers/2602.13344
+              - paragraph [ref=e1577]: FireRed-Image-Edit uses a diffusion transformer with optimized data curation and training methods to achieve state-of-the-art performance in instruction-based image editing, supported by a comprehensive benchmark and novel techniques for data efficiency and optimization stability.
+              - generic [ref=e1578]:
+                - list [ref=e1579]:
+                  - listitem "Cunzheng Wang" [ref=e1580]
+                  - listitem "Chen Li" [ref=e1581]
+                  - listitem "Chao Hui" [ref=e1582]
+                  - listitem "Changhao Qiao" [ref=e1583]
+                  - listitem "Super Intelligence Team" [ref=e1584]
+                  - listitem [ref=e1585]:
+                    - generic [ref=e1586]: 19 authors
+                - generic [ref=e1587]: ·
+                - generic [ref=e1588]: Published on Feb 13, 2026
+            - generic [ref=e1589]:
+              - link "Upvote 3" [ref=e1592] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2602.13344
+                - generic [ref=e1593]:
+                  - img [ref=e1594]
+                  - text: Upvote
+                  - generic [ref=e1596]: "3"
+              - link "GitHub 387" [ref=e1597] [cursor=pointer]:
+                - /url: https://github.com/FireRedTeam/FireRed-Image-Edit
+                - img [ref=e1598]
+                - generic [ref=e1600]: GitHub
+                - generic [ref=e1601]:
+                  - img [ref=e1602]
+                  - generic [ref=e1604]: "387"
+              - link "arXiv Page" [ref=e1605] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2602.13344
+                - img [ref=e1606]
+                - generic [ref=e1608]: arXiv Page
+        - article [ref=e1609]:
+          - generic [ref=e1610]:
+            - generic [ref=e1611]:
+              - link [ref=e1612] [cursor=pointer]:
+                - /url: /papers/2601.03233
+              - generic:
+                - text: Submitted by
+                - text: taesiri
+            - generic [ref=e1613]:
+              - 'heading "LTX-2: Efficient Joint Audio-Visual Foundation Model" [level=3] [ref=e1614]':
+                - 'link "LTX-2: Efficient Joint Audio-Visual Foundation Model" [ref=e1615] [cursor=pointer]':
+                  - /url: /papers/2601.03233
+              - paragraph [ref=e1617]: LTX-2 is an open-source audiovisual diffusion model that generates synchronized video and audio content using a dual-stream transformer architecture with cross-modal attention and classifier-free guidance.
+              - generic [ref=e1618]:
+                - list [ref=e1619]:
+                  - listitem "kvochko" [ref=e1620]
+                  - listitem "jacobitterman" [ref=e1621]
+                  - listitem "nisan" [ref=e1622]
+                  - listitem "benibraz" [ref=e1623]
+                  - listitem "yoavhacohen" [ref=e1624]
+                  - listitem [ref=e1625]:
+                    - generic [ref=e1626]: 29 authors
+                - generic [ref=e1627]: ·
+                - generic [ref=e1628]: Published on Jan 7, 2026
+            - generic [ref=e1629]:
+              - link "Upvote 153" [ref=e1632] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2601.03233
+                - generic [ref=e1633]:
+                  - img [ref=e1634]
+                  - text: Upvote
+                  - generic [ref=e1636]: "153"
+              - link "GitHub 3.93k" [ref=e1637] [cursor=pointer]:
+                - /url: https://github.com/Lightricks/LTX-2
+                - img [ref=e1638]
+                - generic [ref=e1640]: GitHub
+                - generic [ref=e1641]:
+                  - img [ref=e1642]
+                  - generic [ref=e1644]: 3.93k
+              - link "arXiv Page" [ref=e1645] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2601.03233
+                - img [ref=e1646]
+                - generic [ref=e1648]: arXiv Page
+        - article [ref=e1649]:
+          - generic [ref=e1650]:
+            - link [ref=e1652] [cursor=pointer]:
+              - /url: /papers/2502.05512
+            - generic [ref=e1653]:
+              - 'heading "IndexTTS: An Industrial-Level Controllable and Efficient Zero-Shot Text-To-Speech System" [level=3] [ref=e1654]':
+                - 'link "IndexTTS: An Industrial-Level Controllable and Efficient Zero-Shot Text-To-Speech System" [ref=e1655] [cursor=pointer]':
+                  - /url: /papers/2502.05512
+              - paragraph [ref=e1657]: IndexTTS, an enhanced text-to-speech system combining XTTS and Tortoise models, offers improved naturalness, enhanced voice cloning, and controllable usage through hybrid character-pinyin modeling and optimized vector quantization.
+              - generic [ref=e1658]:
+                - list [ref=e1659]:
+                  - listitem "Lu Wang" [ref=e1660]
+                  - listitem "Jinchao Wang" [ref=e1661]
+                  - listitem "Jingchen Shu" [ref=e1662]
+                  - listitem "Siyi Zhou" [ref=e1663]
+                  - listitem "Wei Deng" [ref=e1664]
+                  - listitem [ref=e1665]:
+                    - generic [ref=e1666]: 5 authors
+                - generic [ref=e1667]: ·
+                - generic [ref=e1668]: Published on Feb 8, 2025
+            - generic [ref=e1669]:
+              - link "Upvote 7" [ref=e1672] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2502.05512
+                - generic [ref=e1673]:
+                  - img [ref=e1674]
+                  - text: Upvote
+                  - generic [ref=e1676]: "7"
+              - link "GitHub 18.8k" [ref=e1677] [cursor=pointer]:
+                - /url: https://github.com/index-tts/index-tts
+                - img [ref=e1678]
+                - generic [ref=e1680]: GitHub
+                - generic [ref=e1681]:
+                  - img [ref=e1682]
+                  - generic [ref=e1684]: 18.8k
+              - link "arXiv Page" [ref=e1685] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2502.05512
+                - img [ref=e1686]
+                - generic [ref=e1688]: arXiv Page
+        - article [ref=e1689]:
+          - generic [ref=e1690]:
+            - generic [ref=e1691]:
+              - link [ref=e1692] [cursor=pointer]:
+                - /url: /papers/2508.07407
+              - generic:
+                - text: Submitted by
+                - text: X-iZhang
+            - generic [ref=e1693]:
+              - 'heading "A Comprehensive Survey of Self-Evolving AI Agents: A New Paradigm Bridging Foundation Models and Lifelong Agentic Systems" [level=3] [ref=e1694]':
+                - 'link "A Comprehensive Survey of Self-Evolving AI Agents: A New Paradigm Bridging Foundation Models and Lifelong Agentic Systems" [ref=e1695] [cursor=pointer]':
+                  - /url: /papers/2508.07407
+              - paragraph [ref=e1697]: A survey of self-evolving AI agents that adapt to dynamic environments through automatic enhancement based on interaction data and feedback.
+              - generic [ref=e1698]:
+                - list [ref=e1699]:
+                  - listitem "XiWangEric" [ref=e1700]
+                  - listitem "ZihaoGla" [ref=e1701]
+                  - listitem "YingxuWang" [ref=e1702]
+                  - listitem "X-iZhang" [ref=e1703]
+                  - listitem "Jinyuan6" [ref=e1704]
+                  - listitem [ref=e1705]:
+                    - generic [ref=e1706]: 15 authors
+                - generic [ref=e1707]: ·
+                - generic [ref=e1708]: Published on Aug 11, 2025
+            - generic [ref=e1709]:
+              - link "Upvote 98" [ref=e1712] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2508.07407
+                - generic [ref=e1713]:
+                  - img [ref=e1714]
+                  - text: Upvote
+                  - generic [ref=e1716]: "98"
+              - link "GitHub 1.8k" [ref=e1717] [cursor=pointer]:
+                - /url: https://github.com/EvoAgentX/Awesome-Self-Evolving-Agents
+                - img [ref=e1718]
+                - generic [ref=e1720]: GitHub
+                - generic [ref=e1721]:
+                  - img [ref=e1722]
+                  - generic [ref=e1724]: 1.8k
+              - link "arXiv Page" [ref=e1725] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2508.07407
+                - img [ref=e1726]
+                - generic [ref=e1728]: arXiv Page
+        - article [ref=e1729]:
+          - generic [ref=e1730]:
+            - generic [ref=e1731]:
+              - link [ref=e1732] [cursor=pointer]:
+                - /url: /papers/2601.02553
+              - generic:
+                - text: Submitted by
+                - text: JiaaqiLiu
+            - generic [ref=e1733]:
+              - 'heading "SimpleMem: Efficient Lifelong Memory for LLM Agents" [level=3] [ref=e1734]':
+                - 'link "SimpleMem: Efficient Lifelong Memory for LLM Agents" [ref=e1735] [cursor=pointer]':
+                  - /url: /papers/2601.02553
+              - paragraph [ref=e1737]: "To support reliable long-term interaction in complex environments, LLM agents require memory systems that efficiently manage historical experiences. Existing approaches either retain full interaction histories via passive context extension, leading to substantial redundancy, or rely on iterative reasoning to filter noise, incurring high token costs. To address this challenge, we introduce SimpleMem, an efficient memory framework based on semantic lossless compression. We propose a three-stage pipeline designed to maximize information density and token utilization: (1) Semantic Structured Compression, which applies entropy-aware filtering to distill unstructured interactions into compact, multi-view indexed memory units; (2) Recursive Memory Consolidation, an asynchronous process that integrates related units into higher-level abstract representations to reduce redundancy; and (3) Adaptive Query-Aware Retrieval, which dynamically adjusts retrieval scope based on query complexity to construct precise context efficiently. Experiments on benchmark datasets show that our method consistently outperforms baseline approaches in accuracy, retrieval efficiency, and inference cost, achieving an average F1 improvement of 26.4% while reducing inference-time token consumption by up to 30-fold, demonstrating a superior balance between performance and efficiency. Code is available at https://github.com/aiming-lab/SimpleMem."
+              - generic [ref=e1738]:
+                - list [ref=e1739]:
+                  - listitem "Zeyu Zheng" [ref=e1740]
+                  - listitem "Siwei Han" [ref=e1741]
+                  - listitem "Yaofeng Su" [ref=e1742]
+                  - listitem "richardxp888" [ref=e1743]
+                  - listitem "JiaaqiLiu" [ref=e1744]
+                  - listitem [ref=e1745]:
+                    - generic [ref=e1746]: 8 authors
+                - generic [ref=e1747]: ·
+                - generic [ref=e1748]: Published on Jan 6, 2026
+            - generic [ref=e1749]:
+              - link "Upvote 37" [ref=e1752] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2601.02553
+                - generic [ref=e1753]:
+                  - img [ref=e1754]
+                  - text: Upvote
+                  - generic [ref=e1756]: "37"
+              - link "GitHub 2.9k" [ref=e1757] [cursor=pointer]:
+                - /url: https://github.com/aiming-lab/SimpleMem
+                - img [ref=e1758]
+                - generic [ref=e1760]: GitHub
+                - generic [ref=e1761]:
+                  - img [ref=e1762]
+                  - generic [ref=e1764]: 2.9k
+              - link "arXiv Page" [ref=e1765] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2601.02553
+                - img [ref=e1766]
+                - generic [ref=e1768]: arXiv Page
+        - article [ref=e1769]:
+          - generic [ref=e1770]:
+            - generic [ref=e1771]:
+              - link [ref=e1772] [cursor=pointer]:
+                - /url: /papers/2602.08794
+              - generic:
+                - text: Submitted by
+                - text: tianyilt
+            - generic [ref=e1773]:
+              - 'heading "MOVA: Towards Scalable and Synchronized Video-Audio Generation" [level=3] [ref=e1774]':
+                - 'link "MOVA: Towards Scalable and Synchronized Video-Audio Generation" [ref=e1775] [cursor=pointer]':
+                  - /url: /papers/2602.08794
+              - paragraph [ref=e1777]: MOVA is an open-source model that generates synchronized audio-visual content using a Mixture-of-Experts architecture with 32 billion parameters, supporting image-text to video-audio generation tasks.
+              - generic [ref=e1778]:
+                - link "OpenMOSS-Team OpenMOSS" [ref=e1779] [cursor=pointer]:
+                  - /url: /OpenMOSS-Team
+                  - img "OpenMOSS-Team" [ref=e1780]
+                  - generic [ref=e1781]: OpenMOSS
+                - generic [ref=e1782]: ·
+                - generic [ref=e1783]: Published on Feb 10, 2026
+            - generic [ref=e1784]:
+              - link "Upvote 151" [ref=e1787] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2602.08794
+                - generic [ref=e1788]:
+                  - img [ref=e1789]
+                  - text: Upvote
+                  - generic [ref=e1791]: "151"
+              - link "GitHub 666" [ref=e1792] [cursor=pointer]:
+                - /url: https://github.com/OpenMOSS/MOVA
+                - img [ref=e1793]
+                - generic [ref=e1795]: GitHub
+                - generic [ref=e1796]:
+                  - img [ref=e1797]
+                  - generic [ref=e1799]: "666"
+              - link "arXiv Page" [ref=e1800] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2602.08794
+                - img [ref=e1801]
+                - generic [ref=e1803]: arXiv Page
+        - article [ref=e1804]:
+          - generic [ref=e1805]:
+            - generic [ref=e1806]:
+              - link [ref=e1807] [cursor=pointer]:
+                - /url: /papers/2602.02276
+              - generic:
+                - text: Submitted by
+                - text: taesiri
+            - generic [ref=e1808]:
+              - 'heading "Kimi K2.5: Visual Agentic Intelligence" [level=3] [ref=e1809]':
+                - 'link "Kimi K2.5: Visual Agentic Intelligence" [ref=e1810] [cursor=pointer]':
+                  - /url: /papers/2602.02276
+              - paragraph [ref=e1812]: Kimi K2.5 is an open-source multimodal agentic model that enhances text and vision processing through joint optimization techniques and introduces Agent Swarm for parallel task execution.
+              - generic [ref=e1813]:
+                - link "moonshotai Moonshot AI" [ref=e1814] [cursor=pointer]:
+                  - /url: /moonshotai
+                  - img "moonshotai" [ref=e1815]
+                  - generic [ref=e1816]: Moonshot AI
+                - generic [ref=e1817]: ·
+                - generic [ref=e1818]: Published on Feb 3, 2026
+            - generic [ref=e1819]:
+              - link "Upvote 233" [ref=e1822] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2602.02276
+                - generic [ref=e1823]:
+                  - img [ref=e1824]
+                  - text: Upvote
+                  - generic [ref=e1826]: "233"
+              - link "GitHub 1.03k" [ref=e1827] [cursor=pointer]:
+                - /url: https://github.com/MoonshotAI/Kimi-K2.5
+                - img [ref=e1828]
+                - generic [ref=e1830]: GitHub
+                - generic [ref=e1831]:
+                  - img [ref=e1832]
+                  - generic [ref=e1834]: 1.03k
+              - link "arXiv Page" [ref=e1835] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2602.02276
+                - img [ref=e1836]
+                - generic [ref=e1838]: arXiv Page
+        - article [ref=e1839]:
+          - generic [ref=e1840]:
+            - generic [ref=e1841]:
+              - link [ref=e1842] [cursor=pointer]:
+                - /url: /papers/2602.10934
+              - generic:
+                - text: Submitted by
+                - text: fdugyt
+            - generic [ref=e1843]:
+              - 'heading "MOSS-Audio-Tokenizer: Scaling Audio Tokenizers for Future Audio Foundation Models" [level=3] [ref=e1844]':
+                - 'link "MOSS-Audio-Tokenizer: Scaling Audio Tokenizers for Future Audio Foundation Models" [ref=e1845] [cursor=pointer]':
+                  - /url: /papers/2602.10934
+              - paragraph [ref=e1847]: A fully end-to-end Transformer-based audio tokenizer architecture achieves high-fidelity reconstruction across diverse audio domains and enables superior text-to-speech and automatic speech recognition performance.
+              - generic [ref=e1848]:
+                - link "OpenMOSS-Team OpenMOSS" [ref=e1849] [cursor=pointer]:
+                  - /url: /OpenMOSS-Team
+                  - img "OpenMOSS-Team" [ref=e1850]
+                  - generic [ref=e1851]: OpenMOSS
+                - generic [ref=e1852]: ·
+                - generic [ref=e1853]: Published on Feb 12, 2026
+            - generic [ref=e1854]:
+              - link "Upvote 49" [ref=e1857] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2602.10934
+                - generic [ref=e1858]:
+                  - img [ref=e1859]
+                  - text: Upvote
+                  - generic [ref=e1861]: "49"
+              - link "GitHub 103" [ref=e1862] [cursor=pointer]:
+                - /url: https://github.com/OpenMOSS/MOSS-Audio-Tokenizer
+                - img [ref=e1863]
+                - generic [ref=e1865]: GitHub
+                - generic [ref=e1866]:
+                  - img [ref=e1867]
+                  - generic [ref=e1869]: "103"
+              - link "arXiv Page" [ref=e1870] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2602.10934
+                - img [ref=e1871]
+                - generic [ref=e1873]: arXiv Page
+        - article [ref=e1874]:
+          - generic [ref=e1875]:
+            - generic [ref=e1876]:
+              - link [ref=e1877] [cursor=pointer]:
+                - /url: /papers/2602.11757
+              - generic:
+                - text: Submitted by
+                - text: SteveZeyuZhang
+            - generic [ref=e1878]:
+              - 'heading "Code2Worlds: Empowering Coding LLMs for 4D World Generation" [level=3] [ref=e1879]':
+                - 'link "Code2Worlds: Empowering Coding LLMs for 4D World Generation" [ref=e1880] [cursor=pointer]':
+                  - /url: /papers/2602.11757
+              - paragraph [ref=e1882]: Code2Worlds enables 4D dynamic scene generation by formulating it as language-to-simulation code generation with a dual-stream architecture and physics-aware closed-loop refinement.
+              - generic [ref=e1883]:
+                - link "PekingUniversity Peking University" [ref=e1884] [cursor=pointer]:
+                  - /url: /PekingUniversity
+                  - img "PekingUniversity" [ref=e1885]
+                  - generic [ref=e1886]: Peking University
+                - generic [ref=e1887]: ·
+                - generic [ref=e1888]: Published on Feb 12, 2026
+            - generic [ref=e1889]:
+              - link "Upvote 3" [ref=e1892] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2602.11757
+                - generic [ref=e1893]:
+                  - img [ref=e1894]
+                  - text: Upvote
+                  - generic [ref=e1896]: "3"
+              - link "GitHub 28" [ref=e1897] [cursor=pointer]:
+                - /url: https://github.com/AIGeeksGroup/Code2Worlds
+                - img [ref=e1898]
+                - generic [ref=e1900]: GitHub
+                - generic [ref=e1901]:
+                  - img [ref=e1902]
+                  - generic [ref=e1904]: "28"
+              - link "arXiv Page" [ref=e1905] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2602.11757
+                - img [ref=e1906]
+                - generic [ref=e1908]: arXiv Page
+        - article [ref=e1909]:
+          - generic [ref=e1910]:
+            - generic [ref=e1911]:
+              - link [ref=e1912] [cursor=pointer]:
+                - /url: /papers/2602.12684
+              - generic:
+                - text: Submitted by
+                - text: taesiri
+            - generic [ref=e1913]:
+              - 'heading "Xiaomi-Robotics-0: An Open-Sourced Vision-Language-Action Model with Real-Time Execution" [level=3] [ref=e1914]':
+                - 'link "Xiaomi-Robotics-0: An Open-Sourced Vision-Language-Action Model with Real-Time Execution" [ref=e1915] [cursor=pointer]':
+                  - /url: /papers/2602.12684
+              - paragraph [ref=e1917]: A vision-language-action model for robotics combines large-scale pretraining with specialized training techniques to enable real-time execution and high-performance manipulation tasks.
+              - generic [ref=e1918]:
+                - link "xiaomi-research Xiaomi Research" [ref=e1919] [cursor=pointer]:
+                  - /url: /xiaomi-research
+                  - img "xiaomi-research" [ref=e1920]
+                  - generic [ref=e1921]: Xiaomi Research
+                - generic [ref=e1922]: ·
+                - generic [ref=e1923]: Published on Feb 13, 2026
+            - generic [ref=e1924]:
+              - link "Upvote 3" [ref=e1927] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2602.12684
+                - generic [ref=e1928]:
+                  - img [ref=e1929]
+                  - text: Upvote
+                  - generic [ref=e1931]: "3"
+              - link "GitHub 241" [ref=e1932] [cursor=pointer]:
+                - /url: https://github.com/XiaomiRobotics/Xiaomi-Robotics-0
+                - img [ref=e1933]
+                - generic [ref=e1935]: GitHub
+                - generic [ref=e1936]:
+                  - img [ref=e1937]
+                  - generic [ref=e1939]: "241"
+              - link "arXiv Page" [ref=e1940] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2602.12684
+                - img [ref=e1941]
+                - generic [ref=e1943]: arXiv Page
+        - article [ref=e1944]:
+          - generic [ref=e1945]:
+            - generic [ref=e1946]:
+              - link [ref=e1947] [cursor=pointer]:
+                - /url: /papers/2412.05210
+              - generic:
+                - text: Submitted by
+                - text: CSJianYang
+            - generic [ref=e1948]:
+              - heading "Evaluating and Aligning CodeLLMs on Human Preference" [level=3] [ref=e1949]:
+                - link "Evaluating and Aligning CodeLLMs on Human Preference" [ref=e1950] [cursor=pointer]:
+                  - /url: /papers/2412.05210
+              - paragraph [ref=e1952]: A human-curated benchmark (CodeArena) and a large synthetic instruction corpus (SynCode-Instruct) are introduced to evaluate code LLMs based on human preference alignment, revealing performance differences between open-source and proprietary models.
+              - generic [ref=e1953]:
+                - list [ref=e1954]:
+                  - listitem "huybery" [ref=e1955]
+                  - listitem "misakamage" [ref=e1956]
+                  - listitem "Lemoncoke" [ref=e1957]
+                  - listitem "instro" [ref=e1958]
+                  - listitem "jx-yang" [ref=e1959]
+                  - listitem [ref=e1960]:
+                    - generic [ref=e1961]: 10 authors
+                - generic [ref=e1962]: ·
+                - generic [ref=e1963]: Published on Dec 7, 2024
+            - generic [ref=e1964]:
+              - link "Upvote 50" [ref=e1967] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2412.05210
+                - generic [ref=e1968]:
+                  - img [ref=e1969]
+                  - text: Upvote
+                  - generic [ref=e1971]: "50"
+              - link "GitHub 15.6k" [ref=e1972] [cursor=pointer]:
+                - /url: https://github.com/QwenLM/Qwen2.5-Coder
+                - img [ref=e1973]
+                - generic [ref=e1975]: GitHub
+                - generic [ref=e1976]:
+                  - img [ref=e1977]
+                  - generic [ref=e1979]: 15.6k
+              - link "arXiv Page" [ref=e1980] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2412.05210
+                - img [ref=e1981]
+                - generic [ref=e1983]: arXiv Page
+        - article [ref=e1984]:
+          - generic [ref=e1985]:
+            - link [ref=e1987] [cursor=pointer]:
+              - /url: /papers/2508.04660
+            - generic [ref=e1988]:
+              - 'heading "Multi-module GRPO: Composing Policy Gradients and Prompt Optimization for Language Model Programs" [level=3] [ref=e1989]':
+                - 'link "Multi-module GRPO: Composing Policy Gradients and Prompt Optimization for Language Model Programs" [ref=e1990] [cursor=pointer]':
+                  - /url: /papers/2508.04660
+              - paragraph [ref=e1992]: mmGRPO, a multi-module extension of GRPO, enhances accuracy in modular AI systems by optimizing LM calls and prompts across various tasks.
+              - generic [ref=e1993]:
+                - list [ref=e1994]:
+                  - listitem "Liheng Lai" [ref=e1995]
+                  - listitem "Isaac Miller" [ref=e1996]
+                  - listitem "Lakshya A Agrawal" [ref=e1997]
+                  - listitem "Dilara Soylu" [ref=e1998]
+                  - listitem "Noah Ziems" [ref=e1999]
+                  - listitem [ref=e2000]:
+                    - generic [ref=e2001]: 13 authors
+                - generic [ref=e2002]: ·
+                - generic [ref=e2003]: Published on Aug 7, 2025
+            - generic [ref=e2004]:
+              - link "Upvote 2" [ref=e2007] [cursor=pointer]:
+                - /url: /login?next=%2Fpapers%2F2508.04660
+                - generic [ref=e2008]:
+                  - img [ref=e2009]
+                  - text: Upvote
+                  - generic [ref=e2011]: "2"
+              - link "GitHub 32.2k" [ref=e2012] [cursor=pointer]:
+                - /url: https://github.com/stanfordnlp/dspy
+                - img [ref=e2013]
+                - generic [ref=e2015]: GitHub
+                - generic [ref=e2016]:
+                  - img [ref=e2017]
+                  - generic [ref=e2019]: 32.2k
+              - link "arXiv Page" [ref=e2020] [cursor=pointer]:
+                - /url: https://arxiv.org/abs/2508.04660
+                - img [ref=e2021]
+                - generic [ref=e2023]: arXiv Page
+  - contentinfo [ref=e2024]:
+    - navigation [ref=e2025]:
+      - button "System theme" [ref=e2028] [cursor=pointer]:
+        - img [ref=e2029]
+        - text: System theme
+      - link "TOS" [ref=e2034] [cursor=pointer]:
+        - /url: /terms-of-service
+      - link "Privacy" [ref=e2035] [cursor=pointer]:
+        - /url: /privacy
+      - link "About" [ref=e2036] [cursor=pointer]:
+        - /url: /huggingface
+      - link "Careers" [ref=e2037] [cursor=pointer]:
+        - /url: https://apply.workable.com/huggingface/
+      - link "Hugging Face" [ref=e2038] [cursor=pointer]:
+        - /url: /
+        - img [ref=e2039]
+      - link "Models" [ref=e2053] [cursor=pointer]:
+        - /url: /models
+      - link "Datasets" [ref=e2054] [cursor=pointer]:
+        - /url: /datasets
+      - link "Spaces" [ref=e2055] [cursor=pointer]:
+        - /url: /spaces
+      - link "Pricing" [ref=e2056] [cursor=pointer]:
+        - /url: /pricing
+      - link "Docs" [ref=e2057] [cursor=pointer]:
+        - /url: /docs
