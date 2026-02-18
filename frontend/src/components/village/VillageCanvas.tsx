@@ -6,7 +6,7 @@ import { useVillageStore } from '@/stores/useVillageStore';
 import { TILE_SIZE, VILLAGE_MAP_WIDTH, VILLAGE_MAP_HEIGHT, PLAYER_COLOR, FRIEND_COLORS } from '@/constants/game';
 import { MOCK_PAPERS } from '@/constants/mock-papers';
 
-interface DungeonEntrance {
+interface CourseEntrance {
   paperId: string;
   label: string;
   x: number;
@@ -16,7 +16,7 @@ interface DungeonEntrance {
   color: string;
 }
 
-const DUNGEON_ENTRANCES: DungeonEntrance[] = MOCK_PAPERS.slice(0, 6).map((paper, i) => {
+const COURSE_ENTRANCES: CourseEntrance[] = MOCK_PAPERS.slice(0, 6).map((paper, i) => {
   const col = i % 3;
   const row = Math.floor(i / 3);
   return {
@@ -39,8 +39,8 @@ export function VillageCanvas() {
   const isWalkable = useCallback(
     (x: number, y: number) => {
       if (x < 0 || y < 0 || x >= VILLAGE_MAP_WIDTH || y >= VILLAGE_MAP_HEIGHT) return false;
-      // Check dungeon buildings (not walkable, except entrance tile)
-      for (const d of DUNGEON_ENTRANCES) {
+      // Check course buildings (not walkable, except entrance tile)
+      for (const d of COURSE_ENTRANCES) {
         if (x >= d.x && x < d.x + d.width && y >= d.y && y < d.y + d.height) {
           // Entrance is the bottom-center tile
           const entranceX = d.x + Math.floor(d.width / 2);
@@ -54,9 +54,9 @@ export function VillageCanvas() {
     []
   );
 
-  const checkDungeonEntry = useCallback(
+  const checkCourseEntry = useCallback(
     (x: number, y: number) => {
-      for (const d of DUNGEON_ENTRANCES) {
+      for (const d of COURSE_ENTRANCES) {
         const entranceX = d.x + Math.floor(d.width / 2);
         const entranceY = d.y + d.height;
         if (x === entranceX && y === entranceY) {
@@ -95,7 +95,7 @@ export function VillageCanvas() {
           break;
         case 'e':
         case 'Enter': {
-          const paperId = checkDungeonEntry(playerPosition.x, playerPosition.y);
+          const paperId = checkCourseEntry(playerPosition.x, playerPosition.y);
           if (paperId) {
             router.push(`/learn/${paperId}`);
           }
@@ -111,7 +111,7 @@ export function VillageCanvas() {
         setPlayerPosition({ x: newX, y: newY });
       }
     },
-    [playerPosition, setPlayerPosition, setPlayerDirection, isWalkable, checkDungeonEntry, router]
+    [playerPosition, setPlayerPosition, setPlayerDirection, isWalkable, checkCourseEntry, router]
   );
 
   useEffect(() => {
@@ -162,8 +162,8 @@ export function VillageCanvas() {
       }
     }
 
-    // Draw dungeon buildings
-    DUNGEON_ENTRANCES.forEach((d) => {
+    // Draw course buildings
+    COURSE_ENTRANCES.forEach((d) => {
       const bx = (d.x - offsetX) * TILE_SIZE;
       const by = (d.y - offsetY) * TILE_SIZE;
 
@@ -196,11 +196,11 @@ export function VillageCanvas() {
         by + d.height * TILE_SIZE + 14
       );
 
-      // Dungeon entrance label
+      // Course entrance label
       ctx.fillStyle = '#FFD700';
       ctx.font = '9px sans-serif';
       ctx.fillText(
-        'Dungeon Entrance',
+        'Course Entrance',
         bx + (d.width * TILE_SIZE) / 2,
         by + d.height * TILE_SIZE + 26
       );
@@ -238,14 +238,14 @@ export function VillageCanvas() {
     ctx.textAlign = 'center';
     ctx.fillText('You', playerScreenX, playerScreenY - TILE_SIZE * 0.55);
 
-    // Interaction hint near dungeon entrance
-    const nearPaper = checkDungeonEntry(playerPosition.x, playerPosition.y);
+    // Interaction hint near course entrance
+    const nearPaper = checkCourseEntry(playerPosition.x, playerPosition.y);
     if (nearPaper) {
       ctx.fillStyle = '#FF9D00';
       ctx.font = 'bold 13px sans-serif';
-      ctx.fillText('Press E to enter dungeon', playerScreenX, playerScreenY + TILE_SIZE * 1.2);
+      ctx.fillText('Press E to enter course', playerScreenX, playerScreenY + TILE_SIZE * 1.2);
     }
-  }, [playerPosition, playerDirection, friends, checkDungeonEntry]);
+  }, [playerPosition, playerDirection, friends, checkCourseEntry]);
 
   return (
     <canvas

@@ -6,8 +6,8 @@ export const VIEWPORT_TILES_Y = 12;
 export const PLAYER_SPEED = 1;
 export const MIN_MOVE_INTERVAL = 150;
 
-export const DUNGEON_ROOM_WIDTH = 20;
-export const DUNGEON_ROOM_HEIGHT = 15;
+export const COURSE_ROOM_WIDTH = 20;
+export const COURSE_ROOM_HEIGHT = 15;
 
 export const STAGE_COLORS = {
   locked: '#6B7280',

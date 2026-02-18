@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: 'Papers with Claude Code',
-  description: 'Learn research papers interactively with AI-powered dungeon exploration',
+  description: 'Learn research papers interactively with AI-powered course exploration',
 };
 
 export default function RootLayout({
