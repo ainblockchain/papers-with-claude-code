@@ -90,7 +90,8 @@ def cmd_pipeline(args: argparse.Namespace) -> None:
 
     # Phase 5: Scaffold
     logger.info("=== Phase 5: Scaffolding Course Repo ===")
-    scaffolder = Scaffolder(kg, courses, enable_blockchain=args.enable_blockchain)
+    ain_js_branch = getattr(args, 'ain_js_branch', 'feat/knowledge-module')
+    scaffolder = Scaffolder(kg, courses, enable_blockchain=args.enable_blockchain, ain_js_branch=ain_js_branch)
     scaffolder.scaffold(output_dir, repo_path=repo_path)
 
     # Initialize git repo if needed
@@ -172,7 +173,8 @@ def cmd_scaffold(args: argparse.Namespace) -> None:
     courses_data = json.loads(courses_path.read_text())
     courses = [Course.from_dict(c) for c in courses_data]
 
-    scaffolder = Scaffolder(kg, courses, enable_blockchain=args.enable_blockchain)
+    ain_js_branch = getattr(args, 'ain_js_branch', 'feat/knowledge-module')
+    scaffolder = Scaffolder(kg, courses, enable_blockchain=args.enable_blockchain, ain_js_branch=ain_js_branch)
     scaffolder.scaffold(args.output, repo_path=args.repo if args.repo else None)
     logger.info("Course repo scaffolded at %s", args.output)
 
@@ -197,6 +199,7 @@ def main() -> None:
     p_pipeline.add_argument("--skip-expansion", action="store_true", help="Skip graph expansion phase")
     p_pipeline.add_argument("--skip-lessons", action="store_true", help="Skip lesson generation (faster)")
     p_pipeline.add_argument("--enable-blockchain", action="store_true", help="Generate blockchain/ directory with AIN helper")
+    p_pipeline.add_argument("--ain-js-branch", default="feat/knowledge-module", help="ain-js git branch to install (default: feat/knowledge-module)")
     p_pipeline.set_defaults(func=cmd_pipeline)
 
     # Analyze command
@@ -227,6 +230,7 @@ def main() -> None:
     p_scaffold.add_argument("--output", required=True, help="Output directory")
     p_scaffold.add_argument("--repo", default=None, help="Source repo path for code snippets")
     p_scaffold.add_argument("--enable-blockchain", action="store_true", help="Generate blockchain/ directory with AIN helper")
+    p_scaffold.add_argument("--ain-js-branch", default="feat/knowledge-module", help="ain-js git branch to install (default: feat/knowledge-module)")
     p_scaffold.set_defaults(func=cmd_scaffold)
 
     args = parser.parse_args()

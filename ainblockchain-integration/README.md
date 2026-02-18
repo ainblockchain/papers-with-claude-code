@@ -13,14 +13,25 @@ Generated courses use the [AIN blockchain](https://ainetwork.ai/) Knowledge modu
 
 ## Architecture
 
-The course repo contains **no helper scripts** — the tutor (Claude Code) calls ain-js directly via inline `node -e` commands. The only blockchain file in the course repo is `blockchain/config.json`:
+The course repo contains **no helper scripts** — the tutor (Claude Code) calls ain-js directly via inline `node -e` commands. The blockchain directory has two files:
 
+**`blockchain/package.json`** — installs ain-js from a git branch:
+```json
+{
+  "name": "blockchain-helper",
+  "private": true,
+  "dependencies": {
+    "@ainblockchain/ain-js": "github:ainblockchain/ain-js#feat/knowledge-module"
+  }
+}
+```
+
+**`blockchain/config.json`** — topic mappings:
 ```json
 {
   "provider_url": "http://localhost:8081",
   "topic_map": { "concept_id": "transformers/foundations/concept_id" },
-  "depth_map": { "concept_id": 1 },
-  "ain_js_path": "/path/to/ain-js/lib/ain.js"
+  "depth_map": { "concept_id": 1 }
 }
 ```
 
@@ -83,7 +94,7 @@ All blockchain calls follow this pattern in `CLAUDE.md`:
 
 ```bash
 node -e "
-  const Ain = require(require('./blockchain/config.json').ain_js_path).default;
+  const Ain = require('./blockchain/node_modules/@ainblockchain/ain-js').default;
   const cfg = require('./blockchain/config.json');
   const ain = new Ain(cfg.provider_url);
   const fs = require('fs');
@@ -100,8 +111,9 @@ node -e "
 
 ## Learner flow
 
-1. Learner opens Claude Code in a generated course repo
-2. Tutor runs wallet setup → private key saved to `blockchain/.env`
+1. Learner runs `cd blockchain && npm install` to install ain-js from git
+2. Learner opens Claude Code in the course repo
+3. Tutor runs wallet setup → private key saved to `blockchain/.env`
 3. Learner completes a quiz → tutor records on-chain via `ain.knowledge.explore()` with graph node + optional parent edge
 4. Learner says "friends" → tutor queries `ain.knowledge.getExplorationsByUser(address)` to show a friend's full progress with graph connections
 5. Learner says "frontier" → tutor queries `ain.knowledge.getFrontierMap()`
@@ -129,8 +141,9 @@ example-course/
 ## Requirements
 
 - Node.js >= 16
-- Local [ain-js](https://github.com/ainblockchain/ain-js) build with Knowledge module
 - AIN blockchain node (local or testnet)
+
+ain-js is installed automatically from `github:ainblockchain/ain-js#feat/knowledge-module` via the generated `blockchain/package.json`.
 
 ## Enabling blockchain in kg-extractor
 

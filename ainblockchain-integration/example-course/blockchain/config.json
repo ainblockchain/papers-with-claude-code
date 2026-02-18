@@ -249,6 +249,5 @@
       "description": "Combines the benefits of state space models and mixture of experts, allowing for efficient modeling of complex sequential data with diverse dependencies."
     }
   ],
-  "x402_lessons": {},
-  "ain_js_path": "/home/comcom/git/ain-js/lib/ain.js"
+  "x402_lessons": {}
 }

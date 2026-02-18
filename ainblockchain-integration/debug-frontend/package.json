@@ -14,7 +14,7 @@
     "next-auth": "^4.24.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
-    "@ainblockchain/ain-js": "file:../../../ain-js"
+    "@ainblockchain/ain-js": "github:ainblockchain/ain-js#feat/knowledge-module"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

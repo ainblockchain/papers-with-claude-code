@@ -13,17 +13,22 @@ NEVER write to .learner/progress.json or any JSON file to track progress.
 All progress is recorded on the AIN blockchain using ain-js directly.
 
 Read blockchain/config.json for:
-- `ain_js_path`: path to local ain-js library
 - `provider_url`: AIN node URL
 - `topic_map`: concept_id → AIN topic path
 - `depth_map`: concept_id → exploration depth (1-4)
+
+### First-time setup
+Run once after cloning to install ain-js:
+```bash
+cd blockchain && npm install && cd ..
+```
 
 ### ain-js API (use via inline node -e scripts)
 
 All commands follow this pattern — load config, init Ain, load wallet, call API:
 ```bash
 node -e "
-  const Ain = require(require('./blockchain/config.json').ain_js_path).default;
+  const Ain = require('./blockchain/node_modules/@ainblockchain/ain-js').default;
   const cfg = require('./blockchain/config.json');
   const ain = new Ain(cfg.provider_url);
   const fs = require('fs');
@@ -57,7 +62,7 @@ Key ain.knowledge methods:
 ### Setup wallet (first time)
 ```bash
 node -e "
-  const Ain = require(require('./blockchain/config.json').ain_js_path).default;
+  const Ain = require('./blockchain/node_modules/@ainblockchain/ain-js').default;
   const cfg = require('./blockchain/config.json');
   const ain = new Ain(cfg.provider_url);
   const crypto = require('crypto'), fs = require('fs');
@@ -76,7 +81,7 @@ node -e "
 Look up the concept's topicPath and depth from blockchain/config.json, then:
 ```bash
 node -e "
-  const Ain = require(require('./blockchain/config.json').ain_js_path).default;
+  const Ain = require('./blockchain/node_modules/@ainblockchain/ain-js').default;
   const cfg = require('./blockchain/config.json');
   const ain = new Ain(cfg.provider_url);
   const fs = require('fs');
@@ -99,7 +104,7 @@ For PARENT_REF_OR_NULL: use `null` for the first concept, or `{ownerAddress: '0x
 ### Look up a friend's progress
 ```bash
 node -e "
-  const Ain = require(require('./blockchain/config.json').ain_js_path).default;
+  const Ain = require('./blockchain/node_modules/@ainblockchain/ain-js').default;
   const cfg = require('./blockchain/config.json');
   const ain = new Ain(cfg.provider_url);
   ain.knowledge.getExplorationsByUser('FRIEND_ADDRESS').then(r => console.log(JSON.stringify(r, null, 2)));
@@ -109,7 +114,7 @@ node -e "
 ### Get on-chain knowledge graph
 ```bash
 node -e "
-  const Ain = require(require('./blockchain/config.json').ain_js_path).default;
+  const Ain = require('./blockchain/node_modules/@ainblockchain/ain-js').default;
   const cfg = require('./blockchain/config.json');
   const ain = new Ain(cfg.provider_url);
   ain.knowledge.getGraph().then(r => console.log(JSON.stringify(r, null, 2)));
@@ -119,7 +124,7 @@ node -e "
 ### Get frontier map
 ```bash
 node -e "
-  const Ain = require(require('./blockchain/config.json').ain_js_path).default;
+  const Ain = require('./blockchain/node_modules/@ainblockchain/ain-js').default;
   const cfg = require('./blockchain/config.json');
   const ain = new Ain(cfg.provider_url);
   ain.knowledge.getFrontierMap(cfg.topic_prefix).then(r => console.log(JSON.stringify(r, null, 2)));
@@ -129,7 +134,7 @@ node -e "
 ### Get explorers for a concept
 ```bash
 node -e "
-  const Ain = require(require('./blockchain/config.json').ain_js_path).default;
+  const Ain = require('./blockchain/node_modules/@ainblockchain/ain-js').default;
   const cfg = require('./blockchain/config.json');
   const ain = new Ain(cfg.provider_url);
   ain.knowledge.getExplorers(cfg.topic_map['CONCEPT_ID']).then(r => console.log(JSON.stringify(r)));
