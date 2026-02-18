@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import shutil
 from datetime import date
 from pathlib import Path
@@ -117,13 +118,25 @@ node -e "
 ```
 
 Key ain.knowledge methods:
-- `ain.knowledge.explore(input)` — record an exploration on-chain
-  - input: `{topicPath, title, content, summary, depth, tags}`
+- `ain.knowledge.explore(input)` — record an exploration on-chain with graph node
+  - input: `{topicPath, title, content, summary, depth, tags, parentEntry?, relatedEntries?}`
+  - returns: `{entryId, nodeId, txResult}`
+  - `parentEntry: {ownerAddress, topicPath, entryId}` creates an "extends" edge in the knowledge graph
+  - `relatedEntries: [{ownerAddress, topicPath, entryId, type?}]` creates "related" or "prerequisite" edges
+- `ain.knowledge.publishCourse(input)` — publish gated content (uploads to gateway + on-chain metadata)
+  - input: `{topicPath, title, content, summary, depth, tags, price, gatewayBaseUrl, parentEntry?, relatedEntries?}`
+- `ain.knowledge.setupAinX402Client()` — configure AIN-token x402 client for payment
+- `ain.knowledge.access(ownerAddr, topicPath, entryId)` — access gated content (x402 flow: 402 -> pay -> verify -> content)
 - `ain.knowledge.getExplorers(topicPath)` — list addresses that explored a topic
-- `ain.knowledge.getExplorations(address, topicPath)` — get explorations by user
+- `ain.knowledge.getExplorations(address, topicPath)` — get explorations by user for a topic
+- `ain.knowledge.getExplorationsByUser(address)` — get ALL explorations by a user across all topics
+- `ain.knowledge.getAccessReceipts(address)` — get all purchase receipts for a buyer
 - `ain.knowledge.getFrontierMap(topicPrefix)` — per-topic stats (explorer_count, max_depth, avg_depth)
 - `ain.knowledge.getTopicStats(topicPath)` — stats for one topic
-- `ain.knowledge.access(ownerAddr, topicPath, entryId)` — access gated content (x402)
+- `ain.knowledge.getGraph()` — get full on-chain knowledge graph (all nodes and edges)
+- `ain.knowledge.getGraphNode(nodeId)` — get a single graph node
+- `ain.knowledge.getNodeEdges(nodeId)` — get all edges connected to a node
+- `ain.knowledge.buildNodeId(address, topicPath, entryId)` — build node ID for lookups
 
 ### Setup wallet (first time)
 ```bash
@@ -159,11 +172,33 @@ node -e "
     content: 'CONTENT',
     summary: 'SUMMARY',
     depth: cfg.depth_map['CONCEPT_ID'] || 1,
-    tags: 'CONCEPT_ID'
+    tags: 'CONCEPT_ID',
+    parentEntry: PARENT_REF_OR_NULL
   }).then(r => console.log(JSON.stringify(r)));
 "
 ```
 Replace CONCEPT_ID, TITLE, CONTENT, SUMMARY with actual values.
+For PARENT_REF_OR_NULL: use `null` for the first concept, or `{ownerAddress: '0x...', topicPath: 'path', entryId: 'id'}` to link to a prerequisite entry. The entryId comes from a previous explore() result.
+
+### Look up a friend's progress
+```bash
+node -e "
+  const Ain = require(require('./blockchain/config.json').ain_js_path).default;
+  const cfg = require('./blockchain/config.json');
+  const ain = new Ain(cfg.provider_url);
+  ain.knowledge.getExplorationsByUser('FRIEND_ADDRESS').then(r => console.log(JSON.stringify(r, null, 2)));
+"
+```
+
+### Get on-chain knowledge graph
+```bash
+node -e "
+  const Ain = require(require('./blockchain/config.json').ain_js_path).default;
+  const cfg = require('./blockchain/config.json');
+  const ain = new Ain(cfg.provider_url);
+  ain.knowledge.getGraph().then(r => console.log(JSON.stringify(r, null, 2)));
+"
+```
 
 ### Get frontier map
 ```bash
@@ -195,10 +230,11 @@ The learner just chats — no slash commands. Recognise these intents:
   style below).
 - "exercise" / "give me a challenge" — present the exercise for the current concept.
 - "done" / "I finished" — record on-chain (see "Record concept completion" above).
-- "friends" / "explorers" — show on-chain explorers via getExplorers API.
+- "friends" / "explorers" — show on-chain explorers via getExplorers API. Use getExplorationsByUser(address) to show a friend's full progress with graph connections.
+- "friend progress <address>" — look up a specific friend's learning progress across all topics using getExplorationsByUser.
 - "next" / "what should I learn next?" — recommend the next concept via
   prerequisites, graph topology, and what's already explored on-chain.
-- "graph" — show full Mermaid graph of the current course.
+- "graph" — show full Mermaid graph of the current course. Use getGraph() to show on-chain nodes and edges.
 - "frontier" — show on-chain stats per topic via getFrontierMap API.
 - "setup wallet" — run wallet setup (see above).
 
@@ -227,14 +263,24 @@ When the learner says "done" or finishes a quiz correctly:
 ## Friends / Explorers (blockchain-powered)
 Instead of git branches, friends are discovered on-chain:
 - Use `ain.knowledge.getExplorers(topicPath)` to list wallet addresses.
-- Use `ain.knowledge.getExplorations(address, topicPath)` to see what they wrote.
-- Show addresses (or names if known) and their exploration summaries.
+- Use `ain.knowledge.getExplorationsByUser(address)` to see ALL of a friend's explorations across all topics.
+- Use `ain.knowledge.getExplorations(address, topicPath)` to see what they wrote on a specific topic.
+- Use `ain.knowledge.getAccessReceipts(address)` to see their purchase history.
+- Each entry includes graph connections (edges) showing how it builds on prior knowledge.
+- Show addresses (or names if known), their exploration summaries, and learning path connections.
 
 ## Premium lessons (x402)
 Some lessons have `x402_price` and `x402_gateway` fields in courses.json.
 When the learner reaches a premium lesson:
 1. Tell them the price and ask if they want to proceed.
-2. If yes, use `ain.knowledge.access(ownerAddr, topicPath, entryId)`.
+2. If yes, call `ain.knowledge.setupAinX402Client()` first (once per session).
+3. Then call `ain.knowledge.access(ownerAddr, topicPath, entryId)` — this handles the full x402 payment flow automatically.
+
+## On-chain knowledge graph
+Every exploration creates a graph node. When recording with a `parentEntry`, an "extends" edge is created linking entries together. Use this to:
+- Visualize the learner's learning path as a connected graph
+- Show friends' learning paths and how entries relate
+- Use `ain.knowledge.getGraph()` for the full picture, or `ain.knowledge.getNodeEdges(nodeId)` for a specific entry's connections
 
 ## Graph structure
 - Nodes have: id, name, type, level, description, key_ideas, code_refs, paper_ref
@@ -516,16 +562,20 @@ class Scaffolder:
         bc_dir = output / "blockchain"
         bc_dir.mkdir(exist_ok=True)
 
-        # Resolve the local ain-js lib path
-        ain_js_lib = Path(__file__).resolve().parent.parent / "ain-js" / "lib" / "ain.js"
-        if not ain_js_lib.exists():
-            for candidate in [
-                Path.home() / "git" / "ain-js" / "lib" / "ain.js",
-                Path("/home/comcom/git/ain-js/lib/ain.js"),
-            ]:
-                if candidate.exists():
-                    ain_js_lib = candidate
-                    break
+        # Resolve the local ain-js lib path from environment variable or common locations
+        ain_js_path_env = os.environ.get("AIN_JS_PATH")
+        if ain_js_path_env and Path(ain_js_path_env).exists():
+            ain_js_lib = Path(ain_js_path_env)
+        else:
+            ain_js_lib = Path(__file__).resolve().parent.parent / "ain-js" / "lib" / "ain.js"
+            if not ain_js_lib.exists():
+                for candidate in [
+                    Path.home() / "git" / "ain-js" / "lib" / "ain.js",
+                    Path.home() / "ain-js" / "lib" / "ain.js",
+                ]:
+                    if candidate.exists():
+                        ain_js_lib = candidate
+                        break
 
         # config.json — includes ain_js_path so the tutor can require() it
         config = self._build_blockchain_config()
@@ -587,7 +637,7 @@ class Scaffolder:
                     }
 
         return {
-            "provider_url": "http://localhost:8081",
+            "provider_url": os.environ.get("AIN_PROVIDER_URL", "http://localhost:8081"),
             "chain_id": 0,
             "topic_prefix": topic_prefix,
             "topic_map": topic_map,
