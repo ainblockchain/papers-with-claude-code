@@ -182,7 +182,7 @@ export function VillageCanvas() {
       // Entrance
       const entranceX = d.x + Math.floor(d.width / 2);
       const entranceScreenX = (entranceX - offsetX) * TILE_SIZE;
-      const entranceScreenY = (d.y + d.height - 1) * TILE_SIZE;
+      const entranceScreenY = (d.y + d.height - 1 - offsetY) * TILE_SIZE;
       ctx.fillStyle = '#2D1810';
       ctx.fillRect(entranceScreenX - 5, entranceScreenY, TILE_SIZE + 10, TILE_SIZE);
 
