@@ -2,14 +2,14 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import { useLearningStore } from '@/stores/useLearningStore';
-import { TILE_SIZE, DUNGEON_ROOM_WIDTH, DUNGEON_ROOM_HEIGHT, PLAYER_COLOR, STAGE_COLORS } from '@/constants/game';
+import { TILE_SIZE, COURSE_ROOM_WIDTH, COURSE_ROOM_HEIGHT, PLAYER_COLOR, STAGE_COLORS } from '@/constants/game';
 import { StageConfig } from '@/types/learning';
 
-interface DungeonCanvasProps {
+interface CourseCanvasProps {
   stage: StageConfig;
 }
 
-export function DungeonCanvas({ stage }: DungeonCanvasProps) {
+export function CourseCanvas({ stage }: CourseCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const {
     playerPosition,

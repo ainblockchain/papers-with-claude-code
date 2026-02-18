@@ -41,7 +41,7 @@ export function VillageSidebar() {
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-[#111827] truncate">{friend.username}</p>
                   <p className="text-[10px] text-[#6B7280] truncate">
-                    {friend.currentScene === 'dungeon'
+                    {friend.currentScene === 'course'
                       ? `Stage ${friend.currentStage || '?'}`
                       : 'In village'}
                   </p>

@@ -9,7 +9,7 @@ export interface FriendPosition {
   username: string;
   avatarUrl: string;
   position: { x: number; y: number };
-  currentScene: 'village' | 'dungeon';
+  currentScene: 'village' | 'course';
   currentPaperId?: string;
   currentStage?: number;
   isOnline: boolean;

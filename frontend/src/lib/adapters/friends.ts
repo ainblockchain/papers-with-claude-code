@@ -20,7 +20,7 @@ const MOCK_FRIENDS: FriendPosition[] = [
     username: 'Alice',
     avatarUrl: '',
     position: { x: 15, y: 10 },
-    currentScene: 'dungeon',
+    currentScene: 'course',
     currentPaperId: 'bitdance-2602',
     currentStage: 2,
     isOnline: true,
@@ -38,7 +38,7 @@ const MOCK_FRIENDS: FriendPosition[] = [
     username: 'Carol',
     avatarUrl: '',
     position: { x: 42, y: 15 },
-    currentScene: 'dungeon',
+    currentScene: 'course',
     currentPaperId: 'moonshine-2410',
     currentStage: 3,
     isOnline: false,
@@ -72,9 +72,9 @@ class MockNotificationAdapter implements NotificationAdapter {
     // Fire a mock notification after 10s, then every 30s
     const timeouts: NodeJS.Timeout[] = [];
     const notifications = [
-      { username: 'Alice', message: 'cleared Stage 2 of BitDance Dungeon!', paperId: 'bitdance-2602', stageNumber: 2 },
-      { username: 'Bob', message: 'joined the Moonshine Dungeon!', paperId: 'moonshine-2410' },
-      { username: 'Carol', message: 'cleared Stage 3 of Moonshine Dungeon!', paperId: 'moonshine-2410', stageNumber: 3 },
+      { username: 'Alice', message: 'cleared Stage 2 of BitDance Course!', paperId: 'bitdance-2602', stageNumber: 2 },
+      { username: 'Bob', message: 'joined the Moonshine Course!', paperId: 'moonshine-2410' },
+      { username: 'Carol', message: 'cleared Stage 3 of Moonshine Course!', paperId: 'moonshine-2410', stageNumber: 3 },
     ];
     let idx = 0;
     const fire = () => {

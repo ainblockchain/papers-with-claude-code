@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
-import { DungeonCanvas } from '@/components/learn/DungeonCanvas';
+import { CourseCanvas } from '@/components/learn/CourseCanvas';
 import { ClaudeTerminal } from '@/components/learn/ClaudeTerminal';
 import { StageProgressBar } from '@/components/learn/StageProgressBar';
 import { ConceptOverlay } from '@/components/learn/ConceptOverlay';
@@ -108,9 +108,9 @@ export default function LearnPage() {
       <StageProgressBar />
 
       <div className="flex flex-1 overflow-hidden">
-        {/* Left: Dungeon Canvas (60%) */}
+        {/* Left: Course Canvas (60%) */}
         <div className="relative w-[60%] border-r border-gray-700">
-          <DungeonCanvas stage={currentStage} />
+          <CourseCanvas stage={currentStage} />
           <ConceptOverlay />
           <QuizOverlay />
           <PaymentModal />

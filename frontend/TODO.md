@@ -41,7 +41,7 @@
   │   ├── ui/                   → shadcn base components
   │   ├── layout/               → Header, Sidebar, Footer
   │   ├── explore/              → Paper cards, search, filters
-  │   ├── learn/                → Dungeon view, terminal, stages
+  │   ├── learn/                → Course view, terminal, stages
   │   ├── village/              → Tilemap, characters, minimap
   │   └── shared/               → Notifications, modals, loaders
   ├── stores/                   → Zustand stores
@@ -129,7 +129,7 @@
       githubStars?: number;
       organization?: { name: string; logoUrl: string };
       submittedBy: string;
-      stages?: StageConfig[];  // dungeon stage definitions
+      stages?: StageConfig[];  // course stage definitions
     }
     ```
 
@@ -144,22 +144,22 @@
 
 ### 3.1 Split Layout
 - [ ] Build `/learn/[paperId]` page with 60/40 horizontal split
-  - **Left panel (60%)**: Dungeon/Stage canvas view
+  - **Left panel (60%)**: Course/Stage canvas view
   - **Right panel (40%)**: Claude Code web terminal
   - Resizable divider (optional enhancement)
 - [ ] Top bar within learning view:
-  - Paper title / dungeon name
+  - Paper title / course name
   - Current stage indicator: "Stage 1/7"
   - Progress bar: "16% complete"
   - Exit button → navigate back to `/explore` or `/village`
 
-### 3.2 Dungeon Canvas (Left 60%)
-- [ ] Create `DungeonCanvas` component using HTML5 Canvas
+### 3.2 Course Canvas (Left 60%)
+- [ ] Create `CourseCanvas` component using HTML5 Canvas
   - Render tilemap for current stage room
   - Render player character (blue sprite)
   - Render interactive objects (blackboards with concepts)
   - Render door/gate to next stage (locked/unlocked state)
-  - Render friend characters in same dungeon (if any)
+  - Render friend characters in same course (if any)
 - [ ] Stage room layout system
   - Each stage = a room with defined tile layout
   - Blackboard objects placed at specific positions with learning content
@@ -292,20 +292,20 @@
 ### 4.1 Village Tilemap
 - [ ] Build `/village` page with full-screen 2D tilemap
   - Canvas-based rendering (reuse AINSpace pattern)
-  - Village layout with buildings representing paper dungeons
+  - Village layout with buildings representing paper courses
   - Player character navigation (WASD / Arrow keys)
   - Collision detection with buildings and terrain
 - [ ] Top bar:
-  - "LMS Logo | My Classroom | Currently studying: [Paper] Dungeon | Progress: N%"
+  - "LMS Logo | My Classroom | Currently studying: [Paper] Course | Progress: N%"
 - [ ] Left sidebar (icon menu):
   - Dashboard, Course Enrollment, Customization, Community
 
-### 4.2 Dungeon Entrances
-- [ ] Each paper = a dungeon building on the map
-  - Building with label: "[Paper Topic] Dungeon Entrance"
+### 4.2 Course Entrances
+- [ ] Each paper = a course building on the map
+  - Building with label: "[Paper Topic] Course Entrance"
   - Visual distinction per topic (different building styles/colors)
   - Interaction: walk to entrance → prompt to enter → navigate to `/learn/[paperId]`
-- [ ] `🔌 ADAPTER` Fetch available dungeons (= papers the user has enrolled in or all trending papers)
+- [ ] `🔌 ADAPTER` Fetch available courses (= papers the user has enrolled in or all trending papers)
 
 ### 4.3 Dynamic Map Generation with Gemini API
 - [ ] `🔌 ADAPTER` Create `lib/adapters/gemini-map.ts`
@@ -325,12 +325,12 @@
   - Mock: use static pre-made tiles for development
 - [ ] Tile caching system
   - Cache generated tiles in memory and/or `🔌 ADAPTER` blob storage
-  - Only regenerate when new dungeon area is needed
+  - Only regenerate when new course area is needed
 
 ### 4.4 Right Sidebar — Social & Leaderboard
 - [ ] Friends online panel
   - List of friends currently in the village
-  - Each friend: avatar + name + current dungeon/stage status
+  - Each friend: avatar + name + current course/stage status
   - Online indicator (green dot / red busy)
 - [ ] Leaderboard
   - Ranked by learning progress (stages cleared)
@@ -354,7 +354,7 @@
       username: string;
       avatarUrl: string;
       position: { x: number; y: number };
-      currentScene: 'village' | 'dungeon';
+      currentScene: 'village' | 'course';
       currentPaperId?: string;
       currentStage?: number;
     }
@@ -379,7 +379,7 @@
       type: 'stage_clear' | 'friend_join' | 'achievement';
       userId: string;
       username: string;
-      message: string;          // "cleared Stage 3 of RL Dungeon!"
+      message: string;          // "cleared Stage 3 of RL Course!"
       paperId?: string;
       stageNumber?: number;
       timestamp: string;
@@ -390,13 +390,13 @@
   - Appears at top-right of screen
   - Animated slide-in, auto-dismiss after 5 seconds
   - Shows friend avatar + message
-  - Clickable → navigate to friend's dungeon/location
+  - Clickable → navigate to friend's course/location
 
 ### 5.2 Friends List & Status
 - [ ] `🔌 ADAPTER` Friends data adapter
   - `getFriends(userId: string): Promise<Friend[]>`
   - `getFriendStatus(friendId: string): Promise<FriendStatus>`
-- [ ] Display friends in right sidebar (village) and top bar (dungeon)
+- [ ] Display friends in right sidebar (village) and top bar (course)
 
 ---
 
@@ -448,7 +448,7 @@
 
 ### 9.2 Responsive Design
 - [ ] Mobile layout for Explore page (1-column card stack)
-- [ ] Mobile layout for Learning view (stacked: dungeon on top, terminal below)
+- [ ] Mobile layout for Learning view (stacked: course on top, terminal below)
 - [ ] Mobile layout for Village (full-screen map, collapsible sidebar)
 - [ ] Hamburger menu for mobile header
 
@@ -472,13 +472,13 @@
 ### 10.1 Test Scenarios
 - [ ] **Flow 1**: Navigate to `/explore` → verify paper cards render
 - [ ] **Flow 2**: Click "Learn (Claude Code)" on a paper card → verify redirect to `/learn/[paperId]`
-- [ ] **Flow 3**: Verify 60/40 split layout renders (dungeon left, terminal right)
+- [ ] **Flow 3**: Verify 60/40 split layout renders (course left, terminal right)
 - [ ] **Flow 4**: Verify stage title and progress bar display correctly
-- [ ] **Flow 5**: Test keyboard movement in dungeon canvas
+- [ ] **Flow 5**: Test keyboard movement in course canvas
 - [ ] **Flow 6**: Test object interaction (blackboard click → concept overlay)
 - [ ] **Flow 7**: Test quiz gate interaction → unlock → stage transition
-- [ ] **Flow 8**: Test exit from dungeon → navigate to village
-- [ ] **Flow 9**: Verify village tilemap renders with dungeon entrances
+- [ ] **Flow 8**: Test exit from course → navigate to village
+- [ ] **Flow 9**: Verify village tilemap renders with course entrances
 - [ ] **Flow 10**: Verify friend positions and notifications display
 - [ ] **Flow 11**: Test navigation between all pages (Explore, Dashboard, Village, Publish)
 - [ ] **Flow 12**: Test auth guard — unauthenticated user redirected to login

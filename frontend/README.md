@@ -27,7 +27,7 @@ Next.js 기반 논문 탐색 및 지식 그래프 학습 플랫폼 웹 애플리
 ```
 [Explore Page]                    [Learning View]                     [Village]
 ┌─────────────┐   "Learn" 클릭   ┌──────────┬──────────┐            ┌──────────┐
-│ Paper Cards │ ──────────────→  │ Dungeon  │ Claude   │  던전 탈출  │ 2D 마을  │
+│ Paper Cards │ ──────────────→  │ Course  │ Claude   │  던전 탈출  │ 2D 마을  │
 │ (HF style)  │                  │ Canvas   │ Code     │ ─────────→ │ 던전 입구 │
 │             │                  │ (60%)    │ Terminal │            │ 친구 위치 │
 │ [Learn ▶]  │                  │          │ (40%)    │            │ 리더보드  │
@@ -202,7 +202,7 @@ Next.js 기반 논문 탐색 및 지식 그래프 학습 플랫폼 웹 애플리
 ### 참고 이미지
 
 - `reference/ainspace-lms-village.png` — 마을 전체 뷰 (던전 입구, 친구, 리더보드, 월드맵)
-- `reference/ainspace-lms-dungeon.png` — 던전 내부 (스테이지, 학습 콘텐츠, 퀴즈 게이트)
+- `reference/ainspace-lms-course.png` — 던전 내부 (스테이지, 학습 콘텐츠, 퀴즈 게이트)
 
 ### 전체 화면 구조
 
@@ -262,7 +262,7 @@ Next.js 기반 논문 탐색 및 지식 그래프 학습 플랫폼 웹 애플리
 | **친구 캐릭터** | 같은 마을에 접속한 친구들이 실시간으로 보임. 말풍선으로 진행 상태 공유 ("스테이지 3 클리어 🏆") |
 | **NPC / 가이드** | 학습 안내 캐릭터 (선택) |
 
-### 4. Main View — 던전 내부 (Dungeon Stage)
+### 4. Main View — 던전 내부 (Course Stage)
 
 던전 입구에 진입하면 해당 과목의 학습 공간으로 전환:
 
