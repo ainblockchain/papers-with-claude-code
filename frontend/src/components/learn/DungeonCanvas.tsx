@@ -43,6 +43,10 @@ export function DungeonCanvas({ stage }: DungeonCanvasProps) {
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
+      // Skip game keys when typing in an input/textarea
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
       let dx = 0;
       let dy = 0;
       switch (e.key) {
