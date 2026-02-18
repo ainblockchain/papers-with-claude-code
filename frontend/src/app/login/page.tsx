@@ -1,7 +1,8 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { Github, BookOpen } from 'lucide-react';
+import { Github } from 'lucide-react';
+import { ClaudeMark } from '@/components/shared/ClaudeMark';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/useAuthStore';
 
@@ -24,8 +25,8 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-gray-50">
       <div className="w-full max-w-sm mx-4">
         <div className="text-center mb-8">
-          <BookOpen className="h-12 w-12 text-[#FF9D00] mx-auto" />
-          <h1 className="mt-4 text-2xl font-bold text-[#111827]">Papers LMS</h1>
+          <ClaudeMark className="text-[#FF9D00] mx-auto" size={48} />
+          <h1 className="mt-4 text-2xl font-bold text-[#111827]">Papers with Claude Code</h1>
           <p className="mt-2 text-sm text-[#6B7280]">
             Learn research papers interactively with AI
           </p>

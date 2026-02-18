@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Papers LMS',
+  title: 'Papers with Claude Code',
   description: 'Learn research papers interactively with AI-powered dungeon exploration',
 };
 

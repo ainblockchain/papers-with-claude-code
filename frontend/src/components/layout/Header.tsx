@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BookOpen, Compass, LayoutDashboard, Map, Upload, Github, Menu, X } from 'lucide-react';
+import { Compass, LayoutDashboard, Map, Upload, Github, Menu, X } from 'lucide-react';
+import { ClaudeMark } from '@/components/shared/ClaudeMark';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useUIStore } from '@/stores/useUIStore';
@@ -25,8 +26,8 @@ export function Header() {
       <div className="mx-auto flex h-14 max-w-[1280px] items-center px-4">
         {/* Logo */}
         <Link href="/explore" className="flex items-center gap-2 mr-8">
-          <BookOpen className="h-6 w-6 text-[#FF9D00]" />
-          <span className="font-bold text-lg hidden sm:inline">Papers LMS</span>
+          <ClaudeMark className="text-[#FF9D00]" size={24} />
+          <span className="font-bold text-lg hidden sm:inline">Papers with Claude Code</span>
         </Link>
 
         {/* Desktop Nav */}
