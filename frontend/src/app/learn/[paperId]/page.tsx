@@ -64,25 +64,34 @@ export default function LearnPage() {
     }
   }, []);
 
-  // beforeunload — catches tab close / refresh
+  // Page close cleanup — both beforeunload and pagehide for maximum reliability
   useEffect(() => {
-    const handleBeforeUnload = () => {
+    const cleanupOnClose = () => {
       const sid = sessionCleanupRef.current;
       if (sid && TERMINAL_API_URL) {
-        // sendBeacon for reliable cleanup even when page is closing
         const url = `${TERMINAL_API_URL}/api/sessions/${sid}`;
-        // sendBeacon only supports POST, so fall back to fetch keepalive
-        try {
-          fetch(url, { method: 'DELETE', keepalive: true });
-        } catch {
-          // best effort
+        // Try sendBeacon first (most reliable for page unload), then fetch keepalive
+        const beaconSent = navigator.sendBeacon(
+          `${TERMINAL_API_URL}/api/sessions/${sid}/delete`,
+          '',
+        );
+        if (!beaconSent) {
+          try {
+            fetch(url, { method: 'DELETE', keepalive: true });
+          } catch {
+            // best effort
+          }
         }
         sessionCleanupRef.current = null;
       }
     };
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('beforeunload', cleanupOnClose);
+    window.addEventListener('pagehide', cleanupOnClose);
+    return () => {
+      window.removeEventListener('beforeunload', cleanupOnClose);
+      window.removeEventListener('pagehide', cleanupOnClose);
+    };
   }, []);
 
   // Load paper and stages
@@ -119,6 +128,8 @@ export default function LearnPage() {
       // Create backend session if TERMINAL_API_URL is configured
       if (TERMINAL_API_URL && !cancelledRef.current) {
         setSessionStatus('creating');
+        // Clean up any leftover terminated sessions from previous visits
+        await terminalSessionAdapter.cleanupStaleSessions();
         try {
           // Use AIN wallet address as userId (recommended by integration doc)
           const walletAddress = useAuthStore.getState().passkeyInfo?.ainAddress;
