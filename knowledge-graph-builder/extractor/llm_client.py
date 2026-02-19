@@ -11,12 +11,27 @@ import openai
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_BASE_URL = "http://localhost:8000/v1"
-
 
 def get_client(base_url: Optional[str] = None) -> openai.OpenAI:
-    """Get an OpenAI-compatible client pointing at the local vLLM server."""
-    url = base_url or os.environ.get("VLLM_BASE_URL", DEFAULT_BASE_URL)
+    """Get an OpenAI-compatible client pointing at the vLLM server.
+
+    The base URL is determined in the following order:
+    1. Explicit base_url parameter
+    2. VLLM_BASE_URL environment variable
+
+    Raises ValueError if neither is provided.
+    Set VLLM_BASE_URL in your .env file for local use.
+    """
+    if base_url:
+        url = base_url
+    elif "VLLM_BASE_URL" in os.environ:
+        url = os.environ["VLLM_BASE_URL"]
+    else:
+        raise ValueError(
+            "LLM endpoint not configured. "
+            "Set the VLLM_BASE_URL environment variable (e.g. in .env)."
+        )
+
     return openai.OpenAI(base_url=url, api_key="unused")
 
 
@@ -27,8 +42,12 @@ def chat_completion(
     user: str,
     max_tokens: int = 8192,
     temperature: float = 0.3,
-) -> str:
-    """Send a chat completion request and return the response text."""
+) -> tuple[str, str]:
+    """Send a chat completion request and return (response_text, finish_reason).
+
+    finish_reason is "stop" for a clean finish or "length" if the response was
+    truncated by max_tokens.
+    """
     messages = []
     if system:
         messages.append({"role": "system", "content": system})
@@ -43,9 +62,11 @@ def chat_completion(
         temperature=temperature,
     )
 
-    text = response.choices[0].message.content
-    logger.debug("Got response: %d chars", len(text) if text else 0)
-    return text or ""
+    choice = response.choices[0]
+    text = choice.message.content or ""
+    finish_reason = choice.finish_reason or "unknown"
+    logger.debug("Got response: %d chars, finish_reason=%s", len(text), finish_reason)
+    return text, finish_reason
 
 
 def parse_json_response(text: str) -> dict:
@@ -86,9 +107,12 @@ def _repair_truncated_json(text: str) -> str:
     if not text.startswith("{"):
         return ""
 
-    # If inside an unterminated string, close it
-    # Count unescaped quotes
+    # Walk the text tracking string/structural context so we can:
+    # 1. Detect an unterminated string and close it
+    # 2. Count open braces/brackets only outside of strings
     in_string = False
+    open_braces = 0
+    open_brackets = 0
     i = 0
     while i < len(text):
         c = text[i]
@@ -97,14 +121,20 @@ def _repair_truncated_json(text: str) -> str:
             continue
         if c == '"':
             in_string = not in_string
+        elif not in_string:
+            if c == "{":
+                open_braces += 1
+            elif c == "}":
+                open_braces -= 1
+            elif c == "[":
+                open_brackets += 1
+            elif c == "]":
+                open_brackets -= 1
         i += 1
 
     if in_string:
         text += '"'
 
-    # Close open braces/brackets
-    open_braces = text.count("{") - text.count("}")
-    open_brackets = text.count("[") - text.count("]")
     text += "]" * max(0, open_brackets)
     text += "}" * max(0, open_braces)
 

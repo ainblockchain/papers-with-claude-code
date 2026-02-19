@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field, asdict
-from datetime import date, datetime
+from datetime import date
 from enum import Enum
 from pathlib import Path
 from typing import Optional
@@ -198,19 +198,3 @@ class LearnerProgress:
     @classmethod
     def load(cls, path: Path) -> LearnerProgress:
         return cls.from_dict(json.loads(path.read_text()))
-
-
-@dataclass
-class RepoAnalysis:
-    """Results from mining the HF Transformers repo."""
-    models: list[dict] = field(default_factory=list)       # model name, path, first commit date
-    components: list[dict] = field(default_factory=list)    # shared components found
-    key_commits: list[dict] = field(default_factory=list)   # important evolution commits
-    doc_summaries: list[dict] = field(default_factory=list) # per-model doc summaries
-
-    def to_dict(self) -> dict:
-        return asdict(self)
-
-    @classmethod
-    def from_dict(cls, d: dict) -> RepoAnalysis:
-        return cls(**d)
