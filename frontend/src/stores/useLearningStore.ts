@@ -40,6 +40,11 @@ interface LearningState {
   terminalMessages: TerminalMessage[];
   isTerminalLoading: boolean;
 
+  // Backend Session (K8s)
+  sessionId: string | null;
+  sessionStatus: 'idle' | 'creating' | 'running' | 'error';
+  sessionError: string | null;
+
   // Actions
   setPaper: (paper: Paper) => void;
   setStages: (stages: StageConfig[]) => void;
@@ -59,6 +64,9 @@ interface LearningState {
   addTerminalMessage: (message: TerminalMessage) => void;
   setTerminalLoading: (loading: boolean) => void;
   clearTerminalMessages: () => void;
+  setSessionId: (id: string | null) => void;
+  setSessionStatus: (status: 'idle' | 'creating' | 'running' | 'error') => void;
+  setSessionError: (error: string | null) => void;
   reset: () => void;
 }
 
@@ -81,6 +89,9 @@ export const useLearningStore = create<LearningState>((set, get) => ({
   explorerUrl: null,
   terminalMessages: [],
   isTerminalLoading: false,
+  sessionId: null,
+  sessionStatus: 'idle',
+  sessionError: null,
 
   setPaper: (currentPaper) => set({ currentPaper }),
   setStages: (stages) => set({ stages }),
@@ -105,6 +116,9 @@ export const useLearningStore = create<LearningState>((set, get) => ({
     set((state) => ({ terminalMessages: [...state.terminalMessages, message] })),
   setTerminalLoading: (isTerminalLoading) => set({ isTerminalLoading }),
   clearTerminalMessages: () => set({ terminalMessages: [] }),
+  setSessionId: (sessionId) => set({ sessionId }),
+  setSessionStatus: (sessionStatus) => set({ sessionStatus }),
+  setSessionError: (sessionError) => set({ sessionError }),
   reset: () =>
     set({
       currentPaper: null,
@@ -123,5 +137,8 @@ export const useLearningStore = create<LearningState>((set, get) => ({
       explorerUrl: null,
       terminalMessages: [],
       isTerminalLoading: false,
+      sessionId: null,
+      sessionStatus: 'idle',
+      sessionError: null,
     }),
 }));
