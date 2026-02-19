@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Optional
 
 from extractor.graph import KnowledgeGraph
@@ -151,23 +152,30 @@ class CourseBuilder:
         return courses[-1]
 
     def _generate_lessons(self, kg: KnowledgeGraph, concept_ids: list[str]) -> list[Lesson]:
-        lessons = []
+        # 전처리: 순서 보존을 위해 (index, node, prereq_names) 수집
+        tasks: list[tuple[int, ConceptNode, list[str]]] = []
         for concept_id in concept_ids:
             node = kg.get_concept(concept_id)
             if not node:
                 continue
-
             prereqs = kg.get_prerequisites(concept_id)
-            prereq_names = []
-            for pid in prereqs:
-                pnode = kg.get_concept(pid)
-                if pnode:
-                    prereq_names.append(pnode.name)
+            prereq_names = [
+                pnode.name
+                for pid in prereqs
+                if (pnode := kg.get_concept(pid))
+            ]
+            tasks.append((len(tasks), node, prereq_names))
 
-            lesson = self._generate_one_lesson(node, prereq_names)
-            lessons.append(lesson)
+        lessons: list[Lesson | None] = [None] * len(tasks)
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            futures = {
+                executor.submit(self._generate_one_lesson, node, prereq_names): idx
+                for idx, node, prereq_names in tasks
+            }
+            for future in as_completed(futures):
+                lessons[futures[future]] = future.result()
 
-        return lessons
+        return [lesson for lesson in lessons if lesson is not None]
 
     def _generate_one_lesson(self, node: ConceptNode, prerequisite_names: list[str]) -> Lesson:
         fallback_exercise = (
