@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 import logging
+import re
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Optional
@@ -18,6 +20,22 @@ from analyzer.models import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Package categorization sets for scan_dependencies()
+_ML_FRAMEWORKS = frozenset({
+    "torch", "pytorch", "tensorflow", "jax", "flax",
+    "paddle", "paddlepaddle", "mxnet",
+})
+_DOMAIN_LIBS = frozenset({
+    "transformers", "diffusers", "peft", "timm", "flash-attn", "flash_attn",
+    "einops", "bitsandbytes", "accelerate", "xformers", "trl", "deepspeed",
+    "fairseq", "sentence-transformers", "tokenizers", "huggingface-hub",
+    "torchvision", "torchaudio",
+})
+_DATA_LIBS = frozenset({
+    "datasets", "numpy", "pandas", "scipy", "scikit-learn", "sklearn",
+    "pillow", "opencv-python", "albumentations",
+})
 
 
 class BaseRepoAnalyzer(ABC):
@@ -156,14 +174,119 @@ class BaseRepoAnalyzer(ABC):
 
     def scan_dependencies(self) -> dict:
         """
-        Extract dependency information.
+        Extract and categorize dependencies from common dependency files.
 
-        Subclasses can override this to implement dependency extraction.
+        Parses requirements.txt, pyproject.toml, setup.py, package.json.
+        Categorizes packages into ML frameworks, domain libs, data libs, other.
 
         Returns:
-            Dict containing dependency information
+            Dict with keys: frameworks, domain_libs, data, other, raw, source_files
         """
-        return {}
+        raw_packages: list[str] = []
+        source_files: list[str] = []
+
+        candidates = [
+            ("requirements.txt", self._parse_requirements_file),
+            ("requirements-dev.txt", self._parse_requirements_file),
+            ("pyproject.toml", self._parse_pyproject_toml),
+            ("setup.py", self._parse_setup_py),
+            ("package.json", self._parse_package_json),
+        ]
+
+        for filename, parser in candidates:
+            path = self.repo_path / filename
+            if path.exists():
+                try:
+                    packages = parser(path)
+                    if packages:
+                        raw_packages.extend(packages)
+                        source_files.append(filename)
+                except Exception as e:
+                    logger.debug("Could not parse %s: %s", filename, e)
+
+        # Deduplicate while preserving order
+        seen: set[str] = set()
+        unique: list[str] = []
+        for pkg in raw_packages:
+            key = re.split(r"[>=<!~\s]", pkg)[0].strip().lower()
+            if key and key not in seen:
+                seen.add(key)
+                unique.append(pkg)
+
+        # Categorize
+        frameworks, domain_libs, data_libs, other = [], [], [], []
+        for pkg in unique:
+            key = re.split(r"[>=<!~\s]", pkg)[0].strip().lower().replace("-", "_")
+            key_h = key.replace("_", "-")
+            if key in _ML_FRAMEWORKS or key_h in _ML_FRAMEWORKS:
+                frameworks.append(pkg)
+            elif key in _DOMAIN_LIBS or key_h in _DOMAIN_LIBS:
+                domain_libs.append(pkg)
+            elif key in _DATA_LIBS or key_h in _DATA_LIBS:
+                data_libs.append(pkg)
+            else:
+                other.append(pkg)
+
+        return {
+            "frameworks": frameworks,
+            "domain_libs": domain_libs,
+            "data": data_libs,
+            "other": other,
+            "raw": unique,
+            "source_files": source_files,
+        }
+
+    def _parse_requirements_file(self, path: Path) -> list[str]:
+        """Parse requirements.txt-style file."""
+        packages = []
+        for line in path.read_text(errors="replace").splitlines():
+            line = line.split("#")[0].strip()
+            if line and not line.startswith("-"):
+                packages.append(line)
+        return packages
+
+    def _parse_pyproject_toml(self, path: Path) -> list[str]:
+        """Extract dependencies from pyproject.toml via regex (no toml lib needed)."""
+        packages = []
+        content = path.read_text(errors="replace")
+        # Match lines inside [project] dependencies = [...] or [tool.poetry.dependencies]
+        in_deps = False
+        for line in content.splitlines():
+            stripped = line.strip()
+            if re.match(r"^\[(?:project|tool\.poetry)\b", stripped):
+                in_deps = False
+            if re.match(r"^dependencies\s*=\s*\[", stripped):
+                in_deps = True
+            if in_deps:
+                for m in re.finditer(r'"([A-Za-z][A-Za-z0-9._-]*[^"]*)"', line):
+                    pkg = m.group(1)
+                    if not pkg.startswith("python"):
+                        packages.append(pkg)
+                if stripped == "]":
+                    in_deps = False
+        return packages
+
+    def _parse_setup_py(self, path: Path) -> list[str]:
+        """Extract install_requires list from setup.py via regex."""
+        packages = []
+        content = path.read_text(errors="replace")
+        m = re.search(r"install_requires\s*=\s*\[(.*?)\]", content, re.DOTALL)
+        if m:
+            for pkg_m in re.finditer(r"""["']([A-Za-z][^"']+)["']""", m.group(1)):
+                packages.append(pkg_m.group(1))
+        return packages
+
+    def _parse_package_json(self, path: Path) -> list[str]:
+        """Extract dependency names from package.json."""
+        try:
+            data = json.loads(path.read_text(errors="replace"))
+            packages = []
+            for section in ("dependencies", "devDependencies", "peerDependencies"):
+                packages.extend(data.get(section, {}).keys())
+            return packages
+        except Exception as e:
+            logger.debug("Could not parse package.json: %s", e)
+            return []
 
     def get_extensions(self) -> dict[str, Any]:
         """

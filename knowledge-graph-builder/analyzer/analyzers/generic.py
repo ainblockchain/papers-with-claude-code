@@ -115,28 +115,55 @@ class GenericAnalyzer(BaseRepoAnalyzer):
         return commits
 
     def scan_structure(self) -> dict:
-        """Basic directory structure."""
-        structure = {
-            "root_files": [],
-            "root_dirs": [],
-        }
+        """
+        Extract model architecture class hierarchy from Python source files.
+
+        Returns a dict mapping each class name to its inherited bases and file path.
+        This reveals how model components are composed and connected, which directly
+        maps to prerequisite concept chains in the learning path.
+        """
+        hierarchy: dict = {}
 
         try:
-            # List root-level files (excluding hidden files)
-            structure["root_files"] = [
-                f.name for f in self.repo_path.iterdir() if f.is_file() and not f.name.startswith(".")
+            python_files = [
+                f for f in self.repo_path.rglob("*.py")
+                if not any(part.startswith(".") for part in f.parts)
+                and not any(
+                    part in {"__pycache__", "venv", "env", "node_modules", "build", "dist"}
+                    for part in f.parts
+                )
             ]
 
-            # List root-level directories (excluding hidden dirs)
-            structure["root_dirs"] = [
-                d.name
-                for d in self.repo_path.iterdir()
-                if d.is_dir() and not d.name.startswith(".")
-            ]
+            # Limit to avoid scanning too many files in large repos
+            max_files = 50
+            if len(python_files) > max_files:
+                logger.info("Found %d Python files, limiting structure scan to %d", len(python_files), max_files)
+                python_files = sorted(python_files)[:max_files]
+
+            for py_file in python_files:
+                try:
+                    content = py_file.read_text(errors="replace")
+                    relative_path = str(py_file.relative_to(self.repo_path))
+
+                    for match in re.finditer(
+                        r"^class\s+(\w+)\s*\(([^)]+)\)\s*:", content, re.MULTILINE
+                    ):
+                        class_name = match.group(1)
+                        bases = [
+                            b.strip() for b in match.group(2).split(",")
+                            if b.strip() and b.strip() not in {"object", "ABC", "Enum"}
+                        ]
+                        hierarchy[class_name] = {
+                            "inherits": bases,
+                            "file": relative_path,
+                        }
+                except Exception as e:
+                    logger.debug("Could not parse %s: %s", py_file, e)
+
         except Exception as e:
-            logger.warning(f"Error scanning structure: {e}")
+            logger.warning("Error scanning structure: %s", e)
 
-        return structure
+        return hierarchy
 
     def scan_components(self) -> list[ComponentInfo]:
         """

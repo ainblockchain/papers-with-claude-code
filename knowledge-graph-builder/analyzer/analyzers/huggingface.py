@@ -101,14 +101,22 @@ class HuggingFaceAnalyzer(BaseRepoAnalyzer):
         documentation = self.scan_documentation()
         logger.info("Found %d documentation files", len(documentation))
 
+        # Scan model class hierarchy
+        structure = self.scan_structure()
+        logger.info("Found %d classes in structure", len(structure))
+
+        # Scan dependencies
+        dependencies = self.scan_dependencies()
+        logger.info("Found %d packages in dependencies", len(dependencies.get("raw", [])))
+
         return UniversalRepoAnalysis(
             repo_type=self.get_repo_type(),
             repo_path=str(self.repo_path),
             components=components,
             commits=commits,
             documentation=documentation,
-            structure={},
-            dependencies={},
+            structure=structure,
+            dependencies=dependencies,
             extensions={
                 "models": models,  # HF-specific extension
             },
@@ -261,6 +269,54 @@ class HuggingFaceAnalyzer(BaseRepoAnalyzer):
                 logger.debug(f"Could not read doc {doc_file}: {e}")
 
         return documentation
+
+    def scan_structure(self) -> dict:
+        """
+        Extract model class hierarchy from key HuggingFace modeling files.
+
+        Focuses on modeling_utils.py (base classes) and a sample of model files
+        to show the PreTrainedModel → BertModel → BertForMaskedLM pattern.
+        Avoids scanning all 500+ models to keep output manageable.
+        """
+        hierarchy: dict = {}
+
+        # Always include the base classes file
+        target_files = [self.config["modeling_utils_path"]]
+
+        # Add one modeling file per model, limited to first 10 alphabetically
+        models_dir = self.repo_path / self.config["models_path"]
+        if models_dir.exists():
+            sample_dirs = sorted(
+                d for d in models_dir.iterdir()
+                if d.is_dir() and not d.name.startswith("_")
+            )[:10]
+            for model_dir in sample_dirs:
+                for f in sorted(model_dir.glob("modeling_*.py")):
+                    target_files.append(str(f.relative_to(self.repo_path)))
+                    break  # one file per model
+
+        for relative_path in target_files:
+            filepath = self.repo_path / relative_path
+            if not filepath.exists():
+                continue
+            try:
+                content = filepath.read_text(errors="replace")
+                for match in re.finditer(
+                    r"^class\s+(\w+)\s*\(([^)]+)\)\s*:", content, re.MULTILINE
+                ):
+                    class_name = match.group(1)
+                    bases = [
+                        b.strip() for b in match.group(2).split(",")
+                        if b.strip() and b.strip() not in {"object", "ABC", "Enum"}
+                    ]
+                    hierarchy[class_name] = {
+                        "inherits": bases,
+                        "file": relative_path,
+                    }
+            except Exception as e:
+                logger.debug("Could not parse %s: %s", filepath, e)
+
+        return hierarchy
 
     # Helper methods (from original implementation)
 
