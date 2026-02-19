@@ -204,7 +204,7 @@ class CourseBuilder:
             return Lesson(
                 concept_id=node.id,
                 title=node.name,
-                prerequisites=[],
+                prerequisites=prerequisite_names,
                 key_ideas=node.key_ideas,
                 code_ref=node.code_refs[0] if node.code_refs else "",
                 paper_ref=node.paper_ref,
@@ -212,11 +212,11 @@ class CourseBuilder:
                 explanation=data.get("explanation", node.description),
             )
         except Exception as e:
-            logger.warning("Failed to generate lesson for %s: %s", node.id, e)
+            logger.exception("Failed to generate lesson for %s: %s", node.id, e)
             return Lesson(
                 concept_id=node.id,
                 title=node.name,
-                prerequisites=[],
+                prerequisites=prerequisite_names,
                 key_ideas=node.key_ideas,
                 code_ref=node.code_refs[0] if node.code_refs else "",
                 paper_ref=node.paper_ref,
