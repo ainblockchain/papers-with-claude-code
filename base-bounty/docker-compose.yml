@@ -1,0 +1,118 @@
+# Cogito Node — Local Development Stack
+#
+# Usage:
+#   docker-compose up -d          # Start all services
+#   docker-compose logs -f agent  # Follow agent logs
+#   docker-compose down           # Stop all services
+#
+# Prerequisites:
+#   - Docker with compose v2
+#   - NVIDIA GPU + nvidia-container-toolkit (for vLLM)
+#   - Copy .env.example to .env and configure keys
+#
+# Architecture:
+#   vLLM (Qwen3-32B-AWQ) → AIN Node (JSON-RPC) → Agent (ain-js) → x402 Server
+#                           Neo4j (graph index) ↗
+
+services:
+  # vLLM: Local LLM inference (Qwen3-32B-AWQ on GPU)
+  vllm:
+    image: vllm/vllm-openai:v0.12.0
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    volumes:
+      - huggingface-cache:/root/.cache/huggingface
+    command:
+      - "--model"
+      - "Qwen/Qwen3-32B-AWQ"
+      - "--max-model-len"
+      - "32768"
+      - "--gpu-memory-utilization"
+      - "0.90"
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+
+  # Neo4j: Knowledge graph index backend
+  neo4j:
+    image: neo4j:5
+    environment:
+      NEO4J_AUTH: neo4j/cogito_dev_password
+      NEO4J_PLUGINS: '["apoc"]'
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    volumes:
+      - neo4j-data:/data
+    healthcheck:
+      test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "cogito_dev_password", "RETURN 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # AIN Blockchain Node: Knowledge graph + LLM JSON-RPC
+  ain-node:
+    build:
+      context: ../../ain-blockchain
+      dockerfile: Dockerfile
+    depends_on:
+      vllm:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+    environment:
+      SEASON: dev
+      ENABLE_KNOWLEDGE_GRAPH_INDEX: "true"
+      KNOWLEDGE_GRAPH_BACKEND: neo4j
+      KNOWLEDGE_NEO4J_URI: bolt://neo4j:7687
+      KNOWLEDGE_NEO4J_USER: neo4j
+      KNOWLEDGE_NEO4J_PASSWORD: cogito_dev_password
+      ENABLE_LLM: "true"
+      LLM_PROVIDER_URL: http://vllm:8000
+      LLM_MODEL: Qwen/Qwen3-32B-AWQ
+    ports:
+      - "8081:8080"
+      - "5100:5100"
+
+  # Cogito Agent: Autonomous knowledge agent
+  agent:
+    build:
+      context: ./agent
+      dockerfile: Dockerfile
+    depends_on:
+      - ain-node
+    env_file:
+      - ./agent/.env
+    environment:
+      AIN_PROVIDER_URL: http://ain-node:8080
+      AIN_WS_URL: ws://ain-node:5100
+    ports:
+      - "3402:3402"
+
+  # Web UI: Collective intelligence dashboard
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    depends_on:
+      - agent
+    environment:
+      NEXT_PUBLIC_AGENT_URL: http://agent:3402
+      NEXT_PUBLIC_AIN_PROVIDER_URL: http://ain-node:8080
+      NEXT_PUBLIC_BASE_RPC_URL: ${BASE_RPC_URL:-https://mainnet.base.org}
+    ports:
+      - "3000:3000"
+
+volumes:
+  huggingface-cache:
+  neo4j-data:

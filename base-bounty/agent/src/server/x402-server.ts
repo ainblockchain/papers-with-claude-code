@@ -53,10 +53,25 @@ export function createX402Server({ ain, config, baseAddress, getStatus }: X402Se
   }
 
   // -------------------------------------------------------------------------
-  // Unauthenticated status endpoint
+  // Unauthenticated endpoints
   // -------------------------------------------------------------------------
   app.get('/status', (_req, res) => {
     res.json(getStatus());
+  });
+
+  app.get('/health', async (_req, res) => {
+    const checks: Record<string, boolean> = {
+      server: true,
+      x402: !!paymentMiddleware,
+    };
+    try {
+      await ain.knowledge.listTopics();
+      checks.ainNode = true;
+    } catch {
+      checks.ainNode = false;
+    }
+    const healthy = checks.ainNode;
+    res.status(healthy ? 200 : 503).json({ healthy, checks });
   });
 
   // -------------------------------------------------------------------------

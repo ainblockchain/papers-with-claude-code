@@ -13,7 +13,8 @@ export interface RevenueSnapshot {
   incomeLast24h: number;
   costLast24h: number;
   sustainabilityRatio: number;
-  usdcBalance: number;
+  totalEvents: number;
+  usdcBalance?: number;
 }
 
 export interface TransactionRecord {
