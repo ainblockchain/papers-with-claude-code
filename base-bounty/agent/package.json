@@ -1,0 +1,28 @@
+{
+  "name": "cogito-node",
+  "version": "0.1.0",
+  "description": "Cogito Node — self-sustaining autonomous knowledge agent for Base",
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "dev": "tsx watch src/index.ts",
+    "register": "tsx scripts/register.ts"
+  },
+  "dependencies": {
+    "@ainblockchain/ain-js": "^1.0.0",
+    "@x402/core": "^0.1.0",
+    "@x402/express": "^0.1.0",
+    "@x402/fetch": "^0.1.0",
+    "@x402/evm": "^0.1.0",
+    "dotenv": "^16.4.0",
+    "ethers": "^6.13.0",
+    "express": "^4.21.0",
+    "ox": "^0.6.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}
