@@ -1,6 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import { GENESIS_PAPERS } from '@/lib/devnet-samples';
+
+// Unique topic paths from genesis papers
+const TOPIC_PATHS = [...new Set(GENESIS_PAPERS.map((p) => p.topicPath))];
 
 interface FrontierData {
   topicPath?: string;
@@ -59,12 +63,28 @@ export default function FrontierView() {
     <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
       <h2 className="text-lg font-semibold text-white mb-4">Frontier View</h2>
 
+      {/* Quick topic presets */}
+      <div className="mb-3">
+        <p className="text-xs text-gray-500 mb-1.5">Quick Topics:</p>
+        <div className="flex flex-wrap gap-1.5">
+          {TOPIC_PATHS.map((tp) => (
+            <button
+              key={tp}
+              onClick={() => setTopicPath(tp)}
+              className="bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white px-2.5 py-1 rounded-full text-xs transition-colors border border-gray-700"
+            >
+              {tp}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="flex gap-3 mb-4">
         <input
           type="text"
           value={topicPath}
           onChange={(e) => setTopicPath(e.target.value)}
-          placeholder="Enter topic path..."
+          placeholder="ai/transformers/attention"
           className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-blue-500 transition-colors"
         />
         <button
@@ -203,7 +223,7 @@ export default function FrontierView() {
       )}
 
       {!loading && !frontier && !error && (
-        <p className="text-gray-500 text-sm">Enter a topic path and click Fetch Frontier.</p>
+        <p className="text-gray-500 text-sm">Select a topic above or enter a path and click Fetch Frontier.</p>
       )}
     </div>
   );

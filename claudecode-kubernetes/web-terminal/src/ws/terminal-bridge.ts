@@ -3,6 +3,10 @@
 // 유저는 bash 셸이 아닌, 사전 구성된 Claude Code에 바로 연결됨.
 // stdout 스트림에서 [STAGE_COMPLETE:N] / [DUNGEON_COMPLETE] 마커를 감지하여
 // DB 저장 + 구조화된 WebSocket 이벤트 전송 + 마커 strip 처리.
+//
+// 자율 학습 모드:
+// - autoStart: Claude Code 초기화 후 자동으로 학습 시작 프롬프트 주입
+// - idleNudgeMs: 유저 비활성 시간 후 Claude가 자율적으로 다음 내용 탐구
 
 import WebSocket from 'ws';
 import * as k8s from '@kubernetes/client-node';
@@ -13,6 +17,22 @@ import type { ProgressStore } from '../db/progress.js';
 const STAGE_COMPLETE_RE = /\[STAGE_COMPLETE:(\d+)\]/g;
 const COURSE_COMPLETE_STR = '[DUNGEON_COMPLETE]';
 
+// 자율 모드 설정값
+const AUTO_START_DELAY_MS = 4000; // Claude Code 초기화 대기
+const DEFAULT_IDLE_NUDGE_MS = 120_000; // 2분 비활성 시 자율 탐구 재개
+
+const AUTO_START_PROMPT = '논문 탐구를 시작해주세요\n';
+const IDLE_NUDGE_PROMPTS = [
+  '계속 다음 내용을 탐구해주세요\n',
+  '더 흥미로운 부분을 찾아서 설명해주세요\n',
+  '다음으로 중요한 개념을 살펴볼까요\n',
+];
+
+export interface TerminalOptions {
+  autoStart?: boolean;    // true면 세션 시작 시 자동 프롬프트 주입
+  idleNudgeMs?: number;   // 0이면 비활성, 양수면 해당 ms 후 자율 탐구 재개
+}
+
 export async function attachTerminal(
   ws: WebSocket,
   podName: string,
@@ -21,10 +41,29 @@ export async function attachTerminal(
   paperId?: string,
   progressStore?: ProgressStore,
   sessionId?: string,
+  options?: TerminalOptions,
 ): Promise<void> {
   const exec = new k8s.Exec(kc);
+  const { autoStart = false, idleNudgeMs = 0 } = options ?? {};
 
   let isCleanedUp = false;
+  let idleTimer: ReturnType<typeof setTimeout> | null = null;
+  let autoStartTimer: ReturnType<typeof setTimeout> | null = null;
+  let nudgeIndex = 0;
+
+  // Idle heartbeat: 유저 비활성 시 Claude에 자율 탐구 프롬프트 주입
+  function resetIdleTimer() {
+    if (idleTimer) clearTimeout(idleTimer);
+    if (idleNudgeMs <= 0 || isCleanedUp) return;
+    idleTimer = setTimeout(() => {
+      if (isCleanedUp || ws.readyState !== WebSocket.OPEN) return;
+      const prompt = IDLE_NUDGE_PROMPTS[nudgeIndex % IDLE_NUDGE_PROMPTS.length];
+      nudgeIndex++;
+      console.log(`[terminal-bridge] Idle nudge for pod ${podName}`);
+      stdinStream.push(prompt);
+      resetIdleTimer(); // 다음 idle 타이머 설정
+    }, idleNudgeMs);
+  }
 
   // Pod stdout/stderr -> 브라우저 WebSocket 으로 전달하는 writable stream
   // [STAGE_COMPLETE:N] / [DUNGEON_COMPLETE] 마커를 감지하여 이벤트 전송 + 마커 strip
@@ -82,6 +121,8 @@ export async function attachTerminal(
   function cleanup() {
     if (isCleanedUp) return;
     isCleanedUp = true;
+    if (autoStartTimer) clearTimeout(autoStartTimer);
+    if (idleTimer) clearTimeout(idleTimer);
     console.log(`[terminal-bridge] Cleaning up for pod ${podName}`);
     stdinStream.push(null);
     stdoutStream.destroy();
@@ -109,6 +150,7 @@ export async function attachTerminal(
 
       if (parsed.type === 'input' && typeof parsed.data === 'string') {
         stdinStream.push(parsed.data);
+        resetIdleTimer(); // 유저 입력 시 idle 타이머 리셋
         return;
       }
     } catch {
@@ -153,6 +195,18 @@ export async function attachTerminal(
       true,           // TTY 모드
     );
     console.log(`[terminal-bridge] exec attached for pod ${podName}`);
+
+    // Auto-start: Claude Code 초기화 후 자동으로 학습 시작 프롬프트 주입
+    // 유저가 터미널을 열면 Claude가 즉시 논문 탐구를 시작하는 효과
+    if (autoStart) {
+      autoStartTimer = setTimeout(() => {
+        if (isCleanedUp || ws.readyState !== WebSocket.OPEN) return;
+        console.log(`[terminal-bridge] Auto-start prompt for pod ${podName}`);
+        ws.send(JSON.stringify({ type: 'auto_start' }));
+        stdinStream.push(AUTO_START_PROMPT);
+        resetIdleTimer(); // auto-start 후 idle 타이머 시작
+      }, AUTO_START_DELAY_MS);
+    }
   } catch (err: unknown) {
     clearInterval(pingInterval);
     const message = err instanceof Error ? err.message : JSON.stringify(err);

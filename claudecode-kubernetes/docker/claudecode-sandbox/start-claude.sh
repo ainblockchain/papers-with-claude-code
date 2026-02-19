@@ -46,7 +46,10 @@ chmod 444 ~/.claude.json
 unset ANTHROPIC_API_KEY
 
 # 논문 레포가 클론되어 있으면 해당 디렉토리에서 Claude Code 시작
-if [ -d "/home/claude/paper" ]; then
+# PV 마운트: /home/claude/papers/ (영속화됨)
+if [ -d "/home/claude/papers/current" ]; then
+  cd /home/claude/papers/current
+elif [ -d "/home/claude/paper" ]; then
   cd /home/claude/paper
 fi
 

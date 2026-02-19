@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { ADDR1, ADDR2, GENESIS_PAPERS } from '@/lib/devnet-samples';
 
 interface Exploration {
   title?: string;
@@ -16,6 +17,9 @@ interface Exploration {
 
 type ViewMode = 'by-topic' | 'by-user';
 
+// Unique topic paths from genesis papers
+const TOPIC_PATHS = [...new Set(GENESIS_PAPERS.map((p) => p.topicPath))];
+
 export default function ExplorationViewer() {
   const [mode, setMode] = useState<ViewMode>('by-topic');
   const [address, setAddress] = useState('');
@@ -23,6 +27,17 @@ export default function ExplorationViewer() {
   const [explorations, setExplorations] = useState<Exploration[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  function prefillByUser(addr: string) {
+    setMode('by-user');
+    setAddress(addr);
+  }
+
+  function prefillByTopic(addr: string, topic: string) {
+    setMode('by-topic');
+    setAddress(addr);
+    setTopicPath(topic);
+  }
 
   async function handleFetch() {
     setLoading(true);
@@ -80,9 +95,34 @@ export default function ExplorationViewer() {
     }
   }
 
+  const inputCls = 'w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-blue-500 transition-colors';
+  const pillCls = 'bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white px-2 py-0.5 rounded text-[10px] font-mono transition-colors border border-gray-700';
+
   return (
     <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
       <h2 className="text-lg font-semibold text-white mb-4">Exploration Viewer</h2>
+
+      {/* Quick presets */}
+      <div className="mb-4 space-y-2">
+        <p className="text-xs text-gray-500">Quick Presets:</p>
+        <div className="flex flex-wrap gap-1.5">
+          <button onClick={() => prefillByUser(ADDR1)} className="bg-purple-900/50 hover:bg-purple-800/50 text-purple-300 px-2.5 py-1 rounded-full text-xs transition-colors border border-purple-800">
+            Genesis Owner (all)
+          </button>
+          <button onClick={() => prefillByUser(ADDR2)} className="bg-orange-900/50 hover:bg-orange-800/50 text-orange-300 px-2.5 py-1 rounded-full text-xs transition-colors border border-orange-800">
+            Test Account (all)
+          </button>
+          {TOPIC_PATHS.map((tp) => (
+            <button
+              key={tp}
+              onClick={() => prefillByTopic(ADDR1, tp)}
+              className="bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white px-2.5 py-1 rounded-full text-xs transition-colors border border-gray-700"
+            >
+              {tp}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* Mode Toggle */}
       <div className="flex gap-1 bg-gray-800 rounded-lg p-1 mb-4 w-fit">
@@ -117,7 +157,7 @@ export default function ExplorationViewer() {
             value={address}
             onChange={(e) => setAddress(e.target.value)}
             placeholder="0x..."
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-blue-500 transition-colors font-mono"
+            className={`${inputCls} font-mono`}
           />
         </div>
         {mode === 'by-topic' && (
@@ -127,8 +167,8 @@ export default function ExplorationViewer() {
               type="text"
               value={topicPath}
               onChange={(e) => setTopicPath(e.target.value)}
-              placeholder="science/physics"
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-blue-500 transition-colors"
+              placeholder="ai/transformers/attention"
+              className={inputCls}
             />
           </div>
         )}
@@ -206,7 +246,7 @@ export default function ExplorationViewer() {
       )}
 
       {!loading && explorations.length === 0 && !error && (
-        <p className="text-gray-500 text-sm">No explorations loaded. Enter parameters and click Fetch.</p>
+        <p className="text-gray-500 text-sm">No explorations loaded. Use a preset or enter parameters and click Fetch.</p>
       )}
     </div>
   );

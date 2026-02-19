@@ -86,6 +86,12 @@ wss.on('connection', async (ws: WebSocket, req) => {
       session.repoUrl, // repoUrl을 paperId로 사용 (데모용)
       progressStore,
       session.id,
+      {
+        // repoUrl이 있는 세션이면 자동 시작 모드 활성화
+        // Claude가 즉시 논문 탐구를 시작하여 "자율적" 느낌을 줌
+        autoStart: !!session.repoUrl,
+        idleNudgeMs: session.repoUrl ? 120_000 : 0, // 논문 세션만 idle heartbeat 활성
+      },
     );
   } catch (err) {
     console.error('[ws] Terminal attach failed:', err);

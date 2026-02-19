@@ -603,6 +603,13 @@ AA SDK의 Paymaster를 사용하면 제3자(예: 플랫폼)가 가스비를 대�
 **예상 소요:** 1-2일
 **산출물:** 배포된 LearningLedger 컨트랙트 + 검증된 ABI
 
+> **Deployed Contract (Kite Testnet):**
+> - **Address:** `0xaffB053eE4fb81c0D3450fDA6db201f901214A72`
+> - **KiteScan:** https://testnet.kitescan.ai/address/0xaffB053eE4fb81c0D3450fDA6db201f901214A72
+> - **Chain ID:** 2368 (Kite AI Testnet)
+> - **Deployer:** `0x1C5D99765Fb460199a20946AA071108F205bF86f`
+> - **Deploy TX:** `0x48630b70f9d27ccc7417931550d1786f41fadef4041f8f7190acbb4b87368085`
+
 ### 9.1 디렉토리 구조
 
 ```
@@ -1432,7 +1439,7 @@ export interface ClaudeTerminalAdapter {
 
 - [ ] Vercel에 프로덕션 배포 (공개 URL)
 - [ ] 환경변수 설정 (Vercel Dashboard)
-- [ ] LearningLedger 컨트랙트 Kite Testnet 배포 + KiteScan 검증
+- [x] LearningLedger 컨트랙트 Kite Testnet 배포 + KiteScan 검증 → `0xaffB053eE4fb81c0D3450fDA6db201f901214A72`
 - [ ] Faucet에서 테스트 KITE 토큰 충분히 확보
 - [ ] 모든 x402 API 라우트 동작 확인
 - [ ] 에이전트 대시보드 접근 가능
@@ -1513,7 +1520,7 @@ NEXT_PUBLIC_USE_KITE_CHAIN=true           # true: 실제 체인 / false: Mock
 NEXT_PUBLIC_KITE_CHAIN_ID=2368            # 2368: Testnet / 2366: Mainnet
 NEXT_PUBLIC_KITE_RPC_URL=https://rpc-testnet.gokite.ai/
 NEXT_PUBLIC_KITE_EXPLORER_URL=https://testnet.kitescan.ai/
-NEXT_PUBLIC_LEARNING_LEDGER_ADDRESS=      # 배포 후 입력
+NEXT_PUBLIC_LEARNING_LEDGER_ADDRESS=0xaffB053eE4fb81c0D3450fDA6db201f901214A72
 
 # ===== Agent Wallet (Server Only — NEVER expose to client) =====
 KITE_AGENT_PRIVATE_KEY=                   # 에이전트 개인키

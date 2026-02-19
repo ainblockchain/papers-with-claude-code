@@ -145,8 +145,8 @@ A Next.js blockchain explorer for the AI Network, deployed at **https://ainscan.
 ### Features
 
 - **Blocks**: Paginated block list with "All" / "With Transactions" filter toggle
-- **Transactions**: Recent transactions via REST API with block-scan fallback
-- **Transaction Detail**: Normalizes nested `tx_body` format, fetches from block when tx index is unavailable
+- **Transactions**: Recent transactions via REST API (`/recent_transactions`) with block-scan fallback
+- **Transaction Detail**: Unwraps nested wrapper response from `getTransactionByHash`, normalizes `tx_body` fields, 3-tier fallback (tx hash lookup → block fetch via `?block=N` → full chain scan)
 - **Knowledge Graph**: Interactive canvas-based force-directed graph visualization of on-chain knowledge data
   - Topics, explorations, and users as colored nodes
   - Click-to-navigate to topic/exploration detail pages
@@ -156,6 +156,15 @@ A Next.js blockchain explorer for the AI Network, deployed at **https://ainscan.
 - **Database Browser**: Raw on-chain state explorer at any path
 - **Search**: Search by block number, tx hash, or account address
 - **Mobile**: Responsive layout with hamburger menu
+
+### Rate Limiting & Resilience
+
+The explorer handles devnet rate limiting with:
+- **Retry with backoff**: Up to 3 retries with 1s/2s/3s delays on 429 or non-JSON responses
+- **Reduced parallelism**: Batch requests limited to 2 concurrent to stay under rate limits
+- **Sequential home page**: Network stats fetched before block/tx data to avoid burst requests
+- **REST-first with fallback**: Uses REST index endpoints (`/recent_transactions`, `/recent_blocks_with_transactions`) when available, falls back to block scanning when index is empty
+- **`force-dynamic` rendering**: All data pages use server-side rendering (no static generation) to avoid build-time timeouts
 
 ### Knowledge Graph Integration
 

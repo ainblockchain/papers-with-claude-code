@@ -36,7 +36,7 @@ export function createStagesRouter(_config: AppConfig): Router {
       const content = await podManager.execInPod(
         session.podName,
         session.namespace,
-        ['cat', '/home/claude/paper/CLAUDE.md']
+        ['cat', '/home/claude/papers/current/CLAUDE.md']
       );
       const stages = extractStagesJson(content);
       res.json(stages);

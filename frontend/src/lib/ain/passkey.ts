@@ -5,13 +5,24 @@
  * 1. navigator.credentials.create() with alg: -7 (ES256/P256)
  * 2. Extract P256 public key from attestation
  * 3. Derive AIN address from P256 pubkey (SHA-256 → last 20 bytes)
- * 4. For signing: navigator.credentials.get() signs a challenge
+ * 4. Derive EVM address from P256 pubkey (keccak256 → secp256k1 private key → address)
+ * 5. For signing: navigator.credentials.get() signs a challenge
+ *
+ * EVM Compatibility Note:
+ * Passkeys use P-256 curve (ES256), NOT secp256k1 (EVM).
+ * The private key is non-exportable (stored in OS keystore).
+ * We bridge this gap by deriving a deterministic secp256k1 key:
+ *   evmPrivateKey = keccak256(p256PublicKey)
+ * The server derives the same key from the public key sent in requests.
  */
+
+import { ethers } from 'ethers';
 
 export interface PasskeyInfo {
   credentialId: string;
-  publicKey: string; // hex-encoded
-  ainAddress: string;
+  publicKey: string; // hex-encoded P-256 public key (DER)
+  ainAddress: string; // AIN address (SHA-256 → last 20 bytes)
+  evmAddress: string; // EVM address (keccak256 → secp256k1 → address)
 }
 
 const STORAGE_KEY = 'ain_passkey_info';
@@ -21,12 +32,18 @@ export function savePasskeyInfo(info: PasskeyInfo): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(info));
 }
 
-/** Load passkey info from localStorage */
+/** Load passkey info from localStorage (auto-migrates legacy data without evmAddress) */
 export function loadPasskeyInfo(): PasskeyInfo | null {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (!stored) return null;
-    return JSON.parse(stored);
+    const info = JSON.parse(stored) as PasskeyInfo;
+    // Migrate legacy entries that lack evmAddress
+    if (info.publicKey && !info.evmAddress) {
+      info.evmAddress = deriveEvmAddress(info.publicKey);
+      savePasskeyInfo(info);
+    }
+    return info;
   } catch {
     return null;
   }
@@ -47,8 +64,28 @@ export function isPasskeySupported(): boolean {
 }
 
 /**
+ * Derive EVM-compatible secp256k1 private key from P-256 public key.
+ * evmPrivateKey = keccak256(publicKeyHex)
+ * This is deterministic: same public key → same EVM wallet.
+ */
+export function deriveEvmPrivateKey(publicKeyHex: string): string {
+  const input = publicKeyHex.startsWith('0x') ? publicKeyHex : `0x${publicKeyHex}`;
+  return ethers.keccak256(input);
+}
+
+/**
+ * Derive EVM address from P-256 public key.
+ * Uses keccak256(pubkey) as secp256k1 private key → compute address.
+ */
+export function deriveEvmAddress(publicKeyHex: string): string {
+  const privateKey = deriveEvmPrivateKey(publicKeyHex);
+  const wallet = new ethers.Wallet(privateKey);
+  return wallet.address;
+}
+
+/**
  * Register a new passkey (P256/ES256).
- * Returns the credential info + derived AIN address.
+ * Returns the credential info + derived AIN address + derived EVM address.
  */
 export async function registerPasskey(
   userId: string,
@@ -108,7 +145,10 @@ export async function registerPasskey(
     }
   }
 
-  const info: PasskeyInfo = { credentialId, publicKey: publicKeyHex, ainAddress };
+  // Derive EVM address from the P-256 public key
+  const evmAddress = deriveEvmAddress(publicKeyHex);
+
+  const info: PasskeyInfo = { credentialId, publicKey: publicKeyHex, ainAddress, evmAddress };
   savePasskeyInfo(info);
   return info;
 }

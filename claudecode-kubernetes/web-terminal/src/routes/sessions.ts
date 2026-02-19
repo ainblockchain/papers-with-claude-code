@@ -63,7 +63,7 @@ export function createSessionRouter(config: AppConfig): Router {
 
       console.log(`[sessions] Creating session: ${sessionId}`);
 
-      const podName = await podManager.createPod(sessionId, config);
+      const podName = await podManager.createPod(sessionId, config, userId);
       session.podName = podName;
 
       await podManager.waitForPodReady(podName, config.sandboxNamespace);
@@ -72,7 +72,7 @@ export function createSessionRouter(config: AppConfig): Router {
       if (repoUrl) {
         console.log(`[sessions] Cloning repo: ${repoUrl}`);
         await podManager.execInPod(session.podName, config.sandboxNamespace, [
-          'git', 'clone', '--depth', '1', repoUrl, '/home/claude/paper',
+          'git', 'clone', '--depth', '1', repoUrl, '/home/claude/papers/current',
         ]);
       }
 

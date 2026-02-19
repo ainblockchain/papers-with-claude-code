@@ -7,7 +7,10 @@ import { TILE_SIZE, VILLAGE_MAP_WIDTH, VILLAGE_MAP_HEIGHT, PLAYER_COLOR, FRIEND_
 import { MOCK_PAPERS } from '@/constants/mock-papers';
 import { useLocationSync } from '@/hooks/useLocationSync';
 import { useMapLoader } from '@/hooks/useMapLoader';
+import { trackEvent } from '@/lib/ain/event-tracker';
 import { renderTileLayer, type Viewport } from '@/lib/tmj/renderer';
+import { usePurchaseStore } from '@/stores/usePurchaseStore';
+import { papersAdapter } from '@/lib/adapters/papers';
 
 interface CourseEntrance {
   paperId: string;
@@ -39,6 +42,7 @@ export function VillageCanvas() {
   const router = useRouter();
   const { playerPosition, playerDirection, setPlayerPosition, setPlayerDirection, friends, courseLocations } =
     useVillageStore();
+  const { getAccessStatus, setPurchaseModal } = usePurchaseStore();
 
   // Sync positions with AIN blockchain
   useLocationSync();
@@ -121,7 +125,30 @@ export function VillageCanvas() {
         case 'Enter': {
           const paperId = checkCourseEntry(playerPosition.x, playerPosition.y);
           if (paperId) {
-            router.push(`/learn/${paperId}`);
+            const access = getAccessStatus(paperId);
+            if (access === 'owned' || access === 'purchased') {
+              trackEvent({
+                type: 'course_enter',
+                scene: 'village',
+                paperId,
+                x: playerPosition.x,
+                y: playerPosition.y,
+                direction: useVillageStore.getState().playerDirection,
+                timestamp: Date.now(),
+              });
+              router.push(`/learn/${paperId}`);
+            } else {
+              // Not purchased — open purchase modal
+              const paper = papersAdapter.getPaperByIdSync?.(paperId);
+              if (paper) {
+                setPurchaseModal(paperId, paper);
+              } else {
+                // Fallback: fetch async
+                papersAdapter.getPaperById(paperId).then((p) => {
+                  if (p) setPurchaseModal(paperId, p);
+                });
+              }
+            }
           }
           return;
         }
@@ -135,7 +162,7 @@ export function VillageCanvas() {
         setPlayerPosition({ x: newX, y: newY });
       }
     },
-    [playerPosition, setPlayerPosition, setPlayerDirection, isWalkable, checkCourseEntry, router]
+    [playerPosition, setPlayerPosition, setPlayerDirection, isWalkable, checkCourseEntry, router, getAccessStatus, setPurchaseModal]
   );
 
   useEffect(() => {
@@ -272,9 +299,15 @@ export function VillageCanvas() {
     // Interaction hint near course entrance
     const nearPaper = checkCourseEntry(playerPosition.x, playerPosition.y);
     if (nearPaper) {
-      ctx.fillStyle = '#FF9D00';
+      const nearAccess = usePurchaseStore.getState().accessMap[nearPaper];
+      const canEnter = nearAccess === 'owned' || nearAccess === 'purchased';
+      ctx.fillStyle = canEnter ? '#FF9D00' : '#7C3AED';
       ctx.font = 'bold 13px sans-serif';
-      ctx.fillText('Press E to enter course', playerScreenX, playerScreenY + TILE_SIZE * 1.2);
+      ctx.fillText(
+        canEnter ? 'Press E to enter course' : 'Press E to purchase course',
+        playerScreenX,
+        playerScreenY + TILE_SIZE * 1.2,
+      );
     }
   }, [playerPosition, playerDirection, friends, courseEntrances, checkCourseEntry, mapData]);
 

@@ -68,14 +68,20 @@ class RealTerminalSessionAdapter implements TerminalSessionAdapter {
     }
   }
 
-  /** List all sessions, delete any that are terminated. Returns count deleted. */
+  /** List all sessions, delete any that are terminated or stuck creating. Returns count deleted. */
   async cleanupStaleSessions(): Promise<number> {
     try {
       const res = await fetch(`${BASE_URL}/api/sessions`);
       if (!res.ok) return 0;
-      const sessions: SessionInfo[] = await res.json();
-      const stale = sessions.filter((s) => s.status === 'terminated');
-      await Promise.all(stale.map((s) => this.deleteSession(s.sessionId)));
+      // API list returns { id, ... } while create returns { sessionId, ... }
+      const sessions: Array<{ id?: string; sessionId?: string; status: string }> =
+        await res.json();
+      const stale = sessions.filter(
+        (s) => s.status === 'terminated' || s.status === 'creating',
+      );
+      await Promise.all(
+        stale.map((s) => this.deleteSession((s.id ?? s.sessionId)!)),
+      );
       return stale.length;
     } catch {
       return 0;

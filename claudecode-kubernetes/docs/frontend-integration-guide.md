@@ -103,12 +103,19 @@ GET /api/progress/:userId
 // 하트비트 응답
 { type: 'pong' }
 
+// 자율 학습 시작 알림 (repoUrl 세션에서 자동 발생)
+{ type: 'auto_start' }
+
 // 스테이지 완료 이벤트
 { type: 'stage_complete', stageNumber: number }
 
 // 코스(논문) 전체 완료 이벤트
 { type: 'course_complete' }
 ```
+
+> **자율 학습 모드**: `repoUrl`을 포함하여 세션을 생성하면, 4초 후 Claude가 자동으로 논문 탐구를 시작합니다.
+> 유저가 2분간 입력이 없으면 Claude가 자율적으로 다음 내용을 탐구합니다.
+> 프론트엔드에서 `auto_start` 이벤트를 수신하면 로딩 UI를 닫고 "AI가 탐구 중" 상태로 전환할 수 있습니다.
 
 메시지 파싱 전략: JSON.parse() 시도 → 성공하면 이벤트 처리, 실패하면 터미널 출력
 
@@ -154,6 +161,10 @@ ws.onmessage = (event) => {
   const data = event.data;
   try {
     const msg = JSON.parse(data);
+    if (msg.type === 'auto_start') {
+      // → 로딩 UI 닫기 + "AI가 논문을 탐구하고 있습니다..." 표시
+      // → Claude가 자동으로 파일을 읽고 분석하기 시작함
+    }
     if (msg.type === 'stage_complete') {
       // → Zustand store의 completeStage(msg.stageNumber) 호출
       // → 던전 UI 업데이트 (문 열림)

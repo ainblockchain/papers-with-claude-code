@@ -6,6 +6,8 @@ export interface PapersAdapter {
   fetchTrendingPapers(period: 'daily' | 'weekly' | 'monthly'): Promise<Paper[]>;
   searchPapers(query: string): Promise<Paper[]>;
   getPaperById(id: string): Promise<Paper | null>;
+  /** Synchronous lookup (mock only — returns null if data isn't cached) */
+  getPaperByIdSync?(id: string): Paper | null;
 }
 
 class MockPapersAdapter implements PapersAdapter {
@@ -19,6 +21,9 @@ class MockPapersAdapter implements PapersAdapter {
     );
   }
   async getPaperById(id: string): Promise<Paper | null> {
+    return MOCK_PAPERS.find(p => p.id === id) ?? null;
+  }
+  getPaperByIdSync(id: string): Paper | null {
     return MOCK_PAPERS.find(p => p.id === id) ?? null;
   }
 }

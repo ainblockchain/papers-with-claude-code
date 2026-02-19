@@ -35,7 +35,7 @@ export class KiteWalletManager {
   private sessionKey: SessionKey | null = null;
   private isConfigured: boolean;
 
-  constructor(config?: WalletConfig) {
+  constructor(config?: Partial<WalletConfig>) {
     const chainConfig = getChainConfig();
     const rpcUrl = config?.rpcUrl || chainConfig.rpcUrl;
     this.provider = new ethers.JsonRpcProvider(rpcUrl);
