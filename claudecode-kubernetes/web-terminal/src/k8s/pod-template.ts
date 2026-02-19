@@ -7,9 +7,12 @@
 //   /data/claude-users/{userId}/papers     → /home/claude/papers  (클론된 레포)
 // subPath 마운트라 이미지의 .bashrc, CLAUDE.md 등은 보존됨.
 //
-// 주의: .claude/settings.json이 이미지에 baked-in 되어 있으나
-//       PV 마운트로 가려짐. 컨테이너 시작 시 복원 커맨드로 해결.
-//       실제 보안 강제는 /etc/claude-code/managed-settings.json이 담당.
+// 주의 1: .claude/settings.json이 이미지에 baked-in 되어 있으나
+//          PV 마운트로 가려짐. 컨테이너 시작 시 복원 커맨드로 해결.
+//          실제 보안 강제는 /etc/claude-code/managed-settings.json이 담당.
+//
+// 주의 2: fsGroup은 subPath 마운트에 적용되지 않는 K8s 이슈가 있어
+//          initContainer에서 직접 chown으로 권한을 설정함.
 //
 // 보안: 진짜 API 키는 Pod에 주입되지 않음.
 // 더미 키 + ANTHROPIC_BASE_URL(프록시)로 구성되어
@@ -60,10 +63,23 @@ export function buildSandboxPodSpec(
       activeDeadlineSeconds: config.sessionTimeoutSeconds,
       restartPolicy: 'Never',
       automountServiceAccountToken: false,
-      // fsGroup으로 PV 디렉토리에 claude 유저(GID 1000) 쓰기 권한 부여
       securityContext: {
         fsGroup: 1000,
       },
+      // initContainer: subPath 마운트에는 fsGroup이 적용되지 않아 직접 chown
+      initContainers: [
+        {
+          name: 'fix-permissions',
+          image: 'busybox:1.36',
+          command: ['sh', '-c', 'mkdir -p /data/dot-claude /data/papers && chown -R 1000:1000 /data'],
+          volumeMounts: [
+            {
+              name: 'user-data',
+              mountPath: '/data',
+            },
+          ],
+        },
+      ],
       containers: [
         {
           name: 'sandbox',
