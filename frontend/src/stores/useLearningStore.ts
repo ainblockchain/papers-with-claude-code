@@ -40,6 +40,9 @@ interface LearningState {
   terminalMessages: TerminalMessage[];
   isTerminalLoading: boolean;
 
+  // Course completion
+  isCourseComplete: boolean;
+
   // Backend Session (K8s)
   sessionId: string | null;
   sessionStatus: 'idle' | 'creating' | 'running' | 'error';
@@ -64,6 +67,7 @@ interface LearningState {
   addTerminalMessage: (message: TerminalMessage) => void;
   setTerminalLoading: (loading: boolean) => void;
   clearTerminalMessages: () => void;
+  setCourseComplete: (complete: boolean) => void;
   setSessionId: (id: string | null) => void;
   setSessionStatus: (status: 'idle' | 'creating' | 'running' | 'error') => void;
   setSessionError: (error: string | null) => void;
@@ -89,6 +93,7 @@ export const useLearningStore = create<LearningState>((set, get) => ({
   explorerUrl: null,
   terminalMessages: [],
   isTerminalLoading: false,
+  isCourseComplete: false,
   sessionId: null,
   sessionStatus: 'idle',
   sessionError: null,
@@ -116,6 +121,7 @@ export const useLearningStore = create<LearningState>((set, get) => ({
     set((state) => ({ terminalMessages: [...state.terminalMessages, message] })),
   setTerminalLoading: (isTerminalLoading) => set({ isTerminalLoading }),
   clearTerminalMessages: () => set({ terminalMessages: [] }),
+  setCourseComplete: (isCourseComplete) => set({ isCourseComplete }),
   setSessionId: (sessionId) => set({ sessionId }),
   setSessionStatus: (sessionStatus) => set({ sessionStatus }),
   setSessionError: (sessionError) => set({ sessionError }),
@@ -137,6 +143,7 @@ export const useLearningStore = create<LearningState>((set, get) => ({
       explorerUrl: null,
       terminalMessages: [],
       isTerminalLoading: false,
+      isCourseComplete: false,
       sessionId: null,
       sessionStatus: 'idle',
       sessionError: null,
