@@ -1,5 +1,7 @@
 // 🔌 ADAPTER 🔗 CROSS-TEAM — Real-time friend presence
 import { FriendPosition, Notification, LeaderboardEntry } from '@/types/social';
+import { ainAdapter } from '@/lib/adapters/ain-blockchain';
+import type { UserLocation } from '@/lib/ain/location-types';
 
 export interface FriendPresenceAdapter {
   subscribeToFriendPositions(callback: (friends: FriendPosition[]) => void): () => void;
@@ -107,6 +109,75 @@ class MockLeaderboardAdapter implements LeaderboardAdapter {
   }
 }
 
-export const friendPresenceAdapter: FriendPresenceAdapter = new MockFriendPresenceAdapter();
+/** AIN blockchain-backed friend presence — reads locations from on-chain state */
+class AinFriendPresenceAdapter implements FriendPresenceAdapter {
+  private _ownAddress: string | null = null;
+  private static _friendNames: Record<string, string> = {};
+  private static _nextNameIdx = 0;
+  private static readonly NAMES = ['Alice', 'Bob', 'Carol', 'Dave', 'Eve', 'Frank', 'Grace', 'Hank'];
+
+  private static nameFor(address: string): string {
+    if (!this._friendNames[address]) {
+      this._friendNames[address] = this.NAMES[this._nextNameIdx % this.NAMES.length];
+      this._nextNameIdx++;
+    }
+    return this._friendNames[address];
+  }
+
+  private locationToFriend(address: string, loc: UserLocation): FriendPosition {
+    const isRecent = Date.now() - loc.updatedAt < 60_000; // online if updated within 60s
+    return {
+      userId: address,
+      username: AinFriendPresenceAdapter.nameFor(address),
+      avatarUrl: '',
+      position: { x: loc.x, y: loc.y },
+      currentScene: loc.scene,
+      currentPaperId: loc.paperId,
+      currentStage: loc.stageIndex,
+      isOnline: isRecent,
+    };
+  }
+
+  subscribeToFriendPositions(callback: (friends: FriendPosition[]) => void): () => void {
+    const poll = async () => {
+      try {
+        const all = await ainAdapter.getAllLocations();
+        const friends: FriendPosition[] = [];
+        for (const [address, loc] of Object.entries(all)) {
+          if (address === this._ownAddress) continue;
+          friends.push(this.locationToFriend(address, loc));
+        }
+        callback(friends);
+      } catch {
+        // silent — keep previous state
+      }
+    };
+
+    poll();
+    const interval = setInterval(poll, 10_000);
+    return () => clearInterval(interval);
+  }
+
+  updateMyPosition(position: { x: number; y: number; scene: string }): void {
+    const location: UserLocation = {
+      x: position.x,
+      y: position.y,
+      direction: 'down',
+      scene: position.scene as 'village' | 'course',
+      updatedAt: Date.now(),
+    };
+    ainAdapter.updateLocation(location);
+  }
+
+  setOwnAddress(address: string) {
+    this._ownAddress = address;
+  }
+}
+
+const USE_AIN_CHAIN = process.env.NEXT_PUBLIC_USE_AIN_CHAIN === 'true';
+
+export const friendPresenceAdapter: FriendPresenceAdapter = USE_AIN_CHAIN
+  ? new AinFriendPresenceAdapter()
+  : new MockFriendPresenceAdapter();
 export const notificationAdapter: NotificationAdapter = new MockNotificationAdapter();
 export const leaderboardAdapter: LeaderboardAdapter = new MockLeaderboardAdapter();
