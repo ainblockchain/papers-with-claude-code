@@ -42,3 +42,6 @@ build/
 
 # Images
 *.png
+
+# Pipeline results
+knowledge-graph-builder/pipelineResult/
