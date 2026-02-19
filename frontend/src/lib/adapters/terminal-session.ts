@@ -25,6 +25,7 @@ export interface TerminalSessionAdapter {
   createSession(req: SessionCreateRequest): Promise<SessionInfo>;
   getSession(sessionId: string): Promise<SessionInfo>;
   deleteSession(sessionId: string): Promise<void>;
+  cleanupStaleSessions(): Promise<number>;
   getStages(sessionId: string): Promise<unknown[]>;
   getProgress(userId: string, paperId: string): Promise<BackendProgress>;
   getWebSocketUrl(sessionId: string): string;
@@ -64,6 +65,20 @@ class RealTerminalSessionAdapter implements TerminalSessionAdapter {
       await fetch(`${BASE_URL}/api/sessions/${sessionId}`, { method: 'DELETE' });
     } catch {
       // Best-effort cleanup — don't throw on unmount
+    }
+  }
+
+  /** List all sessions, delete any that are terminated. Returns count deleted. */
+  async cleanupStaleSessions(): Promise<number> {
+    try {
+      const res = await fetch(`${BASE_URL}/api/sessions`);
+      if (!res.ok) return 0;
+      const sessions: SessionInfo[] = await res.json();
+      const stale = sessions.filter((s) => s.status === 'terminated');
+      await Promise.all(stale.map((s) => this.deleteSession(s.sessionId)));
+      return stale.length;
+    } catch {
+      return 0;
     }
   }
 
