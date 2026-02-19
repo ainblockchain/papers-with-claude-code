@@ -1,0 +1,40 @@
+# Environment variables — 실수로 시크릿이 커밋되는 것을 방지
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+
+# Private keys and certificates
+*.pem
+*.key
+*.p12
+*.pfx
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDE / Editor
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Node.js
+node_modules/
+dist/
+build/
+
+# Database (SQLite)
+*.db
+*.db-shm
+*.db-wal
+
+# Logs
+*.log
