@@ -7,11 +7,9 @@
 export const DEVNET_PROVIDER_URL = 'https://devnet-api.ainetwork.ai';
 export const LOCALHOST_PROVIDER_URL = 'http://localhost:8081';
 
-// --- Known Accounts ---
+// --- Known Accounts (addresses only — private keys must be in .env.local) ---
 export const ADDR1 = '0x00ADEc28B6a845a085e03591bE7550dd68673C1C'; // Genesis papers owner
-export const ADDR1_PK = 'b22c95ffc4a5c096f7d7d0487ba963ce6ac945bdc91c79b64ce209de289bec96';
 export const ADDR2 = '0x01A0980d2B06EDcD52F1E513c1e0c1e8e35c35a4'; // Second test account
-export const ADDR2_PK = '865aaa010be6ab719034bfabc7e29eb5f47d31414856605a1f7a7af0fcf4dd13';
 
 export interface GenesisPaper {
   title: string;
