@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@ainblockchain/ain-js": "^1.14.0",
     "@monaco-editor/react": "^4.7.0",
     "@x402/core": "^2.3.1",
     "@x402/evm": "^2.3.1",

@@ -3,16 +3,19 @@
 import { useState } from 'react';
 import { X, CheckCircle2, XCircle } from 'lucide-react';
 import { useLearningStore } from '@/stores/useLearningStore';
+import { useAinStore } from '@/stores/useAinStore';
 import { cn } from '@/lib/utils';
 
 export function QuizOverlay() {
   const {
     stages,
     currentStageIndex,
+    currentPaper,
     isQuizActive,
     setQuizActive,
     setQuizPassed,
   } = useLearningStore();
+  const { recordExploration } = useAinStore();
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [showResult, setShowResult] = useState(false);
 
@@ -26,6 +29,19 @@ export function QuizOverlay() {
     if (!selectedOption) return;
     setShowResult(true);
     if (selectedOption === quiz.correctAnswer) {
+      // Record exploration on AIN blockchain (fire-and-forget)
+      if (currentPaper && currentStage) {
+        recordExploration({
+          topicPath: currentPaper.id,
+          title: `${currentStage.title} - Quiz Passed`,
+          content: `Completed stage ${currentStage.stageNumber} quiz`,
+          summary: `Passed quiz for ${currentStage.title}`,
+          depth: currentStage.stageNumber,
+          tags: [currentPaper.id, `stage-${currentStage.stageNumber}`],
+        }).catch(() => {
+          // Non-blocking: exploration recording failure shouldn't block learning flow
+        });
+      }
       setTimeout(() => {
         setQuizPassed(true);
         setQuizActive(false);

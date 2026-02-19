@@ -10,6 +10,9 @@ import { AgentWalletCard } from '@/components/agent/AgentWalletCard';
 import { PaymentHistory } from '@/components/agent/PaymentHistory';
 import { StandingIntentConfig } from '@/components/agent/StandingIntentConfig';
 import { useAgentStore, LearningAttestation } from '@/stores/useAgentStore';
+import { AinWalletInfo } from '@/components/ain/AinWalletInfo';
+import { KnowledgeGraph } from '@/components/ain/KnowledgeGraph';
+import { LearnerProgressView } from '@/components/ain/LearnerProgressView';
 
 function truncateHash(hash: string): string {
   if (hash.length <= 12) return hash;
@@ -105,13 +108,16 @@ export default function AgentDashboardPage() {
           {/* Left Column: Identity + Standing Intent */}
           <div className="space-y-6">
             <AgentWalletCard />
+            <AinWalletInfo />
             <StandingIntentConfig />
           </div>
 
-          {/* Right Column: Payment History + Attestations */}
+          {/* Right Column: Payment History + Attestations + On-chain Progress */}
           <div className="space-y-6">
             <PaymentHistory />
             <LearningAttestations />
+            <KnowledgeGraph />
+            <LearnerProgressView />
           </div>
         </div>
       </div>
