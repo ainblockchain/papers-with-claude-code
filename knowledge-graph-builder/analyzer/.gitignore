@@ -1,0 +1,4 @@
+# Analyzer results (generated files)
+results/
+*.pyc
+__pycache__/
