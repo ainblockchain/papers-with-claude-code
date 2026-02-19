@@ -93,26 +93,68 @@ export function buildAuthorCodes(paper: {
 
 /**
  * Parse builder codes from a transaction's data suffix.
+ * Reads length-prefixed UTF-8 strings from the end of calldata,
+ * matching the format produced by buildBuilderCodeSuffix().
  */
 export function parseBuilderCodes(txData: string): string[] {
-  // This is a simplified parser — in production, use ox/erc8021
-  const codes: string[] = [];
   const hex = txData.startsWith('0x') ? txData.slice(2) : txData;
+  if (hex.length < 4) return [];
 
-  // Try to find builder code suffix at the end of the data
-  // Each code is: 1 byte length + N bytes UTF-8
-  let pos = hex.length;
-  const tempCodes: string[] = [];
+  // Read forward through the suffix: each code is 1 byte (2 hex) length + N bytes content
+  // We need to find where the builder codes start. Try reading from the end
+  // by scanning backwards for valid length-prefixed sequences.
+  const codes: string[] = [];
 
-  try {
-    // Read backwards to find codes
-    while (pos > 0) {
-      // This is approximate — real implementation would use ERC-8021 framing
-      break;
+  // Strategy: try parsing from every possible start position near the end.
+  // Builder codes are short (<128 bytes each), so scan the last 512 hex chars.
+  const searchRegion = hex.slice(Math.max(0, hex.length - 512));
+  let offset = 0;
+
+  // Try to find a valid chain of length-prefixed codes
+  for (let startPos = 0; startPos < searchRegion.length; startPos += 2) {
+    const candidate = tryParseCodesAt(searchRegion, startPos);
+    if (candidate.length > 0 && candidate.some(c => c === COGITO_BUILDER_CODE)) {
+      return candidate;
     }
-  } catch {
-    // Parsing failed — no builder codes found
   }
 
-  return tempCodes.length > 0 ? tempCodes : codes;
+  // Fallback: try reading from position 0 of search region
+  return tryParseCodesAt(searchRegion, 0);
+}
+
+function tryParseCodesAt(hex: string, startPos: number): string[] {
+  const codes: string[] = [];
+  let pos = startPos;
+
+  while (pos < hex.length) {
+    // Read 1-byte length (2 hex chars)
+    if (pos + 2 > hex.length) break;
+    const len = parseInt(hex.slice(pos, pos + 2), 16);
+    if (len === 0 || len > 128) break; // Invalid length
+    pos += 2;
+
+    // Read N bytes of UTF-8 content (2*N hex chars)
+    const contentHexLen = len * 2;
+    if (pos + contentHexLen > hex.length) break;
+    const contentHex = hex.slice(pos, pos + contentHexLen);
+    pos += contentHexLen;
+
+    try {
+      const content = Buffer.from(contentHex, 'hex').toString('utf-8');
+      // Validate it looks like a builder code (printable ASCII, no control chars)
+      if (/^[\x20-\x7e]+$/.test(content)) {
+        codes.push(content);
+      } else {
+        break;
+      }
+    } catch {
+      break;
+    }
+  }
+
+  // Only return if we consumed exactly to the end (no leftover bytes)
+  if (pos === hex.length && codes.length > 0) {
+    return codes;
+  }
+  return codes;
 }

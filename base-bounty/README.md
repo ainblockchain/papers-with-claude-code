@@ -275,6 +275,99 @@ npm run dev
 # Open http://localhost:3000
 ```
 
+### Docker Compose (full stack)
+
+```bash
+cd base-bounty
+cp agent/.env.example agent/.env
+# Edit agent/.env with your keys
+
+docker-compose up -d
+```
+
+Services:
+| Service | Port | Description |
+|---------|------|-------------|
+| vLLM | 8000 | LLM inference (Qwen3-32B-AWQ) |
+| Neo4j | 7474, 7687 | Graph browser / Bolt |
+| AIN Node | 8081, 5100 | JSON-RPC / WebSocket |
+| Agent | 3402 | x402 knowledge server |
+| Web UI | 3000 | Collective intelligence dashboard |
+
+## Running Tests
+
+### Agent Tests (89 tests)
+
+```bash
+cd agent
+npm install
+npm test              # All tests
+npm run test:unit     # Unit tests only
+npm run test:e2e      # End-to-end lifecycle test
+```
+
+Test coverage: cogito orchestrator, alignment engine, builder codes (encode + parse), course builder, ERC-8004 identity, peer client, revenue tracker, wallet, knowledge routes, course routes, x402 server, full agent lifecycle.
+
+### ain-js Tests (24 unit + 28 e2e)
+
+```bash
+cd ../../ain-js
+npm test                                  # Unit tests (24)
+npx jest knowledge-e2e.test.ts --runInBand  # E2E against devnet (28)
+```
+
+### ain-blockchain Tests (61 tests)
+
+```bash
+cd ../../ain-blockchain
+npx jest test/unit/llm-engine.test.js     # LLM engine + think tag parsing
+```
+
+## API Reference
+
+### x402-Gated Endpoints
+
+| Method | Endpoint | Price | Description |
+|--------|----------|-------|-------------|
+| GET | `/knowledge/explore/*` | $0.005 | Explorations for a topic |
+| GET | `/knowledge/frontier/*` | $0.002 | Frontier map statistics |
+| GET | `/knowledge/graph` | $0.01 | Full knowledge graph |
+| POST | `/knowledge/curate` | $0.05 | LLM deep analysis |
+| POST | `/course/unlock-stage` | $0.001 | Unlock a course stage |
+
+### Free Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/status` | Agent status, recent explorations, revenue |
+| GET | `/health` | Health check (AIN node + x402 middleware) |
+
+## Environment Variables
+
+### Agent (`agent/.env`)
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `AIN_PROVIDER_URL` | Yes | `http://localhost:8081` | AIN node JSON-RPC |
+| `AIN_WS_URL` | Yes | `ws://localhost:5100` | AIN node WebSocket |
+| `AIN_PRIVATE_KEY` | Yes | — | Agent's AIN private key |
+| `BASE_RPC_URL` | Yes | `https://mainnet.base.org` | Base chain RPC |
+| `BASE_PRIVATE_KEY` | Yes | — | Agent's Base private key |
+| `BUILDER_CODE` | No | `cogito_node` | ERC-8021 builder code |
+| `X402_FACILITATOR_URL` | No | `https://facilitator.x402.org` | x402 facilitator |
+| `AGENT_NAME` | No | `cogito-alpha` | Agent display name |
+| `THINK_INTERVAL_MS` | No | `60000` | Think cycle interval (ms) |
+| `X402_PORT` | No | `3402` | x402 server port |
+
+### Web (`web/.env`)
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `NEXT_PUBLIC_AGENT_URL` | No | `http://localhost:3402` | Agent status endpoint |
+| `NEXT_PUBLIC_AIN_PROVIDER_URL` | No | `http://localhost:8081` | AIN node JSON-RPC |
+| `NEXT_PUBLIC_BASE_RPC_URL` | No | `https://mainnet.base.org` | Base chain RPC |
+| `NEXT_PUBLIC_BASESCAN_API_KEY` | No | — | Basescan API key for tx history |
+
 ## Philosophy
 
 A node that thinks alone is trapped. Its knowledge graph has gaps it cannot see. Its model has biases it cannot correct. It generates knowledge in a vacuum.

@@ -70,8 +70,104 @@ export async function getETHBalance(address: string): Promise<number> {
   return Number(ethers.formatEther(balance));
 }
 
-export async function getRecentTransactions(address: string, limit = 20): Promise<any[]> {
-  // In production, this would use Basescan API or an indexer
-  // For now, return empty array
+export interface BaseTx {
+  hash: string;
+  timestamp: number;
+  from: string;
+  to: string;
+  value: string;
+  input: string;
+  builderCodes: string[];
+}
+
+const BASESCAN_API_URL = process.env.NEXT_PUBLIC_BASESCAN_API_URL || 'https://api.basescan.org/api';
+const BASESCAN_API_KEY = process.env.NEXT_PUBLIC_BASESCAN_API_KEY || '';
+
+/**
+ * Parse ERC-8021 builder codes from transaction input data.
+ * Builder codes are length-prefixed UTF-8 strings appended to calldata.
+ */
+function parseBuilderCodes(txData: string): string[] {
+  const hex = txData.startsWith('0x') ? txData.slice(2) : txData;
+  if (hex.length < 4) return [];
+
+  const searchRegion = hex.slice(Math.max(0, hex.length - 512));
+
+  for (let startPos = 0; startPos < searchRegion.length; startPos += 2) {
+    const candidate = tryParseCodesAt(searchRegion, startPos);
+    if (candidate.length > 0 && candidate.some(c => c === 'cogito_node')) {
+      return candidate;
+    }
+  }
+
   return [];
+}
+
+function tryParseCodesAt(hex: string, startPos: number): string[] {
+  const codes: string[] = [];
+  let pos = startPos;
+
+  while (pos < hex.length) {
+    if (pos + 2 > hex.length) break;
+    const len = parseInt(hex.slice(pos, pos + 2), 16);
+    if (len === 0 || len > 128) break;
+    pos += 2;
+
+    const contentHexLen = len * 2;
+    if (pos + contentHexLen > hex.length) break;
+    const contentHex = hex.slice(pos, pos + contentHexLen);
+    pos += contentHexLen;
+
+    try {
+      const bytes = new Uint8Array(contentHex.match(/.{2}/g)!.map(b => parseInt(b, 16)));
+      const content = new TextDecoder().decode(bytes);
+      if (/^[\x20-\x7e]+$/.test(content)) {
+        codes.push(content);
+      } else {
+        break;
+      }
+    } catch {
+      break;
+    }
+  }
+
+  if (pos === hex.length && codes.length > 0) {
+    return codes;
+  }
+  return codes;
+}
+
+export async function getRecentTransactions(address: string, limit = 20): Promise<BaseTx[]> {
+  const params = new URLSearchParams({
+    module: 'account',
+    action: 'txlist',
+    address,
+    startblock: '0',
+    endblock: '99999999',
+    page: '1',
+    offset: String(limit),
+    sort: 'desc',
+    ...(BASESCAN_API_KEY ? { apikey: BASESCAN_API_KEY } : {}),
+  });
+
+  try {
+    const res = await fetch(`${BASESCAN_API_URL}?${params}`);
+    const json = await res.json();
+
+    if (json.status !== '1' || !Array.isArray(json.result)) {
+      return [];
+    }
+
+    return json.result.map((tx: any) => ({
+      hash: tx.hash,
+      timestamp: Number(tx.timeStamp) * 1000,
+      from: tx.from,
+      to: tx.to || '',
+      value: ethers.formatEther(tx.value || '0'),
+      input: tx.input || '0x',
+      builderCodes: parseBuilderCodes(tx.input || ''),
+    }));
+  } catch {
+    return [];
+  }
 }

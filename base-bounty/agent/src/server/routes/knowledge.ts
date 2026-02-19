@@ -34,7 +34,9 @@ export function createKnowledgeRouter(ain: Ain): Router {
   router.get('/frontier/*', async (req: Request, res: Response) => {
     try {
       const topic = (req.params as any)[0] || req.params.topic;
-      const frontier = await ain.knowledge.getFrontier(topic);
+      const frontier = topic
+        ? await ain.knowledge.getFrontier(topic)
+        : await ain.knowledge.getFrontierMap();
       res.json(frontier);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
