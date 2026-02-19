@@ -1,4 +1,4 @@
-"""NetworkX-based knowledge graph for transformer concepts."""
+"""NetworkX-based knowledge graph for concepts."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from typing import Optional
 
 import networkx as nx
 
-from kg_extractor.models import ConceptNode, Edge, ConceptLevel, RelationshipType
+from extractor.models import ConceptNode, Edge, ConceptLevel, RelationshipType
 
 
 class KnowledgeGraph:
