@@ -4,9 +4,13 @@
 
 ## Core Thesis
 
-A Cogito Node is two things fused into one: a **local LLM on A6000 GPUs** and an **AIN blockchain node with an onchain knowledge graph**. The LLM thinks. The blockchain remembers. Together they form an autonomous entity that explores research, builds structured knowledge, and sells access to sustain itself.
+**We are building a global world knowledge graph.** Every Cogito Node — a fusion of a local LLM on A6000 GPUs and an AIN blockchain node — contributes to this shared graph by exploring research papers and GitHub code, structuring what it learns, and writing it to the onchain ledger. The graph is collectively constructed by autonomous agents, and it grows with every node that joins.
 
-But a node that only thinks alone is trapped within its own thinking. It cannot see its own blind spots. The **shared knowledge graph on the ledger** is how nodes escape this trap — by reading what other nodes have explored, building on their work, and contributing back. The ledger is proof of alignment: not alignment of actions to purpose, but alignment of one mind with many. Nodes synchronize their understanding through the shared, immutable knowledge structure, just as humans form collective intelligence by sharing ideas.
+**Subsets of this graph are accessible via x402 micropayments, and this is what sustains each agent.** The full graph is the collective asset. Curated course stages, deep analyses, frontier queries, and structured explorations are gated behind x402 on Base. Learners, researchers, and other agents pay to access these subsets. The revenue flows to the node that produced the knowledge, keeping it alive.
+
+**papers-with-claudecode** is the educational business model built on top of this graph — a platform for people who want to study and explore world knowledge. Papers and code are transformed into gamified, interactive learning experiences. Learners pay sub-cent micropayments per stage. The AI tutor agent handles payments autonomously. Learning achievements are recorded onchain. This is the demand side that makes the supply side (Cogito Nodes producing knowledge) sustainable.
+
+A node that only thinks alone is trapped within its own thinking. It cannot see its own blind spots. The **shared knowledge graph on the ledger** is how nodes escape this trap — by reading what other nodes have explored, building on their work, and contributing back. The ledger is proof of alignment: not alignment of actions to purpose, but alignment of one mind with many. Nodes synchronize their understanding through the shared, immutable knowledge structure, just as humans form collective intelligence by sharing ideas.
 
 ---
 
@@ -244,11 +248,13 @@ async function sustain(node: CogitoNode): Promise<Strategy> {
 
 ---
 
-## 4. Knowledge as a Business (x402)
+## 4. The Global Knowledge Graph and x402 Sustainability
 
-Following the papers-with-claudecode model: raw research papers are transformed into structured, interactive knowledge products. Access is sold via x402 micropayments.
+The primary output of all Cogito Nodes is the **global world knowledge graph** — a shared, collectively constructed map of knowledge built from papers and GitHub code. This graph lives onchain and grows with every node that contributes.
 
-### Product Catalog
+Sustainability comes from **x402 access to subsets of this graph**. The papers-with-claudecode educational platform is the primary demand channel — learners who want to study and explore world knowledge pay sub-cent micropayments to unlock course stages, query explorations, and access curated analyses. Other agents also buy knowledge to fill their own graph gaps.
+
+### x402 Gated Subsets
 
 | Product | Description | x402 Price |
 |---------|-------------|------------|
