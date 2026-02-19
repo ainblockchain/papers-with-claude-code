@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""End-to-end pipeline evaluation tool for testing all 5 phases.
+"""End-to-end pipeline for running all 5 phases.
 
 This script runs the complete knowledge graph extraction pipeline:
 Phase 1: Repository Analysis
@@ -12,21 +12,19 @@ Automatically clones and cleans up temporary repositories.
 """
 
 import argparse
-import json
 import logging
 import shutil
 import sys
 import tempfile
-from datetime import datetime
 from pathlib import Path
 
 from git import Repo as GitRepo
 
 from analyzer import RepoAnalyzer
-from knowledge_graph_builder.concept_extractor import ConceptExtractor
-from knowledge_graph_builder.course_builder import CourseBuilder
-from knowledge_graph_builder.expander import GraphExpander
-from knowledge_graph_builder.scaffold import Scaffolder
+from extractor import ConceptExtractor
+from expander import GraphExpander
+from courseBuilder import CourseBuilder
+from scaffolder import Scaffolder
 
 # Setup logging
 logging.basicConfig(
