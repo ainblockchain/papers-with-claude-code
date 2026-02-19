@@ -1,14 +1,23 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { ethers } from 'ethers';
 import { KiteWalletManager } from '@/lib/kite/wallet';
 import { KiteIdentityManager } from '@/lib/kite/identity';
 import { SessionKeyManager } from '@/lib/kite/session-key';
 import { getChainConfig } from '@/lib/kite/contracts';
+import { deriveEvmPrivateKey } from '@/lib/ain/passkey';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const chainConfig = getChainConfig();
-    const walletManager = new KiteWalletManager();
+
+    // Accept passkey public key as query param for per-user wallet derivation
+    const passkeyPublicKey = req.nextUrl.searchParams.get('passkeyPublicKey');
+    let agentPrivateKey = process.env.KITE_AGENT_PRIVATE_KEY || '';
+    if (passkeyPublicKey) {
+      agentPrivateKey = deriveEvmPrivateKey(passkeyPublicKey);
+    }
+
+    const walletManager = new KiteWalletManager({ agentPrivateKey });
 
     if (!walletManager.getIsConfigured()) {
       return NextResponse.json({
@@ -20,7 +29,7 @@ export async function GET() {
         explorerUrl: chainConfig.explorerUrl,
         standingIntent: null,
         configured: false,
-        message: 'KITE_AGENT_PRIVATE_KEY not configured. Set it in .env.local to enable wallet features.',
+        message: 'No passkey registered and KITE_AGENT_PRIVATE_KEY not set. Register a passkey to enable wallet.',
       });
     }
 

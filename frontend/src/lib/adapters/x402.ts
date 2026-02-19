@@ -1,6 +1,8 @@
 // 🔌 ADAPTER 🔗 CROSS-TEAM — x402 protocol payment integration
 // KiteX402Adapter for real Kite Chain payments, MockX402Adapter as fallback
 
+import { loadPasskeyInfo } from '@/lib/ain/passkey';
+
 export interface PaymentResult {
   success: boolean;
   receiptId?: string;
@@ -41,6 +43,8 @@ class KiteX402Adapter implements X402PaymentAdapter {
     score?: number;
   }): Promise<PaymentResult> {
     try {
+      // Send passkey public key so server can derive per-user EVM wallet
+      const passkeyInfo = loadPasskeyInfo();
       const res = await fetch('/api/x402/unlock-stage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -49,6 +53,7 @@ class KiteX402Adapter implements X402PaymentAdapter {
           stageId: params.stageId,
           stageNum: params.stageNum ?? 0,
           score: params.score ?? 0,
+          passkeyPublicKey: passkeyInfo?.publicKey || '',
         }),
       });
 
