@@ -138,6 +138,46 @@ example-course/
     └── courses.json        # 6 courses, 33 lessons
 ```
 
+## AINscan — Blockchain Explorer
+
+A Next.js blockchain explorer for the AI Network, deployed at **https://ainscan.ainetwork.ai** (source: [ainblockchain/ainscan](https://github.com/ainblockchain/ainscan)).
+
+### Features
+
+- **Blocks**: Paginated block list with "All" / "With Transactions" filter toggle
+- **Transactions**: Recent transactions via REST API with block-scan fallback
+- **Transaction Detail**: Normalizes nested `tx_body` format, fetches from block when tx index is unavailable
+- **Knowledge Graph**: Interactive canvas-based force-directed graph visualization of on-chain knowledge data
+  - Topics, explorations, and users as colored nodes
+  - Click-to-navigate to topic/exploration detail pages
+  - Drag, hover tooltips, and legend
+- **Topic Detail**: Topic info + explorations table + subgraph visualization
+- **Exploration Detail**: Full exploration data with x402 payment support for gated content + passkey authentication
+- **Database Browser**: Raw on-chain state explorer at any path
+- **Search**: Search by block number, tx hash, or account address
+- **Mobile**: Responsive layout with hamburger menu
+
+### Knowledge Graph Integration
+
+The explorer reads knowledge data from:
+- **On-chain** (via JSON-RPC): topics at `/apps/knowledge/topics/`, explorations at `/apps/knowledge/explorations/`
+- **Neo4j** (optional): graph queries for visualization when a Neo4j backend is configured
+
+### Deployment
+
+Deployed on Vercel with automatic GitHub integration. Environment variables:
+- `NEXT_PUBLIC_RPC_URL` — blockchain JSON-RPC endpoint (default: `https://devnet-api.ainetwork.ai/json-rpc`)
+- `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD` — optional Neo4j connection for graph queries
+
+### Populating Test Data
+
+```bash
+cd /path/to/ain-js
+npx ts-node examples/knowledge_graph_transformers.ts
+```
+
+Writes 9 topics and 17 explorations (transformer architecture family tree) to devnet.
+
 ## Requirements
 
 - Node.js >= 16
