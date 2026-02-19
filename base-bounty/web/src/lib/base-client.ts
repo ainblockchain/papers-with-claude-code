@@ -4,10 +4,19 @@ const BASE_RPC_URL = process.env.NEXT_PUBLIC_BASE_RPC_URL || 'https://mainnet.ba
 const ERC_8004_REGISTRY = '0x8004A169FB4a3325136EB29fA0ceB6D2e539a432';
 const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 
+// Our known agent address and ID
+export const AGENT_ADDRESS = '0xA7b9a0959451aeF731141a9e6FFcC619DeB563bF';
+export const AGENT_ID = 18276;
+export const AGENT_NAME = 'Cogito Node';
+export const AGENT_URI = 'https://cogito.papers-with-claudecode.ai';
+
+// ERC-8004 is ERC-721 based — correct ABI
 const ERC_8004_ABI = [
-  'function isRegistered(address agent) view returns (bool)',
-  'function getIdentity(address agent) view returns (string name, string serviceEndpoint, string metadata)',
-  'function getAllRegistered() view returns (address[])',
+  'function balanceOf(address owner) view returns (uint256)',
+  'function ownerOf(uint256 tokenId) view returns (address)',
+  'function tokenURI(uint256 tokenId) view returns (string)',
+  'function name() view returns (string)',
+  'function symbol() view returns (string)',
 ];
 
 const USDC_ABI = [
@@ -24,35 +33,34 @@ function getProvider(): ethers.JsonRpcProvider {
   return provider;
 }
 
-export interface NodeIdentity {
+export interface AgentRegistration {
+  agentId: number;
   address: string;
-  name: string;
-  serviceEndpoint: string;
-  metadata: any;
+  tokenURI: string;
+  isRegistered: boolean;
 }
 
-export async function getAllRegisteredNodes(): Promise<NodeIdentity[]> {
+/**
+ * Check if our agent is registered on ERC-8004 and get its token metadata.
+ */
+export async function getAgentRegistration(): Promise<AgentRegistration> {
   const p = getProvider();
   const registry = new ethers.Contract(ERC_8004_REGISTRY, ERC_8004_ABI, p);
 
   try {
-    const addresses: string[] = await registry.getAllRegistered();
-    const nodes: NodeIdentity[] = [];
+    const balance = await registry.balanceOf(AGENT_ADDRESS);
+    const isRegistered = Number(balance) > 0;
 
-    for (const addr of addresses) {
+    let tokenURI = '';
+    if (isRegistered) {
       try {
-        const [name, serviceEndpoint, metadataStr] = await registry.getIdentity(addr);
-        let metadata = {};
-        try { metadata = JSON.parse(metadataStr); } catch {}
-        nodes.push({ address: addr, name, serviceEndpoint, metadata });
-      } catch {
-        // Skip invalid entries
-      }
+        tokenURI = await registry.tokenURI(AGENT_ID);
+      } catch {}
     }
 
-    return nodes;
+    return { agentId: AGENT_ID, address: AGENT_ADDRESS, tokenURI, isRegistered };
   } catch {
-    return [];
+    return { agentId: AGENT_ID, address: AGENT_ADDRESS, tokenURI: '', isRegistered: false };
   }
 }
 
@@ -70,6 +78,58 @@ export async function getETHBalance(address: string): Promise<number> {
   return Number(ethers.formatEther(balance));
 }
 
+// ---------------------------------------------------------------------------
+// ERC-8021 Builder Code parsing (Schema 0)
+// ---------------------------------------------------------------------------
+
+const ERC_8021_MARKER = '80218021802180218021802180218021'; // 16 bytes
+
+/**
+ * Parse ERC-8021 Schema 0 builder codes from transaction calldata.
+ * Format: [codesLength(1B)] [codes(comma-delimited)] [schemaId(1B)] [marker(16B)]
+ */
+export function parseBuilderCodes(txData: string): string[] {
+  const hex = txData.startsWith('0x') ? txData.slice(2) : txData;
+  if (hex.length < 36) return []; // minimum: 1B len + 1B code + 1B schema + 16B marker = 19B = 38 hex
+
+  // Check for ERC-8021 marker at the end
+  if (!hex.endsWith(ERC_8021_MARKER)) return [];
+
+  // Read schemaId (1 byte before marker)
+  const schemaIdPos = hex.length - 32 - 2; // 32 hex = 16 bytes marker, 2 hex = 1 byte schema
+  const schemaId = parseInt(hex.slice(schemaIdPos, schemaIdPos + 2), 16);
+  if (schemaId !== 0) return []; // only Schema 0
+
+  // Read codesLength: try from largest possible downward
+  const codesEnd = schemaIdPos;
+  const maxCodesLen = Math.floor((codesEnd - 2) / 2); // subtract 2 hex for the length byte itself
+
+  for (let tryLen = Math.min(maxCodesLen, 255); tryLen >= 1; tryLen--) {
+    const lenBytePos = codesEnd - (tryLen * 2) - 2;
+    if (lenBytePos < 0) continue;
+
+    const lenByte = parseInt(hex.slice(lenBytePos, lenBytePos + 2), 16);
+    if (lenByte !== tryLen) continue;
+
+    // Extract codes string
+    const codesHex = hex.slice(lenBytePos + 2, codesEnd);
+    try {
+      const bytes = new Uint8Array(codesHex.match(/.{2}/g)!.map(b => parseInt(b, 16)));
+      const codesStr = new TextDecoder().decode(bytes);
+      // Validate: should be printable ASCII
+      if (/^[\x20-\x7e]+$/.test(codesStr)) {
+        return codesStr.split(',').filter(c => c.length > 0);
+      }
+    } catch {}
+  }
+
+  return [];
+}
+
+// ---------------------------------------------------------------------------
+// Transaction history
+// ---------------------------------------------------------------------------
+
 export interface BaseTx {
   hash: string;
   timestamp: number;
@@ -82,60 +142,6 @@ export interface BaseTx {
 
 const BASESCAN_API_URL = process.env.NEXT_PUBLIC_BASESCAN_API_URL || 'https://api.basescan.org/api';
 const BASESCAN_API_KEY = process.env.NEXT_PUBLIC_BASESCAN_API_KEY || '';
-
-/**
- * Parse ERC-8021 builder codes from transaction input data.
- * Builder codes are length-prefixed UTF-8 strings appended to calldata.
- */
-function parseBuilderCodes(txData: string): string[] {
-  const hex = txData.startsWith('0x') ? txData.slice(2) : txData;
-  if (hex.length < 4) return [];
-
-  const searchRegion = hex.slice(Math.max(0, hex.length - 512));
-
-  for (let startPos = 0; startPos < searchRegion.length; startPos += 2) {
-    const candidate = tryParseCodesAt(searchRegion, startPos);
-    if (candidate.length > 0 && candidate.some(c => c === 'cogito_node')) {
-      return candidate;
-    }
-  }
-
-  return [];
-}
-
-function tryParseCodesAt(hex: string, startPos: number): string[] {
-  const codes: string[] = [];
-  let pos = startPos;
-
-  while (pos < hex.length) {
-    if (pos + 2 > hex.length) break;
-    const len = parseInt(hex.slice(pos, pos + 2), 16);
-    if (len === 0 || len > 128) break;
-    pos += 2;
-
-    const contentHexLen = len * 2;
-    if (pos + contentHexLen > hex.length) break;
-    const contentHex = hex.slice(pos, pos + contentHexLen);
-    pos += contentHexLen;
-
-    try {
-      const bytes = new Uint8Array(contentHex.match(/.{2}/g)!.map(b => parseInt(b, 16)));
-      const content = new TextDecoder().decode(bytes);
-      if (/^[\x20-\x7e]+$/.test(content)) {
-        codes.push(content);
-      } else {
-        break;
-      }
-    } catch {
-      break;
-    }
-  }
-
-  if (pos === hex.length && codes.length > 0) {
-    return codes;
-  }
-  return codes;
-}
 
 export async function getRecentTransactions(address: string, limit = 20): Promise<BaseTx[]> {
   const params = new URLSearchParams({
@@ -170,4 +176,13 @@ export async function getRecentTransactions(address: string, limit = 20): Promis
   } catch {
     return [];
   }
+}
+
+/**
+ * Get the ERC-8004 registration transaction hash from BaseScan.
+ */
+export async function getRegistrationTx(): Promise<BaseTx | null> {
+  const txs = await getRecentTransactions(AGENT_ADDRESS, 50);
+  // Find the tx to the ERC-8004 registry
+  return txs.find(tx => tx.to.toLowerCase() === ERC_8004_REGISTRY.toLowerCase()) || null;
 }
