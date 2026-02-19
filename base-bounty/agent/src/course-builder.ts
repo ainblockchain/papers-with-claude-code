@@ -1,4 +1,4 @@
-import Ain from './ain-import.js';
+import Ain, { AinInstance } from './ain-import.js';
 
 interface CourseStage {
   title: string;
@@ -7,9 +7,9 @@ interface CourseStage {
 }
 
 export class CourseBuilder {
-  private ain: Ain;
+  private ain: AinInstance;
 
-  constructor(ain: Ain) {
+  constructor(ain: AinInstance) {
     this.ain = ain;
   }
 

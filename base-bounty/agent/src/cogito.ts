@@ -1,4 +1,4 @@
-import Ain from './ain-import.js';
+import Ain, { AinInstance } from './ain-import.js';
 import { AgentConfig } from './config.js';
 import { ThinkResult, Strategy } from './types.js';
 import { startX402Server } from './server/x402-server.js';
@@ -22,7 +22,7 @@ const COURSE_THRESHOLD = 3;
 
 export class CogitoNode {
   private config: AgentConfig;
-  private ain: Ain;
+  private ain: AinInstance;
   private address: string = '';
   private loopTimer: ReturnType<typeof setInterval> | null = null;
   private running = false;
@@ -236,7 +236,7 @@ export class CogitoNode {
     const topics = await this.ain.knowledge.listTopics();
     for (const topic of topics.slice(0, 3)) {
       const explorers = await this.ain.knowledge.getExplorers(topic);
-      const peers = explorers.filter(addr => addr !== this.address);
+      const peers = explorers.filter((addr: string) => addr !== this.address);
 
       if (peers.length > 0) {
         console.log(`[Cogito] Found ${peers.length} on-chain peers on topic: ${topic}`);
@@ -246,7 +246,7 @@ export class CogitoNode {
           if (!peerExplorations) continue;
 
           const peerSummaries = Object.values(peerExplorations)
-            .map(e => `"${e.title}": ${e.summary}`)
+            .map((e: any) => `"${e.title}": ${e.summary}`)
             .join('\n');
 
           const analysis = await this.ain.llm.chat([
@@ -353,7 +353,7 @@ export class CogitoNode {
   }
 
   getAddress(): string { return this.address; }
-  getAin(): Ain { return this.ain; }
+  getAin(): AinInstance { return this.ain; }
   getThinkCount(): number { return this.thinkCount; }
   getRevenue(): RevenueTracker { return this.revenue; }
 }

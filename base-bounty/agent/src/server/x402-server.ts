@@ -1,20 +1,20 @@
 import express from 'express';
 import { ethers } from 'ethers';
-import Ain from '../ain-import.js';
+import Ain, { AinInstance } from '../ain-import.js';
 import { AgentConfig } from '../config.js';
 import { createKnowledgeRouter } from './routes/knowledge.js';
 import { createCourseRouter } from './routes/course.js';
 
 export interface X402ServerOptions {
-  ain: Ain;
+  ain: AinInstance;
   config: AgentConfig;
   baseAddress: string;
   getStatus: () => any;
 }
 
-async function setupX402Middleware(app: express.Application, ain: Ain, config: AgentConfig, baseAddress: string): Promise<boolean> {
+async function setupX402Middleware(app: express.Application, ain: AinInstance, config: AgentConfig, baseAddress: string): Promise<boolean> {
   try {
-    const { paymentMiddleware } = await import('@x402/express');
+    const { paymentMiddlewareFromConfig } = await import('@x402/express');
     const { ExactEvmScheme } = await import('@x402/evm');
 
     // Get private key from ain-js wallet (managed by the node)
@@ -30,7 +30,7 @@ async function setupX402Middleware(app: express.Application, ain: Ain, config: A
     const provider = new ethers.JsonRpcProvider(config.baseRpcUrl);
     const signer = new ethers.Wallet(privateKey, provider);
 
-    const routesConfig: Record<string, { price: string; network: string; config: { description: string } }> = {
+    const routesConfig: Record<string, any> = {
       'POST /course/unlock-stage': { price: '$0.001', network: 'base', config: { description: 'Unlock course stage' } },
       'GET /knowledge/explore/*': { price: '$0.005', network: 'base', config: { description: 'Access explorations' } },
       'GET /knowledge/frontier/*': { price: '$0.002', network: 'base', config: { description: 'Access frontier map' } },
@@ -38,8 +38,13 @@ async function setupX402Middleware(app: express.Application, ain: Ain, config: A
       'GET /knowledge/graph': { price: '$0.01', network: 'base', config: { description: 'Access knowledge graph' } },
     };
 
-    const scheme = new ExactEvmScheme(signer);
-    app.use(paymentMiddleware(routesConfig, { facilitatorUrl: config.x402FacilitatorUrl, scheme }));
+    const scheme = new ExactEvmScheme(signer as any);
+    const facilitatorUrl = config.x402FacilitatorUrl;
+    app.use(paymentMiddlewareFromConfig(
+      routesConfig,
+      [facilitatorUrl] as any,
+      [{ network: 'base:exact', server: scheme }] as any,
+    ));
     console.log('[x402] Payment middleware enabled');
     return true;
   } catch (err: any) {

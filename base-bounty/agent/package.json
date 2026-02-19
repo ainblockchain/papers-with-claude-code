@@ -4,7 +4,8 @@
   "description": "Cogito Node — self-sustaining autonomous knowledge agent for Base",
   "type": "module",
   "scripts": {
-    "start": "tsx src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts",
     "register": "tsx scripts/register.ts",
     "test": "node --experimental-vm-modules ./node_modules/.bin/jest --forceExit",

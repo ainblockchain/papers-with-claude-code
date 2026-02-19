@@ -1,11 +1,11 @@
-import Ain from './ain-import.js';
+import Ain, { AinInstance } from './ain-import.js';
 
 export class AlignmentEngine {
-  private ain: Ain;
+  private ain: AinInstance;
   private address: string;
   private listening = false;
 
-  constructor(ain: Ain, address: string) {
+  constructor(ain: AinInstance, address: string) {
     this.ain = ain;
     this.address = address;
   }
@@ -82,11 +82,11 @@ export class AlignmentEngine {
       if (!theirs) return null;
 
       const ourSummaries = ours
-        ? Object.values(ours).map(e => e.summary).join('; ')
+        ? Object.values(ours).map((e: any) => e.summary).join('; ')
         : 'none yet';
 
       const theirSummaries = Object.values(theirs)
-        .map(e => `"${e.title}": ${e.summary}`)
+        .map((e: any) => `"${e.title}": ${e.summary}`)
         .join('\n');
 
       const analysis = await this.ain.llm.chat([

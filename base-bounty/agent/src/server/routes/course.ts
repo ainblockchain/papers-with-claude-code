@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
-import Ain from '../../ain-import.js';
+import Ain, { AinInstance } from '../../ain-import.js';
 
-export function createCourseRouter(ain: Ain): Router {
+export function createCourseRouter(ain: AinInstance): Router {
   const router = Router();
 
   // POST /unlock-stage — generate/retrieve a course stage

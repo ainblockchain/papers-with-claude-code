@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
-import Ain from '../../ain-import.js';
+import Ain, { AinInstance } from '../../ain-import.js';
 
-export function createKnowledgeRouter(ain: Ain): Router {
+export function createKnowledgeRouter(ain: AinInstance): Router {
   const router = Router();
 
   // GET /explore/:topicPath — get explorations for a topic

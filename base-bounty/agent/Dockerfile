@@ -1,3 +1,15 @@
+FROM node:20-slim AS builder
+
+WORKDIR /app
+
+COPY package.json package-lock.json* ./
+RUN npm install
+
+COPY tsconfig.json ./
+COPY src/ ./src/
+
+RUN npx tsc
+
 FROM node:20-slim
 
 WORKDIR /app
@@ -5,10 +17,8 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm install --production
 
-COPY tsconfig.json ./
-COPY src/ ./src/
-COPY scripts/ ./scripts/
+COPY --from=builder /app/dist/ ./dist/
 
 EXPOSE 3402
 
-CMD ["npx", "tsx", "src/index.ts"]
+CMD ["node", "dist/src/index.js"]
