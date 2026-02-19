@@ -1,0 +1,46 @@
+# 네임스페이스별 리소스 쿼터 - 전체 8 vCPU / 240GB RAM 중 애플리케이션 할당량
+# 나머지는 claudecode-terminal 네임스페이스와 시스템(kube-system)이 사용
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: frontend-quota
+  namespace: papers-frontend
+  labels:
+    app.kubernetes.io/part-of: papers-with-claudecode
+spec:
+  hard:
+    requests.cpu: "1"
+    requests.memory: 4Gi
+    limits.cpu: "2"
+    limits.memory: 8Gi
+    pods: "10"
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: backend-quota
+  namespace: papers-backend
+  labels:
+    app.kubernetes.io/part-of: papers-with-claudecode
+spec:
+  hard:
+    requests.cpu: "2"
+    requests.memory: 8Gi
+    limits.cpu: "4"
+    limits.memory: 16Gi
+    pods: "20"
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: blockchain-quota
+  namespace: papers-blockchain
+  labels:
+    app.kubernetes.io/part-of: papers-with-claudecode
+spec:
+  hard:
+    requests.cpu: "1"
+    requests.memory: 4Gi
+    limits.cpu: "2"
+    limits.memory: 8Gi
+    pods: "10"

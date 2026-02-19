@@ -1,0 +1,45 @@
+# Papers with Claude Code 프론트엔드 Deployment
+# 현재는 nginx:alpine 플레이스홀더 - 실제 프론트엔드 이미지로 교체 예정
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: papers-frontend
+  namespace: papers-frontend
+  labels:
+    app: papers-frontend
+    app.kubernetes.io/part-of: papers-with-claudecode
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: papers-frontend
+  template:
+    metadata:
+      labels:
+        app: papers-frontend
+        app.kubernetes.io/part-of: papers-with-claudecode
+    spec:
+      containers:
+        - name: frontend
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 3
+            periodSeconds: 10

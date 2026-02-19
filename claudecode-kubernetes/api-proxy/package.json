@@ -1,0 +1,22 @@
+{
+  "name": "claudecode-api-proxy",
+  "version": "1.0.0",
+  "description": "Anthropic API 역방향 프록시 — 샌드박스 Pod의 더미 키를 진짜 키로 교체",
+  "type": "module",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "tsx watch src/server.ts"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "http-proxy-middleware": "^3.0.3"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0",
+    "tsx": "^4.19.0"
+  }
+}

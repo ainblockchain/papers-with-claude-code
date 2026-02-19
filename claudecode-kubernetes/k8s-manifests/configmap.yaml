@@ -1,0 +1,17 @@
+# 웹 터미널 서비스 설정값 - 샌드박스 Pod 스펙과 세션 관리 파라미터 정의
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: web-terminal-config
+  namespace: claudecode-terminal
+  labels:
+    app.kubernetes.io/part-of: claudecode-web-terminal
+data:
+  SANDBOX_IMAGE: "claudecode-sandbox:latest"
+  SANDBOX_NAMESPACE: "claudecode-terminal"
+  POD_CPU_REQUEST: "250m"
+  POD_CPU_LIMIT: "2"
+  POD_MEMORY_REQUEST: "512Mi"
+  POD_MEMORY_LIMIT: "4Gi"
+  SESSION_TIMEOUT_SECONDS: "7200"
+  MAX_SESSIONS: "4"
