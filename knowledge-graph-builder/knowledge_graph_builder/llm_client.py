@@ -13,24 +13,23 @@ logger = logging.getLogger(__name__)
 
 
 def get_client(base_url: Optional[str] = None) -> openai.OpenAI:
-    """Get an OpenAI-compatible client pointing at the local vLLM server.
+    """Get an OpenAI-compatible client pointing at the vLLM server.
 
     The base URL is determined in the following order:
     1. Explicit base_url parameter
     2. VLLM_BASE_URL environment variable
-    3. Falls back to a default public URL (not recommended for production)
 
-    Set VLLM_BASE_URL in your environment or .env file for production use.
+    Raises ValueError if neither is provided.
+    Set VLLM_BASE_URL in your .env file for local use.
     """
     if base_url:
         url = base_url
     elif "VLLM_BASE_URL" in os.environ:
         url = os.environ["VLLM_BASE_URL"]
     else:
-        # Fallback default - should be configured via environment variable
-        url = "***REMOVED_ENDPOINT***"
-        logger.warning(
-            "Using default VLLM_BASE_URL. Set VLLM_BASE_URL environment variable for production use."
+        raise ValueError(
+            "LLM endpoint not configured. "
+            "Set the VLLM_BASE_URL environment variable (e.g. in .env)."
         )
 
     return openai.OpenAI(base_url=url, api_key="unused")
