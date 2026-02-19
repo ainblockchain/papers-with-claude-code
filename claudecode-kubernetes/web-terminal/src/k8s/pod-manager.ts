@@ -9,8 +9,8 @@ import { AppConfig } from '../types.js';
 
 export class PodManager {
   /** 새 샌드박스 Pod을 생성하고 Pod 이름을 반환 */
-  async createPod(sessionId: string, config: AppConfig): Promise<string> {
-    const podSpec = buildSandboxPodSpec(sessionId, config);
+  async createPod(sessionId: string, config: AppConfig, userId?: string): Promise<string> {
+    const podSpec = buildSandboxPodSpec(sessionId, config, userId);
     const podName = podSpec.metadata!.name!;
 
     try {

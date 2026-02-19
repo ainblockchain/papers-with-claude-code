@@ -42,6 +42,11 @@ COPY settings.json /home/claude/.claude/settings.json
 RUN chown claude:claude /home/claude/.claude/settings.json && \
     chmod 444 /home/claude/.claude/settings.json
 
+# settings.json 백업 — PV 마운트로 .claude/가 가려질 때 복원용
+RUN mkdir -p /etc/claude-defaults && \
+    cp /home/claude/.claude/settings.json /etc/claude-defaults/settings.json && \
+    chmod 444 /etc/claude-defaults/settings.json
+
 # 학습 도우미 CLAUDE.md — Claude Code가 참조할 시스템 지침
 COPY CLAUDE.md /home/claude/CLAUDE.md
 RUN chown claude:claude /home/claude/CLAUDE.md && \
