@@ -4,6 +4,25 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { Loader2, Wifi, WifiOff } from 'lucide-react';
 import '@xterm/xterm/css/xterm.css';
 
+/**
+ * The K8s exec backend defaults to 80 cols (standard PTY).
+ * Resize is NOT currently forwarded (TODO in terminal-bridge.ts).
+ * So we MUST ensure the xterm.js terminal is at least 80 cols wide.
+ * We achieve this by dynamically computing font size to fit 80+ cols
+ * in the available container width.
+ */
+const SERVER_DEFAULT_COLS = 80;
+const SERVER_DEFAULT_ROWS = 24;
+const MAX_FONT_SIZE = 14;
+const MIN_FONT_SIZE = 9;
+const CHAR_WIDTH_RATIO = 0.602; // approximate monospace char width / font size
+
+function calculateFontSize(containerWidth: number): number {
+  // Calculate the largest font size that fits SERVER_DEFAULT_COLS in the container
+  const maxFontForCols = containerWidth / (SERVER_DEFAULT_COLS * CHAR_WIDTH_RATIO);
+  return Math.max(MIN_FONT_SIZE, Math.min(MAX_FONT_SIZE, Math.floor(maxFontForCols)));
+}
+
 interface XtermTerminalProps {
   sessionId: string;
   wsUrl: string;
@@ -47,11 +66,16 @@ export function XtermTerminal({ sessionId, wsUrl, onStageComplete }: XtermTermin
 
       if (cancelled || !containerRef.current) return;
 
+      // Calculate font size to ensure >= 80 cols fit in the container
+      const containerWidth = containerRef.current.clientWidth;
+      const fontSize = calculateFontSize(containerWidth);
+
       const term = new Terminal({
         cursorBlink: true,
         fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace",
-        fontSize: 13,
-        lineHeight: 1.2,
+        fontSize,
+        lineHeight: 1.15,
+        scrollback: 5000,
         theme: {
           background: '#1a1a2e',
           foreground: '#e0e0e0',
@@ -83,12 +107,20 @@ export function XtermTerminal({ sessionId, wsUrl, onStageComplete }: XtermTermin
       term.loadAddon(fitAddon);
       term.loadAddon(webLinksAddon);
       term.open(containerRef.current);
+
+      // Wait for DOM layout to settle before fitting
+      await new Promise<void>((r) => requestAnimationFrame(() => r()));
       fitAddon.fit();
+
+      // Enforce minimum cols to match server PTY
+      if (term.cols < SERVER_DEFAULT_COLS) {
+        term.resize(SERVER_DEFAULT_COLS, Math.max(term.rows, SERVER_DEFAULT_ROWS));
+      }
 
       termRef.current = term;
       fitAddonRef.current = fitAddon;
 
-      // Connect WebSocket
+      // Connect WebSocket AFTER terminal is properly sized
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
@@ -97,7 +129,7 @@ export function XtermTerminal({ sessionId, wsUrl, onStageComplete }: XtermTermin
         setConnected(true);
         setConnecting(false);
 
-        // Send initial resize
+        // Send resize with the actual terminal dimensions
         ws.send(JSON.stringify({ type: 'resize', cols: term.cols, rows: term.rows }));
 
         // Heartbeat
@@ -115,7 +147,7 @@ export function XtermTerminal({ sessionId, wsUrl, onStageComplete }: XtermTermin
           if (msg.type === 'stage_complete' && onStageComplete) {
             onStageComplete(msg.stageNumber);
           }
-          // Ignore pong and course_complete (not handling per user request)
+          // Ignore pong and course_complete
         } catch {
           // Raw terminal output
           term.write(data);
@@ -142,19 +174,37 @@ export function XtermTerminal({ sessionId, wsUrl, onStageComplete }: XtermTermin
         }
       });
 
-      // Handle resize
+      // Handle container resize — recalculate font and refit
       const handleResize = () => {
-        if (fitAddonRef.current && termRef.current) {
-          fitAddonRef.current.fit();
-          if (ws.readyState === WebSocket.OPEN) {
-            ws.send(
-              JSON.stringify({
-                type: 'resize',
-                cols: termRef.current.cols,
-                rows: termRef.current.rows,
-              }),
-            );
-          }
+        if (!fitAddonRef.current || !termRef.current || !containerRef.current) return;
+
+        const newWidth = containerRef.current.clientWidth;
+        const newFontSize = calculateFontSize(newWidth);
+
+        // Update font size if container changed significantly
+        if (termRef.current.options.fontSize !== newFontSize) {
+          termRef.current.options.fontSize = newFontSize;
+        }
+
+        fitAddonRef.current.fit();
+
+        // Enforce minimum cols
+        if (termRef.current.cols < SERVER_DEFAULT_COLS) {
+          termRef.current.resize(
+            SERVER_DEFAULT_COLS,
+            Math.max(termRef.current.rows, SERVER_DEFAULT_ROWS),
+          );
+        }
+
+        // Send resize to server (for when backend implements it)
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(
+            JSON.stringify({
+              type: 'resize',
+              cols: termRef.current.cols,
+              rows: termRef.current.rows,
+            }),
+          );
         }
       };
 
@@ -201,8 +251,8 @@ export function XtermTerminal({ sessionId, wsUrl, onStageComplete }: XtermTermin
         </div>
       </div>
 
-      {/* Terminal container */}
-      <div ref={containerRef} className="flex-1 px-1 py-1" />
+      {/* Terminal container — no padding to avoid FitAddon miscalculation */}
+      <div ref={containerRef} className="flex-1 overflow-hidden" />
     </div>
   );
 }
