@@ -44,8 +44,11 @@ claudecode-kubernetes/
 │       ├── server.ts               #     Express + WebSocket 진입점
 │       ├── types.ts                #     세션/설정 타입
 │       ├── routes/sessions.ts      #     REST API (세션 CRUD)
+│       ├── routes/stages.ts        #     스테이지 정의 조회 API
+│       ├── routes/progress.ts      #     유저별 진행도 조회 API
+│       ├── db/progress.ts          #     SQLite 진행도 저장소
 │       ├── ws/terminal-bridge.ts   #     WebSocket ↔ K8s exec 브릿지
-│       └── k8s/                    #     K8s 클라이언트 (Pod 생성/삭제)
+│       └── k8s/                    #     K8s 클라이언트 (Pod 생성/삭제/exec)
 ├── k8s-manifests/                  # Kubernetes 매니페스트
 │   ├── namespace.yaml              #   claudecode-terminal 네임스페이스
 │   ├── rbac.yaml                   #   ServiceAccount + Role (Pod exec 권한)
