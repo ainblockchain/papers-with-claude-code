@@ -63,11 +63,12 @@ URL이 입력되면 아래 5단계를 **사용자 개입 없이 처음부터 끝
 - 중간에 멈추거나 승인을 요청하지 않는다
 - 진행 상황은 단방향 로그로만 출력한다:
   ```
-  [1/5] 논문 읽는 중...
-  [2/5] 개념 추출 중...
-  [3/5] 코스 구성 중...
-  [4/5] 레슨 생성 중...
-  [5/5] 파일 저장 중...
+  [1/6] 논문 읽는 중...
+  [2/6] 개념 추출 중...
+  [3/6] 코스 구성 중...
+  [4/6] 레슨 생성 중...
+  [5/6] 파일 저장 중...
+  [6/6] GitHub에 푸시 중...
   ```
 - 오류가 발생한 경우에만 사용자에게 알리고 중단한다
 
@@ -308,11 +309,29 @@ GitHub repo B (같은 논문)        → blip-3-o-a-family-of.../blip-3-o-a-fami
 
   경로: courseGenerator/awesome-papers-with-claude-code/<paper-slug>/<paper-slug>-N/
   개념: <N>개  |  코스: <M>개
+  GitHub: https://github.com/ainblockchain/awesome-papers-with-claude-code
 
 학습하려면:
   cd ./awesome-papers-with-claude-code/<paper-slug>/<paper-slug>-N
   claude
 ```
+
+### Step 6. GitHub push
+
+파일 저장이 완료된 후 `awesome-papers-with-claude-code/` 디렉토리 내에서
+Bash 툴로 아래 명령을 순서대로 실행한다:
+
+```bash
+cd ./awesome-papers-with-claude-code
+git add <paper-slug>/
+git commit -m "feat: add <paper-slug>-N"
+git push origin main
+```
+
+- `<paper-slug>`, `N`은 Step 5에서 결정한 실제 값으로 대체한다
+- push 성공 시 완료 메시지 아래에 `📤 GitHub push 완료` 를 출력한다
+- push 실패(네트워크 오류, 권한 없음 등) 시 오류 메시지만 출력하고 파이프라인은 성공으로 마무리한다
+  (파일은 이미 로컬에 저장돼 있으므로 실패해도 결과물은 유효함)
 
 ---
 
@@ -540,6 +559,3 @@ courses.json 구조:
   }
 ]
 ```
-
-
-최종적으로 ~~게 디렉토리 구조 만들어서 어썸페이퍼클코(link)에 푸시해줘
