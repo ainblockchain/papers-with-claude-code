@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { HeroSection } from '@/components/explore/HeroSection';
 import { PaperCard } from '@/components/explore/PaperCard';
+import { PasskeyPrompt } from '@/components/ain/PasskeyPrompt';
 import { useExploreStore } from '@/stores/useExploreStore';
 import { papersAdapter } from '@/lib/adapters/papers';
 
@@ -21,6 +22,7 @@ export default function ExplorePage() {
 
   return (
     <div className="mx-auto max-w-[1280px] px-4 py-8">
+      <PasskeyPrompt />
       <HeroSection />
       <div>
         {isLoading ? (

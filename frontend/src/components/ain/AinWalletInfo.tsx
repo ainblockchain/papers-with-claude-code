@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Wallet, RefreshCw } from 'lucide-react';
+import { Wallet, RefreshCw, Fingerprint } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAinStore } from '@/stores/useAinStore';
+import { useAuthStore } from '@/stores/useAuthStore';
 
 function truncateAddress(address: string): string {
   if (address.length <= 12) return address;
@@ -13,10 +14,15 @@ function truncateAddress(address: string): string {
 
 export function AinWalletInfo() {
   const { ainAddress, ainBalance, fetchAccountInfo } = useAinStore();
+  const { passkeyInfo } = useAuthStore();
 
   useEffect(() => {
     fetchAccountInfo();
   }, [fetchAccountInfo]);
+
+  // Prefer passkey-derived address, fall back to server wallet
+  const displayAddress = passkeyInfo?.ainAddress || ainAddress;
+  const isPasskey = !!passkeyInfo?.ainAddress;
 
   return (
     <Card className="bg-[#1a1a2e] border-gray-700 text-gray-100">
@@ -32,13 +38,22 @@ export function AinWalletInfo() {
         </Button>
       </CardHeader>
       <CardContent>
-        {ainAddress ? (
+        {displayAddress ? (
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <Wallet className="h-4 w-4 text-blue-400" />
-              <code className="text-xs text-blue-400 font-mono">
-                {truncateAddress(ainAddress)}
+              {isPasskey ? (
+                <Fingerprint className="h-4 w-4 text-purple-400" />
+              ) : (
+                <Wallet className="h-4 w-4 text-blue-400" />
+              )}
+              <code className={`text-xs font-mono ${isPasskey ? 'text-purple-400' : 'text-blue-400'}`}>
+                {truncateAddress(displayAddress)}
               </code>
+              {isPasskey && (
+                <span className="text-[10px] text-purple-500 bg-purple-900/30 px-1 py-0.5 rounded">
+                  passkey
+                </span>
+              )}
             </div>
             <div>
               <p className="text-xs text-gray-500">Balance</p>
@@ -49,7 +64,7 @@ export function AinWalletInfo() {
           <div className="text-center py-4">
             <Wallet className="h-6 w-6 text-gray-600 mx-auto mb-2" />
             <p className="text-xs text-gray-500">No AIN wallet configured</p>
-            <p className="text-xs text-gray-600 mt-1">Set AIN_PRIVATE_KEY in env</p>
+            <p className="text-xs text-gray-600 mt-1">Register a passkey on the Explore page</p>
           </div>
         )}
       </CardContent>
