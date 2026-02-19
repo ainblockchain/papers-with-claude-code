@@ -132,7 +132,8 @@ URL이 입력되면 아래 5단계를 **사용자 개입 없이 처음부터 끝
    - 해당 arXiv abstract를 fetch해서 논문 제목, 저자, 연도 파악
    - **slug = 그 논문 제목으로 생성** ← 같은 논문의 arXiv/GitHub URL과 동일한 slug 보장
 4. **arXiv 링크 없을 때 (fallback)**:
-   - `<model>` 이름 → slug 알고리즘 적용
+   - URL에서 추출한 `<model>` 이름만 사용 (모델 카드 제목·본문 텍스트 사용 금지)
+   - 예: `https://huggingface.co/openai/gpt-oss-20b` → `<model>` = `gpt-oss-20b` → slug = `gpt-oss-20b`
 
 #### HuggingFace URL인 경우 — `https://huggingface.co/papers/<arxiv-id>`
 - URL에서 `<arxiv-id>`를 추출하여 `https://arxiv.org/abs/<arxiv-id>`로 재구성
@@ -539,3 +540,6 @@ courses.json 구조:
   }
 ]
 ```
+
+
+최종적으로 ~~게 디렉토리 구조 만들어서 어썸페이퍼클코(link)에 푸시해줘
