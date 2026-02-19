@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { topicPath, title, content, summary, depth, tags } = body;
+    const { topicPath, title, content, summary, depth, tags, parentEntry, relatedEntries } = body;
 
     if (!topicPath || !title || !content) {
       return NextResponse.json(
@@ -39,14 +39,21 @@ export async function POST(request: NextRequest) {
     }
 
     const ain = getAinClient();
-    const result = await ain.knowledge.explore({
+    const exploreInput: Record<string, any> = {
       topicPath,
       title,
       content,
       summary: summary ?? '',
       depth: depth ?? 1,
-      tags: tags ?? [],
-    });
+      tags: Array.isArray(tags) ? tags.join(',') : (tags ?? ''),
+    };
+    if (parentEntry) {
+      exploreInput.parentEntry = parentEntry;
+    }
+    if (relatedEntries && Array.isArray(relatedEntries) && relatedEntries.length > 0) {
+      exploreInput.relatedEntries = relatedEntries;
+    }
+    const result = await ain.knowledge.explore(exploreInput);
 
     return NextResponse.json({ ok: true, data: result });
   } catch (error: any) {

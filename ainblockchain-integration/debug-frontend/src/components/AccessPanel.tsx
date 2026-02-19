@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { GENESIS_PAPERS } from '@/lib/devnet-samples';
 
 export default function AccessPanel() {
   const [ownerAddress, setOwnerAddress] = useState('');
@@ -9,6 +10,13 @@ export default function AccessPanel() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<Record<string, unknown> | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  function pickPaper(index: number) {
+    const p = GENESIS_PAPERS[index];
+    setOwnerAddress(p.ownerAddress);
+    setTopicPath(p.topicPath);
+    setEntryId(p.entryId);
+  }
 
   async function handleSubmit() {
     if (!ownerAddress.trim() || !topicPath.trim() || !entryId.trim()) return;
@@ -93,12 +101,29 @@ export default function AccessPanel() {
     );
   }
 
+  const selectCls = 'bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500 transition-colors';
+
   return (
     <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
       <h2 className="text-lg font-semibold text-white mb-2">Access Content</h2>
       <p className="text-gray-400 text-sm mb-4">
         Request access to an exploration entry. May require payment.
       </p>
+
+      {/* Paper picker */}
+      <div className="mb-3">
+        <label className="block text-xs text-gray-500 mb-1">Pick from genesis papers</label>
+        <select
+          onChange={(e) => { const idx = parseInt(e.target.value); if (!isNaN(idx)) pickPaper(idx); }}
+          value=""
+          className={`w-full ${selectCls}`}
+        >
+          <option value="">Select a paper to prefill...</option>
+          {GENESIS_PAPERS.map((p, i) => (
+            <option key={i} value={i}>{p.title}</option>
+          ))}
+        </select>
+      </div>
 
       <div className="space-y-3">
         <div>
@@ -117,7 +142,7 @@ export default function AccessPanel() {
             type="text"
             value={topicPath}
             onChange={(e) => setTopicPath(e.target.value)}
-            placeholder="science/physics/quantum"
+            placeholder="ai/transformers/attention"
             className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-blue-500 transition-colors"
           />
         </div>
@@ -127,7 +152,7 @@ export default function AccessPanel() {
             type="text"
             value={entryId}
             onChange={(e) => setEntryId(e.target.value)}
-            placeholder="entry_abc123"
+            placeholder="transformer_2017"
             className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-blue-500 transition-colors font-mono"
           />
         </div>

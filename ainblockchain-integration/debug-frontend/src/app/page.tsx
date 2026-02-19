@@ -16,6 +16,8 @@ import CoursePublishForm from '@/components/CoursePublishForm';
 import CourseBrowser from '@/components/CourseBrowser';
 import LearnerProgress from '@/components/LearnerProgress';
 import KnowledgeGraph from '@/components/KnowledgeGraph';
+import QuickActions from '@/components/QuickActions';
+import DebugInspector from '@/components/DebugInspector';
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
@@ -25,6 +27,8 @@ export default function DashboardPage() {
       <h1 className="text-2xl font-bold mb-6 text-white">
         AIN Knowledge Debug Dashboard
       </h1>
+
+      {status === 'authenticated' && <QuickActions />}
 
       <SectionCollapsible title="Auth & Wallet" defaultOpen={true}>
         <div className="space-y-4">
@@ -75,6 +79,10 @@ export default function DashboardPage() {
 
           <SectionCollapsible title="Knowledge Graph" defaultOpen={false}>
             <KnowledgeGraph />
+          </SectionCollapsible>
+
+          <SectionCollapsible title="Debug Inspector" defaultOpen={false}>
+            <DebugInspector />
           </SectionCollapsible>
 
           <SectionCollapsible title="Learner Progress" defaultOpen={false}>

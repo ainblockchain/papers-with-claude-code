@@ -1,6 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import { GENESIS_PAPERS } from '@/lib/devnet-samples';
+
+// Unique topic paths from genesis papers
+const TOPIC_PATHS = [...new Set(GENESIS_PAPERS.map((p) => p.topicPath))];
 
 interface TopicStats {
   topicPath?: string;
@@ -58,6 +62,28 @@ export default function FrontierMapViz() {
   return (
     <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
       <h2 className="text-lg font-semibold text-white mb-4">Frontier Map Visualization</h2>
+
+      {/* Quick topic presets */}
+      <div className="mb-3">
+        <p className="text-xs text-gray-500 mb-1.5">Quick Topics:</p>
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            onClick={() => { setTopicPath(''); }}
+            className="bg-blue-900/50 hover:bg-blue-800/50 text-blue-300 px-2.5 py-1 rounded-full text-xs transition-colors border border-blue-800"
+          >
+            All Topics
+          </button>
+          {TOPIC_PATHS.map((tp) => (
+            <button
+              key={tp}
+              onClick={() => setTopicPath(tp)}
+              className="bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white px-2.5 py-1 rounded-full text-xs transition-colors border border-gray-700"
+            >
+              {tp}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div className="flex gap-3 mb-4">
         <input
@@ -146,7 +172,7 @@ export default function FrontierMapViz() {
       )}
 
       {!loading && stats.length === 0 && !error && (
-        <p className="text-gray-500 text-sm">Click Fetch to load frontier map data.</p>
+        <p className="text-gray-500 text-sm">Select a topic preset or click Fetch to load frontier map data.</p>
       )}
     </div>
   );

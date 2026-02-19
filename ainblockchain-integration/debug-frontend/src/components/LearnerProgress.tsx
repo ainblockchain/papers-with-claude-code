@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { ADDR1, ADDR2 } from '@/lib/devnet-samples';
 
 interface Connection {
   nodeId: string;
@@ -75,6 +76,25 @@ export default function LearnerProgress() {
       <p className="text-gray-400 text-sm mb-4">
         Look up any address&apos;s learning progress across all topics.
       </p>
+
+      {/* Quick address presets */}
+      <div className="mb-3">
+        <p className="text-xs text-gray-500 mb-1.5">Quick Lookup:</p>
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            onClick={() => setAddress(ADDR1)}
+            className="bg-purple-900/50 hover:bg-purple-800/50 text-purple-300 px-2.5 py-1 rounded-full text-xs transition-colors border border-purple-800"
+          >
+            Genesis Owner
+          </button>
+          <button
+            onClick={() => setAddress(ADDR2)}
+            className="bg-orange-900/50 hover:bg-orange-800/50 text-orange-300 px-2.5 py-1 rounded-full text-xs transition-colors border border-orange-800"
+          >
+            Test Account
+          </button>
+        </div>
+      </div>
 
       <div className="flex gap-2 mb-4">
         <input
