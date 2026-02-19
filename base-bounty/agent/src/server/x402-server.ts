@@ -30,12 +30,18 @@ async function setupX402Middleware(app: express.Application, ain: AinInstance, c
     const provider = new ethers.JsonRpcProvider(config.baseRpcUrl);
     const signer = new ethers.Wallet(privateKey, provider);
 
+    const payTo = baseAddress;
+    const makeRoute = (price: string, description: string) => ({
+      accepts: { scheme: 'exact', network: 'base:8453', payTo, price },
+      description,
+    });
+
     const routesConfig: Record<string, any> = {
-      'POST /course/unlock-stage': { price: '$0.001', network: 'base', config: { description: 'Unlock course stage' } },
-      'GET /knowledge/explore/*': { price: '$0.005', network: 'base', config: { description: 'Access explorations' } },
-      'GET /knowledge/frontier/*': { price: '$0.002', network: 'base', config: { description: 'Access frontier map' } },
-      'POST /knowledge/curate': { price: '$0.05', network: 'base', config: { description: 'Curated analysis' } },
-      'GET /knowledge/graph': { price: '$0.01', network: 'base', config: { description: 'Access knowledge graph' } },
+      'POST /course/unlock-stage': makeRoute('$0.001', 'Unlock course stage'),
+      'GET /knowledge/explore/*': makeRoute('$0.005', 'Access explorations'),
+      'GET /knowledge/frontier/*': makeRoute('$0.002', 'Access frontier map'),
+      'POST /knowledge/curate': makeRoute('$0.05', 'Curated analysis'),
+      'GET /knowledge/graph': makeRoute('$0.01', 'Access knowledge graph'),
     };
 
     const scheme = new ExactEvmScheme(signer as any);
@@ -43,7 +49,10 @@ async function setupX402Middleware(app: express.Application, ain: AinInstance, c
     app.use(paymentMiddlewareFromConfig(
       routesConfig,
       [facilitatorUrl] as any,
-      [{ network: 'base:exact', server: scheme }] as any,
+      [{ network: 'base:8453', server: scheme }] as any,
+      undefined, // paywallConfig
+      undefined, // paywall
+      false,     // syncFacilitatorOnStart — defer until first real payment
     ));
     console.log('[x402] Payment middleware enabled');
     return true;
