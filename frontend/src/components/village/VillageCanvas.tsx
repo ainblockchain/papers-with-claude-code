@@ -6,6 +6,8 @@ import { useVillageStore } from '@/stores/useVillageStore';
 import { TILE_SIZE, VILLAGE_MAP_WIDTH, VILLAGE_MAP_HEIGHT, PLAYER_COLOR, FRIEND_COLORS } from '@/constants/game';
 import { MOCK_PAPERS } from '@/constants/mock-papers';
 import { useLocationSync } from '@/hooks/useLocationSync';
+import { useMapLoader } from '@/hooks/useMapLoader';
+import { renderTileLayer, type Viewport } from '@/lib/tmj/renderer';
 
 interface CourseEntrance {
   paperId: string;
@@ -40,6 +42,9 @@ export function VillageCanvas() {
 
   // Sync positions with AIN blockchain
   useLocationSync();
+
+  // Load TMJ map data (falls back to procedural rendering if unavailable)
+  const { mapData } = useMapLoader('village');
 
   // Build course entrances from blockchain-backed store or fallback to defaults
   const courseEntrances: CourseEntrance[] = useMemo(() => {
@@ -161,23 +166,30 @@ export function VillageCanvas() {
     ctx.fillRect(0, 0, viewW, viewH);
 
     // Draw ground tiles
-    for (let tx = 0; tx < tilesX; tx++) {
-      for (let ty = 0; ty < tilesY; ty++) {
-        const worldX = offsetX + tx;
-        const worldY = offsetY + ty;
-        if (worldX < 0 || worldY < 0 || worldX >= VILLAGE_MAP_WIDTH || worldY >= VILLAGE_MAP_HEIGHT)
-          continue;
+    const groundLayer = mapData?.layersByName.get('ground');
+    if (groundLayer && mapData) {
+      // TMJ-based rendering
+      const viewport: Viewport = { offsetX, offsetY, tilesX, tilesY };
+      renderTileLayer(ctx, groundLayer, mapData.tilesets, viewport, TILE_SIZE, '#4A7C59');
+    } else {
+      // Fallback: procedural rendering
+      for (let tx = 0; tx < tilesX; tx++) {
+        for (let ty = 0; ty < tilesY; ty++) {
+          const worldX = offsetX + tx;
+          const worldY = offsetY + ty;
+          if (worldX < 0 || worldY < 0 || worldX >= VILLAGE_MAP_WIDTH || worldY >= VILLAGE_MAP_HEIGHT)
+            continue;
 
-        const screenX = tx * TILE_SIZE - ((playerPosition.x - offsetX) * TILE_SIZE - Math.floor(tilesX / 2) * TILE_SIZE);
-        const screenY = ty * TILE_SIZE - ((playerPosition.y - offsetY) * TILE_SIZE - Math.floor(tilesY / 2) * TILE_SIZE);
+          const screenX = tx * TILE_SIZE;
+          const screenY = ty * TILE_SIZE;
 
-        // Ground variation
-        const isPath =
-          (worldX >= 6 && worldX <= 50 && (worldY === 12 || worldY === 26)) ||
-          ((worldX === 14 || worldX === 30 || worldX === 46) && worldY >= 6 && worldY <= 30);
+          const isPath =
+            (worldX >= 6 && worldX <= 50 && (worldY === 12 || worldY === 26)) ||
+            ((worldX === 14 || worldX === 30 || worldX === 46) && worldY >= 6 && worldY <= 30);
 
-        ctx.fillStyle = isPath ? '#D2B48C' : (worldX + worldY) % 2 === 0 ? '#5B8C5A' : '#4A7C59';
-        ctx.fillRect(screenX, screenY, TILE_SIZE, TILE_SIZE);
+          ctx.fillStyle = isPath ? '#D2B48C' : (worldX + worldY) % 2 === 0 ? '#5B8C5A' : '#4A7C59';
+          ctx.fillRect(screenX, screenY, TILE_SIZE, TILE_SIZE);
+        }
       }
     }
 
@@ -264,7 +276,7 @@ export function VillageCanvas() {
       ctx.font = 'bold 13px sans-serif';
       ctx.fillText('Press E to enter course', playerScreenX, playerScreenY + TILE_SIZE * 1.2);
     }
-  }, [playerPosition, playerDirection, friends, courseEntrances, checkCourseEntry]);
+  }, [playerPosition, playerDirection, friends, courseEntrances, checkCourseEntry, mapData]);
 
   return (
     <canvas
