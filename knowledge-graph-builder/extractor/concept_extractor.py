@@ -10,7 +10,7 @@ from extractor.llm_client import get_client, chat_completion, parse_json_respons
 from extractor.models import (
     ConceptNode, ConceptType, ConceptLevel, Edge, RelationshipType,
 )
-from analyzer.models import UniversalRepoAnalysis
+from analyzer.models import UniversalRepoAnalysis, RepoType
 
 logger = logging.getLogger(__name__)
 
@@ -18,8 +18,11 @@ logger = logging.getLogger(__name__)
 # Each of the 4 sections (components, structure, commits, docs) gets this many chars.
 _SECTION_BUDGET = 3_000
 
+# Repository types that warrant ML-specific prompt hints.
+_ML_REPO_TYPES = frozenset({RepoType.HUGGINGFACE.value, RepoType.PYTORCH.value})
+
 EXTRACTION_SYSTEM_PROMPT = """\
-You are an expert in software architecture and machine learning. Given analysis data \
+You are an expert in software architecture{domain_context}. Given analysis data \
 from a code repository, extract a knowledge graph of concepts and their relationships.
 
 For each concept, provide:
@@ -49,8 +52,7 @@ Edge direction rules (IMPORTANT — get the direction right):
 Focus on:
 1. Core architectural concepts (key abstractions, patterns, data flows)
 2. Main components and their roles
-3. Key techniques and algorithms implemented — include concrete model instances \
-(e.g. BERT, GPT, T5, LoRA) as well as foundational abstractions
+3. Key techniques and algorithms implemented{technique_hint}
 4. Training / optimization innovations
 5. Prerequisite chains (what must you understand before what)
 
@@ -79,8 +81,8 @@ Here is the analysis of the repository:
 {docs_text}
 
 Extract a comprehensive knowledge graph of concepts and their relationships. \
-Include both foundational abstractions AND concrete model instances / named techniques \
-(e.g. BERT, GPT, T5, LoRA, AdamW) that are present or referenced in the repo. \
+Include both foundational abstractions AND concrete named techniques{technique_hint} \
+that are present or referenced in the repo. \
 Ensure proper prerequisite chains. Every node MUST have a paper_ref where one exists.
 
 Return ONLY valid JSON with keys "nodes" and "edges".\
@@ -98,13 +100,16 @@ class ConceptExtractor:
         """Extract a knowledge graph from repo analysis."""
         logger.info("Extracting concepts via LLM (model=%s)", self.model)
 
+        domain_context, technique_hint = self._domain_hints(analysis.repo_type)
         system_prompt = EXTRACTION_SYSTEM_PROMPT.format(
             types=", ".join(t.value for t in ConceptType),
             levels=", ".join(l.value for l in ConceptLevel),
             relationships=", ".join(r.value for r in RelationshipType),
+            domain_context=domain_context,
+            technique_hint=technique_hint,
         )
 
-        user_prompt = self._build_user_prompt(analysis)
+        user_prompt = self._build_user_prompt(analysis, technique_hint)
 
         response_text, finish_reason = chat_completion(
             self.client, self.model, system_prompt, user_prompt,
@@ -162,12 +167,12 @@ class ConceptExtractor:
         """
         existing_ids = [n["id"] for n in existing_data.get("nodes", [])]
         ids_str = ", ".join(existing_ids[:50])
+        _, technique_hint = self._domain_hints(analysis.repo_type)
         continuation_prompt = (
             f"The following concepts were already extracted from the "
             f"{analysis.repo_type.value} repository: {ids_str}.\n"
             "Extract any ADDITIONAL concepts not yet in that list. Focus on:\n"
-            "1. Concrete model instances and named algorithms not yet covered "
-            "(e.g. BERT, GPT, T5, LoRA, AdamW, RoPE, Flash Attention)\n"
+            f"1. Concrete named components and techniques not yet covered{technique_hint}\n"
             "2. Components and techniques not covered above\n"
             "IMPORTANT: Every node MUST include paper_ref "
             "(use \"\" only if truly no paper exists).\n"
@@ -211,22 +216,56 @@ class ConceptExtractor:
     # Prompt construction helpers
     # ------------------------------------------------------------------
 
+    def _domain_hints(self, repo_type: RepoType) -> tuple[str, str]:
+        """Return (domain_context, technique_hint) strings for the given repo type.
+
+        ML repos (HuggingFace, PyTorch) get ML-specific phrasing with concrete model
+        examples; all other repo types get neutral, domain-agnostic phrasing.
+        """
+        if repo_type.value in _ML_REPO_TYPES:
+            return (
+                " and machine learning",
+                " — include concrete model instances (e.g. BERT, GPT, T5, LoRA)"
+                " as well as foundational abstractions",
+            )
+        return (
+            "",
+            " — include concrete named components and design patterns"
+            " present in this codebase",
+        )
+
+    def _get_important_suffixes(self, repo_type: RepoType) -> tuple[str, ...]:
+        """Return class name suffixes used to prioritize 'important' components.
+
+        HF/ML repos use model-class suffixes (ForCausalLM, etc.);
+        other repos use generic design-pattern suffixes (Manager, Service, etc.).
+        """
+        if repo_type.value in _ML_REPO_TYPES:
+            return (
+                "Model", "ForSequenceClassification", "ForCausalLM",
+                "ForMaskedLM", "ForTokenClassification", "Config",
+                "Tokenizer", "ForQuestionAnswering", "PreTrainedModel",
+            )
+        return (
+            "Manager", "Handler", "Service", "Controller",
+            "Factory", "Builder", "Processor", "Parser",
+            "Middleware", "Router", "Registry",
+        )
+
     def _select_components(self, analysis: UniversalRepoAnalysis) -> tuple[str, int, int]:
-        """Return components text, balancing base classes and concrete model instances.
+        """Return components text, balancing base classes and concrete important instances.
 
         Sorting priority:
-          0 — concrete model classes (has inheritance AND name suggests a real model/config)
+          0 — important classes (has inheritance AND name matches repo-type suffixes)
           1 — other classes with inheritance (base classes)
           2 — leaf classes without inheritance
         """
-        _MODEL_SUFFIXES = ("Model", "ForSequenceClassification", "ForCausalLM",
-                           "ForMaskedLM", "ForTokenClassification", "Config",
-                           "Tokenizer", "ForQuestionAnswering", "PreTrainedModel")
+        important_suffixes = self._get_important_suffixes(analysis.repo_type)
 
         def _sort_key(c):
             has_bases = bool(c.metadata.get("bases"))
             is_model = any(c.name.endswith(sfx) or c.name.startswith(sfx)
-                           for sfx in _MODEL_SUFFIXES)
+                           for sfx in important_suffixes)
             if has_bases and is_model:
                 return (0, c.name)
             if has_bases:
@@ -290,7 +329,7 @@ class ConceptExtractor:
             budget -= len(line)
         return "".join(lines), len(items), len(lines)
 
-    def _build_user_prompt(self, analysis: UniversalRepoAnalysis) -> str:
+    def _build_user_prompt(self, analysis: UniversalRepoAnalysis, technique_hint: str = "") -> str:
         components_text, num_components, shown_components = self._select_components(analysis)
         structure_text, _, _ = self._select_structure(analysis)
         commits_text, num_commits, shown_commits = self._select_commits(analysis)
@@ -323,6 +362,7 @@ class ConceptExtractor:
             num_docs=num_docs,
             shown_docs=shown_docs,
             docs_text=docs_text or "(none found)",
+            technique_hint=technique_hint,
         )
 
     def _build_graph(self, data: dict) -> KnowledgeGraph:
