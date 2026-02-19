@@ -26,7 +26,10 @@ export default function LearnPage() {
   const params = useParams();
   const router = useRouter();
   const paperId = params.paperId as string;
+  // Track session ID for cleanup — ref survives async race conditions
   const sessionCleanupRef = useRef<string | null>(null);
+  // Track whether effect has been cancelled (unmount / re-run)
+  const cancelledRef = useRef(false);
 
   const { user } = useAuthStore();
   const {
@@ -49,12 +52,47 @@ export default function LearnPage() {
     reset,
   } = useLearningStore();
 
+  // Cleanup helper — deletes session from ref, callable from anywhere
+  const cleanupSession = useCallback(() => {
+    const sid = sessionCleanupRef.current;
+    if (sid) {
+      sessionCleanupRef.current = null;
+      terminalSessionAdapter.deleteSession(sid);
+    }
+  }, []);
+
+  // beforeunload — catches tab close / refresh
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      const sid = sessionCleanupRef.current;
+      if (sid && TERMINAL_API_URL) {
+        // sendBeacon for reliable cleanup even when page is closing
+        const url = `${TERMINAL_API_URL}/api/sessions/${sid}`;
+        // sendBeacon only supports POST, so fall back to fetch keepalive
+        try {
+          fetch(url, { method: 'DELETE', keepalive: true });
+        } catch {
+          // best effort
+        }
+        sessionCleanupRef.current = null;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
+
   // Load paper and stages
   useEffect(() => {
+    // If there's a leftover session from a previous effect run (HMR / StrictMode),
+    // clean it up before starting a new one
+    cleanupSession();
+    cancelledRef.current = false;
+
     async function load() {
       const paper = await papersAdapter.getPaperById(paperId);
-      if (!paper) {
-        router.push('/explore');
+      if (!paper || cancelledRef.current) {
+        if (!paper) router.push('/explore');
         return;
       }
       setPaper(paper);
@@ -69,33 +107,54 @@ export default function LearnPage() {
       // Load progress
       if (user) {
         const progress = await progressAdapter.loadProgress(user.id, paperId);
-        if (progress) {
+        if (progress && !cancelledRef.current) {
           setProgress(progress);
           setCurrentStageIndex(Math.min(progress.currentStage, stageData.length - 1));
         }
       }
 
       // Create backend session if TERMINAL_API_URL is configured
-      if (TERMINAL_API_URL) {
+      if (TERMINAL_API_URL && !cancelledRef.current) {
         setSessionStatus('creating');
         try {
           const session = await terminalSessionAdapter.createSession({
             repoUrl: paper.githubUrl,
             userId: user?.id,
           });
-          setSessionId(session.sessionId);
+
+          // CRITICAL: Set ref immediately so cleanup can find it,
+          // even if the effect is cancelled during the await below
           sessionCleanupRef.current = session.sessionId;
 
+          if (cancelledRef.current) {
+            // Effect was cancelled while createSession was in-flight
+            // → delete the just-created session immediately
+            cleanupSession();
+            return;
+          }
+
+          setSessionId(session.sessionId);
+
           // Poll until session is running (Pod takes 10-30s)
-          await waitForSession(session.sessionId);
+          await waitForSession(session.sessionId, cancelledRef);
+
+          if (cancelledRef.current) {
+            cleanupSession();
+            return;
+          }
+
           setSessionStatus('running');
 
           // Try to fetch stages from backend
           const backendStages = await terminalSessionAdapter.getStages(session.sessionId);
-          if (backendStages.length > 0) {
+          if (backendStages.length > 0 && !cancelledRef.current) {
             setStages(backendStages as typeof stageData);
           }
         } catch (err) {
+          if (cancelledRef.current) {
+            cleanupSession();
+            return;
+          }
           if (err instanceof SessionLimitError) {
             setSessionError(err.message);
           } else {
@@ -111,12 +170,10 @@ export default function LearnPage() {
     reset();
     load();
 
-    // Cleanup session on unmount
+    // Cleanup session on unmount or paperId change
     return () => {
-      if (sessionCleanupRef.current) {
-        terminalSessionAdapter.deleteSession(sessionCleanupRef.current);
-        sessionCleanupRef.current = null;
-      }
+      cancelledRef.current = true;
+      cleanupSession();
     };
   }, [paperId]);
 
@@ -286,11 +343,16 @@ function SessionErrorUI({ error }: { error: string | null }) {
 }
 
 /** Poll session status until it's running */
-async function waitForSession(sessionId: string, maxWait = 60000) {
+async function waitForSession(
+  sessionId: string,
+  cancelledRef: React.RefObject<boolean | null>,
+  maxWait = 60000,
+) {
   const start = Date.now();
   const interval = 2000;
 
   while (Date.now() - start < maxWait) {
+    if (cancelledRef.current) return;
     try {
       const info = await terminalSessionAdapter.getSession(sessionId);
       if (info.status === 'running') return;

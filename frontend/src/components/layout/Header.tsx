@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { signOut as nextAuthSignOut } from 'next-auth/react';
-import { Compass, LayoutDashboard, Map, Upload, Github, Menu, X, LogOut } from 'lucide-react';
+import { Compass, LayoutDashboard, Map, Upload, Github, Menu, X, LogOut, Fingerprint } from 'lucide-react';
 import { ClaudeMark } from '@/components/shared/ClaudeMark';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/useAuthStore';
@@ -20,7 +20,7 @@ const navItems = [
 
 export function Header() {
   const pathname = usePathname();
-  const { user, isAuthenticated, logout } = useAuthStore();
+  const { user, isAuthenticated, passkeyInfo, logout } = useAuthStore();
   const { isMobileMenuOpen, setMobileMenuOpen } = useUIStore();
 
   const handleSignOut = () => {
@@ -74,6 +74,12 @@ export function Header() {
                 </div>
               )}
               <span className="text-sm font-medium">{user.username}</span>
+              {passkeyInfo && (
+                <span className="flex items-center gap-1 text-xs text-muted-foreground bg-accent/50 px-1.5 py-0.5 rounded font-mono" title={passkeyInfo.ainAddress}>
+                  <Fingerprint className="h-3 w-3" />
+                  {passkeyInfo.ainAddress.slice(0, 6)}...{passkeyInfo.ainAddress.slice(-4)}
+                </span>
+              )}
               <button
                 onClick={handleSignOut}
                 className="p-1.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-accent/50 transition-colors"
