@@ -9,7 +9,7 @@ export function getAinClient(): any {
   if (ainInstance) return ainInstance;
 
   const Ain = require('@ainblockchain/ain-js').default;
-  const providerUrl = process.env.AIN_PROVIDER_URL || 'https://devnet-api.ainetwork.ai';
+  const providerUrl = process.env.AIN_PROVIDER_URL || 'http://localhost:8081';
   ainInstance = new Ain(providerUrl);
 
   // If a private key is configured, set it as the default account
@@ -22,5 +22,5 @@ export function getAinClient(): any {
 }
 
 export function getProviderUrl(): string {
-  return process.env.AIN_PROVIDER_URL || 'https://devnet-api.ainetwork.ai';
+  return process.env.AIN_PROVIDER_URL || 'http://localhost:8081';
 }
