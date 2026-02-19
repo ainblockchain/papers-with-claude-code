@@ -24,7 +24,8 @@ export function createCourseRouter(ain: Ain): Router {
       const explorationList = Object.values(explorations);
 
       // Generate course stages
-      const stages = await ain.knowledge.aiGenerateCourse(topicPath, explorationList);
+      const result = await ain.knowledge.aiGenerateCourse(topicPath, explorationList);
+      const { stages, thinking } = result;
 
       const idx = stageIndex || 0;
       if (idx >= stages.length) {
@@ -37,6 +38,7 @@ export function createCourseRouter(ain: Ain): Router {
         stageIndex: idx,
         totalStages: stages.length,
         stage: stages[idx],
+        thinking,
       });
     } catch (err: any) {
       res.status(500).json({ error: err.message });

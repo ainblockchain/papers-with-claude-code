@@ -38,7 +38,7 @@ describe('CourseBuilder', () => {
         { title: 'Intro', content: 'Intro content', exercise: 'What is attention?' },
         { title: 'Advanced', content: 'Advanced content', exercise: 'Explain multi-head' },
       ];
-      ain.knowledge.aiGenerateCourse.mockResolvedValue(stages);
+      ain.knowledge.aiGenerateCourse.mockResolvedValue({ stages, thinking: null });
 
       const result = await builder.transformToCourse('ai/transformers');
 
@@ -152,7 +152,7 @@ describe('CourseBuilder', () => {
       const stages = [
         { title: 'Only Stage', content: 'Content', exercise: 'Exercise' },
       ];
-      ain.knowledge.aiGenerateCourse.mockResolvedValue(stages);
+      ain.knowledge.aiGenerateCourse.mockResolvedValue({ stages, thinking: null });
       ain.knowledge.publishCourse.mockResolvedValue({ entryId: 'published_id' });
 
       const result = await builder.buildAndPublish('test/topic', 'http://gw.example.com', '0.005');

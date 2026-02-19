@@ -28,10 +28,10 @@ export class CourseBuilder {
     const explorationList = Object.values(explorations);
     console.log(`[CourseBuilder] Generating course from ${explorationList.length} explorations on "${topicPath}"`);
 
-    const stages = await this.ain.knowledge.aiGenerateCourse(topicPath, explorationList);
-    console.log(`[CourseBuilder] Generated ${stages.length} course stages`);
+    const result = await this.ain.knowledge.aiGenerateCourse(topicPath, explorationList);
+    console.log(`[CourseBuilder] Generated ${result.stages.length} course stages`);
 
-    return stages;
+    return result.stages;
   }
 
   /**
