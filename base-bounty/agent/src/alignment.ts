@@ -56,7 +56,7 @@ export class AlignmentEngine {
 
     // Extract address from path
     const pathParts = path.split('/');
-    const explorerAddr = pathParts[3]; // /apps/knowledge/explorations/{addr}/...
+    const explorerAddr = pathParts[4]; // /apps/knowledge/explorations/{addr}/...
 
     // Skip our own explorations
     if (explorerAddr === this.address) return;

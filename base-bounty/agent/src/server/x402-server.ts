@@ -12,7 +12,7 @@ export interface X402ServerOptions {
   getStatus: () => any;
 }
 
-export function createX402Server({ ain, config, getStatus }: X402ServerOptions): express.Application {
+export function createX402Server({ ain, config, baseAddress, getStatus }: X402ServerOptions): express.Application {
   const app = express();
   app.use(express.json());
 
@@ -47,7 +47,7 @@ export function createX402Server({ ain, config, getStatus }: X402ServerOptions):
         price,
         currency: 'USDC',
         facilitatorUrl: config.x402FacilitatorUrl,
-        payTo: options.baseAddress,
+        payTo: baseAddress,
       }));
     }
   }
