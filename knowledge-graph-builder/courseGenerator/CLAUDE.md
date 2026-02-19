@@ -1,6 +1,6 @@
 # Paper → Course Builder (Claude-Powered)
 
-이 디렉토리에서 `claude`를 실행한 뒤 **arXiv URL 또는 GitHub URL**을 채팅에 입력하면,
+이 디렉토리에서 `claude`를 실행한 뒤 **arXiv URL, GitHub URL 또는 HuggingFace URL**을 채팅에 입력하면,
 Claude Code가 논문/저장소를 읽고 인터랙티브 학습 코스를 자동 생성합니다.
 
 ---
@@ -36,6 +36,8 @@ Contributor: login=johndoe, name=John Doe, avatar_url=https://avatars.githubuser
 - `https://arxiv.org/pdf/<id>` / `https://arxiv.org/pdf/<id>.pdf` — arXiv PDF
 - `http://arxiv.org/...` (동일 처리)
 - `https://github.com/<user>/<repo>` — GitHub 저장소
+- `https://huggingface.co/<org>/<model>` — HuggingFace 모델 페이지
+- `https://huggingface.co/papers/<arxiv-id>` — HuggingFace 논문 페이지 (arXiv로 리다이렉트하여 처리)
 
 ---
 
@@ -79,9 +81,10 @@ URL이 입력되면 아래 5단계를 **사용자 개입 없이 처음부터 끝
 - **URL**: 아래 도메인만 허용
   - `https://arxiv.org/` 또는 `http://arxiv.org/` — 논문 링크
   - `https://github.com/` — GitHub 저장소 링크
+  - `https://huggingface.co/` — HuggingFace 모델/논문 페이지
 - 그 외 임의 도메인은 거부:
   ```
-  ⛔ 허용되지 않는 URL입니다. arxiv.org 또는 github.com 링크만 입력 가능합니다.
+  ⛔ 허용되지 않는 URL입니다. arxiv.org, github.com 또는 huggingface.co 링크만 입력 가능합니다.
   ```
 
 ### 허용 출력 경로
@@ -121,6 +124,19 @@ URL이 입력되면 아래 5단계를 **사용자 개입 없이 처음부터 끝
    - **slug = 그 논문 제목으로 생성** ← 같은 논문의 arXiv URL과 동일한 slug 보장
 4. **arXiv 링크 없을 때 (fallback)**:
    - `<repo-name>` → slug 알고리즘 적용
+
+#### HuggingFace URL인 경우 — `https://huggingface.co/<org>/<model>`
+1. `https://huggingface.co/<org>/<model>` 모델 카드 페이지를 WebFetch
+2. **연관 논문 역추적**: 모델 카드 내 `arxiv.org/abs/` 링크 탐색
+3. **arXiv 링크 발견 시 (권장 경로)**:
+   - 해당 arXiv abstract를 fetch해서 논문 제목, 저자, 연도 파악
+   - **slug = 그 논문 제목으로 생성** ← 같은 논문의 arXiv/GitHub URL과 동일한 slug 보장
+4. **arXiv 링크 없을 때 (fallback)**:
+   - `<model>` 이름 → slug 알고리즘 적용
+
+#### HuggingFace URL인 경우 — `https://huggingface.co/papers/<arxiv-id>`
+- URL에서 `<arxiv-id>`를 추출하여 `https://arxiv.org/abs/<arxiv-id>`로 재구성
+- 이후 **arXiv URL인 경우**와 동일하게 처리
 
 #### slug 생성 알고리즘 (arXiv/GitHub 공통, 결정적으로 고정)
 
