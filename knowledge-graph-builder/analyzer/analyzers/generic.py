@@ -55,6 +55,8 @@ class GenericAnalyzer(BaseRepoAnalyzer):
         structure = self.scan_structure()
         logger.info("Analyzed repository structure")
 
+        dependencies = self.scan_dependencies()
+
         return UniversalRepoAnalysis(
             repo_type=self.get_repo_type(),
             repo_path=str(self.repo_path),
@@ -62,7 +64,7 @@ class GenericAnalyzer(BaseRepoAnalyzer):
             commits=commits,
             documentation=documentation,
             structure=structure,
-            dependencies={},
+            dependencies=dependencies,
             extensions={},
             metadata={},
         )
@@ -116,10 +118,10 @@ class GenericAnalyzer(BaseRepoAnalyzer):
 
     def scan_structure(self) -> dict:
         """
-        Extract model architecture class hierarchy from Python source files.
+        Extract class hierarchy from Python source files.
 
         Returns a dict mapping each class name to its inherited bases and file path.
-        This reveals how model components are composed and connected, which directly
+        This reveals how components are composed and connected, which directly
         maps to prerequisite concept chains in the learning path.
         """
         hierarchy: dict = {}
