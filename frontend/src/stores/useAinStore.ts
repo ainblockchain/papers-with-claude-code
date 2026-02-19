@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { ainAdapter } from '@/lib/adapters/ain-blockchain';
 import type { LearnerProgress, ExplorationInput } from '@/lib/ain/types';
+import type { UserLocation, CourseLocation } from '@/lib/ain/location-types';
 
 interface AinState {
   // Account
@@ -24,6 +25,10 @@ interface AinState {
   // Topics
   topics: Record<string, any> | null;
 
+  // Locations (ainspace)
+  allLocations: Record<string, UserLocation> | null;
+  courseLocations: Record<string, CourseLocation> | null;
+
   // Loading states
   isLoading: boolean;
   error: string | null;
@@ -36,6 +41,13 @@ interface AinState {
   fetchGraph: () => Promise<void>;
   fetchFrontierMap: (topicPath?: string) => Promise<void>;
   fetchProgress: (address: string) => Promise<void>;
+
+  // Location actions
+  updateLocation: (location: UserLocation) => Promise<void>;
+  fetchAllLocations: () => Promise<void>;
+  fetchCourseLocations: () => Promise<void>;
+  setCourseLocation: (course: CourseLocation) => Promise<void>;
+
   reset: () => void;
 }
 
@@ -49,6 +61,8 @@ const initialState = {
   progress: null,
   isLoadingProgress: false,
   topics: null,
+  allLocations: null,
+  courseLocations: null,
   isLoading: false,
   error: null,
 };
@@ -127,6 +141,40 @@ export const useAinStore = create<AinState>((set) => ({
     } catch (err) {
       console.error('Failed to fetch progress:', err);
       set({ isLoadingProgress: false });
+    }
+  },
+
+  updateLocation: async (location: UserLocation) => {
+    try {
+      await ainAdapter.updateLocation(location);
+    } catch (err) {
+      console.error('Failed to update location:', err);
+    }
+  },
+
+  fetchAllLocations: async () => {
+    try {
+      const allLocations = await ainAdapter.getAllLocations();
+      set({ allLocations });
+    } catch (err) {
+      console.error('Failed to fetch locations:', err);
+    }
+  },
+
+  fetchCourseLocations: async () => {
+    try {
+      const courseLocations = await ainAdapter.getCourseLocations();
+      set({ courseLocations });
+    } catch (err) {
+      console.error('Failed to fetch course locations:', err);
+    }
+  },
+
+  setCourseLocation: async (course: CourseLocation) => {
+    try {
+      await ainAdapter.setCourseLocation(course);
+    } catch (err) {
+      console.error('Failed to set course location:', err);
     }
   },
 
