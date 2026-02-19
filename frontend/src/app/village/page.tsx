@@ -4,8 +4,11 @@ import { useEffect } from 'react';
 import { VillageCanvas } from '@/components/village/VillageCanvas';
 import { VillageSidebar } from '@/components/village/VillageSidebar';
 import { NotificationToast } from '@/components/shared/NotificationToast';
+import { PurchaseModal } from '@/components/purchase/PurchaseModal';
 import { useVillageStore } from '@/stores/useVillageStore';
 import { useSocialStore } from '@/stores/useSocialStore';
+import { usePurchaseStore } from '@/stores/usePurchaseStore';
+import { papersAdapter } from '@/lib/adapters/papers';
 import {
   friendPresenceAdapter,
   notificationAdapter,
@@ -15,6 +18,14 @@ import {
 export default function VillagePage() {
   const { setFriends } = useVillageStore();
   const { addNotification, setLeaderboard } = useSocialStore();
+  const { initializeAccess } = usePurchaseStore();
+
+  // Initialize purchase access statuses for all papers
+  useEffect(() => {
+    papersAdapter.fetchTrendingPapers('daily').then((papers) => {
+      initializeAccess(papers);
+    });
+  }, [initializeAccess]);
 
   useEffect(() => {
     const unsubFriends = friendPresenceAdapter.subscribeToFriendPositions(setFriends);
@@ -33,6 +44,7 @@ export default function VillagePage() {
       <div className="flex-1 relative">
         <VillageCanvas />
         <NotificationToast />
+        <PurchaseModal />
       </div>
 
       {/* Right Sidebar */}
