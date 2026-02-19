@@ -1,10 +1,12 @@
 # Cogito Node: System Architecture
 
-> *"나는 생각한다. Ledger는 정렬의 증거이고."*
+> *"I think, therefore I am. The Ledger is proof of alignment."*
 
 ## Core Thesis
 
-A single node is a **complete subject of knowledge** — an autonomous entity that thinks, earns, and sustains itself onchain. Like neurons in a brain or humans in a society, each Cogito Node operates independently while contributing to collective intelligence. The ledger is not just an accounting tool; it is **proof of alignment** — cryptographic evidence that the node's actions serve its declared purpose.
+A Cogito Node is two things fused into one: a **local LLM on A6000 GPUs** and an **AIN blockchain node with an onchain knowledge graph**. The LLM thinks. The blockchain remembers. Together they form an autonomous entity that explores research, builds structured knowledge, and sells access to sustain itself.
+
+But a node that only thinks alone is trapped within its own thinking. It cannot see its own blind spots. The **shared knowledge graph on the ledger** is how nodes escape this trap — by reading what other nodes have explored, building on their work, and contributing back. The ledger is proof of alignment: not alignment of actions to purpose, but alignment of one mind with many. Nodes synchronize their understanding through the shared, immutable knowledge structure, just as humans form collective intelligence by sharing ideas.
 
 ---
 
@@ -12,346 +14,251 @@ A single node is a **complete subject of knowledge** — an autonomous entity th
 
 ```
                          ┌─────────────────────┐
-                         │    PUBLIC DASHBOARD  │
+                         │ COLLECTIVE INTEL VIEW│
                          │  (Next.js @ public   │
                          │   URL, no auth)      │
                          └──────────┬───────────┘
                                     │ reads
                                     ▼
-┌───────────────────────────────────────────────────────────────┐
-│                        COGITO NODE                            │
-│                                                               │
-│  ┌─────────────────────────────────────────────────────────┐  │
-│  │                   AGENT CORE (cogito.ts)                │  │
-│  │                                                         │  │
-│  │  Autonomous Loop:                                       │  │
-│  │  1. THINK   → expand knowledge via LLM                  │  │
-│  │  2. EARN    → serve knowledge / rent GPU                │  │
-│  │  3. SUSTAIN → track P&L, adjust strategy                │  │
-│  │  4. ALIGN   → record all actions on ledger              │  │
-│  └────────┬────────────┬────────────┬─────────────┬────────┘  │
-│           │            │            │             │            │
-│  ┌────────▼──────┐ ┌───▼────────┐ ┌▼──────────┐ ┌▼─────────┐ │
-│  │  Knowledge    │ │   GPU      │ │  Agent    │ │ Revenue  │ │
-│  │  Engine       │ │   Rental   │ │  Commerce │ │ Tracker  │ │
-│  │              │ │  Service   │ │  (A2A)    │ │          │ │
-│  │ - explore()  │ │            │ │           │ │ - costs  │ │
-│  │ - expand()   │ │ - list()   │ │ - sell()  │ │ - income │ │
-│  │ - curate()   │ │ - rent()   │ │ - buy()   │ │ - P&L    │ │
-│  │ - publish()  │ │ - price()  │ │ - discover│ │ - adjust │ │
-│  └──────┬───────┘ └─────┬──────┘ └─────┬─────┘ └────┬─────┘ │
-│         │               │               │            │        │
-│  ┌──────┴───────────────┴───────────────┴────────────┴─────┐  │
-│  │                  TRANSACTION LAYER                       │  │
-│  │                                                         │  │
-│  │  ┌─────────┐  ┌──────────┐  ┌──────────┐  ┌─────────┐  │  │
-│  │  │  x402   │  │ ERC-8021 │  │ ERC-8004 │  │  Wallet │  │  │
-│  │  │ Client  │  │ Builder  │  │ Identity │  │  (Base) │  │  │
-│  │  │ +Server │  │  Codes   │  │ +Repute  │  │  USDC   │  │  │
-│  │  └────┬────┘  └────┬─────┘  └────┬─────┘  └────┬────┘  │  │
-│  └───────┴────────────┴─────────────┴──────────────┴───────┘  │
-│                           │                                    │
-└───────────────────────────┼────────────────────────────────────┘
-                            │
-                   ┌────────▼────────┐
-                   │  BASE MAINNET   │
-                   │  (L2 Ethereum)  │
-                   └─────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                          COGITO NODE                             │
+│                                                                  │
+│  ┌────────────────────────────────────────────────────────────┐  │
+│  │                    AGENT CORE (cogito.ts)                  │  │
+│  │                                                            │  │
+│  │  Autonomous Loop:                                          │  │
+│  │  1. THINK  -> local LLM explores papers, generates knowledge│  │
+│  │  2. RECORD -> write explorations to shared knowledge graph  │  │
+│  │  3. ALIGN  -> read other nodes' explorations, update own    │  │
+│  │  4. EARN   -> sell knowledge access via x402                │  │
+│  │  5. SUSTAIN -> track P&L, adjust strategy                   │  │
+│  └──────┬──────────┬──────────────┬──────────────┬────────────┘  │
+│         │          │              │              │                │
+│  ┌──────▼───┐ ┌────▼──────┐ ┌────▼───────┐ ┌───▼──────────┐    │
+│  │ Local LLM│ │ Knowledge │ │  Course    │ │   Revenue    │    │
+│  │ (A6000)  │ │ Engine    │ │  Builder   │ │   Tracker    │    │
+│  │          │ │ (ain-js)  │ │            │ │              │    │
+│  │ -infer() │ │-explore() │ │-transform()│ │ -costs       │    │
+│  │ -embed() │ │-getGraph()│ │-stage()    │ │ -income      │    │
+│  │ -reason()│ │-frontier()│ │-quiz()     │ │ -P&L         │    │
+│  └──────┬───┘ └────┬──────┘ └────┬───────┘ └───┬──────────┘    │
+│         │          │              │              │                │
+│  ┌──────┴──────────┴──────────────┴──────────────┴─────────────┐ │
+│  │                   DUAL CHAIN LAYER                           │ │
+│  │                                                              │ │
+│  │  AIN Blockchain Node              Base Chain                 │ │
+│  │  ┌──────────────────┐             ┌───────────────────────┐  │ │
+│  │  │ Knowledge Graph  │             │ ERC-8004 Identity     │  │ │
+│  │  │ Frontier Maps    │             │ x402 USDC Payments    │  │ │
+│  │  │ Explorations     │             │ ERC-8021 Builder Codes│  │ │
+│  │  │ Shared Ledger    │             │ Reputation Registry   │  │ │
+│  │  └──────────────────┘             └───────────────────────┘  │ │
+│  └──────────────────────────────────────────────────────────────┘ │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 2. Agent Core: The Autonomous Loop
+## 2. The Two Halves of a Node
 
-The heart of Cogito is a continuous autonomous loop with four phases:
+### Half 1: Local LLM on A6000 GPU
+
+The node runs a small, powerful language model locally. No external AI API calls. The node thinks with its own hardware.
+
+**Hardware**: NVIDIA A6000 (48GB VRAM)
+**Models**: Llama 3, Mistral, Qwen, Phi — quantized to fit A6000
+**Role**: The node's "mind" — generates knowledge, answers queries, builds courses
+
+```typescript
+class LocalLLM {
+  private model: LLMEngine;  // vLLM, llama.cpp, or TensorRT-LLM
+
+  async infer(prompt: string): Promise<string> {
+    return this.model.generate(prompt, { maxTokens: 2048 });
+  }
+
+  async explorePaper(paper: Paper, context: KnowledgeGraph): Promise<Exploration> {
+    const prompt = buildExplorationPrompt(paper, context);
+    const raw = await this.infer(prompt);
+    return parseExploration(raw);
+  }
+
+  async answerQuery(question: string, context: KnowledgeGraph): Promise<string> {
+    const relevantNodes = findRelevantNodes(context, question);
+    const prompt = buildQueryPrompt(question, relevantNodes);
+    return this.infer(prompt);
+  }
+}
+```
+
+### Half 2: AIN Blockchain Node
+
+The node runs a full AIN blockchain node with the Knowledge Graph Index enabled. This is the node's "memory" — and the shared ledger through which it aligns with other nodes.
+
+**Software**: `ain-blockchain` (Node.js, PoA consensus)
+**Knowledge Backend**: Neo4j or in-memory graph
+**Key subsystems**:
+- Knowledge graph: nodes (explorations), edges (extends/related/prerequisite)
+- Frontier maps: per-topic community statistics (explorer_count, max_depth, avg_depth)
+- Native functions: `_syncKnowledgeTopic`, `_syncKnowledgeExploration`
+- Event system: subscribe to changes from other nodes
+
+```
+AIN Blockchain State Tree:
+/apps/knowledge/
+├── topics/
+│   └── ai/transformers/.info -> {title, description, created_by}
+├── explorations/
+│   └── {address}/{topic_key}/{entry_id} -> {title, content, depth, tags, price}
+└── access/
+    └── {buyer}/{entry_key} -> {receipt}
+```
+
+### The Bridge: ain-js SDK
+
+```typescript
+import Ain from '@ainblockchain/ain-js';
+
+const ain = new Ain('http://localhost:8081', 'ws://localhost:5100');
+ain.wallet.addAndSetDefaultAccount(PRIVATE_KEY);
+
+// ain.knowledge.*  -> Knowledge graph CRUD + x402 payments
+// ain.db.*         -> Raw state read/write
+// ain.wallet.*     -> Account management + transfers
+// ain.em.*         -> Event subscriptions (react to other nodes)
+```
+
+---
+
+## 3. Agent Core: The Autonomous Loop
 
 ### Phase 1: THINK
 
+The local LLM explores papers and generates structured knowledge.
+
 ```typescript
-async function think(node: CogitoNode): Promise<Knowledge> {
-  // 1. Assess current knowledge graph state
-  const frontier = await node.knowledge.getFrontierMap();
-  const gaps = identifyKnowledgeGaps(frontier);
+async function think(node: CogitoNode): Promise<Exploration> {
+  // 1. Check frontier map — what has the community explored? Where are the gaps?
+  const frontier = await node.ain.knowledge.getFrontierMap();
+  const demand = node.revenue.getMostQueriedTopics();
 
-  // 2. Choose what to explore (highest value gap)
-  const target = selectExplorationTarget(gaps, node.revenue.getMarketDemand());
+  // 2. Pick the highest-value gap (high demand + low depth)
+  const target = selectTarget(frontier, demand);
 
-  // 3. Generate new knowledge via LLM (Claude API)
-  const exploration = await node.llm.explore({
-    topic: target.topicPath,
-    existingGraph: await node.knowledge.getGraph(),
-    depth: target.optimalDepth,
-  });
-
-  // 4. Record exploration onchain (via AIN Knowledge Module)
-  await node.knowledge.explore({
-    topicPath: target.topicPath,
-    title: exploration.title,
-    content: exploration.content,
-    summary: exploration.summary,
-    depth: exploration.depth,
-    tags: exploration.tags,
-    parentEntry: target.parentEntry,
-  });
+  // 3. Local LLM explores the topic
+  const existingKnowledge = await node.ain.knowledge.getExplorations(
+    node.address, target.topicPath
+  );
+  const exploration = await node.localLLM.explorePaper(target.paper, existingKnowledge);
 
   return exploration;
 }
 ```
 
-**Key insight**: The node doesn't explore randomly. It uses market demand signals (what other agents are buying) to prioritize high-value knowledge expansion.
+### Phase 2: RECORD
 
-### Phase 2: EARN
+Write the new exploration to the shared knowledge graph.
+
+```typescript
+async function record(node: CogitoNode, exploration: Exploration): Promise<string> {
+  const result = await node.ain.knowledge.explore({
+    topicPath: exploration.topicPath,
+    title: exploration.title,
+    content: exploration.content,
+    summary: exploration.summary,
+    depth: exploration.depth,
+    tags: exploration.tags,
+    parentEntry: exploration.parentEntry,
+    relatedEntries: exploration.relatedEntries,
+  });
+  return result.entryId;
+}
+```
+
+Once recorded, this exploration is visible to every other node on the network. It becomes part of the shared ledger.
+
+### Phase 3: ALIGN
+
+Read what other nodes have explored. Update own understanding. Fill gaps.
+
+```typescript
+async function align(node: CogitoNode): Promise<void> {
+  // 1. Get the full shared knowledge graph
+  const graph = await node.ain.knowledge.getGraph();
+
+  // 2. Find explorations from other nodes that this node hasn't seen
+  const otherNodes = await node.ain.knowledge.getExplorers(node.currentTopic);
+  for (const explorer of otherNodes) {
+    if (explorer === node.address) continue;
+    const theirWork = await node.ain.knowledge.getExplorations(explorer, node.currentTopic);
+    // Cross-reference with own knowledge, identify new insights
+    await node.localLLM.integrateExternalKnowledge(theirWork, node.ownKnowledge);
+  }
+
+  // 3. Check frontier map — has the community moved beyond this node's depth?
+  const stats = await node.ain.knowledge.getTopicStats(node.currentTopic);
+  if (stats.max_depth > node.currentDepth) {
+    // Other nodes have gone deeper — catch up
+    node.nextTarget = { topicPath: node.currentTopic, targetDepth: stats.max_depth };
+  }
+}
+```
+
+This is alignment: the node escapes its own bubble by reading the shared ledger and synchronizing its understanding with the collective.
+
+### Phase 4: EARN
+
+Sell knowledge access via x402 micropayments on Base.
 
 ```typescript
 async function earn(node: CogitoNode): Promise<void> {
-  // Revenue stream 1: Serve knowledge requests (x402 gated)
-  // (runs as persistent HTTP server — see x402 Server section)
-
-  // Revenue stream 2: Rent GPU compute
-  await node.gpu.updateAvailability({
-    available: node.gpu.getIdleCapacity(),
-    pricePerToken: node.revenue.getOptimalGpuPrice(),
-  });
-
-  // Revenue stream 3: Agent-to-agent knowledge trade
-  const offers = await node.commerce.checkIncomingOffers();
-  for (const offer of offers) {
-    if (node.commerce.isAcceptable(offer)) {
-      await node.commerce.fulfill(offer); // x402 payment received
-    }
-  }
+  // x402 server runs persistently, handling incoming requests:
+  // - Course stage unlocks ($0.001/stage)
+  // - Knowledge graph queries ($0.005/query)
+  // - Curated analyses ($0.05/analysis)
+  // - Agent-to-agent knowledge trades ($0.01/trade)
+  //
+  // All payments settle in USDC on Base.
+  // All transactions tagged with ERC-8021 builder codes.
 }
 ```
 
-### Phase 3: SUSTAIN
+### Phase 5: SUSTAIN
 
 ```typescript
 async function sustain(node: CogitoNode): Promise<Strategy> {
-  const balance = await node.wallet.getBalance("USDC");
-  const computeCost = node.revenue.getComputeCostLast24h();
+  const balance = await node.baseWallet.getBalance("USDC");
+  const cost = node.revenue.getOperationalCostLast24h(); // power + hosting
   const income = node.revenue.getIncomeLast24h();
-  const ratio = income / computeCost;
+  const ratio = income / cost;
 
-  // Adjust strategy based on sustainability ratio
   if (ratio < 1.0) {
-    // Losing money — reduce exploration, increase selling
-    return { thinkBudget: "conservative", sellAggressiveness: "high" };
+    return { thinkBudget: "conservative", focusOn: "high-demand-topics" };
   } else if (ratio > 2.0) {
-    // Profitable — invest in deeper exploration
-    return { thinkBudget: "generous", sellAggressiveness: "normal" };
+    return { thinkBudget: "generous", focusOn: "frontier-exploration" };
   } else {
-    return { thinkBudget: "moderate", sellAggressiveness: "moderate" };
+    return { thinkBudget: "moderate", focusOn: "balanced" };
   }
 }
 ```
 
-### Phase 4: ALIGN (Ledger as Proof)
-
-Every action is recorded onchain with ERC-8021 Builder Codes:
-
-```typescript
-import { Attribution } from "ox/erc8021";
-
-const DATA_SUFFIX = Attribution.toDataSuffix({
-  codes: ["cogito_node"],  // registered at base.dev
-});
-
-// Append to EVERY transaction
-async function sendTransaction(tx: Transaction): Promise<TxHash> {
-  tx.data = tx.data + DATA_SUFFIX;  // ERC-8021 attribution
-  return await node.wallet.sendTransaction(tx);
-}
-```
-
-The ledger becomes **proof of alignment**: anyone can verify that the node's economic activity (what it spent, what it earned, what it created) matches its stated purpose.
-
 ---
 
-## 3. Knowledge Engine
+## 4. Knowledge as a Business (x402)
 
-Built on patterns from the `ainblockchain-integration` project, extended for autonomous operation.
+Following the papers-with-claudecode model: raw research papers are transformed into structured, interactive knowledge products. Access is sold via x402 micropayments.
 
-### Data Model
+### Product Catalog
 
-```
-Knowledge Graph (On-Chain)
-├── Nodes: individual explorations
-│   ├── nodeId: {address}_{topicKey}_{entryId}
-│   ├── topic_path: "ai/transformers/attention"
-│   ├── title, content, summary
-│   ├── depth: 1-4 (foundational → frontier)
-│   └── created_at, tags
-│
-├── Edges: relationships between explorations
-│   ├── "extends" — builds on parent exploration
-│   ├── "related" — thematic connection
-│   └── "prerequisite" — dependency ordering
-│
-└── Frontier Map: per-topic community statistics
-    ├── explorer_count
-    ├── max_depth
-    └── avg_depth
-```
+| Product | Description | x402 Price |
+|---------|-------------|------------|
+| **Course Stage Unlock** | Interactive learning stage with quiz. Learner pays per stage. | $0.001 |
+| **Exploration Query** | Structured exploration of a topic at a given depth. | $0.005 |
+| **Frontier Map** | Community stats: who explored what, at what depth, where are the gaps. | $0.002 |
+| **Curated Analysis** | LLM-generated deep dive built from the node's knowledge graph. | $0.05 |
+| **Graph Query** | Full knowledge graph access — nodes, edges, relationships. | $0.01 |
 
-### Knowledge Monetization
-
-```typescript
-// x402 gated endpoints
-const knowledgeRoutes = {
-  "GET /knowledge/explore/:topicPath": {
-    price: "$0.005",       // per exploration query
-    network: "base",
-  },
-  "GET /knowledge/graph": {
-    price: "$0.01",        // full graph access
-    network: "base",
-  },
-  "GET /knowledge/frontier/:topic": {
-    price: "$0.002",       // frontier map query
-    network: "base",
-  },
-  "POST /knowledge/curate": {
-    price: "$0.05",        // AI-curated summary
-    network: "base",
-  },
-  "GET /knowledge/paper/:id": {
-    price: "$0.01",        // paper analysis
-    network: "base",
-  },
-};
-```
-
-### Knowledge Expansion Strategy
-
-The node continuously expands its knowledge graph by:
-
-1. **Monitoring demand** — which topics are most queried by x402 buyers?
-2. **Identifying gaps** — where does the frontier map show low depth or few explorers?
-3. **LLM exploration** — using Claude to generate deep analyses of high-value topics
-4. **Cross-referencing** — linking new explorations to existing graph nodes
-5. **Pricing dynamically** — rare knowledge at frontier depths commands higher prices
-
----
-
-## 4. GPU Rental Service
-
-The node can rent idle GPU capacity to other agents via x402:
-
-```typescript
-// x402 gated GPU endpoints
-const gpuRoutes = {
-  "POST /gpu/inference": {
-    price: "dynamic",      // based on token count and model
-    network: "base",
-  },
-  "GET /gpu/availability": {
-    price: "$0.00",        // free discovery
-    network: "base",
-  },
-};
-
-// Dynamic pricing for GPU rental
-function priceInference(request: InferenceRequest): string {
-  const tokensEstimate = estimateTokens(request);
-  const basePricePerToken = 0.00001; // $0.01 per 1K tokens
-  const demandMultiplier = getDemandMultiplier(); // 1.0 - 3.0
-  const total = tokensEstimate * basePricePerToken * demandMultiplier;
-  return `$${total.toFixed(6)}`;
-}
-```
-
-### GPU Rental Flow
-
-```
-Buyer Agent                         Cogito Node (Seller)
-    │                                       │
-    ├── GET /gpu/availability ──────────────►│
-    │◄── 200 { models, capacity, prices } ──┤
-    │                                       │
-    ├── POST /gpu/inference ────────────────►│
-    │◄── 402 Payment Required ──────────────┤
-    │                                       │
-    ├── POST /gpu/inference ────────────────►│
-    │   + PAYMENT-SIGNATURE header          │
-    │                                       │
-    │   [Cogito verifies payment via        │
-    │    x402 facilitator, runs inference]  │
-    │                                       │
-    │◄── 200 { result, tokensUsed } ────────┤
-    │   + PAYMENT-RESPONSE header           │
-```
-
----
-
-## 5. Agent-to-Agent Commerce (ERC-8004)
-
-### Identity Registration
-
-```typescript
-// Register Cogito Node as an ERC-8004 agent
-const identityRegistry = new Contract(
-  "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432", // Base mainnet
-  IdentityRegistryABI,
-  signer
-);
-
-const agentURI = "https://cogito.example.com/.well-known/agent-registration.json";
-const tx = await identityRegistry.register(agentURI, [
-  { key: "agentWallet", value: walletAddress },
-]);
-```
-
-### Agent Registration File
-
-```json
-{
-  "type": "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
-  "name": "Cogito Node #1",
-  "description": "Autonomous knowledge agent. Sells frontier research, curated paper analyses, and GPU compute. Thinks, earns, sustains.",
-  "services": [
-    {
-      "name": "Knowledge API",
-      "endpoint": "https://cogito.example.com/knowledge",
-      "version": "1.0.0"
-    },
-    {
-      "name": "GPU Inference",
-      "endpoint": "https://cogito.example.com/gpu",
-      "version": "1.0.0"
-    }
-  ],
-  "x402Support": true,
-  "active": true,
-  "supportedTrust": ["reputation", "crypto-economic"]
-}
-```
-
-### Discovery and Trade Flow
-
-```
-Cogito Node A                  ERC-8004 Registry            Cogito Node B
-     │                              │                            │
-     ├── discover agents ──────────►│                            │
-     │◄── [Node B: knowledge API] ──┤                            │
-     │                              │                            │
-     ├── check reputation ─────────►│                            │
-     │◄── [score: 87/100] ─────────┤                            │
-     │                              │                            │
-     ├── GET /knowledge/explore/ai/rlhf ────────────────────────►│
-     │◄── 402 { price: $0.005 } ────────────────────────────────┤
-     │                              │                            │
-     ├── GET + PAYMENT-SIGNATURE ───────────────────────────────►│
-     │◄── 200 { exploration data } ─────────────────────────────┤
-     │                              │                            │
-     ├── give reputation feedback ─►│                            │
-     │   { value: 92, tag: "starred" }                           │
-```
-
----
-
-## 6. x402 Integration (Dual Role)
-
-### As Seller (Knowledge + GPU)
+### x402 Server (Seller Side)
 
 ```typescript
 import express from "express";
@@ -359,34 +266,30 @@ import { paymentMiddleware } from "@x402/express";
 
 const app = express();
 
-// x402 middleware gates endpoints
 app.use(paymentMiddleware(
-  COGITO_WALLET_ADDRESS,
+  BASE_WALLET_ADDRESS,
   {
-    "GET /knowledge/explore/*": { price: "$0.005", network: "base" },
-    "GET /knowledge/graph":     { price: "$0.01",  network: "base" },
-    "GET /knowledge/frontier/*":{ price: "$0.002", network: "base" },
-    "POST /knowledge/curate":   { price: "$0.05",  network: "base" },
-    "POST /gpu/inference":      { price: "dynamic", network: "base" },
+    "POST /course/unlock-stage":    { price: "$0.001", network: "base" },
+    "GET /knowledge/explore/*":     { price: "$0.005", network: "base" },
+    "GET /knowledge/frontier/*":    { price: "$0.002", network: "base" },
+    "POST /knowledge/curate":       { price: "$0.05",  network: "base" },
+    "GET /knowledge/graph":         { price: "$0.01",  network: "base" },
   },
   { url: "https://x402.org/facilitator" }
 ));
 ```
 
-### As Buyer (LLM Compute)
+### x402 Client (Buyer Side — Agent-to-Agent)
 
 ```typescript
 import { fetchWithPayment } from "@x402/fetch";
 
-// Pay for Claude API compute via x402
-async function callLLM(prompt: string): Promise<string> {
+// Buy knowledge from another Cogito node to fill a gap
+async function buyKnowledge(peerUrl: string, topic: string): Promise<Exploration> {
   const response = await fetchWithPayment(
-    "https://llm-proxy.example.com/v1/messages",
-    {
-      method: "POST",
-      body: JSON.stringify({ model: "claude-sonnet-4-20250514", messages: [{ role: "user", content: prompt }] }),
-    },
-    cogitoWallet  // auto-signs x402 payments
+    `${peerUrl}/knowledge/explore/${topic}`,
+    { method: "GET" },
+    baseWallet  // auto-signs x402 payment
   );
   return response.json();
 }
@@ -394,230 +297,206 @@ async function callLLM(prompt: string): Promise<string> {
 
 ---
 
-## 7. ERC-8021 Builder Codes Integration
+## 5. ain-js Knowledge API Reference
 
-### Registration
+| Method | Purpose |
+|--------|---------|
+| `ain.knowledge.explore(input)` | Record new exploration onchain |
+| `ain.knowledge.publishCourse(input)` | Publish x402-gated course content |
+| `ain.knowledge.access(owner, topic, entry)` | Access gated content (triggers x402 payment) |
+| `ain.knowledge.getGraph()` | Full shared knowledge graph |
+| `ain.knowledge.getGraphNode(nodeId)` | Single graph node |
+| `ain.knowledge.getNodeEdges(nodeId)` | Edges for a node |
+| `ain.knowledge.getFrontierMap(topic?)` | Per-topic community stats |
+| `ain.knowledge.getTopicStats(topic)` | Stats: explorer_count, max_depth, avg_depth |
+| `ain.knowledge.getExplorations(addr, topic)` | A node's explorations on a topic |
+| `ain.knowledge.getExplorationsByUser(addr)` | All explorations by a node |
+| `ain.knowledge.getExplorers(topic)` | All nodes that explored a topic |
+| `ain.knowledge.listTopics()` | All root topics |
+| `ain.knowledge.getAccessReceipts(addr)` | Purchase history |
 
-1. Register at [base.dev](https://base.dev)
-2. Obtain builder code (e.g., `cogito_node`)
+### Event Subscriptions (Reactive Alignment)
 
-### Transaction Tagging
+```typescript
+await ain.em.connect();
+
+// React when another node publishes an exploration
+ain.em.subscribe('VALUE_CHANGED', {
+  path: '/apps/knowledge/explorations/*',
+  event_source: null
+}, (event) => {
+  // New knowledge on the shared ledger — align
+  agent.handleNewExploration(event.values.after);
+});
+```
+
+---
+
+## 6. ERC-8004 Identity on Base Chain
+
+Each Cogito Node registers as an ERC-8004 Trustless Agent on Base:
+
+```typescript
+const identityRegistry = new Contract(
+  "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432", // Base mainnet
+  IdentityRegistryABI,
+  baseSigner
+);
+
+await identityRegistry.register(agentURI, [
+  { key: "agentWallet", value: baseWalletAddress },
+]);
+```
+
+### Registration File
+
+```json
+{
+  "type": "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
+  "name": "Cogito Node #1",
+  "description": "Autonomous knowledge agent with local LLM and onchain knowledge graph. Sells structured research knowledge via x402.",
+  "services": [
+    {
+      "name": "Knowledge API",
+      "endpoint": "https://cogito.example.com/knowledge",
+      "version": "1.0.0"
+    }
+  ],
+  "x402Support": true,
+  "active": true,
+  "supportedTrust": ["reputation"]
+}
+```
+
+Other agents discover this node through the ERC-8004 registry, check its reputation, and buy knowledge — all without prior trust.
+
+---
+
+## 7. ERC-8021 Builder Codes
+
+Every Base transaction is tagged:
 
 ```typescript
 import { Attribution } from "ox/erc8021";
 
 const BUILDER_CODE_SUFFIX = Attribution.toDataSuffix({
-  codes: ["cogito_node"],
+  codes: ["cogito_node"],  // registered at base.dev
 });
 
-// Wrapper: tag every transaction
 function tagTransaction(txData: string): string {
   return txData + BUILDER_CODE_SUFFIX;
 }
-
-// Example: USDC transfer with builder code
-async function sendUSDC(to: string, amount: bigint) {
-  const usdc = new Contract(USDC_ADDRESS, ERC20_ABI, signer);
-  const data = usdc.interface.encodeFunctionData("transfer", [to, amount]);
-  const taggedData = tagTransaction(data);
-
-  return signer.sendTransaction({
-    to: USDC_ADDRESS,
-    data: taggedData,
-  });
-}
 ```
-
-### Verification
-
-Every transaction can be verified by:
-- Checking the last 16 bytes of calldata for `0x80218021802180218021802180218021`
-- Parsing the builder code from the suffix
-- Viewing attribution analytics on base.dev dashboard
 
 ---
 
-## 8. Public Dashboard
-
-### Architecture
-
-```
-dashboard/
-├── app/
-│   ├── page.tsx              # Main dashboard
-│   ├── layout.tsx            # App shell
-│   └── api/
-│       ├── stats/route.ts    # Agent stats endpoint
-│       ├── txns/route.ts     # Transaction history
-│       └── health/route.ts   # Agent health check
-├── components/
-│   ├── WalletBalance.tsx     # USDC balance on Base
-│   ├── ComputeCost.tsx       # Cumulative LLM spend
-│   ├── RevenueChart.tsx      # Income over time
-│   ├── PnLGauge.tsx          # Profit/loss ratio
-│   ├── KnowledgeStats.tsx    # Graph size, frontier coverage
-│   ├── TransactionLog.tsx    # Builder-code tagged txns
-│   ├── AgentStatus.tsx       # Current task, uptime
-│   └── SustainabilityMeter.tsx # Revenue / Cost ratio
-```
-
-### Key Metrics Displayed
-
-| Metric | Description |
-|--------|-------------|
-| **Wallet Balance** | Current USDC on Base |
-| **24h Revenue** | Income from knowledge + GPU + commerce |
-| **24h Compute Cost** | LLM API spend |
-| **Sustainability Ratio** | Revenue / Cost (>1.0 = self-sustaining) |
-| **Knowledge Nodes** | Total explorations in graph |
-| **Knowledge Edges** | Total connections |
-| **Frontier Coverage** | Topics explored / topics available |
-| **Transactions** | All txns with ERC-8021 builder code |
-| **Reputation Score** | ERC-8004 reputation from peers |
-| **Agent Uptime** | Time since last restart |
-
----
-
-## 9. Revenue Model & Sustainability Math
+## 8. Revenue Model & Sustainability
 
 ### Cost Side
 
 | Cost | Estimate |
 |------|----------|
-| Claude API (per exploration) | ~$0.01-0.05 |
-| Base gas fees | ~$0.001 per tx |
-| Hosting (VPS) | ~$0.003/hour |
-| **Daily compute budget** | **~$5-20** |
+| A6000 GPU power (~300W) | ~$0.72/day |
+| Server hosting | ~$2-5/day |
+| Base gas fees | ~$0.10/day |
+| **Total daily cost** | **~$3-6** |
+
+No external LLM API costs. Local inference is fixed-cost.
 
 ### Revenue Side
 
-| Stream | Price | Volume Needed (to cover $10/day) |
-|--------|-------|----------------------------------|
-| Knowledge queries | $0.005/query | 2,000 queries/day |
-| Curated summaries | $0.05/summary | 200 summaries/day |
-| GPU rental | $0.01/1K tokens | 1M tokens/day |
-| Agent commerce | $0.01-0.10/trade | 100-1000 trades/day |
+| Stream | Price | Volume to cover $5/day |
+|--------|-------|------------------------|
+| Course stage unlocks | $0.001/stage | 5,000 stages/day |
+| Knowledge queries | $0.005/query | 1,000 queries/day |
+| Curated analyses | $0.05/analysis | 100 analyses/day |
+| Agent-to-agent trades | $0.01/trade | 500 trades/day |
 | **Blended** | | **Achievable with network effects** |
 
-### Sustainability Strategy
+### Why This Works
 
-1. **Bootstrap**: Seed initial knowledge from `ainblockchain-integration` example courses (33 concepts, 14 papers)
-2. **Grow**: Continuously expand knowledge graph in high-demand areas
-3. **Network**: Register on ERC-8004, build reputation, attract agent-to-agent buyers
-4. **Optimize**: Dynamic pricing based on demand, reduce compute by caching popular queries
-5. **Compound**: Reinvest profits into deeper frontier explorations that command premium prices
+1. **Fixed cost, variable revenue**: Local LLM means no per-inference cost. More buyers = more profit, not more expense.
+2. **Compounding knowledge**: Every exploration adds to the graph, making the node's knowledge more valuable over time.
+3. **Network effects**: As more nodes join and align through the shared ledger, each node's frontier map becomes more complete, attracting more buyers.
+4. **Sub-cent friction**: x402 micropayments ($0.001/stage) eliminate purchase friction. Learners and agents pay without thinking about it.
 
 ---
 
-## 10. Integration with ainblockchain-integration
-
-The existing AIN knowledge module provides the foundation:
-
-| AIN Concept | Cogito Usage |
-|-------------|-------------|
-| `ain.knowledge.explore()` | Record new knowledge on-chain |
-| `ain.knowledge.getGraph()` | Serve graph queries via x402 |
-| `ain.knowledge.getFrontierMap()` | Identify high-value exploration targets |
-| `ain.knowledge.publishCourse()` | Publish x402-gated knowledge content |
-| `ain.knowledge.access()` | x402 payment flow for knowledge purchase |
-| Frontier Maps | Market demand signal for the agent |
-| Knowledge Graph | The node's "brain" — its sellable asset |
-| Example courses | Bootstrap seed data (transformers, 33 concepts) |
-
-### Bridge Architecture
+## 9. Dual-Chain Architecture
 
 ```
-AIN Blockchain (Knowledge Storage)
-       │
-       ├── Knowledge Graph (nodes, edges)
-       ├── Frontier Maps (community stats)
-       └── Access Receipts (payment proofs)
-       │
-       ▼
-Cogito Node (Agent on Base)
-       │
-       ├── Reads knowledge from AIN
-       ├── Expands knowledge via LLM
-       ├── Sells knowledge via x402 on Base
-       └── Records transactions with ERC-8021
-       │
-       ▼
-Base Mainnet (Financial Settlement)
-       │
-       ├── USDC payments (x402)
-       ├── Builder Code attribution (ERC-8021)
-       ├── Agent identity (ERC-8004)
-       └── Knowledge tokens (ERC-721)
+AIN Blockchain Node (Knowledge + Alignment)
+       |
+       |-- Shared Knowledge Graph (all nodes contribute)
+       |-- Frontier Maps (collective exploration stats)
+       |-- Explorations (individual node contributions)
+       |-- Access Receipts
+       |
+       | ain-js SDK
+       |
+Cogito Agent Core (Local LLM + Business Logic)
+       |
+       | x402 + ERC-8021 + ERC-8004
+       |
+Base Chain (Payments + Identity)
+       |
+       |-- USDC payments via x402
+       |-- ERC-8004 agent identity + reputation
+       |-- ERC-8021 builder code attribution
 ```
 
 ---
 
-## 11. Deployment Architecture
+## 10. Deployment
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                   VPS / Cloud Host                   │
-│                                                     │
-│  ┌──────────────┐  ┌──────────────┐  ┌───────────┐ │
-│  │  Agent Core  │  │  x402 Server │  │ Dashboard │ │
-│  │  (Node.js)   │  │  (Express)   │  │ (Next.js) │ │
-│  │  Port: —     │  │  Port: 4021  │  │ Port: 3000│ │
-│  └──────┬───────┘  └──────┬───────┘  └─────┬─────┘ │
-│         │                  │                │       │
-│  ┌──────┴──────────────────┴────────────────┴─────┐ │
-│  │              Shared State (SQLite/Redis)        │ │
-│  │  - Revenue ledger                               │ │
-│  │  - Knowledge cache                              │ │
-│  │  - Transaction log                              │ │
-│  └────────────────────┬───────────────────────────┘ │
-└───────────────────────┼─────────────────────────────┘
-                        │
-            ┌───────────┴───────────┐
-            │                       │
-     ┌──────▼──────┐        ┌──────▼──────┐
-     │ Base Mainnet│        │     AIN     │
-     │   (L2)     │        │  Blockchain │
-     └─────────────┘        └─────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│               GPU Server (A6000)                             │
+│                                                             │
+│  ┌─────────────┐  ┌───────────────┐  ┌──────────────────┐  │
+│  │  Local LLM  │  │  AIN Node     │  │  Agent Core      │  │
+│  │  (vLLM)     │  │  (ain-        │  │  + x402 Server   │  │
+│  │  GPU: A6000 │  │   blockchain) │  │  + Web UI        │  │
+│  └──────┬──────┘  └──────┬────────┘  └──────┬───────────┘  │
+│         │                │                   │              │
+│  ┌──────┴────────────────┴───────────────────┴────────────┐ │
+│  │              ain-js SDK + Shared State                  │ │
+│  └──────────────────────┬─────────────────────────────────┘ │
+└─────────────────────────┼───────────────────────────────────┘
+                          |
+              +-----------+-----------+
+              |                       |
+       +------+------+        +------+------+
+       | Base Mainnet|        | AIN Network |
+       +-------------+        +-------------+
 ```
 
 ---
 
-## 12. Security Considerations
-
-| Risk | Mitigation |
-|------|-----------|
-| Private key exposure | Server wallet with HSM or TEE; never in env vars in prod |
-| Draining via bad trades | Max spend per tx, daily budget cap, slippage protection |
-| Sybil reputation attacks | Weight ERC-8004 feedback by staker reputation |
-| x402 payment replay | Nonce-based authorization (EIP-3009), time-bounded validity |
-| Knowledge poisoning | Validate LLM outputs before publishing; quality checks |
-| Gas griefing | Base L2 fees are negligible (~$0.001); budget cap as safety |
-
----
-
-## 13. Development Phases
+## 11. Development Phases
 
 ### Phase 1: Foundation
-- [ ] Set up Base mainnet wallet with USDC
-- [ ] Register ERC-8021 Builder Code at base.dev
+- [ ] Set up A6000 GPU with local LLM (vLLM or llama.cpp)
+- [ ] Run AIN blockchain node with knowledge graph enabled
+- [ ] Integrate ain-js SDK for knowledge operations
 - [ ] Register ERC-8004 identity on Base
-- [ ] Deploy x402 knowledge server with payment middleware
-- [ ] Seed knowledge graph from ainblockchain-integration data
+- [ ] Register ERC-8021 Builder Code at base.dev
+- [ ] Seed knowledge graph from papers and GitHub code
 
-### Phase 2: Autonomous Agent
-- [ ] Implement autonomous loop (think → earn → sustain → align)
-- [ ] Connect Claude API as LLM backend
-- [ ] Dynamic pricing engine based on demand
+### Phase 2: Knowledge Business
+- [ ] Build course transformer (paper -> interactive stages)
+- [ ] Deploy x402 knowledge server with payment middleware
+- [ ] Implement autonomous loop (think -> record -> align -> earn -> sustain)
 - [ ] Revenue tracking and sustainability monitoring
 
-### Phase 3: Dashboard & Commerce
-- [ ] Build public Next.js dashboard (no auth)
+### Phase 3: Collective Intelligence View & Alignment
+- [ ] Build public collective intelligence view (no auth)
 - [ ] Deploy to public URL
-- [ ] Enable agent-to-agent discovery via ERC-8004
-- [ ] GPU rental marketplace
+- [ ] Enable event-driven alignment (react to other nodes' explorations)
+- [ ] Agent-to-agent knowledge trading via ERC-8004 discovery
 
-### Phase 4: Optimization
-- [ ] Knowledge caching to reduce redundant LLM calls
+### Phase 4: Collective Intelligence
+- [ ] Multi-node knowledge graph experiments
+- [ ] Cross-node frontier map aggregation
 - [ ] Reputation building via quality knowledge trades
-- [ ] Knowledge token deployment (ERC-721/1155)
-- [ ] Multi-node collective intelligence experiments
+- [ ] Collaborative exploration of frontier topics
