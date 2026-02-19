@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { BookOpen, Trophy, Flame, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { PasskeyPrompt } from '@/components/ain/PasskeyPrompt';
+import { Fingerprint } from 'lucide-react';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { progressAdapter } from '@/lib/adapters/progress';
 import { papersAdapter } from '@/lib/adapters/papers';
@@ -16,7 +18,7 @@ interface ProgressWithPaper extends UserProgress {
 }
 
 export default function DashboardPage() {
-  const { user } = useAuthStore();
+  const { user, passkeyInfo } = useAuthStore();
   const [progressList, setProgressList] = useState<ProgressWithPaper[]>([]);
 
   useEffect(() => {
@@ -41,6 +43,7 @@ export default function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-[1280px] px-4 py-8">
+      <PasskeyPrompt />
       {/* Profile */}
       <div className="flex items-center gap-4 mb-8">
         <div className="h-16 w-16 rounded-full bg-[#FF9D00] flex items-center justify-center text-white text-2xl font-bold">
@@ -49,6 +52,12 @@ export default function DashboardPage() {
         <div>
           <h1 className="text-2xl font-bold text-[#111827]">{user?.username || 'User'}</h1>
           <p className="text-sm text-[#6B7280]">{user?.email}</p>
+          {passkeyInfo && (
+            <p className="flex items-center gap-1 text-xs text-[#6B7280] mt-0.5 font-mono">
+              <Fingerprint className="h-3 w-3" />
+              AIN Wallet: {passkeyInfo.ainAddress}
+            </p>
+          )}
         </div>
       </div>
 
