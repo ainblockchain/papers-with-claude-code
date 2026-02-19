@@ -46,6 +46,7 @@ const nextConfig = {
 
     return config
   },
+  turbopack: {},
   experimental: {
     optimizePackageImports: ['@monaco-editor/react'],
   },

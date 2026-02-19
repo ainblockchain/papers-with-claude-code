@@ -1,0 +1,79 @@
+# NetworkPolicy — 샌드박스 Pod의 네트워크 접근을 최소화
+#
+# ⚠️  주의: k3s 기본 CNI(Flannel)는 NetworkPolicy를 지원하지 않음.
+# 이 정책이 실제로 적용되려면 Calico 또는 Cilium CNI 설치 필요:
+#   k3s 재설치: curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--flannel-backend=none --disable-network-policy" sh -
+#   Calico 설치: kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.28.0/manifests/calico.yaml
+#
+# 적용해도 Flannel에서는 에러 없이 무시됨 (무해하지만 효과 없음).
+
+# 1. 샌드박스 Pod → API Proxy + DNS만 허용 (외부 통신 차단)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: sandbox-egress-restrict
+  namespace: claudecode-terminal
+spec:
+  podSelector:
+    matchLabels:
+      app: claudecode-sandbox
+  policyTypes:
+    - Egress
+  egress:
+    # API Proxy 서비스로의 통신 허용
+    - to:
+        - podSelector:
+            matchLabels:
+              app: api-proxy
+      ports:
+        - port: 8080
+          protocol: TCP
+    # DNS 조회 허용 (kube-dns / CoreDNS)
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+
+---
+
+# 2. API Proxy → 외부 Anthropic API 통신 허용
+# API Proxy Pod은 외부 인터넷(api.anthropic.com)과 통신해야 하므로 egress 제한 없음
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: api-proxy-egress-allow
+  namespace: claudecode-terminal
+spec:
+  podSelector:
+    matchLabels:
+      app: api-proxy
+  policyTypes:
+    - Egress
+  egress:
+    - {}  # 모든 외부 통신 허용
+
+---
+
+# 3. API Proxy Ingress — 샌드박스 Pod에서 오는 요청만 허용
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: api-proxy-ingress-restrict
+  namespace: claudecode-terminal
+spec:
+  podSelector:
+    matchLabels:
+      app: api-proxy
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: claudecode-sandbox
+      ports:
+        - port: 8080
+          protocol: TCP

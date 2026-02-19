@@ -1,0 +1,54 @@
+# API Proxy Deployment — 샌드박스 Pod의 Anthropic API 요청을 중계
+# K8s Secret에서 진짜 API 키를 로드하여 더미 키를 교체
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-proxy
+  namespace: claudecode-terminal
+  labels:
+    app: api-proxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-proxy
+  template:
+    metadata:
+      labels:
+        app: api-proxy
+    spec:
+      containers:
+        - name: api-proxy
+          image: claudecode-api-proxy:latest
+          imagePullPolicy: Never  # 로컬 k3s 이미지 사용
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          env:
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: claude-api-key
+                  key: ANTHROPIC_API_KEY
+            - name: PORT
+              value: "8080"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 10

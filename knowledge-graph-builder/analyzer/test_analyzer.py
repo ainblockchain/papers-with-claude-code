@@ -166,12 +166,17 @@ def main():
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         output_file = output_dir / f"{repo_name}_{timestamp}.json"
 
-        # Save
+        # Save (with run metadata attached)
         logger.info("")
         logger.info("=" * 60)
         logger.info(f"Saving results to: {output_file}")
+        result = analysis.to_dict()
+        result["metadata"]["generated_by"] = "analyzer/test_analyzer.py"
+        result["metadata"]["source_repo"] = args.repo
+        result["metadata"]["detail_mode"] = args.detail_mode
+        result["metadata"]["timestamp"] = timestamp
         with open(output_file, "w", encoding="utf-8") as f:
-            json.dump(analysis.to_dict(), f, indent=2, ensure_ascii=False)
+            json.dump(result, f, indent=2, ensure_ascii=False)
         logger.info("✅ Results saved")
         logger.info("=" * 60)
 

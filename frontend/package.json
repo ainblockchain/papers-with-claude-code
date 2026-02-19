@@ -9,9 +9,18 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@ainblockchain/ain-js": "^1.14.0",
+    "@monaco-editor/react": "^4.7.0",
+    "@x402/core": "^2.3.1",
+    "@x402/evm": "^2.3.1",
+    "@x402/express": "^2.3.0",
+    "@x402/fetch": "^2.3.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "ethers": "^6",
     "lucide-react": "^0.574.0",
+    "monaco-editor": "^0.55.1",
+    "monaco-editor-webpack-plugin": "^7.1.1",
     "next": "16.1.6",
     "next-auth": "^5.0.0-beta.30",
     "next-themes": "^0.4.6",

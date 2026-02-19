@@ -1,6 +1,7 @@
 // 🔌 ADAPTER — Claude Code web terminal integration
 // ⚠️ NEEDS_INPUT — Claude Code API spec needed
 import { StageContext } from '@/types/learning';
+import { x402Adapter, PaymentResult } from '@/lib/adapters/x402';
 
 export interface TerminalMessage {
   role: 'user' | 'assistant' | 'system';
@@ -8,12 +9,23 @@ export interface TerminalMessage {
   timestamp: string;
 }
 
+export interface QuizPassedParams {
+  paperId: string;
+  stageNum: number;
+  score: number;
+  nextStageId: string;
+}
+
 export interface ClaudeTerminalAdapter {
   sendMessage(message: string, context: StageContext): Promise<string>;
   getStageIntroduction(context: StageContext): Promise<string>;
   presentQuiz(context: StageContext): Promise<string>;
   validateQuizAnswer(context: StageContext, answer: string): Promise<{ correct: boolean; feedback: string }>;
+  onQuizPassed?(params: QuizPassedParams): Promise<PaymentResult>;
 }
+
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 5000;
 
 class MockClaudeTerminalAdapter implements ClaudeTerminalAdapter {
   async sendMessage(message: string, context: StageContext): Promise<string> {
@@ -37,6 +49,38 @@ class MockClaudeTerminalAdapter implements ClaudeTerminalAdapter {
       return { correct: true, feedback: 'Correct! Great job. The door to the next stage is now unlocked.' };
     }
     return { correct: false, feedback: 'Not quite. Try again! Hint: Review the concepts on the blackboards.' };
+  }
+
+  async onQuizPassed(params: QuizPassedParams): Promise<PaymentResult> {
+    // Attempt payment with automatic retries on network errors
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      const result = await x402Adapter.requestPayment({
+        stageId: params.nextStageId,
+        paperId: params.paperId,
+        amount: 0.001,
+        currency: 'KITE',
+        stageNum: params.stageNum,
+        score: params.score,
+      });
+
+      if (result.success) {
+        return result;
+      }
+
+      // Only retry on network errors
+      if (result.errorCode === 'network_error' && attempt < MAX_RETRIES) {
+        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+        continue;
+      }
+
+      return result;
+    }
+
+    return {
+      success: false,
+      error: 'Payment failed after multiple retries.',
+      errorCode: 'network_error',
+    };
   }
 }
 

@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Claude Code Terminal</title>
+
+  <!-- xterm.js CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5/css/xterm.css" />
+
+  <style>
+    /* 전체 페이지 리셋 및 다크 테마 기본 스타일 */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #1a1a2e;
+      color: #e0e0e0;
+      font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* 상단 바 스타일 */
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      background: #16213e;
+      border-bottom: 1px solid #0f3460;
+      flex-shrink: 0;
+    }
+
+    .top-bar-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .top-bar-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #e0e0e0;
+      letter-spacing: 0.5px;
+    }
+
+    /* 세션 상태 표시 영역 */
+    .session-status {
+      font-size: 13px;
+      color: #8b949e;
+      padding: 4px 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .session-status.connected {
+      color: #58a6ff;
+      border-color: rgba(88, 166, 255, 0.3);
+      background: rgba(88, 166, 255, 0.1);
+    }
+
+    .session-status.error {
+      color: #f85149;
+      border-color: rgba(248, 81, 73, 0.3);
+      background: rgba(248, 81, 73, 0.1);
+    }
+
+    /* 세션 제어 버튼 영역 */
+    .top-bar-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+
+    button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* 새 세션 버튼 (초록색) */
+    .btn-new-session {
+      background: #238636;
+      color: #ffffff;
+    }
+
+    .btn-new-session:hover:not(:disabled) {
+      background: #2ea043;
+    }
+
+    /* 세션 종료 버튼 (빨간색) */
+    .btn-end-session {
+      background: #da3633;
+      color: #ffffff;
+    }
+
+    .btn-end-session:hover:not(:disabled) {
+      background: #f85149;
+    }
+
+    /* 터미널 컨테이너 — 남은 높이 전부 차지 */
+    .terminal-container {
+      flex: 1;
+      padding: 8px;
+      background: #0d1117;
+      overflow: hidden;
+    }
+
+    /* xterm.js 터미널이 컨테이너를 꽉 채우도록 */
+    #terminal {
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+  <!-- 상단 바: 타이틀 + 세션 상태 + 버튼 -->
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <span class="top-bar-title">Claude Code Terminal</span>
+      <span id="sessionStatus" class="session-status">연결 대기 중</span>
+    </div>
+    <div class="top-bar-right">
+      <button id="btnNewSession" class="btn-new-session">New Session</button>
+      <button id="btnEndSession" class="btn-end-session" disabled>End Session</button>
+    </div>
+  </div>
+
+  <!-- 터미널 출력 영역 -->
+  <div class="terminal-container">
+    <div id="terminal"></div>
+  </div>
+
+  <!-- xterm.js 및 애드온 CDN 로드 -->
+  <script src="https://cdn.jsdelivr.net/npm/xterm@5/lib/xterm.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10/lib/addon-fit.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-web-links@0.11/lib/addon-web-links.min.js"></script>
+
+  <script>
+    // ──────────────────────────────────────────────
+    // 백엔드 서버 주소 (k8s-node NodePort)
+    // file:// 에서 열어도 동작하도록 절대경로 사용
+    // ──────────────────────────────────────────────
+    const API_BASE = 'http://<K8S_NODE_IP>:31000';
+
+    // ──────────────────────────────────────────────
+    // DOM 요소 참조
+    // ──────────────────────────────────────────────
+    const btnNewSession = document.getElementById('btnNewSession');
+    const btnEndSession = document.getElementById('btnEndSession');
+    const sessionStatusEl = document.getElementById('sessionStatus');
+
+    // ──────────────────────────────────────────────
+    // 세션 상태 관리용 변수
+    // ──────────────────────────────────────────────
+    let currentSessionId = null; // 현재 활성 세션 ID
+    let ws = null;               // WebSocket 인스턴스
+    let onDataDisposable = null; // xterm onData 리스너 해제용
+
+    // ──────────────────────────────────────────────
+    // xterm.js 터미널 초기화
+    // GitHub 다크 스타일 테마 적용
+    // ──────────────────────────────────────────────
+    const term = new Terminal({
+      theme: {
+        background: '#0d1117',
+        foreground: '#c9d1d9',
+        cursor: '#58a6ff',
+        cursorAccent: '#0d1117',
+        selectionBackground: '#264f78',
+        black: '#484f58',
+        red: '#ff7b72',
+        green: '#3fb950',
+        yellow: '#d29922',
+        blue: '#58a6ff',
+        magenta: '#bc8cff',
+        cyan: '#39c5cf',
+        white: '#b1bac4',
+        brightBlack: '#6e7681',
+        brightRed: '#ffa198',
+        brightGreen: '#56d364',
+        brightYellow: '#e3b341',
+        brightBlue: '#79c0ff',
+        brightMagenta: '#d2a8ff',
+        brightCyan: '#56d4dd',
+        brightWhite: '#f0f6fc',
+      },
+      fontFamily: 'Menlo, Monaco, Consolas, monospace',
+      fontSize: 14,
+      cursorBlink: true,
+      allowProposedApi: true,
+    });
+
+    // FitAddon: 터미널 크기를 컨테이너에 맞게 자동 조절
+    const fitAddon = new FitAddon.FitAddon();
+    term.loadAddon(fitAddon);
+
+    // WebLinksAddon: 터미널 내 URL을 클릭 가능하게 처리
+    const webLinksAddon = new WebLinksAddon.WebLinksAddon();
+    term.loadAddon(webLinksAddon);
+
+    // 터미널을 DOM에 마운트
+    term.open(document.getElementById('terminal'));
+    fitAddon.fit();
+
+    // 초기 안내 메시지 출력
+    term.writeln('\x1b[1;34m╔══════════════════════════════════════════╗\x1b[0m');
+    term.writeln('\x1b[1;34m║\x1b[0m   \x1b[1;37mClaude Code Terminal\x1b[0m                  \x1b[1;34m║\x1b[0m');
+    term.writeln('\x1b[1;34m╚══════════════════════════════════════════╝\x1b[0m');
+    term.writeln('');
+    term.writeln('\x1b[90m"New Session" 버튼을 클릭하여 시작하세요.\x1b[0m');
+    term.writeln('');
+
+    // ──────────────────────────────────────────────
+    // 윈도우 리사이즈 시 터미널 크기 재조정
+    // ──────────────────────────────────────────────
+    window.addEventListener('resize', () => {
+      fitAddon.fit();
+
+      // WebSocket이 열려 있으면 터미널 크기 변경을 서버에 전달
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        const dimensions = { cols: term.cols, rows: term.rows };
+        ws.send(JSON.stringify({ type: 'resize', ...dimensions }));
+      }
+    });
+
+    // ──────────────────────────────────────────────
+    // 세션 상태 표시 업데이트 함수
+    // ──────────────────────────────────────────────
+    function setStatus(text, type) {
+      sessionStatusEl.textContent = text;
+      sessionStatusEl.className = 'session-status';
+      if (type === 'connected') {
+        sessionStatusEl.classList.add('connected');
+      } else if (type === 'error') {
+        sessionStatusEl.classList.add('error');
+      }
+    }
+
+    // ──────────────────────────────────────────────
+    // 버튼 활성/비활성 상태 토글 함수
+    // ──────────────────────────────────────────────
+    function setSessionActive(active) {
+      btnNewSession.disabled = active;
+      btnEndSession.disabled = !active;
+    }
+
+    // ──────────────────────────────────────────────
+    // WebSocket URL 생성 헬퍼
+    // 현재 페이지의 호스트를 기반으로 ws:// 또는 wss:// 결정
+    // ──────────────────────────────────────────────
+    function getWebSocketUrl(sessionId) {
+      const wsBase = API_BASE.replace(/^http/, 'ws');
+      return `${wsBase}/ws?sessionId=${sessionId}`;
+    }
+
+    // ──────────────────────────────────────────────
+    // 새 세션 생성 및 WebSocket 연결
+    // ──────────────────────────────────────────────
+    async function createSession() {
+      try {
+        // 터미널 화면 초기화
+        term.clear();
+        setStatus('세션 생성 중...', 'default');
+        btnNewSession.disabled = true;
+
+        // 서버에 세션 생성 요청
+        const response = await fetch(`${API_BASE}/api/sessions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        });
+
+        if (!response.ok) {
+          throw new Error(`세션 생성 실패: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        currentSessionId = data.sessionId;
+        const podName = data.podName || '(unknown)';
+
+        // 팟 생성 대기 상태 표시
+        setStatus(`Pod 생성 중... (${podName})`, 'default');
+        term.writeln(`\x1b[33m⏳ Pod를 생성하고 있습니다: ${podName}\x1b[0m`);
+        term.writeln('');
+
+        // WebSocket 연결 시작
+        connectWebSocket(currentSessionId);
+      } catch (err) {
+        // 세션 생성 실패 처리
+        setStatus('세션 생성 실패', 'error');
+        term.writeln(`\x1b[31m❌ 오류: ${err.message}\x1b[0m`);
+        term.writeln('\x1b[90m다시 시도하려면 "New Session" 버튼을 클릭하세요.\x1b[0m');
+        btnNewSession.disabled = false;
+      }
+    }
+
+    // ──────────────────────────────────────────────
+    // WebSocket 연결 및 터미널 I/O 브릿지
+    // ──────────────────────────────────────────────
+    function connectWebSocket(sessionId) {
+      // 이전 onData 리스너 해제 (핸들러 누적 방지)
+      if (onDataDisposable) {
+        onDataDisposable.dispose();
+        onDataDisposable = null;
+      }
+
+      const wsUrl = getWebSocketUrl(sessionId);
+      ws = new WebSocket(wsUrl);
+
+      // ping/pong 기반 heartbeat (30초 간격)
+      let heartbeatInterval = null;
+      let missedPongs = 0;
+      const MAX_MISSED_PONGS = 3;
+
+      function startHeartbeat() {
+        heartbeatInterval = setInterval(() => {
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            // 브라우저 WebSocket은 ping을 직접 보낼 수 없으므로
+            // 앱 레벨 heartbeat 사용
+            ws.send(JSON.stringify({ type: 'ping' }));
+            missedPongs++;
+            if (missedPongs >= MAX_MISSED_PONGS) {
+              console.warn('[heartbeat] 서버 응답 없음, 연결 종료');
+              ws.close();
+            }
+          }
+        }, 30000);
+      }
+
+      function stopHeartbeat() {
+        if (heartbeatInterval) {
+          clearInterval(heartbeatInterval);
+          heartbeatInterval = null;
+        }
+      }
+
+      // WebSocket 연결 성공 시
+      ws.onopen = () => {
+        setStatus(`연결됨 (Session: ${sessionId.substring(0, 8)}...)`, 'connected');
+        setSessionActive(true);
+        startHeartbeat();
+
+        term.writeln('\x1b[32m✔ 연결 성공!\x1b[0m');
+        term.writeln('\x1b[90m──────────────────────────────────────────\x1b[0m');
+        term.writeln('');
+
+        // 연결 후 터미널 크기 정보를 서버에 전달
+        const dimensions = { cols: term.cols, rows: term.rows };
+        ws.send(JSON.stringify({ type: 'resize', ...dimensions }));
+      };
+
+      // 서버에서 데이터 수신 시 터미널에 출력
+      ws.onmessage = (event) => {
+        const data = event.data;
+
+        // pong 응답 처리
+        if (typeof data === 'string' && data.length < 50) {
+          try {
+            const msg = JSON.parse(data);
+            if (msg.type === 'pong') {
+              missedPongs = 0;
+              return;
+            }
+          } catch {}
+        }
+
+        term.write(data);
+      };
+
+      // WebSocket 연결 종료 시
+      ws.onclose = (event) => {
+        stopHeartbeat();
+        const reason = event.reason || '연결이 종료되었습니다';
+        setStatus('연결 끊김', 'error');
+        setSessionActive(false);
+        currentSessionId = null;
+
+        term.writeln('');
+        term.writeln(`\x1b[31m⚠ 연결 종료: ${reason}\x1b[0m`);
+        term.writeln('\x1b[90m새 세션을 시작하려면 "New Session" 버튼을 클릭하세요.\x1b[0m');
+      };
+
+      // WebSocket 오류 발생 시
+      ws.onerror = (error) => {
+        stopHeartbeat();
+        setStatus('연결 오류', 'error');
+        term.writeln('\x1b[31m❌ WebSocket 연결 오류가 발생했습니다.\x1b[0m');
+        console.error('WebSocket 오류:', error);
+      };
+
+      // 터미널 입력을 WebSocket으로 전송 (dispose 가능하게 저장)
+      onDataDisposable = term.onData((data) => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'input', data }));
+        }
+      });
+    }
+
+    // ──────────────────────────────────────────────
+    // 세션 종료 처리
+    // WebSocket 닫고, 서버에 DELETE 요청, 터미널 초기화
+    // ──────────────────────────────────────────────
+    async function endSession() {
+      if (!currentSessionId) return;
+
+      const sessionId = currentSessionId;
+
+      try {
+        setStatus('세션 종료 중...', 'default');
+        btnEndSession.disabled = true;
+
+        // onData 리스너 해제
+        if (onDataDisposable) {
+          onDataDisposable.dispose();
+          onDataDisposable = null;
+        }
+
+        // WebSocket 연결 종료
+        if (ws) {
+          ws.close();
+          ws = null;
+        }
+
+        // 서버에 세션 삭제 요청
+        await fetch(`${API_BASE}/api/sessions/${sessionId}`, {
+          method: 'DELETE',
+        });
+
+        // 상태 초기화
+        currentSessionId = null;
+        setStatus('세션 종료됨', 'default');
+        setSessionActive(false);
+
+        term.writeln('');
+        term.writeln('\x1b[33m세션이 종료되었습니다.\x1b[0m');
+        term.writeln('\x1b[90m새 세션을 시작하려면 "New Session" 버튼을 클릭하세요.\x1b[0m');
+      } catch (err) {
+        // 종료 요청 실패 시에도 로컬 상태는 정리
+        setStatus('세션 종료 실패', 'error');
+        term.writeln(`\x1b[31m❌ 세션 종료 오류: ${err.message}\x1b[0m`);
+        currentSessionId = null;
+        setSessionActive(false);
+      }
+    }
+
+    // ──────────────────────────────────────────────
+    // 버튼 이벤트 바인딩
+    // ──────────────────────────────────────────────
+    btnNewSession.addEventListener('click', createSession);
+    btnEndSession.addEventListener('click', endSession);
+  </script>
+</body>
+</html>
