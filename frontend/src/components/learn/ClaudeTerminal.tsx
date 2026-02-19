@@ -7,21 +7,32 @@ import { useLearningStore } from '@/stores/useLearningStore';
 import { claudeTerminalAdapter } from '@/lib/adapters/claude-terminal';
 import { cn } from '@/lib/utils';
 
+function truncateTxHash(hash: string): string {
+  if (hash.length <= 14) return hash;
+  return `${hash.slice(0, 6)}...${hash.slice(-4)}`;
+}
+
 export function ClaudeTerminal() {
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const paymentTriggeredRef = useRef(false);
   const {
     currentPaper,
     stages,
     currentStageIndex,
+    isQuizPassed,
     terminalMessages,
     isTerminalLoading,
     addTerminalMessage,
     setTerminalLoading,
+    setDoorUnlocked,
+    setTxHash,
+    setExplorerUrl,
   } = useLearningStore();
 
   const currentStage = stages[currentStageIndex];
+  const nextStage = stages[currentStageIndex + 1];
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -32,6 +43,7 @@ export function ClaudeTerminal() {
   // Send stage introduction when stage changes
   useEffect(() => {
     if (!currentPaper || !currentStage) return;
+    paymentTriggeredRef.current = false;
     let cancelled = false;
     const context = {
       paperId: currentPaper.id,
@@ -52,6 +64,85 @@ export function ClaudeTerminal() {
     });
     return () => { cancelled = true; };
   }, [currentStageIndex, currentPaper?.id]);
+
+  // Autonomous payment: watch isQuizPassed and auto-trigger payment
+  useEffect(() => {
+    if (
+      !isQuizPassed ||
+      !currentPaper ||
+      !currentStage ||
+      !nextStage ||
+      !claudeTerminalAdapter.onQuizPassed ||
+      paymentTriggeredRef.current
+    ) return;
+
+    paymentTriggeredRef.current = true;
+    let cancelled = false;
+
+    const score = 85; // TODO: wire real quiz score from QuizPanel
+
+    addTerminalMessage({
+      role: 'assistant',
+      content: `Great job! You passed Stage ${currentStage.stageNumber} with a score of ${score}/100!\nI'm unlocking Stage ${nextStage.stageNumber} for you now...`,
+      timestamp: new Date().toISOString(),
+    });
+
+    setTerminalLoading(true);
+
+    claudeTerminalAdapter.onQuizPassed({
+      paperId: currentPaper.id,
+      stageNum: currentStage.stageNumber,
+      score,
+      nextStageId: nextStage.id,
+    }).then((result) => {
+      if (cancelled) return;
+
+      if (result.success) {
+        setDoorUnlocked(true);
+        setTxHash(result.txHash ?? null);
+        setExplorerUrl(result.explorerUrl ?? null);
+
+        const txDisplay = result.txHash ? truncateTxHash(result.txHash) : '';
+        const explorerLink = result.explorerUrl ? ` (View on KiteScan: ${result.explorerUrl})` : '';
+        addTerminalMessage({
+          role: 'assistant',
+          content: `Stage ${nextStage.stageNumber} unlocked! Payment: 0.001 KITE\nTx: ${txDisplay}${explorerLink}\nYour progress has been recorded on-chain.`,
+          timestamp: new Date().toISOString(),
+        });
+      } else {
+        // Handle specific error codes
+        if (result.errorCode === 'insufficient_funds') {
+          addTerminalMessage({
+            role: 'system',
+            content: `Insufficient KITE balance to unlock Stage ${nextStage.stageNumber}.\n${result.error}\nGet test tokens: https://faucet.gokite.ai`,
+            timestamp: new Date().toISOString(),
+          });
+        } else if (result.errorCode === 'spending_limit_exceeded') {
+          addTerminalMessage({
+            role: 'system',
+            content: `Daily spending limit reached.\n${result.error}\nPlease update your Standing Intent in the Agent Dashboard.`,
+            timestamp: new Date().toISOString(),
+          });
+        } else if (result.errorCode === 'network_error') {
+          addTerminalMessage({
+            role: 'system',
+            content: `Payment failed after multiple retries due to a network error.\n${result.error}`,
+            timestamp: new Date().toISOString(),
+          });
+        } else {
+          addTerminalMessage({
+            role: 'system',
+            content: `Payment failed: ${result.error || 'Unknown error'}`,
+            timestamp: new Date().toISOString(),
+          });
+        }
+      }
+
+      setTerminalLoading(false);
+    });
+
+    return () => { cancelled = true; };
+  }, [isQuizPassed, currentPaper?.id, currentStageIndex]);
 
   const handleSend = async () => {
     if (!input.trim() || isTerminalLoading || !currentPaper || !currentStage) return;

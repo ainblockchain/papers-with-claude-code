@@ -31,6 +31,11 @@ interface LearningState {
   isDoorUnlocked: boolean;
   isPaymentModalOpen: boolean;
 
+  // Payment (Kite Chain)
+  txHash: string | null;
+  walletAddress: string | null;
+  explorerUrl: string | null;
+
   // Terminal
   terminalMessages: TerminalMessage[];
   isTerminalLoading: boolean;
@@ -48,6 +53,9 @@ interface LearningState {
   setQuizPassed: (passed: boolean) => void;
   setDoorUnlocked: (unlocked: boolean) => void;
   setPaymentModalOpen: (open: boolean) => void;
+  setTxHash: (txHash: string | null) => void;
+  setWalletAddress: (address: string | null) => void;
+  setExplorerUrl: (url: string | null) => void;
   addTerminalMessage: (message: TerminalMessage) => void;
   setTerminalLoading: (loading: boolean) => void;
   clearTerminalMessages: () => void;
@@ -68,6 +76,9 @@ export const useLearningStore = create<LearningState>((set, get) => ({
   isQuizPassed: false,
   isDoorUnlocked: false,
   isPaymentModalOpen: false,
+  txHash: null,
+  walletAddress: null,
+  explorerUrl: null,
   terminalMessages: [],
   isTerminalLoading: false,
 
@@ -87,6 +98,9 @@ export const useLearningStore = create<LearningState>((set, get) => ({
   setQuizPassed: (isQuizPassed) => set({ isQuizPassed }),
   setDoorUnlocked: (isDoorUnlocked) => set({ isDoorUnlocked }),
   setPaymentModalOpen: (isPaymentModalOpen) => set({ isPaymentModalOpen }),
+  setTxHash: (txHash) => set({ txHash }),
+  setWalletAddress: (walletAddress) => set({ walletAddress }),
+  setExplorerUrl: (explorerUrl) => set({ explorerUrl }),
   addTerminalMessage: (message) =>
     set((state) => ({ terminalMessages: [...state.terminalMessages, message] })),
   setTerminalLoading: (isTerminalLoading) => set({ isTerminalLoading }),
@@ -104,6 +118,9 @@ export const useLearningStore = create<LearningState>((set, get) => ({
       isQuizPassed: false,
       isDoorUnlocked: false,
       isPaymentModalOpen: false,
+      txHash: null,
+      walletAddress: null,
+      explorerUrl: null,
       terminalMessages: [],
       isTerminalLoading: false,
     }),

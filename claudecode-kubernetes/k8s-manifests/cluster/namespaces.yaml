@@ -1,0 +1,22 @@
+# Papers with Claude Code 프로젝트의 애플리케이션 네임스페이스 정의
+# 프론트엔드, 백엔드, 블록체인 서비스를 각각 격리된 네임스페이스에서 운영
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: papers-frontend
+  labels:
+    app.kubernetes.io/part-of: papers-with-claudecode
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: papers-backend
+  labels:
+    app.kubernetes.io/part-of: papers-with-claudecode
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: papers-blockchain
+  labels:
+    app.kubernetes.io/part-of: papers-with-claudecode
