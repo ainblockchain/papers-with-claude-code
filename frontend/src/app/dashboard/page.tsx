@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { BookOpen, Trophy, Flame, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { PasskeyPrompt } from '@/components/ain/PasskeyPrompt';
 import { Fingerprint } from 'lucide-react';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { progressAdapter } from '@/lib/adapters/progress';
@@ -43,7 +42,6 @@ export default function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-[1280px] px-4 py-8">
-      <PasskeyPrompt />
       {/* Profile */}
       <div className="flex items-center gap-4 mb-8">
         <div className="h-16 w-16 rounded-full bg-[#FF9D00] flex items-center justify-center text-white text-2xl font-bold">

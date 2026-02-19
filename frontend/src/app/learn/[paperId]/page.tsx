@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Loader2, AlertTriangle, Terminal } from 'lucide-react';
+import Link from 'next/link';
+import { Loader2, AlertTriangle, Terminal, Trophy, ArrowRight } from 'lucide-react';
 import { CourseCanvas } from '@/components/learn/CourseCanvas';
 import { ClaudeTerminal } from '@/components/learn/ClaudeTerminal';
 import { XtermTerminal } from '@/components/learn/XtermTerminal';
@@ -31,12 +32,13 @@ export default function LearnPage() {
   // Track whether effect has been cancelled (unmount / re-run)
   const cancelledRef = useRef(false);
 
-  const { user } = useAuthStore();
+  const { user, passkeyInfo } = useAuthStore();
   const {
     currentPaper,
     stages,
     currentStageIndex,
     isDoorUnlocked,
+    isCourseComplete,
     sessionId,
     sessionStatus,
     sessionError,
@@ -46,6 +48,7 @@ export default function LearnPage() {
     setProgress,
     setPlayerPosition,
     clearTerminalMessages,
+    setCourseComplete,
     setSessionId,
     setSessionStatus,
     setSessionError,
@@ -117,9 +120,11 @@ export default function LearnPage() {
       if (TERMINAL_API_URL && !cancelledRef.current) {
         setSessionStatus('creating');
         try {
+          // Use AIN wallet address as userId (recommended by integration doc)
+          const walletAddress = useAuthStore.getState().passkeyInfo?.ainAddress;
           const session = await terminalSessionAdapter.createSession({
             repoUrl: paper.githubUrl,
-            userId: user?.id,
+            userId: walletAddress || user?.id,
           });
 
           // CRITICAL: Set ref immediately so cleanup can find it,
@@ -192,9 +197,33 @@ export default function LearnPage() {
         useLearningStore.getState().setQuizPassed(true);
         useLearningStore.getState().setDoorUnlocked(true);
       }
+
+      // Save checkpoint to local progress
+      if (user) {
+        progressAdapter.saveCheckpoint({
+          userId: user.id,
+          paperId,
+          stageNumber,
+          completedAt: new Date().toISOString(),
+        });
+      }
     },
-    [stages],
+    [stages, user, paperId],
   );
+
+  const handleCourseComplete = useCallback(() => {
+    setCourseComplete(true);
+
+    // Save final progress
+    if (user && currentPaper) {
+      progressAdapter.saveCheckpoint({
+        userId: user.id,
+        paperId: currentPaper.id,
+        stageNumber: stages.length,
+        completedAt: new Date().toISOString(),
+      });
+    }
+  }, [setCourseComplete, user, currentPaper, stages.length]);
 
   const currentStage = stages[currentStageIndex];
 
@@ -225,6 +254,81 @@ export default function LearnPage() {
   };
 
   const useRealTerminal = TERMINAL_API_URL && sessionStatus === 'running' && sessionId;
+
+  // Course complete overlay
+  if (isCourseComplete) {
+    return (
+      <div className="flex flex-col h-screen">
+        <StageProgressBar />
+        <div className="flex flex-1 overflow-hidden">
+          {/* Left: Congratulations */}
+          <div className="relative w-[60%] border-r border-gray-700 bg-[#0a0a1a] flex items-center justify-center">
+            <div className="text-center px-8 max-w-md">
+              <div className="mb-6">
+                <Trophy className="h-16 w-16 text-[#FF9D00] mx-auto mb-4" />
+                <h1 className="text-3xl font-bold text-white mb-2">Course Complete!</h1>
+                <p className="text-gray-400">
+                  You&apos;ve completed all {stages.length} stages of
+                </p>
+                <p className="text-lg font-semibold text-[#FF9D00] mt-1">
+                  {currentPaper.title}
+                </p>
+              </div>
+
+              <div className="bg-[#1a1a2e] rounded-lg p-4 mb-6 border border-gray-700">
+                <div className="grid grid-cols-2 gap-4 text-center">
+                  <div>
+                    <p className="text-2xl font-bold text-white">{stages.length}</p>
+                    <p className="text-xs text-gray-500">Stages Cleared</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-[#10B981]">100%</p>
+                    <p className="text-xs text-gray-500">Complete</p>
+                  </div>
+                </div>
+                {passkeyInfo && (
+                  <div className="mt-3 pt-3 border-t border-gray-700">
+                    <p className="text-xs text-gray-500">Recorded to AIN Wallet</p>
+                    <p className="text-xs text-[#FF9D00] font-mono mt-0.5">
+                      {passkeyInfo.ainAddress}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-3 justify-center">
+                <Link href="/dashboard">
+                  <button className="px-4 py-2 bg-[#1a1a2e] hover:bg-[#252545] text-gray-300 rounded-lg text-sm font-medium transition-colors border border-gray-700">
+                    Dashboard
+                  </button>
+                </Link>
+                <Link href="/explore">
+                  <button className="px-4 py-2 bg-[#FF9D00] hover:bg-[#FF9D00]/90 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5">
+                    Explore More
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          {/* Right: Terminal stays visible */}
+          <div className="w-[40%]">
+            {useRealTerminal ? (
+              <XtermTerminal
+                sessionId={sessionId}
+                wsUrl={terminalSessionAdapter.getWebSocketUrl(sessionId)}
+                onStageComplete={handleStageComplete}
+                onCourseComplete={handleCourseComplete}
+              />
+            ) : (
+              <ClaudeTerminal />
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen">
@@ -262,6 +366,7 @@ export default function LearnPage() {
               sessionId={sessionId}
               wsUrl={terminalSessionAdapter.getWebSocketUrl(sessionId)}
               onStageComplete={handleStageComplete}
+              onCourseComplete={handleCourseComplete}
             />
           ) : (
             <ClaudeTerminal />

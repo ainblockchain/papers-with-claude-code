@@ -4,6 +4,8 @@ import { useEffect, useRef, useCallback } from 'react';
 import { useLearningStore } from '@/stores/useLearningStore';
 import { TILE_SIZE, COURSE_ROOM_WIDTH, COURSE_ROOM_HEIGHT, PLAYER_COLOR, STAGE_COLORS } from '@/constants/game';
 import { StageConfig } from '@/types/learning';
+import { useMapLoader } from '@/hooks/useMapLoader';
+import { renderFullTileLayer } from '@/lib/tmj/renderer';
 
 interface CourseCanvasProps {
   stage: StageConfig;
@@ -25,6 +27,10 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
   } = useLearningStore();
 
   const doorPosition = { x: stage.roomWidth - 2, y: Math.floor(stage.roomHeight / 2) };
+
+  // Load TMJ map data (falls back to procedural rendering if unavailable)
+  const { mapData } = useMapLoader('course-room');
+  const canUseTmj = mapData && mapData.width === stage.roomWidth && mapData.height === stage.roomHeight;
 
   const isWalkable = useCallback(
     (x: number, y: number) => {
@@ -151,28 +157,33 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
     ctx.translate(offsetX, offsetY);
     ctx.scale(scale, scale);
 
-    // Clear room area
-    ctx.fillStyle = '#D2B48C';
-    ctx.fillRect(0, 0, roomW, roomH);
+    // Draw floor and walls
+    const floorLayer = canUseTmj ? mapData.layersByName.get('floor') : null;
+    if (floorLayer && mapData) {
+      // TMJ-based rendering
+      renderFullTileLayer(ctx, floorLayer, mapData.tilesets, TILE_SIZE);
+    } else {
+      // Fallback: procedural rendering
+      ctx.fillStyle = '#D2B48C';
+      ctx.fillRect(0, 0, roomW, roomH);
 
-    // Draw floor
-    for (let x = 1; x < stage.roomWidth - 1; x++) {
-      for (let y = 1; y < stage.roomHeight - 1; y++) {
-        ctx.fillStyle = (x + y) % 2 === 0 ? '#E8D5B7' : '#DCC9A8';
-        ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+      for (let x = 1; x < stage.roomWidth - 1; x++) {
+        for (let y = 1; y < stage.roomHeight - 1; y++) {
+          ctx.fillStyle = (x + y) % 2 === 0 ? '#E8D5B7' : '#DCC9A8';
+          ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+        }
       }
-    }
 
-    // Draw walls
-    ctx.fillStyle = '#6B7280';
-    for (let x = 0; x < stage.roomWidth; x++) {
-      ctx.fillRect(x * TILE_SIZE, 0, TILE_SIZE, TILE_SIZE);
-      ctx.fillRect(x * TILE_SIZE, (stage.roomHeight - 1) * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-    }
-    for (let y = 0; y < stage.roomHeight; y++) {
-      ctx.fillRect(0, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-      if (y !== doorPosition.y) {
-        ctx.fillRect((stage.roomWidth - 1) * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+      ctx.fillStyle = '#6B7280';
+      for (let x = 0; x < stage.roomWidth; x++) {
+        ctx.fillRect(x * TILE_SIZE, 0, TILE_SIZE, TILE_SIZE);
+        ctx.fillRect(x * TILE_SIZE, (stage.roomHeight - 1) * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+      }
+      for (let y = 0; y < stage.roomHeight; y++) {
+        ctx.fillRect(0, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+        if (y !== doorPosition.y) {
+          ctx.fillRect((stage.roomWidth - 1) * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+        }
       }
     }
 
@@ -269,7 +280,7 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
     );
 
     ctx.restore();
-  }, [playerPosition, playerDirection, stage, activeConceptId, isDoorUnlocked, doorPosition]);
+  }, [playerPosition, playerDirection, stage, activeConceptId, isDoorUnlocked, doorPosition, mapData, canUseTmj]);
 
   return (
     <div className="w-full h-full bg-gray-900 overflow-hidden">
