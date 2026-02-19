@@ -1,15 +1,16 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect } from 'react';
 import { useVillageStore } from '@/stores/useVillageStore';
 import { useAinStore } from '@/stores/useAinStore';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { friendPresenceAdapter } from '@/lib/adapters/friends';
 import { ainAdapter } from '@/lib/adapters/ain-blockchain';
+import { trackEvent } from '@/lib/ain/event-tracker';
 import { MOCK_PAPERS } from '@/constants/mock-papers';
-import type { UserLocation, CourseLocation } from '@/lib/ain/location-types';
+import type { CourseLocation } from '@/lib/ain/location-types';
 
-const DEBOUNCE_MS = 5000;
+const HEARTBEAT_MS = 300_000; // 5 minutes
 const COURSE_COLORS = ['#8B4513', '#4A5568', '#2D3748', '#553C9A', '#2B6CB0', '#276749'];
 
 /** Generate default course entrance positions (3-column grid) matching the old hardcoded layout */
@@ -30,17 +31,15 @@ function generateDefaultCourseLocations(): CourseLocation[] {
  * Orchestration hook for syncing player location, course positions,
  * and friend presence with the AIN blockchain.
  *
+ * Location writes are event-driven (not continuous debounce).
  * Call once inside VillageCanvas (or the village page layout).
  */
 export function useLocationSync() {
-  const { playerPosition, playerDirection, setCourseLocations, setFriends, setPlayerPosition, setPlayerDirection, setPositionRestored, positionRestored } =
+  const { setCourseLocations, setFriends, setPlayerPosition, setPlayerDirection, setPositionRestored, positionRestored } =
     useVillageStore();
-  const { ainAddress, fetchCourseLocations, updateLocation, fetchAllLocations, setCourseLocation } =
+  const { ainAddress, fetchCourseLocations, fetchAllLocations, setCourseLocation } =
     useAinStore();
   const { user } = useAuthStore();
-
-  const lastWrittenRef = useRef<string>('');
-  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── 1. Restore position & load course locations on mount ──
   useEffect(() => {
@@ -51,12 +50,15 @@ export function useLocationSync() {
       await fetchCourseLocations();
       const { courseLocations: stored } = useAinStore.getState();
 
+      let courseLocationsList: CourseLocation[];
+
       if (stored && Object.keys(stored).length > 0) {
-        // Use blockchain course locations
-        setCourseLocations(Object.values(stored));
+        courseLocationsList = Object.values(stored);
+        setCourseLocations(courseLocationsList);
       } else {
         // Seed defaults (first-time migration)
         const defaults = generateDefaultCourseLocations();
+        courseLocationsList = defaults;
         setCourseLocations(defaults);
         // Write defaults to AIN in background
         for (const course of defaults) {
@@ -70,7 +72,18 @@ export function useLocationSync() {
         try {
           const myLocation = await ainAdapter.getLocation(ainAddress);
           if (myLocation && !cancelled) {
-            if (myLocation.scene === 'village') {
+            if (myLocation.scene === 'course' && myLocation.paperId) {
+              // Returning from a course — spawn at course building entrance
+              const course = courseLocationsList.find(
+                (cl) => cl.paperId === myLocation.paperId,
+              );
+              if (course) {
+                const entranceX = course.x + Math.floor(course.width / 2);
+                const entranceY = course.y + course.height;
+                setPlayerPosition({ x: entranceX, y: entranceY });
+                setPlayerDirection('down');
+              }
+            } else if (myLocation.scene === 'village') {
               setPlayerPosition({ x: myLocation.x, y: myLocation.y });
               setPlayerDirection(myLocation.direction || 'down');
             }
@@ -80,37 +93,46 @@ export function useLocationSync() {
           // best effort — use default position
         }
       }
+
+      // Emit village_enter event with restored position
+      if (!cancelled) {
+        const { playerPosition: pos, playerDirection: dir } =
+          useVillageStore.getState();
+        trackEvent({
+          type: 'village_enter',
+          scene: 'village',
+          x: pos.x,
+          y: pos.y,
+          direction: dir,
+          timestamp: Date.now(),
+        });
+      }
     }
 
     init();
     return () => { cancelled = true; };
   }, [ainAddress]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── 2. Debounced position write to AIN ──
-  const writePosition = useCallback(() => {
-    const key = `${playerPosition.x},${playerPosition.y},${playerDirection}`;
-    if (key === lastWrittenRef.current) return;
-    lastWrittenRef.current = key;
-
-    const location: UserLocation = {
-      x: playerPosition.x,
-      y: playerPosition.y,
-      direction: playerDirection,
-      scene: 'village',
-      updatedAt: Date.now(),
-    };
-
-    updateLocation(location);
-    friendPresenceAdapter.updateMyPosition({ x: playerPosition.x, y: playerPosition.y, scene: 'village' });
-  }, [playerPosition, playerDirection, updateLocation]);
-
+  // ── 2. Heartbeat (5-minute liveness) ──
   useEffect(() => {
-    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-    debounceTimerRef.current = setTimeout(writePosition, DEBOUNCE_MS);
-    return () => {
-      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    if (!ainAddress) return;
+
+    const heartbeat = () => {
+      const { playerPosition: pos, playerDirection: dir } =
+        useVillageStore.getState();
+      trackEvent({
+        type: 'heartbeat',
+        scene: 'village',
+        x: pos.x,
+        y: pos.y,
+        direction: dir,
+        timestamp: Date.now(),
+      });
     };
-  }, [writePosition]);
+
+    const interval = setInterval(heartbeat, HEARTBEAT_MS);
+    return () => clearInterval(interval);
+  }, [ainAddress]);
 
   // ── 3. Friend presence polling ──
   useEffect(() => {

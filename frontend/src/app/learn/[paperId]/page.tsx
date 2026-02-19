@@ -20,6 +20,7 @@ import {
   SessionLimitError,
 } from '@/lib/adapters/terminal-session';
 import { MOCK_STAGES_BITDANCE } from '@/constants/mock-stages';
+import { trackEvent } from '@/lib/ain/event-tracker';
 
 const TERMINAL_API_URL = process.env.NEXT_PUBLIC_TERMINAL_API_URL;
 
@@ -117,12 +118,29 @@ export default function LearnPage() {
       setStages(stageData);
 
       // Load progress
+      let initialStageIdx = 0;
       if (user) {
         const progress = await progressAdapter.loadProgress(user.id, paperId);
         if (progress && !cancelledRef.current) {
           setProgress(progress);
-          setCurrentStageIndex(Math.min(progress.currentStage, stageData.length - 1));
+          initialStageIdx = Math.min(progress.currentStage, stageData.length - 1);
+          setCurrentStageIndex(initialStageIdx);
         }
+      }
+
+      // Track stage_enter event for the initial stage
+      if (!cancelledRef.current) {
+        trackEvent({
+          type: 'stage_enter',
+          scene: 'course',
+          paperId,
+          stageIndex: initialStageIdx,
+          stageTitle: stageData[initialStageIdx]?.title,
+          x: 3,
+          y: 10,
+          direction: 'right',
+          timestamp: Date.now(),
+        });
       }
 
       // Create backend session if TERMINAL_API_URL is configured
@@ -218,6 +236,20 @@ export default function LearnPage() {
           completedAt: new Date().toISOString(),
         });
       }
+
+      // Track stage_complete event
+      const { playerPosition: pos, playerDirection: dir } = useLearningStore.getState();
+      trackEvent({
+        type: 'stage_complete',
+        scene: 'course',
+        paperId,
+        stageIndex: stageIdx >= 0 ? stageIdx : stageNumber - 1,
+        stageTitle: stageIdx >= 0 ? stages[stageIdx]?.title : undefined,
+        x: pos.x,
+        y: pos.y,
+        direction: dir,
+        timestamp: Date.now(),
+      });
     },
     [stages, user, paperId],
   );
@@ -234,7 +266,20 @@ export default function LearnPage() {
         completedAt: new Date().toISOString(),
       });
     }
-  }, [setCourseComplete, user, currentPaper, stages.length]);
+
+    // Track course_complete event
+    const { playerPosition: pos, playerDirection: dir } = useLearningStore.getState();
+    trackEvent({
+      type: 'course_complete',
+      scene: 'course',
+      paperId: currentPaper?.id ?? paperId,
+      stageIndex: stages.length - 1,
+      x: pos.x,
+      y: pos.y,
+      direction: dir,
+      timestamp: Date.now(),
+    });
+  }, [setCourseComplete, user, currentPaper, stages.length, paperId]);
 
   const currentStage = stages[currentStageIndex];
 
@@ -250,17 +295,31 @@ export default function LearnPage() {
     if (currentStageIndex < stages.length - 1) {
       clearTerminalMessages();
       setPlayerPosition({ x: 3, y: 10 });
-      setCurrentStageIndex(currentStageIndex + 1);
+      const newIdx = currentStageIndex + 1;
+      setCurrentStageIndex(newIdx);
 
       // Save checkpoint
       if (user) {
         progressAdapter.saveCheckpoint({
           userId: user.id,
           paperId: currentPaper.id,
-          stageNumber: currentStageIndex + 1,
+          stageNumber: newIdx,
           completedAt: new Date().toISOString(),
         });
       }
+
+      // Track stage_enter event for the new stage
+      trackEvent({
+        type: 'stage_enter',
+        scene: 'course',
+        paperId: currentPaper.id,
+        stageIndex: newIdx,
+        stageTitle: stages[newIdx]?.title,
+        x: 3,
+        y: 10,
+        direction: 'right',
+        timestamp: Date.now(),
+      });
     }
   };
 

@@ -6,6 +6,7 @@ import { TILE_SIZE, COURSE_ROOM_WIDTH, COURSE_ROOM_HEIGHT, PLAYER_COLOR, STAGE_C
 import { StageConfig } from '@/types/learning';
 import { useMapLoader } from '@/hooks/useMapLoader';
 import { renderFullTileLayer } from '@/lib/tmj/renderer';
+import { trackEvent } from '@/lib/ain/event-tracker';
 
 interface CourseCanvasProps {
   stage: StageConfig;
@@ -86,6 +87,18 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
           );
           if (concept) {
             setActiveConcept(concept.id);
+            const { currentPaper, playerDirection: dir } = useLearningStore.getState();
+            trackEvent({
+              type: 'concept_view',
+              scene: 'course',
+              paperId: currentPaper?.id ?? '',
+              stageIndex: stage.stageNumber - 1,
+              conceptId: concept.id,
+              x: playerPosition.x,
+              y: playerPosition.y,
+              direction: dir,
+              timestamp: Date.now(),
+            });
           }
           // Check if near door
           if (

@@ -7,6 +7,7 @@ import { TILE_SIZE, VILLAGE_MAP_WIDTH, VILLAGE_MAP_HEIGHT, PLAYER_COLOR, FRIEND_
 import { MOCK_PAPERS } from '@/constants/mock-papers';
 import { useLocationSync } from '@/hooks/useLocationSync';
 import { useMapLoader } from '@/hooks/useMapLoader';
+import { trackEvent } from '@/lib/ain/event-tracker';
 import { renderTileLayer, type Viewport } from '@/lib/tmj/renderer';
 
 interface CourseEntrance {
@@ -121,6 +122,15 @@ export function VillageCanvas() {
         case 'Enter': {
           const paperId = checkCourseEntry(playerPosition.x, playerPosition.y);
           if (paperId) {
+            trackEvent({
+              type: 'course_enter',
+              scene: 'village',
+              paperId,
+              x: playerPosition.x,
+              y: playerPosition.y,
+              direction: useVillageStore.getState().playerDirection,
+              timestamp: Date.now(),
+            });
             router.push(`/learn/${paperId}`);
           }
           return;
