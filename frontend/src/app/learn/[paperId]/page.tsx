@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertTriangle, Terminal } from 'lucide-react';
 import { CourseCanvas } from '@/components/learn/CourseCanvas';
 import { ClaudeTerminal } from '@/components/learn/ClaudeTerminal';
+import { XtermTerminal } from '@/components/learn/XtermTerminal';
 import { StageProgressBar } from '@/components/learn/StageProgressBar';
 import { ConceptOverlay } from '@/components/learn/ConceptOverlay';
 import { QuizOverlay } from '@/components/learn/QuizOverlay';
@@ -13,12 +14,19 @@ import { useLearningStore } from '@/stores/useLearningStore';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { papersAdapter } from '@/lib/adapters/papers';
 import { progressAdapter } from '@/lib/adapters/progress';
+import {
+  terminalSessionAdapter,
+  SessionLimitError,
+} from '@/lib/adapters/terminal-session';
 import { MOCK_STAGES_BITDANCE } from '@/constants/mock-stages';
+
+const TERMINAL_API_URL = process.env.NEXT_PUBLIC_TERMINAL_API_URL;
 
 export default function LearnPage() {
   const params = useParams();
   const router = useRouter();
   const paperId = params.paperId as string;
+  const sessionCleanupRef = useRef<string | null>(null);
 
   const { user } = useAuthStore();
   const {
@@ -26,12 +34,18 @@ export default function LearnPage() {
     stages,
     currentStageIndex,
     isDoorUnlocked,
+    sessionId,
+    sessionStatus,
+    sessionError,
     setPaper,
     setStages,
     setCurrentStageIndex,
     setProgress,
     setPlayerPosition,
     clearTerminalMessages,
+    setSessionId,
+    setSessionStatus,
+    setSessionError,
     reset,
   } = useLearningStore();
 
@@ -45,8 +59,7 @@ export default function LearnPage() {
       }
       setPaper(paper);
 
-      // 🔌 ADAPTER — Replace with real stage data fetching
-      // For now, use mock stages for bitdance, or generate generic stages for others
+      // Use mock stages for now (backend stages integration later)
       const stageData =
         paperId === 'bitdance-2602'
           ? MOCK_STAGES_BITDANCE
@@ -61,25 +74,76 @@ export default function LearnPage() {
           setCurrentStageIndex(Math.min(progress.currentStage, stageData.length - 1));
         }
       }
+
+      // Create backend session if TERMINAL_API_URL is configured
+      if (TERMINAL_API_URL) {
+        setSessionStatus('creating');
+        try {
+          const session = await terminalSessionAdapter.createSession({
+            repoUrl: paper.githubUrl,
+            userId: user?.id,
+          });
+          setSessionId(session.sessionId);
+          sessionCleanupRef.current = session.sessionId;
+
+          // Poll until session is running (Pod takes 10-30s)
+          await waitForSession(session.sessionId);
+          setSessionStatus('running');
+
+          // Try to fetch stages from backend
+          const backendStages = await terminalSessionAdapter.getStages(session.sessionId);
+          if (backendStages.length > 0) {
+            setStages(backendStages as typeof stageData);
+          }
+        } catch (err) {
+          if (err instanceof SessionLimitError) {
+            setSessionError(err.message);
+          } else {
+            setSessionError(
+              err instanceof Error ? err.message : 'Failed to create session',
+            );
+          }
+          setSessionStatus('error');
+        }
+      }
     }
 
     reset();
     load();
+
+    // Cleanup session on unmount
+    return () => {
+      if (sessionCleanupRef.current) {
+        terminalSessionAdapter.deleteSession(sessionCleanupRef.current);
+        sessionCleanupRef.current = null;
+      }
+    };
   }, [paperId]);
 
   // Handle door transition to next stage
   useEffect(() => {
     if (isDoorUnlocked && stages.length > 0) {
-      // Player walked through the door — check if they moved past the door
-      // This is simplified: when door is unlocked, allow progressing
+      // Simplified: when door is unlocked, allow progressing
     }
   }, [isDoorUnlocked, stages]);
+
+  const handleStageComplete = useCallback(
+    (stageNumber: number) => {
+      // Update store when backend signals stage completion
+      const stageIdx = stages.findIndex((s) => s.stageNumber === stageNumber);
+      if (stageIdx >= 0) {
+        useLearningStore.getState().setQuizPassed(true);
+        useLearningStore.getState().setDoorUnlocked(true);
+      }
+    },
+    [stages],
+  );
 
   const currentStage = stages[currentStageIndex];
 
   if (!currentPaper || !currentStage) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center h-screen bg-[#0a0a1a]">
         <Loader2 className="h-8 w-8 animate-spin text-[#FF9D00]" />
       </div>
     );
@@ -102,6 +166,8 @@ export default function LearnPage() {
       }
     }
   };
+
+  const useRealTerminal = TERMINAL_API_URL && sessionStatus === 'running' && sessionId;
 
   return (
     <div className="flex flex-col h-screen">
@@ -128,13 +194,115 @@ export default function LearnPage() {
           )}
         </div>
 
-        {/* Right: Claude Code Terminal (40%) */}
+        {/* Right: Terminal (40%) */}
         <div className="w-[40%]">
-          <ClaudeTerminal />
+          {sessionStatus === 'creating' ? (
+            <SessionLoadingUI />
+          ) : sessionStatus === 'error' ? (
+            <SessionErrorUI error={sessionError} />
+          ) : useRealTerminal ? (
+            <XtermTerminal
+              sessionId={sessionId}
+              wsUrl={terminalSessionAdapter.getWebSocketUrl(sessionId)}
+              onStageComplete={handleStageComplete}
+            />
+          ) : (
+            <ClaudeTerminal />
+          )}
         </div>
       </div>
     </div>
   );
+}
+
+/** Loading UI shown while Pod is creating (10-30s) */
+function SessionLoadingUI() {
+  return (
+    <div className="flex flex-col h-full bg-[#1a1a2e] text-gray-100">
+      <div className="flex items-center gap-2 px-4 py-2 bg-[#16162a] border-b border-gray-700">
+        <div className="flex gap-1.5">
+          <div className="w-3 h-3 rounded-full bg-red-500" />
+          <div className="w-3 h-3 rounded-full bg-yellow-500" />
+          <div className="w-3 h-3 rounded-full bg-green-500" />
+        </div>
+        <span className="text-xs text-gray-400 font-mono ml-2">
+          Claude Code Terminal
+        </span>
+      </div>
+      <div className="flex-1 flex flex-col items-center justify-center gap-4 px-8">
+        <div className="relative">
+          <Terminal className="h-12 w-12 text-[#FF9D00]" />
+          <Loader2 className="absolute -bottom-1 -right-1 h-5 w-5 animate-spin text-cyan-400" />
+        </div>
+        <div className="text-center space-y-2">
+          <p className="text-sm font-medium text-gray-200">
+            Launching Claude Code Environment
+          </p>
+          <p className="text-xs text-gray-500 font-mono">
+            Provisioning sandbox pod & cloning repository...
+          </p>
+          <p className="text-xs text-gray-600">
+            This typically takes 10–30 seconds
+          </p>
+        </div>
+        <div className="w-48 h-1 bg-gray-700 rounded-full overflow-hidden">
+          <div className="h-full bg-gradient-to-r from-[#FF9D00] to-cyan-400 rounded-full animate-pulse" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Error UI when session creation fails */
+function SessionErrorUI({ error }: { error: string | null }) {
+  return (
+    <div className="flex flex-col h-full bg-[#1a1a2e] text-gray-100">
+      <div className="flex items-center gap-2 px-4 py-2 bg-[#16162a] border-b border-gray-700">
+        <div className="flex gap-1.5">
+          <div className="w-3 h-3 rounded-full bg-red-500" />
+          <div className="w-3 h-3 rounded-full bg-yellow-500" />
+          <div className="w-3 h-3 rounded-full bg-green-500" />
+        </div>
+        <span className="text-xs text-gray-400 font-mono ml-2">
+          Claude Code Terminal
+        </span>
+      </div>
+      <div className="flex-1 flex flex-col items-center justify-center gap-4 px-8">
+        <AlertTriangle className="h-10 w-10 text-yellow-500" />
+        <div className="text-center space-y-2">
+          <p className="text-sm font-medium text-red-400">
+            Session Creation Failed
+          </p>
+          <p className="text-xs text-gray-400 font-mono max-w-sm">
+            {error || 'Unknown error'}
+          </p>
+        </div>
+        <p className="text-xs text-gray-600">
+          Falling back to guided learning mode
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/** Poll session status until it's running */
+async function waitForSession(sessionId: string, maxWait = 60000) {
+  const start = Date.now();
+  const interval = 2000;
+
+  while (Date.now() - start < maxWait) {
+    try {
+      const info = await terminalSessionAdapter.getSession(sessionId);
+      if (info.status === 'running') return;
+      if (info.status === 'terminated' || info.status === 'terminating') {
+        throw new Error('Session terminated unexpectedly');
+      }
+    } catch (err) {
+      if (err instanceof Error && err.message.includes('terminated')) throw err;
+    }
+    await new Promise((r) => setTimeout(r, interval));
+  }
+  throw new Error('Session creation timed out after 60 seconds');
 }
 
 // Generate generic stages for papers without predefined stages
