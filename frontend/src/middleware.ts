@@ -1,20 +1,9 @@
 import { auth } from "@/auth"
 import { NextResponse } from "next/server"
 
-// Routes accessible without authentication
+// Only these routes are accessible without login
 const PUBLIC_EXACT = ["/"]
-const PUBLIC_PREFIX = [
-  "/login",
-  "/api/auth",
-  "/explore",
-  "/courses",
-  "/community",
-  "/village",
-]
-
-// Routes that require authentication (user data needed)
-// /dashboard, /agent-dashboard, /builder, /learn, /editor, /api/*
-// Everything not in PUBLIC is protected by default.
+const PUBLIC_PREFIX = ["/login", "/api/auth", "/explore"]
 
 export default auth((req) => {
   const { pathname } = req.nextUrl
@@ -45,7 +34,6 @@ export default auth((req) => {
 
 export const config = {
   matcher: [
-    // Match all paths except static files, images, and API routes (except auth)
-    "/((?!_next/static|_next/image|favicon.ico|public|maps|courses|mock|.*\\.png|.*\\.jpg|.*\\.svg|.*\\.ico).*)",
+    "/((?!_next/static|_next/image|favicon.ico|public|maps|mock|.*\\.png|.*\\.jpg|.*\\.svg|.*\\.ico).*)",
   ],
 }

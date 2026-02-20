@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Paper } from '@/types/paper';
 import { usePurchaseStore } from '@/stores/usePurchaseStore';
+import { useAuthStore } from '@/stores/useAuthStore';
 
 interface PaperCardProps {
   paper: Paper;
@@ -15,8 +16,17 @@ interface PaperCardProps {
 export function PaperCard({ paper }: PaperCardProps) {
   const router = useRouter();
   const { getAccessStatus, setPurchaseModal } = usePurchaseStore();
+  const { isAuthenticated } = useAuthStore();
   const access = getAccessStatus(paper.id);
   const canLearn = access === 'owned' || access === 'purchased';
+
+  const requireAuth = (action: () => void) => {
+    if (!isAuthenticated) {
+      router.push('/login');
+      return;
+    }
+    action();
+  };
 
   const formatStars = (stars?: number) => {
     if (!stars) return null;
@@ -87,7 +97,7 @@ export function PaperCard({ paper }: PaperCardProps) {
       <div className="flex-shrink-0 flex flex-col gap-1.5 w-[140px]">
         {canLearn ? (
           <Button
-            onClick={() => router.push(`/learn/${paper.id}`)}
+            onClick={() => requireAuth(() => router.push(`/learn/${paper.id}`))}
             className="bg-[#FF9D00] hover:bg-[#FF9D00]/90 text-white text-sm h-9"
           >
             <Play className="h-3.5 w-3.5 mr-1" />
@@ -95,7 +105,7 @@ export function PaperCard({ paper }: PaperCardProps) {
           </Button>
         ) : (
           <Button
-            onClick={() => setPurchaseModal(paper.id, paper)}
+            onClick={() => requireAuth(() => setPurchaseModal(paper.id, paper))}
             className="bg-[#7C3AED] hover:bg-[#7C3AED]/90 text-white text-sm h-9"
           >
             <ShoppingCart className="h-3.5 w-3.5 mr-1" />

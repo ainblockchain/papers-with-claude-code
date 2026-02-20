@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation';
 import { Loader2, ShoppingCart, CheckCircle, AlertTriangle, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePurchaseStore } from '@/stores/usePurchaseStore';
+import { useAuthStore } from '@/stores/useAuthStore';
 
 export function PurchaseModal() {
   const router = useRouter();
+  const { isAuthenticated } = useAuthStore();
   const {
     purchaseModalPaperId,
     purchaseModalPaper,
@@ -41,6 +43,13 @@ export function PurchaseModal() {
   }, [purchaseModalPaperId, router, setPurchaseModal]);
 
   if (!purchaseModalPaperId || !purchaseModalPaper) return null;
+
+  // Redirect to login if not authenticated
+  if (!isAuthenticated) {
+    router.push('/login');
+    setPurchaseModal(null);
+    return null;
+  }
 
   const isSuccess = getAccessStatus(purchaseModalPaperId) === 'purchased' && lastPurchaseReceipt;
 
