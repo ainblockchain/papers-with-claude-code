@@ -245,8 +245,9 @@ function LoginContent() {
     );
   }
 
-  // ── Step 2 fallback: session active but no passkey yet (direct navigation) ──
-  if (isAuthenticated && user && !passkeyInfo) {
+  // ── Step 2 fallback: real auth session without passkey (direct /login navigation) ──
+  // In mock mode, skip this so the user always sees the GitHub button first.
+  if (isRealAuth && isAuthenticated && user && !passkeyInfo) {
     return (
       <PasskeyStep
         user={user}
