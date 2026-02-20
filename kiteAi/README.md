@@ -29,6 +29,7 @@
 17. [Evaluation Criteria Response Strategy](#17-evaluation-criteria-response-strategy)
 18. [Schedule & Milestones](#18-schedule--milestones)
 19. [References](#19-references)
+20. [Completed Implementations](#20-completed-implementations)
 
 ---
 
@@ -113,10 +114,16 @@ frontend/
 │   ├── app/                    # Next.js App Router
 │   │   ├── layout.tsx
 │   │   ├── page.tsx            # Home / Explore
+│   │   ├── login/page.tsx      # Login (GitHub + Kite Passport + Passkey)
 │   │   ├── village/page.tsx    # Village map
 │   │   ├── learn/[paperId]/page.tsx  # Course learning
-│   │   └── api/                # API Routes (to be added)
+│   │   └── api/                # API Routes
+│   │       ├── auth/[...nextauth]/   # NextAuth handler (auto: GitHub + Kite Passport)
+│   │       ├── kite-mcp/       # Kite MCP proxy endpoints
+│   │       └── x402/           # x402 payment API routes
 │   ├── components/
+│   │   ├── layout/
+│   │   │   └── Header.tsx      # App header (generic "Sign in" button)
 │   │   ├── village/
 │   │   │   ├── VillageCanvas.tsx    # Village tilemap rendering
 │   │   │   └── VillageSidebar.tsx   # Friends list, leaderboard
@@ -127,6 +134,14 @@ frontend/
 │   │   │   └── ClaudeTerminal.tsx    # AI terminal
 │   │   └── ui/                 # shadcn/ui components
 │   ├── lib/
+│   │   ├── auth/
+│   │   │   └── kite-passport-provider.ts  # ★ Kite Passport NextAuth OAuth provider
+│   │   ├── auth-mode.ts        # isRealAuth flag (NEXT_PUBLIC_AUTH_MODE)
+│   │   ├── ain/
+│   │   │   └── passkey.ts      # WebAuthn passkey (P-256)
+│   │   ├── kite/
+│   │   │   ├── passport-auth.ts     # Kite MCP OAuth connection
+│   │   │   └── contracts.ts         # LearningLedger ABI & addresses
 │   │   └── adapters/           # Adapter pattern (Mock implementation)
 │   │       ├── x402.ts         # Payment adapter (replacement target)
 │   │       ├── papers.ts       # Paper data
@@ -134,21 +149,20 @@ frontend/
 │   │       ├── claude-terminal.ts  # Claude AI chat
 │   │       ├── friends.ts      # Friend presence
 │   │       └── gemini-map.ts   # Map generation
+│   ├── hooks/
+│   │   └── useAuthSync.ts      # NextAuth session → Zustand sync (incl. provider)
 │   ├── stores/                 # Zustand state management
 │   │   ├── useLearningStore.ts # Includes payment/lock state
 │   │   ├── useVillageStore.ts
 │   │   ├── useExploreStore.ts
-│   │   ├── useAuthStore.ts
+│   │   ├── useAuthStore.ts     # User interface (id, username, provider, ...)
 │   │   ├── useSocialStore.ts
 │   │   └── useUIStore.ts
+│   ├── auth.ts                 # ★ NextAuth v5 config (GitHub + KitePassport providers)
+│   ├── middleware.ts           # Route protection (unauthenticated → /login)
 │   ├── types/
-│   │   ├── paper.ts
-│   │   ├── learning.ts
-│   │   └── social.ts
 │   └── constants/
-│       └── game.ts
-├── next.config.mjs
-├── postcss.config.mjs
+├── next.config.ts
 ├── package.json
 └── tsconfig.json
 ```
@@ -1651,3 +1665,70 @@ ethers hardhat @nomicfoundation/hardhat-toolbox
 # Existing project
 next@16.1.6 react@19.2.3 zustand@^5.0.11 tailwindcss@^4
 ```
+
+---
+
+## 20. Completed Implementations
+
+### 20.1 Kite Agent Passport OAuth Login (COMPLETED)
+
+> **Detail:** [passport-oauth-integration.md](./passport-oauth-integration.md)
+
+Kite Agent Passport가 NextAuth v5 OAuth 프로바이더로 통합됨. 로그인 페이지에서 GitHub과 Kite Passport 중 선택 가능.
+
+**Login Flow:**
+```
+Login Page → [GitHub OAuth | Kite Passport OAuth] → Passkey(WebAuthn) → /explore
+```
+
+**Key Files:**
+
+| File | Role |
+|------|------|
+| `frontend/src/lib/auth/kite-passport-provider.ts` | **신규** — NextAuth v5 커스텀 OAuth 프로바이더 |
+| `frontend/src/auth.ts` | 멀티 프로바이더 (GitHub + KitePassport), `provider` 필드 JWT/Session 확장 |
+| `frontend/src/app/login/page.tsx` | 두 개의 로그인 버튼 + "or" 디바이더, StepIndicator "1. Sign In → 2. Passkey" |
+| `frontend/src/components/layout/Header.tsx` | 제네릭 "Sign in" 버튼 (GitHub 로고 제거) |
+| `frontend/src/stores/useAuthStore.ts` | User 인터페이스에 `provider` 필드 추가 |
+| `frontend/src/hooks/useAuthSync.ts` | NextAuth `session.user.provider` → Zustand 동기화 |
+
+**OAuth Endpoints (Kite):**
+- Authorize: `https://neo.dev.gokite.ai/v1/oauth/authorize?scope=payment`
+- Token: `POST https://neo.dev.gokite.ai/v1/oauth/token`
+- Callback: `https://<domain>/api/auth/callback/kite-passport` (NextAuth 자동 처리)
+
+**필요 환경변수:**
+```bash
+KITE_OAUTH_CLIENT_ID=        # Kite 포털에서 발급
+KITE_OAUTH_CLIENT_SECRET=    # Kite 포털에서 발급
+KITE_OAUTH_BASE_URL=https://neo.dev.gokite.ai
+```
+
+### 20.2 GitHub OAuth + Passkey Login (COMPLETED)
+
+GitHub OAuth 로그인 후 WebAuthn Passkey 등록/인증을 거치는 2단계 인증 플로우.
+
+**Key Files:**
+
+| File | Role |
+|------|------|
+| `frontend/src/auth.ts` | NextAuth v5 설정 (GitHub + Kite 프로바이더) |
+| `frontend/src/app/login/page.tsx` | 2단계 로그인 UI (Step 1: OAuth → Step 2: Passkey) |
+| `frontend/src/lib/ain/passkey.ts` | WebAuthn P-256 패스키 등록/인증 |
+| `frontend/src/middleware.ts` | 라우트 보호 (미인증 사용자 → /login 리다이렉트) |
+| `frontend/src/hooks/useAuthSync.ts` | NextAuth 세션 → Zustand 스토어 동기화 |
+
+### 20.3 LearningLedger Smart Contract (DEPLOYED)
+
+Kite AI Testnet (Chain ID: 2368)에 배포된 학습 진행 기록 컨트랙트.
+
+**Key Files:**
+
+| File | Role |
+|------|------|
+| `kiteAi/contracts/contracts/LearningLedger.sol` | Solidity 스마트 컨트랙트 |
+| `kiteAi/contracts/scripts/deploy.ts` | 배포 스크립트 |
+| `frontend/src/lib/kite/contracts.ts` | ABI & 주소 상수 |
+
+**Deployed Address:** `0xaffB053eE4fb81c0D3450fDA6db201f901214A72`
+**Explorer:** https://testnet.kitescan.ai/address/0xaffB053eE4fb81c0D3450fDA6db201f901214A72
