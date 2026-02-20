@@ -2,11 +2,15 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import { useLearningStore } from '@/stores/useLearningStore';
-import { TILE_SIZE, COURSE_ROOM_WIDTH, COURSE_ROOM_HEIGHT, PLAYER_COLOR, STAGE_COLORS } from '@/constants/game';
+import { TILE_SIZE, COURSE_ROOM_WIDTH, COURSE_ROOM_HEIGHT, WALK_ANIMATION_DURATION } from '@/constants/game';
 import { StageConfig } from '@/types/learning';
 import { useMapLoader } from '@/hooks/useMapLoader';
 import { renderFullTileLayer } from '@/lib/tmj/renderer';
 import { trackEvent } from '@/lib/ain/event-tracker';
+import { drawWoodFloorTile, drawWallTile, drawDoor, drawBlackboard } from '@/lib/sprites/terrain';
+import { getPreRenderedSprite } from '@/lib/sprites/cache';
+import { PLAYER_SPRITE } from '@/lib/sprites/player';
+import type { Direction } from '@/lib/sprites/types';
 
 interface CourseCanvasProps {
   stage: StageConfig;
@@ -27,6 +31,14 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
     setPaymentModalOpen,
   } = useLearningStore();
 
+  // Animation state
+  const isWalkingRef = useRef(false);
+  const animFrameRef = useRef(0);
+  const walkTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prevPositionRef = useRef(playerPosition);
+  const rafIdRef = useRef<number>(0);
+  const dirtyRef = useRef(true);
+
   const doorPosition = { x: stage.roomWidth - 2, y: Math.floor(stage.roomHeight / 2) };
 
   // Load TMJ map data (falls back to procedural rendering if unavailable)
@@ -36,21 +48,41 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
   const isWalkable = useCallback(
     (x: number, y: number) => {
       if (x < 0 || y < 0 || x >= stage.roomWidth || y >= stage.roomHeight) return false;
-      // Walls: top/bottom/left rows, and right wall except door
       if (y === 0 || y === stage.roomHeight - 1) return false;
       if (x === 0) return false;
       if (x === stage.roomWidth - 1) {
         return y === doorPosition.y && isDoorUnlocked;
       }
-      // Concept positions are passable but interactable
       return true;
     },
     [stage.roomWidth, stage.roomHeight, doorPosition.y, isDoorUnlocked]
   );
 
+  // Detect movement → trigger walk animation
+  useEffect(() => {
+    const prev = prevPositionRef.current;
+    if (prev.x !== playerPosition.x || prev.y !== playerPosition.y) {
+      isWalkingRef.current = true;
+      animFrameRef.current = animFrameRef.current === 1 ? 2 : 1;
+      dirtyRef.current = true;
+
+      if (walkTimerRef.current) clearTimeout(walkTimerRef.current);
+      walkTimerRef.current = setTimeout(() => {
+        isWalkingRef.current = false;
+        animFrameRef.current = 0;
+        dirtyRef.current = true;
+      }, WALK_ANIMATION_DURATION);
+    }
+    prevPositionRef.current = playerPosition;
+  }, [playerPosition]);
+
+  // Mark dirty on state change
+  useEffect(() => {
+    dirtyRef.current = true;
+  }, [playerPosition, playerDirection, activeConceptId, isDoorUnlocked, stage]);
+
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      // Skip game keys when typing in an input/textarea
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
 
@@ -100,7 +132,6 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
               timestamp: Date.now(),
             });
           }
-          // Check if near door
           if (
             Math.abs(playerPosition.x - doorPosition.x) <= 1 &&
             Math.abs(playerPosition.y - doorPosition.y) <= 1
@@ -142,158 +173,125 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
 
-  // Render
+  // rAF render loop
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Size canvas to fill entire parent container
-    const containerW = canvas.parentElement?.clientWidth || 800;
-    const containerH = canvas.parentElement?.clientHeight || 600;
-    canvas.width = containerW;
-    canvas.height = containerH;
+    const draw = () => {
+      if (!dirtyRef.current) {
+        rafIdRef.current = requestAnimationFrame(draw);
+        return;
+      }
+      dirtyRef.current = false;
 
-    const roomW = stage.roomWidth * TILE_SIZE;
-    const roomH = stage.roomHeight * TILE_SIZE;
-    const scale = Math.min(containerW / roomW, containerH / roomH);
-    const offsetX = (containerW - roomW * scale) / 2;
-    const offsetY = (containerH - roomH * scale) / 2;
+      const containerW = canvas.parentElement?.clientWidth || 800;
+      const containerH = canvas.parentElement?.clientHeight || 600;
+      if (canvas.width !== containerW || canvas.height !== containerH) {
+        canvas.width = containerW;
+        canvas.height = containerH;
+      }
 
-    // Fill background
-    ctx.fillStyle = '#111827';
-    ctx.fillRect(0, 0, containerW, containerH);
+      const roomW = stage.roomWidth * TILE_SIZE;
+      const roomH = stage.roomHeight * TILE_SIZE;
+      const scale = Math.min(containerW / roomW, containerH / roomH);
+      const oX = (containerW - roomW * scale) / 2;
+      const oY = (containerH - roomH * scale) / 2;
 
-    // Translate and scale to center the room
-    ctx.save();
-    ctx.translate(offsetX, offsetY);
-    ctx.scale(scale, scale);
+      // Fill background
+      ctx.fillStyle = '#111827';
+      ctx.fillRect(0, 0, containerW, containerH);
 
-    // Draw floor and walls
-    const floorLayer = canUseTmj ? mapData.layersByName.get('floor') : null;
-    if (floorLayer && mapData) {
-      // TMJ-based rendering
-      renderFullTileLayer(ctx, floorLayer, mapData.tilesets, TILE_SIZE);
-    } else {
-      // Fallback: procedural rendering
-      ctx.fillStyle = '#D2B48C';
-      ctx.fillRect(0, 0, roomW, roomH);
+      ctx.save();
+      ctx.translate(oX, oY);
+      ctx.scale(scale, scale);
 
-      for (let x = 1; x < stage.roomWidth - 1; x++) {
-        for (let y = 1; y < stage.roomHeight - 1; y++) {
-          ctx.fillStyle = (x + y) % 2 === 0 ? '#E8D5B7' : '#DCC9A8';
-          ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+      // ── Floor and walls ──
+      const floorLayer = canUseTmj ? mapData!.layersByName.get('floor') : null;
+      if (floorLayer && mapData) {
+        renderFullTileLayer(ctx, floorLayer, mapData.tilesets, TILE_SIZE);
+      } else {
+        // Procedural floor — wood planks
+        for (let x = 1; x < stage.roomWidth - 1; x++) {
+          for (let y = 1; y < stage.roomHeight - 1; y++) {
+            drawWoodFloorTile(ctx, x * TILE_SIZE, y * TILE_SIZE, x, y, TILE_SIZE);
+          }
+        }
+
+        // Walls — brick pattern
+        for (let x = 0; x < stage.roomWidth; x++) {
+          drawWallTile(ctx, x * TILE_SIZE, 0, TILE_SIZE);
+          drawWallTile(ctx, x * TILE_SIZE, (stage.roomHeight - 1) * TILE_SIZE, TILE_SIZE);
+        }
+        for (let y = 0; y < stage.roomHeight; y++) {
+          drawWallTile(ctx, 0, y * TILE_SIZE, TILE_SIZE);
+          if (y !== doorPosition.y) {
+            drawWallTile(ctx, (stage.roomWidth - 1) * TILE_SIZE, y * TILE_SIZE, TILE_SIZE);
+          }
         }
       }
 
-      ctx.fillStyle = '#6B7280';
-      for (let x = 0; x < stage.roomWidth; x++) {
-        ctx.fillRect(x * TILE_SIZE, 0, TILE_SIZE, TILE_SIZE);
-        ctx.fillRect(x * TILE_SIZE, (stage.roomHeight - 1) * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-      }
-      for (let y = 0; y < stage.roomHeight; y++) {
-        ctx.fillRect(0, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-        if (y !== doorPosition.y) {
-          ctx.fillRect((stage.roomWidth - 1) * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-        }
-      }
-    }
-
-    // Draw door
-    ctx.fillStyle = isDoorUnlocked ? STAGE_COLORS.completed : STAGE_COLORS.locked;
-    ctx.fillRect(
-      (stage.roomWidth - 1) * TILE_SIZE,
-      doorPosition.y * TILE_SIZE,
-      TILE_SIZE,
-      TILE_SIZE
-    );
-    // Door icon
-    ctx.fillStyle = '#FFF';
-    ctx.font = `${TILE_SIZE * 0.5}px sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(
-      isDoorUnlocked ? '🚪' : '🔒',
-      (stage.roomWidth - 1) * TILE_SIZE + TILE_SIZE / 2,
-      doorPosition.y * TILE_SIZE + TILE_SIZE / 2
-    );
-
-    // Draw concepts (blackboards)
-    stage.concepts.forEach((concept) => {
-      const isActive = activeConceptId === concept.id;
-      const isNear =
-        Math.abs(concept.position.x - playerPosition.x) <= 1 &&
-        Math.abs(concept.position.y - playerPosition.y) <= 1;
-
-      ctx.fillStyle = isActive ? '#1E40AF' : '#1F2937';
-      ctx.fillRect(
-        concept.position.x * TILE_SIZE,
-        concept.position.y * TILE_SIZE,
-        TILE_SIZE * 2,
-        TILE_SIZE * 1.5
+      // ── Door (pixel art) ──
+      drawDoor(
+        ctx,
+        (stage.roomWidth - 1) * TILE_SIZE,
+        doorPosition.y * TILE_SIZE,
+        TILE_SIZE,
+        isDoorUnlocked,
       );
 
-      // Concept title
+      // ── Concepts (blackboards) ──
+      stage.concepts.forEach((concept) => {
+        const isActive = activeConceptId === concept.id;
+        const cx = concept.position.x * TILE_SIZE;
+        const cy = concept.position.y * TILE_SIZE;
+        const bbW = TILE_SIZE * 2;
+        const bbH = TILE_SIZE * 1.5;
+
+        drawBlackboard(ctx, cx, cy, bbW, bbH, isActive, concept.title);
+
+        // Interaction hint
+        const isNear =
+          Math.abs(concept.position.x - playerPosition.x) <= 1 &&
+          Math.abs(concept.position.y - playerPosition.y) <= 1;
+        if (isNear && !isActive) {
+          ctx.fillStyle = '#FF9D00';
+          ctx.font = `${TILE_SIZE * 0.25}px sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.fillText('Press E', cx + TILE_SIZE, cy - 8);
+        }
+      });
+
+      // ── Player (pixel art sprite with animation) ──
+      const pos = useLearningStore.getState().playerPosition;
+      const dir = useLearningStore.getState().playerDirection as Direction;
+      const frameIdx = animFrameRef.current;
+      const playerFrame = PLAYER_SPRITE.frames[dir][frameIdx];
+      const cacheKey = `course-player-${dir}-${frameIdx}`;
+      const spriteCanvas = getPreRenderedSprite(cacheKey, playerFrame, PLAYER_SPRITE.palette, TILE_SIZE, TILE_SIZE);
+      ctx.drawImage(spriteCanvas, pos.x * TILE_SIZE, pos.y * TILE_SIZE);
+
+      // ── Stage title ──
       ctx.fillStyle = '#FFF';
-      ctx.font = `bold ${TILE_SIZE * 0.3}px sans-serif`;
+      ctx.font = `bold ${TILE_SIZE * 0.4}px sans-serif`;
       ctx.textAlign = 'center';
-      ctx.fillText(
-        concept.title,
-        concept.position.x * TILE_SIZE + TILE_SIZE,
-        concept.position.y * TILE_SIZE + TILE_SIZE * 0.75
-      );
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 2;
+      const titleText = `Stage ${stage.stageNumber}: ${stage.title}`;
+      ctx.strokeText(titleText, roomW / 2, TILE_SIZE * 0.65);
+      ctx.fillText(titleText, roomW / 2, TILE_SIZE * 0.65);
 
-      // Interaction hint
-      if (isNear && !isActive) {
-        ctx.fillStyle = '#FF9D00';
-        ctx.font = `${TILE_SIZE * 0.25}px sans-serif`;
-        ctx.fillText(
-          'Press E',
-          concept.position.x * TILE_SIZE + TILE_SIZE,
-          concept.position.y * TILE_SIZE - 5
-        );
-      }
-    });
+      ctx.restore();
 
-    // Draw player
-    ctx.fillStyle = PLAYER_COLOR;
-    ctx.beginPath();
-    ctx.arc(
-      playerPosition.x * TILE_SIZE + TILE_SIZE / 2,
-      playerPosition.y * TILE_SIZE + TILE_SIZE / 2,
-      TILE_SIZE * 0.4,
-      0,
-      Math.PI * 2
-    );
-    ctx.fill();
+      rafIdRef.current = requestAnimationFrame(draw);
+    };
 
-    // Direction indicator
-    ctx.fillStyle = '#FFF';
-    const dirOffsets = { up: [0, -5], down: [0, 5], left: [-5, 0], right: [5, 0] };
-    const [dox, doy] = dirOffsets[playerDirection];
-    ctx.beginPath();
-    ctx.arc(
-      playerPosition.x * TILE_SIZE + TILE_SIZE / 2 + dox,
-      playerPosition.y * TILE_SIZE + TILE_SIZE / 2 + doy,
-      3,
-      0,
-      Math.PI * 2
-    );
-    ctx.fill();
-
-    // Stage title
-    ctx.fillStyle = '#FFF';
-    ctx.font = `bold ${TILE_SIZE * 0.4}px sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.fillText(
-      `Stage ${stage.stageNumber}: ${stage.title}`,
-      roomW / 2,
-      TILE_SIZE * 0.65
-    );
-
-    ctx.restore();
-  }, [playerPosition, playerDirection, stage, activeConceptId, isDoorUnlocked, doorPosition, mapData, canUseTmj]);
+    dirtyRef.current = true;
+    rafIdRef.current = requestAnimationFrame(draw);
+    return () => cancelAnimationFrame(rafIdRef.current);
+  }, [stage, activeConceptId, isDoorUnlocked, doorPosition, mapData, canUseTmj, playerPosition, playerDirection]);
 
   return (
     <div className="w-full h-full bg-gray-900 overflow-hidden">
