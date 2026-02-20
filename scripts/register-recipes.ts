@@ -8,13 +8,15 @@
  */
 
 import { readFileSync, readdirSync } from 'fs';
-import { join, resolve } from 'path';
+import { join, resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
-// ESM/CJS interop for ain-js
-import AinModule from '@ainblockchain/ain-js';
+// Use local ain-js build (includes cogito module)
+import AinModule from '../../ain-js/lib/ain.js';
 const Ain: any = (AinModule as any).default ?? AinModule;
 
-const RECIPES_DIR = resolve(import.meta.dirname || '.', '../cogito-recipes');
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const RECIPES_DIR = resolve(__dirname, '../cogito-recipes');
 
 async function main() {
   // Load config: try ain-config.json first, then env vars
@@ -38,6 +40,50 @@ async function main() {
   console.log(`Address: ${address}`);
   console.log(`Provider: ${providerUrl}`);
   console.log(`Recipes dir: ${RECIPES_DIR}`);
+  console.log('');
+
+  // Ensure /apps/cogito exists with write rules
+  console.log('Setting up /apps/cogito...');
+  try {
+    const createResult = await ain.sendTransaction({
+      operation: {
+        type: 'SET_VALUE',
+        ref: `/manage_app/cogito/create/${Date.now()}`,
+        value: { admin: { [address]: true } },
+      },
+    });
+    const code = createResult?.result?.code;
+    if (code === 0 || code === undefined) {
+      console.log('  App created (or already exists)');
+    } else {
+      console.log(`  App create result: code=${code} ${createResult?.result?.message || ''}`);
+    }
+  } catch (err: any) {
+    console.log(`  App setup: ${err.message}`);
+  }
+
+  // Set write rule: any authenticated user can write to their own recipes path
+  try {
+    const ruleResult = await ain.sendTransaction({
+      operation: {
+        type: 'SET_RULE',
+        ref: '/apps/cogito/recipes/$address',
+        value: {
+          '.rule': {
+            write: 'auth.addr === $address',
+          },
+        },
+      },
+    });
+    const code = ruleResult?.result?.code;
+    if (code === 0 || code === undefined) {
+      console.log('  Write rule set');
+    } else {
+      console.log(`  Rule result: code=${code} ${ruleResult?.result?.message || ''}`);
+    }
+  } catch (err: any) {
+    console.log(`  Rule setup: ${err.message}`);
+  }
   console.log('');
 
   const files = readdirSync(RECIPES_DIR).filter(f => f.endsWith('.md'));
