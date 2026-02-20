@@ -46,7 +46,7 @@ node "$HOME/.claude/skills/lesson/scripts/record-lesson.js" \
   --tags "tag1,tag2,tag3"
 ```
 
-The script auto-installs ain-js on first run if needed. Requires `AIN_PRIVATE_KEY` env var.
+The script auto-installs ain-js on first run if needed. The AIN private key is loaded automatically from `~/.claude/ain-config.json` — do NOT pass it via env var or command line.
 
 If the script fails, fall back to calling the Cogito container API:
 

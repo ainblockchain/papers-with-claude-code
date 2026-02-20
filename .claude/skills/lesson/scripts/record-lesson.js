@@ -23,6 +23,16 @@ const args = process.argv.slice(2);
 // Where ain-js gets installed for the global skill
 const SKILL_DATA_DIR = path.join(require('os').homedir(), '.claude', 'skill-data', 'lesson');
 
+// Load AIN_PRIVATE_KEY from config file if not already in env
+const AIN_CONFIG_PATH = path.join(require('os').homedir(), '.claude', 'ain-config.json');
+if (!process.env.AIN_PRIVATE_KEY && fs.existsSync(AIN_CONFIG_PATH)) {
+  try {
+    const config = JSON.parse(fs.readFileSync(AIN_CONFIG_PATH, 'utf-8'));
+    if (config.privateKey) process.env.AIN_PRIVATE_KEY = config.privateKey;
+    if (config.providerUrl) process.env.AIN_PROVIDER_URL = config.providerUrl;
+  } catch {}
+}
+
 function parseArgs(argv) {
   const result = {};
   for (let i = 0; i < argv.length; i++) {
