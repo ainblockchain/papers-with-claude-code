@@ -5,22 +5,21 @@ import { Loader2, Wifi, WifiOff } from 'lucide-react';
 import '@xterm/xterm/css/xterm.css';
 
 /**
- * The K8s exec backend defaults to 80 cols (standard PTY).
- * Resize is NOT currently forwarded (TODO in terminal-bridge.ts).
- * So we MUST ensure the xterm.js terminal is at least 80 cols wide.
- * We achieve this by dynamically computing font size to fit 80+ cols
- * in the available container width.
+ * Terminal uses a comfortable font size (max 18) and lets the column
+ * count expand to fill the available container width.  Resize events
+ * are sent to the server so the PTY can match the actual col count.
  */
-const SERVER_DEFAULT_COLS = 80;
-const SERVER_DEFAULT_ROWS = 24;
-const MAX_FONT_SIZE = 14;
-const MIN_FONT_SIZE = 9;
+const MIN_COLS = 80;
+const MIN_ROWS = 24;
+const MAX_FONT_SIZE = 18;
+const MIN_FONT_SIZE = 10;
 const CHAR_WIDTH_RATIO = 0.602; // approximate monospace char width / font size
 
 function calculateFontSize(containerWidth: number): number {
-  // Calculate the largest font size that fits SERVER_DEFAULT_COLS in the container
-  const maxFontForCols = containerWidth / (SERVER_DEFAULT_COLS * CHAR_WIDTH_RATIO);
-  return Math.max(MIN_FONT_SIZE, Math.min(MAX_FONT_SIZE, Math.floor(maxFontForCols)));
+  // Pick a readable font; cols will expand naturally via FitAddon.
+  if (containerWidth >= 1024) return MAX_FONT_SIZE;
+  if (containerWidth >= 768) return 14;
+  return MIN_FONT_SIZE;
 }
 
 interface XtermTerminalProps {
@@ -114,8 +113,8 @@ export function XtermTerminal({ sessionId, wsUrl, onStageComplete, onCourseCompl
       fitAddon.fit();
 
       // Enforce minimum cols to match server PTY
-      if (term.cols < SERVER_DEFAULT_COLS) {
-        term.resize(SERVER_DEFAULT_COLS, Math.max(term.rows, SERVER_DEFAULT_ROWS));
+      if (term.cols < MIN_COLS) {
+        term.resize(MIN_COLS, Math.max(term.rows, MIN_ROWS));
       }
 
       termRef.current = term;
@@ -193,10 +192,10 @@ export function XtermTerminal({ sessionId, wsUrl, onStageComplete, onCourseCompl
         fitAddonRef.current.fit();
 
         // Enforce minimum cols
-        if (termRef.current.cols < SERVER_DEFAULT_COLS) {
+        if (termRef.current.cols < MIN_COLS) {
           termRef.current.resize(
-            SERVER_DEFAULT_COLS,
-            Math.max(termRef.current.rows, SERVER_DEFAULT_ROWS),
+            MIN_COLS,
+            Math.max(termRef.current.rows, MIN_ROWS),
           );
         }
 

@@ -46,6 +46,7 @@ export async function attachTerminal(
   let isCleanedUp = false;
   let idleTimer: ReturnType<typeof setTimeout> | null = null;
   let nudgeIndex = 0;
+  let k8sExecWs: WebSocket | null = null; // K8s exec WebSocket for resize support
 
   // Idle heartbeat: Inject autonomous exploration prompt to Claude when user is inactive
   function resetIdleTimer() {
@@ -151,8 +152,15 @@ export async function attachTerminal(
         return;
       }
 
-      if (parsed.type === 'resize') {
-        // TODO: Implement when K8s exec resize is supported
+      if (parsed.type === 'resize' && parsed.cols && parsed.rows) {
+        // Forward resize to K8s exec via channel 4 (TTY resize channel)
+        if (k8sExecWs && k8sExecWs.readyState === WebSocket.OPEN) {
+          const payload = JSON.stringify({ Width: parsed.cols, Height: parsed.rows });
+          const buf = Buffer.alloc(1 + payload.length);
+          buf.writeUInt8(4, 0); // channel 4 = resize
+          buf.write(payload, 1);
+          k8sExecWs.send(buf);
+        }
         return;
       }
 
@@ -194,7 +202,7 @@ export async function attachTerminal(
   const execCommand = ['/usr/local/bin/start-claude.sh', courseId || '', model];
 
   try {
-    await exec.exec(
+    k8sExecWs = await exec.exec(
       namespace,
       podName,
       'sandbox',
@@ -203,7 +211,7 @@ export async function attachTerminal(
       stdoutStream,
       stdinStream,
       true, // TTY mode
-    );
+    ) as unknown as WebSocket;
     console.log(`[terminal-bridge] exec attached for pod ${podName} (model: ${model})`);
 
     // Send auto_start event to frontend (for loading UI -> "lesson in progress" transition)
