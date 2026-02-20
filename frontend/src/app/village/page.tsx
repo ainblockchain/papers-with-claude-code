@@ -8,7 +8,7 @@ import { PurchaseModal } from '@/components/purchase/PurchaseModal';
 import { useVillageStore } from '@/stores/useVillageStore';
 import { useSocialStore } from '@/stores/useSocialStore';
 import { usePurchaseStore } from '@/stores/usePurchaseStore';
-import { useCourses } from '@/hooks/useCourses';
+import { papersAdapter } from '@/lib/adapters/papers';
 import {
   friendPresenceAdapter,
   notificationAdapter,
@@ -19,14 +19,12 @@ export default function VillagePage() {
   const { setFriends } = useVillageStore();
   const { addNotification, setLeaderboard } = useSocialStore();
   const { initializeAccess } = usePurchaseStore();
-  const { data: courses } = useCourses();
 
-  // Initialize purchase access statuses from React Query data
   useEffect(() => {
-    if (courses) {
-      initializeAccess(courses);
-    }
-  }, [courses, initializeAccess]);
+    papersAdapter.fetchTrendingPapers('daily').then((papers) => {
+      initializeAccess(papers);
+    });
+  }, [initializeAccess]);
 
   useEffect(() => {
     const unsubFriends = friendPresenceAdapter.subscribeToFriendPositions(setFriends);
