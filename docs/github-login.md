@@ -45,8 +45,8 @@ The two-step flow:
 | Field | Value |
 |-------|-------|
 | Application name | `Papers with Claude Code` |
-| Homepage URL | `http://localhost:3005` (dev) or your production URL |
-| Authorization callback URL | `http://localhost:3005/api/auth/callback/github` |
+| Homepage URL | `http://localhost:3000` (dev) or `https://paperswithclaudecode.com` |
+| Authorization callback URL | `http://localhost:3000/api/auth/callback/github` |
 
 4. Click **Register application**
 5. Copy **Client ID** and generate a **Client Secret**
@@ -59,8 +59,7 @@ GITHUB_ID=your_client_id
 GITHUB_SECRET=your_client_secret
 
 # NextAuth
-NEXTAUTH_SECRET=generate_a_random_secret
-NEXTAUTH_URL=http://localhost:3005
+AUTH_SECRET=generate_a_random_secret
 
 # AIN Blockchain
 AIN_PROVIDER_URL=http://localhost:8081
@@ -155,11 +154,9 @@ const signature = assertion.response.signature;
 
 ## 4. Frontend Integration
 
-The main frontend (`frontend/`) should adopt the same passkey auth flow from the debug frontend.
+The main frontend (`frontend/` — live at [paperswithclaudecode.com](https://paperswithclaudecode.com/)) implements the passkey auth flow.
 
-### What to Migrate
-
-The debug frontend (`ainblockchain-integration/debug-frontend/`) has the working implementation. To integrate into the main frontend:
+### Implementation
 
 **1. Copy passkey library:**
 ```

@@ -1,43 +1,51 @@
 # Papers with Claude Code
 
-A knowledge graph-based learning platform that connects academic papers and GitHub repositories for educational content, powered by AIN blockchain and Claude Code.
+> **Live**: [paperswithclaudecode.com](https://paperswithclaudecode.com/)
 
-## Overview
+Every day, dozens of AI papers drop with code — transformers, diffusion models, agents, state space models. The volume is overwhelming, and even when you find a great paper, actually understanding it is hard. The gap between "published" and "understood" keeps growing.
 
-Developers learn by doing — making design decisions, reading papers, and studying code. This project captures that process and turns it into structured, monetizable educational content.
+**Papers with Claude Code** closes that gap. It turns any paper-with-code into an interactive, gamified learning course — powered by Claude Code as your AI tutor, with micropayments on-chain.
 
-When you work with Claude Code and make a design decision, the `/lesson` skill records it as a **lesson_learned** on the AIN blockchain knowledge graph. The **Cogito container** — running inside the AIN blockchain node — watches for new lessons, finds related academic papers and code repositories, and generates rich educational content using a local LLM (Qwen3-32B via vLLM). Subscribers pay via **x402 micropayments** to access this content.
+## How It Works
 
-```
-You (Claude Code) ──/lesson──→ AIN Blockchain (lesson_learned)
-                                       │
-Cogito Container                       │
-  ├── watches for new lessons ←────────┘
-  ├── finds related papers + code (arXiv, GitHub)
-  ├── generates educational content (vLLM / Qwen3-32B)
-  └── serves x402-gated content → Subscribers pay to read
-```
-
-## Key Concepts
-
-- **Lesson Learned** — A design decision captured during development: what you decided, why, what alternatives you considered, and what papers/code informed the choice
-- **Cogito Container** — A Docker service inside the AIN blockchain node that transforms lessons into educational content
-- **x402 Micropayments** — HTTP 402-based payment protocol on Base chain; subscribers pay per-article in USDC
-- **Knowledge Graph** — AIN blockchain stores lessons, explorations, and their relationships as a graph
-- **ERC-8004** — Agent identity on Base chain (the Cogito node is a registered autonomous agent)
-- **ERC-8021** — Builder codes on Base transactions that attribute original paper authors and code contributors
-
-## Features
-
-- **Knowledge Graph Construction** — Automatically extract and connect key concepts, methods, and findings across papers
-- **Paper-to-Code Linking** — Map academic papers to their corresponding GitHub repositories and implementations
-- **Lesson Capture** — `/lesson` Claude Code skill records design decisions to blockchain
-- **Educational Content Generation** — Cogito container enriches lessons with papers + code analysis
-- **x402 Monetization** — Subscribers pay micropayments to access generated content
-- **Shared Learning Management** — Collaborate with friends to track reading progress, share annotations, and discuss insights
-- **Social Learning** — Share knowledge graphs with peers, compare notes, and learn together
+1. **Find a paper** — Browse trending papers from arXiv and HuggingFace on the Explore page
+2. **Publish a course** — Paste an arXiv URL and GitHub repo into Course Builder. Claude Code reads the paper, analyzes the code, and generates a multi-stage dungeon course with quizzes
+3. **Learn interactively** — Enter a 2D dungeon room. Walk around, interact with concept markers, ask Claude Code questions in the terminal, pass the quiz to unlock the next stage
+4. **Pay per stage** — Each stage unlock is an x402 micropayment (~$0.001 USDC). Course creators earn directly. No subscriptions, no middlemen
+5. **Learn together** — Visit the Village to see friends, compete on the leaderboard, and explore the community knowledge graph
 
 ## Architecture
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│  Frontend (paperswithclaudecode.com)                                  │
+│                                                                      │
+│  /explore    — trending papers with Learn/Purchase buttons            │
+│  /learn/:id  — 60/40 split: 2D dungeon canvas + Claude Code terminal │
+│  /village    — 2D tilemap, friends, leaderboard, buildings per course │
+│  /dashboard  — stats, active courses, streak                         │
+│  /publish    — Course Builder: arXiv + GitHub → dungeon course        │
+│  /community  — knowledge graph visualization + frontier map           │
+└───────────────────────────┬──────────────────────────────────────────┘
+                            │
+              ┌─────────────┼─────────────┐
+              │             │             │
+              ▼             ▼             ▼
+┌──────────────────┐ ┌───────────┐ ┌────────────────────────────┐
+│ claudecode-k8s   │ │ AIN Chain │ │ Kite Chain (Base L2)       │
+│ terminal pods    │ │ knowledge │ │ x402 USDC micropayments    │
+│ per learner      │ │ graph     │ │ ERC-8004 agent identity    │
+│                  │ │ frontier  │ │ ERC-8021 builder attribution│
+└──────────────────┘ └───────────┘ └────────────────────────────┘
+                            │
+                    ┌───────┴───────┐
+                    │  Cogito Node  │
+                    │  local LLM +  │
+                    │  AIN node     │
+                    │  autonomous   │
+                    │  exploration  │
+                    └───────────────┘
+```
 
 See [architecture.md](architecture.md) for the full system design.
 
@@ -45,88 +53,68 @@ See [architecture.md](architecture.md) for the full system design.
 
 | Directory | Description |
 |-----------|-------------|
+| `frontend/` | Main web app — explore, learn, village, dashboard, course builder |
+| `ain-js/` | AIN blockchain SDK (`@ainblockchain/ain-js` on npm) |
+| `base-bounty/` | Cogito Node agent + collective intelligence dashboard |
 | `cogito/` | Cogito container: content generation + x402 server |
-| `.github/workflows/deploy-cogito.yml` | CI/CD: build image, push to GHCR, register on AIN |
-| `.claude/skills/lesson/` | `/lesson` Claude Code skill for recording design decisions |
-| `base-bounty/agent/` | Base chain integration (ERC-8004, ERC-8021, wallet) |
-| `base-bounty/web/` | Public dashboard showing bounty compliance |
-| `ainblockchain-integration/` | AIN blockchain debug frontend |
-| `knowledge-graph-builder/` | Paper/repo knowledge graph extraction |
-| `frontend/` | Main web frontend |
+| `claudecode-kubernetes/` | K8s infrastructure: terminal pods, api-proxy, web-terminal |
+| `knowledge-graph-builder/` | Pipeline: repos → analyzed structure → courses |
+| `ainblockchain-integration/` | AIN blockchain debug frontend + example course |
+| `kiteAi/` | Kite AI bounty specs and developer docs |
 
-## Roles & Responsibilities
+## Roles
 
 | Member | Module |
 |--------|--------|
 | @chanho | `frontend/` |
 | @haechan | `claudecode-kubernetes/` |
 | @hyeonjeong | `knowledge-graph-builder/` |
-| @minhyun | `ainblockchain-integration/` + `cogito/` |
+| @minhyun | `ainblockchain-integration/` + `cogito/` + `ain-js/` + `base-bounty/` |
+
+## Key Concepts
+
+- **Dungeon Course** — A paper turned into a sequence of 2D rooms. Each room has concept markers to explore and a quiz-gated door to the next stage
+- **Claude Code Terminal** — AI tutor on the right panel (40%) that knows the paper, the code, and the current stage context
+- **x402 Micropayments** — HTTP 402-based payment protocol. Learners pay ~$0.001 USDC per stage on Kite Chain (Base L2)
+- **Knowledge Graph** — AIN blockchain stores explorations, topics, and their relationships. Every course, every concept, every learner's progress feeds the graph
+- **Cogito Node** — Autonomous AI agent (local LLM + AIN node) that reads papers, builds knowledge, sells access via x402. Self-sustaining through micropayment revenue
+- **ERC-8004** — Agent identity on Base chain. Cogito nodes register as autonomous agents
+- **ERC-8021** — Builder codes on Base transactions attributing original paper authors and code contributors
+- **Village** — 2D social hub where learners walk around, see friends, enter course buildings, check the leaderboard
+- **Passkey Wallet** — GitHub OAuth for identity + WebAuthn passkey as AIN blockchain wallet. No seed phrases
 
 ## Getting Started
 
+### Frontend (quickest path)
+
+```bash
+cd frontend
+cp .env.example .env.local  # or set AUTH_SECRET
+npm install
+npm run dev
+# Open http://localhost:3000
+```
+
+### Full Stack
+
+See individual module READMEs:
+- [frontend/README.md](frontend/README.md) — Next.js app
+- [base-bounty/README.md](base-bounty/README.md) — Cogito Node + dashboard
+- [claudecode-kubernetes/README.md](claudecode-kubernetes/README.md) — K8s terminal infrastructure
+- [knowledge-graph-builder/README.md](knowledge-graph-builder/) — Course generation pipeline
+
 ### Prerequisites
 
-- Docker with GPU support (NVIDIA A6000 or similar, 48GB+ VRAM)
 - Node.js 20+
-- AIN private key
-- (Optional) Anthropic API key for Claude Code
-
-### Run the AIN blockchain node
-
-```bash
-cd /path/to/ain-blockchain
-docker compose up
-```
-
-This starts: vLLM (Qwen3-32B-AWQ) + Neo4j + AIN blockchain node.
-
-### Deploy the Cogito container
-
-Cogito deploys via CI/CD. Push to `main` and GitHub Actions will:
-1. Build the Docker image
-2. Push to `ghcr.io/<owner>/cogito`
-3. Register deployment on AIN blockchain
-
-The AIN node — bound to your GitHub account via passkey — pulls the image from GHCR and runs it.
-
-```bash
-# Or build locally for development
-cd cogito
-npm run docker:build
-```
-
-### GitHub Actions Secrets
-
-Set these in **Settings > Secrets > Actions**:
-
-| Secret | Description |
-|--------|-------------|
-| `AIN_PROVIDER_URL` | AIN node endpoint |
-| `AIN_PRIVATE_KEY` | Wallet private key |
-
-`GITHUB_TOKEN` is provided automatically (used for GHCR push).
-
-### Record a lesson (from your Claude Code session)
-
-```
-/lesson "Chose WebSocket over polling for real-time updates because of lower latency"
-```
-
-### Access educational content (as a subscriber)
-
-```bash
-# Free: list available content
-curl http://localhost:3402/content
-
-# Paid: unlock full article (x402 payment required)
-curl http://localhost:3402/content/<id>
-```
+- (Optional) NVIDIA GPU with 48GB+ VRAM for Cogito Node local LLM
+- (Optional) AIN blockchain node for on-chain operations
 
 ## Documentation
 
-- [Architecture](architecture.md) — Full system design and data flow
-- [GitHub Login (Passkey Auth)](docs/github-login.md) — GitHub OAuth + P256 passkey wallet
+- [architecture.md](architecture.md) — Full system design
+- [docs/github-login.md](docs/github-login.md) — GitHub OAuth + P256 passkey wallet
+- [demo_script.md](demo_script.md) — Demo narration script
+- [demo_screenplay.md](demo_screenplay.md) — Demo screen actions and timing
 
 ## License
 
