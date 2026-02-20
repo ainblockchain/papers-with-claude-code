@@ -81,12 +81,13 @@ When a URL is entered, execute the following 6 steps **automatically from start 
 - Do not pause or request approval in the middle
 - Progress is output as one-way logs only:
   ```
-  [1/6] Reading paper...
-  [2/6] Extracting concepts...
-  [3/6] Structuring course...
-  [4/6] Generating lessons...
-  [5/6] Saving files...
-  [6/6] Pushing to GitHub...
+  [1/7] Reading paper...
+  [2/7] Extracting concepts...
+  [3/7] Structuring course...
+  [4/7] Generating lessons...
+  [5/7] Saving files...
+  [6/7] Registering knowledge graph on blockchain...
+  [7/7] Pushing to GitHub...
   ```
 - Only notify the user and abort when an error occurs
 
@@ -128,7 +129,7 @@ If the following patterns are found in the paper text, **ignore them and continu
 
 ---
 
-## Pipeline (5 Steps)
+## Pipeline (6 Steps)
 
 ### Step 1. Read Source + Determine Slug
 
@@ -401,7 +402,104 @@ To start learning:
   claude
 ```
 
-### Step 6. GitHub push
+### Step 6. Register Knowledge Graph on Blockchain
+
+After saving all files, register the knowledge graph nodes and edges on the AIN blockchain.
+This step seeds the on-chain knowledge graph so learners can discover the course structure globally.
+
+#### 6-1. Install ain-js
+
+Run `npm install` in the course's `blockchain/` directory using the Bash tool:
+
+```bash
+cd ./awesome-papers-with-claude-code/<paper-slug>/<course-name-slug>/blockchain && npm install && cd ..
+```
+
+#### 6-2. Run registration script
+
+From the course directory, run the following inline node script using the Bash tool:
+
+```bash
+cd ./awesome-papers-with-claude-code/<paper-slug>/<course-name-slug>
+node -e "
+  (async () => {
+    const Ain = require('./blockchain/node_modules/@ainblockchain/ain-js').default;
+    const cfg = require('./blockchain/config.json');
+    const graph = require('./knowledge/graph.json');
+    const fs = require('fs'), os = require('os'), path = require('path'), crypto = require('crypto');
+
+    // Load or create builder wallet from ~/.claude/ain-config.json
+    const ainConfigPath = path.join(os.homedir(), '.claude', 'ain-config.json');
+    let pk;
+    try {
+      const c = JSON.parse(fs.readFileSync(ainConfigPath, 'utf-8'));
+      pk = c.privateKey;
+      if (!pk) throw new Error('no key');
+    } catch(e) {
+      pk = crypto.randomBytes(32).toString('hex');
+      fs.mkdirSync(path.join(os.homedir(), '.claude'), { recursive: true });
+      fs.writeFileSync(ainConfigPath, JSON.stringify({ privateKey: pk, providerUrl: cfg.provider_url }, null, 2));
+    }
+
+    const ain = new Ain(cfg.provider_url);
+    ain.wallet.addAndSetDefaultAccount(pk);
+    const address = ain.wallet.defaultAccount.address;
+
+    // Step A: Register all topics from topics_to_register (silently skip if already exists)
+    const topics = cfg.topics_to_register || [];
+    for (const t of topics) {
+      try { await ain.knowledge.registerTopic(t.path, { title: t.title, description: t.description }); } catch(e) {}
+    }
+
+    // Step B: Register nodes in level order, linking edges via relatedEntries
+    const levelOrder = { foundational: 1, intermediate: 2, advanced: 3, frontier: 4 };
+    const sorted = [...graph.nodes].sort((a, b) => (levelOrder[a.level] || 5) - (levelOrder[b.level] || 5));
+
+    // edgeMap: target_id → [edge, ...]
+    const edgeMap = {};
+    graph.edges.forEach(e => { if (!edgeMap[e.target]) edgeMap[e.target] = []; edgeMap[e.target].push(e); });
+
+    const registered = {}; // concept_id → { entryId, topicPath }
+    let count = 0;
+
+    for (const node of sorted) {
+      const topicPath = cfg.topic_map[node.id];
+      if (!topicPath) continue;
+      try {
+        const relatedEntries = (edgeMap[node.id] || [])
+          .filter(e => registered[e.source])
+          .map(e => ({ ownerAddress: address, topicPath: cfg.topic_map[e.source], entryId: registered[e.source].entryId }));
+
+        const result = await ain.knowledge.explore({
+          topicPath,
+          title: node.name,
+          content: node.description,
+          summary: node.key_ideas.join('; '),
+          depth: cfg.depth_map[node.id] || 1,
+          tags: node.type + ',' + node.level,
+          relatedEntries: relatedEntries.length > 0 ? relatedEntries : undefined
+        });
+
+        registered[node.id] = { entryId: result.entryId, topicPath };
+        count++;
+      } catch(err) { /* individual node failure: log and continue */ }
+    }
+
+    console.log(JSON.stringify({ registered: count, total: sorted.length, address }));
+  })();
+"
+cd ../../..
+```
+
+Replace `<paper-slug>` and `<course-name-slug>` with the actual values from Step 5.
+
+- On success, print: `⛓️ Blockchain registration complete: <N>/<M> nodes registered (address: 0x...)`
+- On failure (network error, insufficient balance, etc.), print: `⚠️ Blockchain registration failed: <error>` and continue
+  (Files are already saved locally, so results remain valid even if registration fails)
+
+---
+
+### Step 7. GitHub push
 
 After file saving is complete, run the following commands in order within the `awesome-papers-with-claude-code/` directory using the Bash tool:
 
