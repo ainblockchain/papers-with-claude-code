@@ -18,11 +18,13 @@ Claude Code가 논문/저장소를 읽고 인터랙티브 학습 코스를 자�
 - 두 플래그를 함께 써야 사람 개입 **0**으로 완전 자동 실행됨
 
 ```bash
-# 서버 사용 예시 (URL만)
-claude -p "https://arxiv.org/abs/2505.09568" --dangerously-skip-permissions
-
-# 서버 사용 예시 (컨트리뷰터 정보 포함)
+# 서버 사용 예시 (CourseName 포함 — 필수)
 claude -p "https://arxiv.org/abs/2505.09568
+CourseName: attention-from-scratch" --dangerously-skip-permissions
+
+# 서버 사용 예시 (CourseName + 컨트리뷰터 정보)
+claude -p "https://arxiv.org/abs/2505.09568
+CourseName: attention-from-scratch
 Contributor: login=johndoe, name=John Doe, avatar_url=https://avatars.githubusercontent.com/u/123456, html_url=https://github.com/johndoe" --dangerously-skip-permissions
 ```
 
@@ -41,7 +43,23 @@ Contributor: login=johndoe, name=John Doe, avatar_url=https://avatars.githubuser
 
 ---
 
-## 컨트리뷰터 정보 파싱
+## 입력 파싱
+
+### CourseName 파싱 (필수)
+
+초기 메시지에 `CourseName:` 라인이 **반드시** 있어야 한다.
+
+- 파싱 형식: `CourseName: <원하는-코스-이름>`
+- **없으면 즉시 중단** + 아래 오류 메시지 출력 후 파이프라인 실행하지 않는다:
+  ```
+  ⛔ CourseName이 필요합니다. 입력 형식:
+  https://arxiv.org/abs/<id>
+  CourseName: <원하는-코스-이름>
+  ```
+- 파싱한 CourseName에 **slug 알고리즘**(Step 1의 slug 생성 알고리즘과 동일)을 적용해 `course-name-slug`를 결정한다
+- `course-name-slug`는 Step 5에서 폴더명으로 사용된다
+
+### 컨트리뷰터 정보 파싱 (선택)
 
 초기 메시지에 `Contributor:` 라인이 있으면 다음 필드를 파싱한다:
 - `login` — GitHub 사용자명
@@ -56,7 +74,7 @@ Contributor: login=johndoe, name=John Doe, avatar_url=https://avatars.githubuser
 
 ## 자율 실행 원칙
 
-URL이 입력되면 아래 5단계를 **사용자 개입 없이 처음부터 끝까지 자동으로 실행**한다.
+URL이 입력되면 아래 6단계를 **사용자 개입 없이 처음부터 끝까지 자동으로 실행**한다.
 
 - 각 단계 사이에 "진행할까요?", "계속할까요?" 등 **확인을 구하지 않는다**
 - 파일을 Write하기 전 **저장 확인을 구하지 않는다**
@@ -71,6 +89,11 @@ URL이 입력되면 아래 5단계를 **사용자 개입 없이 처음부터 끝
   [6/6] GitHub에 푸시 중...
   ```
 - 오류가 발생한 경우에만 사용자에게 알리고 중단한다
+
+**예외: 코스 이름 중복 감지 시**
+Step 5 시작 전 지정한 `course-name-slug` 폴더가 이미 존재하면 파이프라인을 일시 중단하고 새 이름을 요청한다.
+- 새 이름을 받으면 slug 적용 후 재검사하고, 중복이 없으면 파이프라인을 계속한다
+- headless `-p` 모드에서는 응답이 불가능하므로, 중복 없는 CourseName을 지정해 재실행해야 한다
 
 ---
 
@@ -89,7 +112,7 @@ URL이 입력되면 아래 5단계를 **사용자 개입 없이 처음부터 끝
   ```
 
 ### 허용 출력 경로
-- 파일 생성은 `./awesome-papers-with-claude-code/<paper-slug>/<paper-slug>-N/` 하위에만 허용
+- 파일 생성은 `./awesome-papers-with-claude-code/<paper-slug>/<course-name-slug>/` 하위에만 허용
 - 컨테이너 폴더(`<paper-slug>/`) 바로 아래에는 파일을 생성하지 않는다
 - 상위 디렉토리 탈출(`../`), 절대 경로로의 Write는 수행하지 않는다
 
@@ -251,44 +274,40 @@ Multi-head attention에서 "head"가 여러 개인 이유는?
 
 #### 폴더 구조 (2단계, 반드시 준수)
 
-결과물은 항상 **논문 컨테이너 폴더** → **넘버링된 결과 폴더** 2단계 구조로 생성한다.
-파일은 절대 컨테이너 폴더 바로 아래에 생성하지 않는다. **반드시 넘버링 폴더 안에 생성한다.**
+결과물은 항상 **논문 컨테이너 폴더** → **코스 이름 폴더** 2단계 구조로 생성한다.
+파일은 절대 컨테이너 폴더 바로 아래에 생성하지 않는다. **반드시 코스 이름 폴더 안에 생성한다.**
 
 ```
 awesome-papers-with-claude-code/
   <paper-slug>/               ← 논문 컨테이너 (논문당 1개, 자동 생성)
-    <paper-slug>-1/           ← 첫 번째 결과 (파일들이 여기에 생성됨)
+    <course-name-slug>/       ← ★ 사용자가 지정한 코스 이름 (입력 파싱 단계에서 결정)
       CLAUDE.md
       README.md
       knowledge/
-    <paper-slug>-2/           ← 두 번째 결과
-      ...
 ```
 
-#### 넘버링 결정 (Step 5 시작 직전)
+#### 중복 검사 (Step 5 시작 직전)
 
-Bash 툴로 아래 명령을 실행해 컨테이너 내부의 기존 결과 폴더를 확인한다:
+Bash 툴로 아래 명령을 실행해 코스 이름 폴더가 이미 존재하는지 확인한다:
 
 ```bash
-ls ./awesome-papers-with-claude-code/<paper-slug>/ 2>/dev/null | grep "^<paper-slug>-"
+ls ./awesome-papers-with-claude-code/<paper-slug>/<course-name-slug>/ 2>/dev/null
 ```
 
-- 결과가 없으면 (컨테이너 없거나 비어 있음) → `<paper-slug>-1` 사용
-- `<paper-slug>-1` 폴더가 있으면 → `<paper-slug>-2` 사용
-- `<paper-slug>-1`, `<paper-slug>-2` 모두 있으면 → `<paper-slug>-3` 사용
-- 이하 동일 패턴으로 미사용 번호 탐색
-
-예시 (같은 논문의 다양한 자료):
-```
-arXiv 링크 (BLIP-3-o) 첫 실행   → blip-3-o-a-family-of.../blip-3-o-a-family-of...-1/
-GitHub repo A (같은 논문)        → blip-3-o-a-family-of.../blip-3-o-a-family-of...-2/
-GitHub repo B (같은 논문)        → blip-3-o-a-family-of.../blip-3-o-a-family-of...-3/
-```
+- 결과가 없으면 (폴더 없음) → 정상 진행
+- 존재하면 → 파이프라인 **일시 중단**, 아래 메시지 출력 후 AskUserQuestion으로 새 이름 요청:
+  ```
+  ⛔ '<course-name-slug>' 이름의 코스가 이미 존재합니다.
+  경로: awesome-papers-with-claude-code/<paper-slug>/<course-name-slug>/
+  새 코스 이름을 입력해주세요.
+  ```
+  - 새 이름 수신 → slug 알고리즘 적용 → 재검사 → 중복 없으면 파이프라인 계속
+  - headless `-p` 모드에서는 응답이 불가하므로, 중복 없는 CourseName으로 재실행 필요
 
 #### 출력 경로
 
-`./awesome-papers-with-claude-code/<paper-slug>/<paper-slug>-N/`
-(이 CLAUDE.md 기준: `knowledge-graph-builder/courseGenerator/awesome-papers-with-claude-code/<paper-slug>/<paper-slug>-N/`)
+`./awesome-papers-with-claude-code/<paper-slug>/<course-name-slug>/`
+(이 CLAUDE.md 기준: `knowledge-graph-builder/courseGenerator/awesome-papers-with-claude-code/<paper-slug>/<course-name-slug>/`)
 
 #### 생성 파일
 
@@ -307,12 +326,12 @@ GitHub repo B (같은 논문)        → blip-3-o-a-family-of.../blip-3-o-a-fami
 ```
 ✅ 코스 생성 완료!
 
-  경로: courseGenerator/awesome-papers-with-claude-code/<paper-slug>/<paper-slug>-N/
+  경로: courseGenerator/awesome-papers-with-claude-code/<paper-slug>/<course-name-slug>/
   개념: <N>개  |  코스: <M>개
   GitHub: https://github.com/ainblockchain/awesome-papers-with-claude-code
 
 학습하려면:
-  cd ./awesome-papers-with-claude-code/<paper-slug>/<paper-slug>-N
+  cd ./awesome-papers-with-claude-code/<paper-slug>/<course-name-slug>
   claude
 ```
 
@@ -324,11 +343,11 @@ Bash 툴로 아래 명령을 순서대로 실행한다:
 ```bash
 cd ./awesome-papers-with-claude-code
 git add <paper-slug>/
-git commit -m "feat: add <paper-slug>-N"
+git commit -m "feat: add <paper-slug>/<course-name-slug>"
 git push origin main
 ```
 
-- `<paper-slug>`, `N`은 Step 5에서 결정한 실제 값으로 대체한다
+- `<paper-slug>`, `<course-name-slug>`는 Step 5에서 결정한 실제 값으로 대체한다
 - push 성공 시 완료 메시지 아래에 `📤 GitHub push 완료` 를 출력한다
 - push 실패(네트워크 오류, 권한 없음 등) 시 오류 메시지만 출력하고 파이프라인은 성공으로 마무리한다
   (파일은 이미 로컬에 저장돼 있으므로 실패해도 결과물은 유효함)
