@@ -30,6 +30,9 @@ KEY_SUFFIX="${API_KEY: -8}"
 
 mkdir -p ~/.claude
 
+# 재실행 시 이전에 chmod 444로 잠긴 파일을 덮어쓸 수 있도록 권한 복구
+[ -f ~/.claude.json ] && chmod 644 ~/.claude.json
+
 cat > ~/.claude.json << EOF
 {
   "primaryApiKey": "${API_KEY}",
