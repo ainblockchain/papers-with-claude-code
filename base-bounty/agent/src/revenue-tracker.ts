@@ -18,6 +18,11 @@ export class RevenueTracker {
     this.events.push({ timestamp: Date.now(), amount, type: 'cost', source });
   }
 
+  /** Record a Base chain transaction (for tracking, no revenue amount). */
+  recordTransaction(tx: { txHash: string; timestamp: number; type: string; builderCodes?: string[] }): void {
+    this.events.push({ timestamp: tx.timestamp, amount: 0, type: 'cost', source: `base_tx:${tx.type}:${tx.txHash.slice(0, 10)}` });
+  }
+
   getIncomeLast24h(): number {
     const cutoff = Date.now() - DAY_MS;
     return this.events

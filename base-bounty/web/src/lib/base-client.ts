@@ -140,38 +140,25 @@ export interface BaseTx {
   builderCodes: string[];
 }
 
-const BASESCAN_API_URL = process.env.NEXT_PUBLIC_BASESCAN_API_URL || 'https://api.basescan.org/api';
-const BASESCAN_API_KEY = process.env.NEXT_PUBLIC_BASESCAN_API_KEY || '';
-
-export async function getRecentTransactions(address: string, limit = 20): Promise<BaseTx[]> {
-  const params = new URLSearchParams({
-    module: 'account',
-    action: 'txlist',
-    address,
-    startblock: '0',
-    endblock: '99999999',
-    page: '1',
-    offset: String(limit),
-    sort: 'desc',
-    ...(BASESCAN_API_KEY ? { apikey: BASESCAN_API_KEY } : {}),
-  });
+/**
+ * Fetch recent transactions via Blockscout V2 API (BaseScan V1 is deprecated).
+ */
+export async function getRecentTransactions(address: string, limit = 50): Promise<BaseTx[]> {
+  const BLOCKSCOUT_URL = process.env.NEXT_PUBLIC_BLOCKSCOUT_URL || 'https://base.blockscout.com';
 
   try {
-    const res = await fetch(`${BASESCAN_API_URL}?${params}`);
+    const res = await fetch(`${BLOCKSCOUT_URL}/api/v2/addresses/${address}/transactions?limit=${limit}`);
     const json = await res.json();
+    const items = json.items || [];
 
-    if (json.status !== '1' || !Array.isArray(json.result)) {
-      return [];
-    }
-
-    return json.result.map((tx: any) => ({
+    return items.map((tx: any) => ({
       hash: tx.hash,
-      timestamp: Number(tx.timeStamp) * 1000,
-      from: tx.from,
-      to: tx.to || '',
-      value: ethers.formatEther(tx.value || '0'),
-      input: tx.input || '0x',
-      builderCodes: parseBuilderCodes(tx.input || ''),
+      timestamp: tx.timestamp ? new Date(tx.timestamp).getTime() : 0,
+      from: tx.from?.hash || '',
+      to: tx.to?.hash || '',
+      value: tx.value ? ethers.formatEther(tx.value) : '0',
+      input: tx.raw_input || tx.input || '0x',
+      builderCodes: parseBuilderCodes(tx.raw_input || tx.input || ''),
     }));
   } catch {
     return [];
@@ -179,10 +166,17 @@ export async function getRecentTransactions(address: string, limit = 20): Promis
 }
 
 /**
- * Get the ERC-8004 registration transaction hash from BaseScan.
+ * Get the ERC-8004 registration transaction from Blockscout.
  */
 export async function getRegistrationTx(): Promise<BaseTx | null> {
   const txs = await getRecentTransactions(AGENT_ADDRESS, 50);
-  // Find the tx to the ERC-8004 registry
   return txs.find(tx => tx.to.toLowerCase() === ERC_8004_REGISTRY.toLowerCase()) || null;
+}
+
+/**
+ * Get transactions that have ERC-8021 builder codes.
+ */
+export async function getAttributedTransactions(): Promise<BaseTx[]> {
+  const txs = await getRecentTransactions(AGENT_ADDRESS, 50);
+  return txs.filter(tx => tx.builderCodes.length > 0);
 }

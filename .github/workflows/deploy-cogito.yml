@@ -1,0 +1,58 @@
+name: Build & Deploy Cogito
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'cogito/**'
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/cogito
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: cogito
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+
+      - name: Register deployment on AIN
+        run: |
+          cd cogito && npm ci
+          node -e "
+            const Ain = require('@ainblockchain/ain-js');
+            const ain = new Ain('${{ secrets.AIN_PROVIDER_URL }}');
+            ain.wallet.addAndSetDefaultAccount('${{ secrets.AIN_PRIVATE_KEY }}');
+            const addr = ain.wallet.defaultAccount.address;
+            ain.db.ref('/apps/knowledge/deployments/' + addr + '/cogito').setValue({
+              value: {
+                image: '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}',
+                deployed_at: Date.now(),
+                github_sha: '${{ github.sha }}',
+                github_actor: '${{ github.actor }}',
+              },
+              nonce: -1,
+            }).then(r => console.log('Registered:', JSON.stringify(r?.result)))
+              .catch(e => console.log('Registration skipped:', e.message));
+          "
