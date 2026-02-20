@@ -6,6 +6,7 @@ import { Trophy, Users, MapPin, Network } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { FRIEND_COLORS } from '@/constants/game';
+import { VillageMinimap } from './VillageMinimap';
 
 export function VillageSidebar() {
   const { friends } = useVillageStore();
@@ -108,21 +109,7 @@ export function VillageSidebar() {
           <MapPin className="h-4 w-4" />
           World Map
         </div>
-        <div className="bg-[#4A7C59] rounded-lg h-32 relative overflow-hidden">
-          {/* Simplified minimap */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <p className="text-[10px] text-white/70 font-mono">Village Overview</p>
-          </div>
-          {/* Player dot */}
-          <div
-            className="absolute w-2 h-2 bg-blue-400 rounded-full border border-white"
-            style={{
-              left: '50%',
-              top: '50%',
-              transform: 'translate(-50%, -50%)',
-            }}
-          />
-        </div>
+        <VillageMinimap />
       </div>
     </div>
   );
