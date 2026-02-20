@@ -12,15 +12,15 @@ import type { CourseLocation } from '@/lib/ain/location-types';
 import { assignCoursesToGrid, generateCourseLocations } from '@/lib/tmj/village-generator';
 
 const HEARTBEAT_MS = 300_000; // 5 minutes
-const COURSE_COLORS = ['#8B4513', '#4A5568', '#2D3748', '#553C9A', '#2B6CB0', '#276749'];
+const COURSE_COLORS = ['#8B4513', '#4A5568', '#2D3748', '#553C9A', '#2B6CB0', '#276749', '#9B2C2C'];
 
 /** Generate default course entrance positions using the plot grid system */
 function generateDefaultCourseLocations(): CourseLocation[] {
-  const papers = MOCK_PAPERS.slice(0, 6);
+  const papers = MOCK_PAPERS;
   const coursesInput = papers.map((paper, i) => ({
     paperId: paper.id,
     label: paper.title.split(':')[0].trim(),
-    color: COURSE_COLORS[i],
+    color: COURSE_COLORS[i % COURSE_COLORS.length],
   }));
   const { assignments } = assignCoursesToGrid(coursesInput);
   return generateCourseLocations(coursesInput, assignments);

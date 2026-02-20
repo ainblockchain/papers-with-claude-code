@@ -110,11 +110,9 @@ export default function LearnPage() {
       }
       setPaper(paper);
 
-      // Use mock stages for now (backend stages integration later)
-      const stageData =
-        paperId === 'bitdance-2602'
-          ? MOCK_STAGES_BITDANCE
-          : generateGenericStages(paper.title, paper.totalStages);
+      // Try loading stages from API (knowledge-graph-builder courses),
+      // then fall back to hardcoded mock data or generic stages.
+      const stageData = await loadStages(paperId, paper.title, paper.totalStages);
       setStages(stageData);
 
       // Load progress
@@ -540,6 +538,41 @@ async function waitForSession(
     await new Promise((r) => setTimeout(r, interval));
   }
   throw new Error('Session creation timed out after 60 seconds');
+}
+
+// Try loading stages from the course API, then fall back to mock/generic data.
+async function loadStages(paperId: string, paperTitle: string, totalStages: number) {
+  // 1. Try API-served course data (knowledge-graph-builder output)
+  try {
+    const stages = [];
+    for (let i = 1; i <= totalStages; i++) {
+      const res = await fetch(`/api/maps/courses/${paperId}/stages/${i}`);
+      if (!res.ok) throw new Error(`Stage ${i} not found`);
+      const json = await res.json();
+      if (!json.ok || !json.data?.stage) throw new Error('Invalid stage data');
+      const s = json.data.stage;
+      stages.push({
+        id: s.id,
+        stageNumber: s.stageNumber,
+        title: s.title,
+        concepts: s.concepts,
+        quiz: s.quiz,
+        roomWidth: s.roomWidth,
+        roomHeight: s.roomHeight,
+      });
+    }
+    if (stages.length > 0) return stages;
+  } catch {
+    // API not available — fall through
+  }
+
+  // 2. Hardcoded mock stages
+  if (paperId === 'bitdance-2602') {
+    return MOCK_STAGES_BITDANCE;
+  }
+
+  // 3. Generic placeholder stages
+  return generateGenericStages(paperTitle, totalStages);
 }
 
 // Generate generic stages for papers without predefined stages
