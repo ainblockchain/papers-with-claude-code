@@ -1,9 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAin } from '@/lib/ain-server';
 
-async function collectAllTopicPaths(ain: any): Promise<string[]> {
-  const paths: string[] = [];
+// ---------------------------------------------------------------------------
+// Shared in-memory cache for all AIN blockchain data (avoids 429 rate limits)
+// ---------------------------------------------------------------------------
 
+interface CachedData {
+  paths: string[];
+  allEntries: any[];   // all explorations with entryId, explorer, topic_path
+  graphStats: { node_count: number; edge_count: number; topic_count: number };
+}
+
+let cached: CachedData | null = null;
+let cacheTimestamp = 0;
+const CACHE_TTL = 120_000; // 2 minutes
+
+async function getCachedData(): Promise<CachedData> {
+  if (cached && Date.now() - cacheTimestamp < CACHE_TTL) {
+    return cached;
+  }
+
+  const ain = getAin();
+
+  // Collect all topic paths
+  const paths: string[] = [];
   async function recurse(topicPath: string) {
     paths.push(topicPath);
     const subtopics = await ain.knowledge.listSubtopics(topicPath).catch(() => []);
@@ -11,83 +31,148 @@ async function collectAllTopicPaths(ain: any): Promise<string[]> {
       await recurse(`${topicPath}/${sub}`);
     }
   }
-
   const topics = await ain.knowledge.listTopics();
   for (const topic of (topics || [])) {
     await recurse(topic);
   }
-  return paths;
-}
 
-async function computeGraphStats(ain: any) {
-  const allPaths = await collectAllTopicPaths(ain);
+  // Collect all explorations in a single pass
+  const allEntries: any[] = [];
   let nodeCount = 0;
   let edgeCount = 0;
 
-  for (const tp of allPaths) {
+  for (const tp of paths) {
     const explorers = await ain.knowledge.getExplorers(tp).catch(() => []);
+    let topicNodeCount = 0;
     for (const addr of (explorers || [])) {
       const explorations = await ain.knowledge.getExplorations(addr, tp).catch(() => null);
-      if (explorations) {
-        const count = Object.keys(explorations).length;
-        nodeCount += count;
-        if (count > 1) edgeCount += count - 1;
+      if (!explorations) continue;
+      for (const [id, entry] of Object.entries(explorations as Record<string, any>)) {
+        allEntries.push({
+          ...entry,
+          entryId: id,
+          explorer: addr,
+          topic_path: entry.topic_path || tp,
+        });
+        nodeCount++;
+        topicNodeCount++;
       }
     }
+    if (topicNodeCount > 1) edgeCount += topicNodeCount - 1;
   }
 
-  return { node_count: nodeCount, edge_count: edgeCount, topic_count: allPaths.length };
+  cached = {
+    paths,
+    allEntries,
+    graphStats: { node_count: nodeCount, edge_count: edgeCount, topic_count: paths.length },
+  };
+  cacheTimestamp = Date.now();
+  return cached;
 }
+
+// ---------------------------------------------------------------------------
+// Dedup helpers
+// ---------------------------------------------------------------------------
+
+function titleWords(title: string): Set<string> {
+  return new Set(
+    title.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 2)
+  );
+}
+
+function similarity(a: Set<string>, b: Set<string>): number {
+  let inter = 0;
+  for (const w of a) if (b.has(w)) inter++;
+  const union = a.size + b.size - inter;
+  return union === 0 ? 0 : inter / union;
+}
+
+function deduplicateEntries(entries: any[]): any[] {
+  const sorted = [...entries].sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+  const result: any[] = [];
+  const wordSets: Set<string>[] = [];
+  for (const entry of sorted) {
+    const title = entry.title || '';
+    if (!title.trim()) continue;
+    const words = titleWords(title);
+    if (words.size === 0) continue;
+    if (wordSets.some(existing => similarity(existing, words) > 0.45)) continue;
+    result.push(entry);
+    wordSets.push(words);
+  }
+  return result;
+}
+
+// ---------------------------------------------------------------------------
+// RPC handler
+// ---------------------------------------------------------------------------
 
 export async function POST(request: NextRequest) {
   const { action, params } = await request.json();
-  const ain = getAin();
 
   try {
     let result: any;
 
     switch (action) {
-      case 'getGraphStats':
-        result = await computeGraphStats(ain);
+      case 'getGraphStats': {
+        const data = await getCachedData();
+        result = data.graphStats;
         break;
+      }
 
-      case 'listTopics':
+      case 'listTopics': {
+        const ain = getAin();
         result = await ain.knowledge.listTopics();
         break;
+      }
 
-      case 'listSubtopics':
+      case 'listSubtopics': {
+        const ain = getAin();
         result = await ain.knowledge.listSubtopics(params.topicPath);
         break;
+      }
 
-      case 'getFrontierMap':
+      case 'getFrontierMap': {
+        const ain = getAin();
         result = await ain.knowledge.getFrontierMap(params.topicPath);
         break;
+      }
 
-      case 'getFrontier':
+      case 'getFrontier': {
+        const ain = getAin();
         result = await ain.knowledge.getFrontier(params.topicPath);
         break;
+      }
 
-      case 'getExplorers':
+      case 'getExplorers': {
+        const ain = getAin();
         result = await ain.knowledge.getExplorers(params.topicPath);
         break;
+      }
 
-      case 'getExplorations':
+      case 'getExplorations': {
+        const ain = getAin();
         result = await ain.knowledge.getExplorations(params.address, params.topicPath);
         break;
+      }
 
-      case 'getTopicStats':
+      case 'getTopicStats': {
+        const ain = getAin();
         result = await ain.knowledge.getTopicStats(params.topicPath);
         break;
+      }
 
-      case 'getTopicInfo':
+      case 'getTopicInfo': {
+        const ain = getAin();
         result = await ain.knowledge.getTopicInfo(params.topicPath);
         break;
+      }
 
       case 'getAllFrontierEntries': {
-        // Recursively collect frontier entries from all topics
-        const allPaths = await collectAllTopicPaths(ain);
+        const ain = getAin();
+        const data = await getCachedData();
         const entries: any[] = [];
-        for (const tp of allPaths) {
+        for (const tp of data.paths) {
           const frontier = await ain.knowledge.getFrontierMap(tp).catch(() => []);
           if (Array.isArray(frontier)) entries.push(...frontier);
         }
@@ -96,76 +181,45 @@ export async function POST(request: NextRequest) {
       }
 
       case 'getRecentExplorations': {
-        const paths = await collectAllTopicPaths(ain);
-        const exps: any[] = [];
-        for (const tp of paths) {
-          const explorers = await ain.knowledge.getExplorers(tp).catch(() => []);
-          for (const addr of (explorers || [])) {
-            const explorations = await ain.knowledge.getExplorations(addr, tp).catch(() => null);
-            if (!explorations) continue;
-            for (const [id, entry] of Object.entries(explorations as Record<string, any>)) {
-              exps.push({ ...entry, entryId: id, explorer: addr, topic_path: entry.topic_path || tp });
-            }
-          }
-        }
+        const data = await getCachedData();
         // Filter to entries with paper references
-        const withPapers = exps.filter((e) => /arxiv:|doi:|paper:/i.test(e.tags || ''));
-        const filtered = withPapers.length > 0 ? withPapers : exps;
-        // Deduplicate by title similarity (Jaccard > 0.45)
-        filtered.sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
-        const deduped: any[] = [];
-        const wordSets: Set<string>[] = [];
-        for (const entry of filtered) {
-          const title = entry.title || '';
-          if (!title.trim()) continue;
-          const words = new Set(title.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter((w: string) => w.length > 2));
-          if (words.size === 0) continue;
-          const isDupe = wordSets.some((existing) => {
-            let inter = 0;
-            for (const w of words) if (existing.has(w)) inter++;
-            return inter / (words.size + existing.size - inter) > 0.45;
-          });
-          if (!isDupe) {
-            deduped.push(entry);
-            wordSets.push(words);
-          }
-        }
-        result = deduped.slice(0, params.limit || 20);
+        const withPapers = data.allEntries.filter((e) => /arxiv:|doi:|paper:/i.test(e.tags || ''));
+        const filtered = withPapers.length > 0 ? withPapers : data.allEntries;
+        result = deduplicateEntries(filtered).slice(0, params.limit || 20);
         break;
       }
 
       case 'getKnowledgeGraph': {
-        const kgPaths = await collectAllTopicPaths(ain);
-        const nodes: any[] = [];
+        const data = await getCachedData();
+        const nodes = data.allEntries.map((entry) => ({
+          id: `${entry.explorer}:${entry.topic_path}:${entry.entryId}`,
+          title: entry.title || entry.entryId,
+          topic_path: entry.topic_path,
+          depth: entry.depth || 1,
+          explorer: entry.explorer,
+        }));
+
         const edges: any[] = [];
-        for (const tp of kgPaths) {
-          const explorers = await ain.knowledge.getExplorers(tp).catch(() => []);
-          for (const addr of (explorers || [])) {
-            const explorations = await ain.knowledge.getExplorations(addr, tp).catch(() => null);
-            if (!explorations) continue;
-            for (const [id, entry] of Object.entries(explorations as Record<string, any>)) {
-              nodes.push({
-                id: `${addr}:${tp}:${id}`,
-                title: entry.title || id,
-                topic_path: entry.topic_path || tp,
-                depth: entry.depth || 1,
-                explorer: addr,
-              });
-            }
-          }
-          const topicNodes = nodes.filter(n => n.topic_path === tp);
+        // Connect entries within same topic
+        const byTopic = new Map<string, any[]>();
+        for (const n of nodes) {
+          const list = byTopic.get(n.topic_path) || [];
+          list.push(n);
+          byTopic.set(n.topic_path, list);
+        }
+        for (const topicNodes of byTopic.values()) {
           for (let i = 1; i < topicNodes.length; i++) {
             edges.push({ source: topicNodes[i - 1].id, target: topicNodes[i].id, type: 'related' });
           }
         }
-        // Also connect topics to their parent topic
-        for (const tp of kgPaths) {
+        // Connect subtopics to parent
+        for (const tp of data.paths) {
           const parts = tp.split('/');
           if (parts.length > 1) {
             const parentPath = parts.slice(0, -1).join('/');
-            const parentNodes = nodes.filter(n => n.topic_path === parentPath);
-            const childNodes = nodes.filter(n => n.topic_path === tp);
-            if (parentNodes.length > 0 && childNodes.length > 0) {
+            const parentNodes = byTopic.get(parentPath);
+            const childNodes = byTopic.get(tp);
+            if (parentNodes?.length && childNodes?.length) {
               edges.push({ source: parentNodes[0].id, target: childNodes[0].id, type: 'subtopic' });
             }
           }
