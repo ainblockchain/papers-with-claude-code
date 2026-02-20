@@ -6,8 +6,9 @@ export interface Session {
   namespace: string;
   status: 'creating' | 'running' | 'terminating' | 'terminated';
   createdAt: Date;
-  repoUrl?: string;
+  claudeMdUrl?: string;
   userId?: string;
+  courseId?: string;
 }
 
 export interface AppConfig {
@@ -20,4 +21,8 @@ export interface AppConfig {
   sessionTimeoutSeconds: number;
   maxSessions: number;
   port: number;
+  // x402 결제 설정 (facilitator 기반)
+  x402MerchantWallet: string;
+  x402StagePrice: string;
+  x402FacilitatorUrl: string;
 }

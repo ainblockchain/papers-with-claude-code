@@ -9,6 +9,7 @@ import { AppConfig } from './types.js';
 import { createSessionRouter, getSession, getActiveSessionCount } from './routes/sessions.js';
 import { createStagesRouter } from './routes/stages.js';
 import { createProgressRouter } from './routes/progress.js';
+import { createX402Router } from './routes/x402.js';
 import { ProgressStore } from './db/progress.js';
 import { attachTerminal } from './ws/terminal-bridge.js';
 
@@ -22,6 +23,9 @@ const config: AppConfig = {
   sessionTimeoutSeconds: parseInt(process.env.SESSION_TIMEOUT_SECONDS || '7200'),
   maxSessions: parseInt(process.env.MAX_SESSIONS || '4'),
   port: parseInt(process.env.PORT || '3000'),
+  x402MerchantWallet: process.env.X402_MERCHANT_WALLET || '',
+  x402StagePrice: process.env.X402_STAGE_PRICE || '100000',  // 0.1 USDT (6 decimals)
+  x402FacilitatorUrl: process.env.X402_FACILITATOR_URL || 'https://facilitator.pieverse.io',
 };
 
 const app = express();
@@ -30,7 +34,7 @@ const app = express();
 app.use((_req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, X-PAYMENT');
   if (_req.method === 'OPTIONS') {
     res.sendStatus(204);
     return;
@@ -46,6 +50,16 @@ const progressStore = new ProgressStore(process.env.DB_PATH || '/data/progress.d
 app.use('/api', createSessionRouter(config));
 app.use('/api', createStagesRouter(config));
 app.use('/api', createProgressRouter(progressStore));
+
+// x402 결제 엔드포인트 (merchantWallet이 설정된 경우에만 활성)
+if (config.x402MerchantWallet) {
+  app.use('/api', createX402Router(progressStore, {
+    merchantWallet: config.x402MerchantWallet,
+    stagePrice: config.x402StagePrice,
+    serviceName: 'Papers with Claude Code',
+  }));
+  console.log('[server] x402 payment endpoint enabled');
+}
 
 // 헬스 체크
 app.get('/health', (_req, res) => {
@@ -83,14 +97,13 @@ wss.on('connection', async (ws: WebSocket, req) => {
       session.podName,
       session.namespace,
       session.userId,
-      session.repoUrl, // repoUrl을 paperId로 사용 (데모용)
+      session.courseId,
       progressStore,
       session.id,
       {
-        // repoUrl이 있는 세션이면 자동 시작 모드 활성화
-        // Claude가 즉시 논문 탐구를 시작하여 "자율적" 느낌을 줌
-        autoStart: !!session.repoUrl,
-        idleNudgeMs: session.repoUrl ? 120_000 : 0, // 논문 세션만 idle heartbeat 활성
+        courseId: session.courseId,
+        model: 'haiku', // TODO: x402 결제 티어에 따라 동적 변경
+        idleNudgeMs: session.courseId ? 120_000 : 0,
       },
     );
   } catch (err) {
