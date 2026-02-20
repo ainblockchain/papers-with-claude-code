@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -150,7 +150,7 @@
       white-space: pre-wrap; word-break: break-all; margin-top: 8px; display: none;
     }
 
-    /* ─── 코스 카탈로그 ─── */
+    /* ─── Course Catalog ─── */
     .course-list { max-height: 280px; overflow-y: auto; }
     .course-card {
       padding: 8px 10px;
@@ -173,7 +173,7 @@
   <div class="layout">
     <div class="sidebar">
 
-      <!-- 코스 카탈로그 -->
+      <!-- Course Catalog -->
       <div class="panel">
         <h2>Course Catalog</h2>
         <div id="courseList" class="course-list">
@@ -184,7 +184,7 @@
         </div>
       </div>
 
-      <!-- 세션 생성 폼 -->
+      <!-- Session Creation Form -->
       <div class="panel">
         <h2>Create Session</h2>
         <label for="userId">userId <span style="color:#f85149">*</span></label>
@@ -201,7 +201,7 @@
         </div>
       </div>
 
-      <!-- 세션 액션 -->
+      <!-- Session Actions -->
       <div class="panel">
         <h2>Session Actions</h2>
         <div id="sessionInfo" class="session-info">No active session</div>
@@ -214,7 +214,7 @@
         <div id="responseOutput"></div>
       </div>
 
-      <!-- 상태 패널 -->
+      <!-- Status Panel -->
       <div class="panel">
         <h2>Status</h2>
         <div class="btn-row">
@@ -251,7 +251,7 @@
   <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.min.js"></script>
   <script>
-    // ─── 설정 ─────────────────────────────────────
+    // ─── Config ─────────────────────────────────────
     const BASE_URL = window.location.protocol === 'file:'
       ? 'http://<PUBLIC_IP>:31000'
       : window.location.origin;
@@ -259,7 +259,7 @@
     const CATALOG_REPO = 'ainblockchain/awesome-papers-with-claude-code';
     const CATALOG_BRANCH = 'main';
 
-    // ─── 상태 ─────────────────────────────────────
+    // ─── State ─────────────────────────────────────
     let session = null;
     let ws = null;
     let heartbeatTimer = null;
@@ -269,19 +269,19 @@
 
     const $ = (id) => document.getElementById(id);
 
-    // ─── 코스 카탈로그 로드 ────────────────────────
+    // ─── Load Course Catalog ────────────────────────
     async function loadCatalog() {
       const listEl = $('courseList');
       try {
         const res = await fetch(`https://api.github.com/repos/${CATALOG_REPO}/git/trees/${CATALOG_BRANCH}?recursive=1`);
         const data = await res.json();
 
-        // CLAUDE.md가 있는 경로를 찾아 코스 목록 구성
+        // Find paths containing CLAUDE.md and build the course list
         const courses = data.tree
           .filter(item => item.type === 'blob' && item.path.endsWith('/CLAUDE.md'))
           .map(item => {
             const parts = item.path.split('/');
-            parts.pop(); // CLAUDE.md 제거
+            parts.pop(); // Remove CLAUDE.md
             const paper = parts[0] || '';
             const variant = parts.slice(1).join('/') || '';
             const rawUrl = `https://raw.githubusercontent.com/${CATALOG_REPO}/${CATALOG_BRANCH}/${item.path}`;
@@ -293,7 +293,7 @@
           return;
         }
 
-        // 논문별로 그룹화
+        // Group by paper
         const grouped = {};
         for (const c of courses) {
           if (!grouped[c.paper]) grouped[c.paper] = [];
@@ -318,21 +318,21 @@
       }
     }
 
-    /** 디렉토리명을 읽기 좋게 변환 */
+    /** Convert directory name to a readable format */
     function formatName(name) {
       return name.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
     }
 
-    /** 코스 선택 */
+    /** Select course */
     function selectCourse(course, cardEl) {
-      // 이전 선택 해제
+      // Deselect previous selection
       document.querySelectorAll('.course-card.selected').forEach(el => el.classList.remove('selected'));
       cardEl.classList.add('selected');
       selectedCourse = course;
       $('claudeMdUrl').value = course.claudeMdUrl;
     }
 
-    // ─── xterm.js 초기화 ─────────────────────────
+    // ─── xterm.js initialization ─────────────────────────
     function initTerminal() {
       if (term) return;
       term = new Terminal({
@@ -367,10 +367,10 @@
       term.writeln('\x1b[90mReady. Select a course and create a session to begin.\x1b[0m');
     }
 
-    // ─── 유틸리티 ─────────────────────────────────
+    // ─── Utilities ─────────────────────────────────
     function apiUrl(path) { return `${BASE_URL}${path}`; }
     function wsUrl(sessionId) { return BASE_URL.replace(/^http/, 'ws') + `/ws?sessionId=${sessionId}`; }
-    function timeStr() { return new Date().toLocaleTimeString('ko-KR', { hour12: false }); }
+    function timeStr() { return new Date().toLocaleTimeString('en-US', { hour12: false }); }
 
     function termLog(text) {
       if (term) term.writeln(`\x1b[90m[${timeStr()}] ${text}\x1b[0m`);
@@ -429,7 +429,7 @@
       el.className = 'ws-status' + (type ? ` ${type}` : '');
     }
 
-    // ─── API 호출 ─────────────────────────────────
+    // ─── API Calls ─────────────────────────────────
 
     async function apiFetch(path, options = {}) {
       const res = await fetch(apiUrl(path), {
@@ -629,7 +629,7 @@
       if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
     }
 
-    // ─── 초기화 ───────────────────────────────────
+    // ─── Initialization ───────────────────────────────────
     initTerminal();
     updateUI();
     loadCatalog();

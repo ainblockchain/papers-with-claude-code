@@ -696,12 +696,12 @@ Frontend                           Backend
 
 ## Papers Catalog API
 
-> 현재 프론트엔드는 `MockPapersAdapter`로 하드코딩된 6개의 논문 데이터를 사용합니다.
-> 아래 API가 구현되면 `src/lib/adapters/papers.ts`의 mock을 실제 API 호출로 교체합니다.
+> Currently the frontend uses 6 hardcoded paper data entries via `MockPapersAdapter`.
+> Once the API below is implemented, the mock in `src/lib/adapters/papers.ts` will be replaced with actual API calls.
 
-### 6. 트렌딩 논문 목록 조회
+### 6. Retrieve Trending Papers List
 
-Explore 페이지에서 호출. 기간별 트렌딩 논문 목록을 반환합니다.
+Called from the Explore page. Returns a list of trending papers by time period.
 
 ```
 GET /api/papers?period=daily&limit=20&offset=0
@@ -711,9 +711,9 @@ GET /api/papers?period=daily&limit=20&offset=0
 
 | Param | Type | Default | Description |
 |-------|------|---------|-------------|
-| `period` | `daily` \| `weekly` \| `monthly` | `daily` | 트렌딩 기간 |
-| `limit` | number | `20` | 한 번에 반환할 개수 |
-| `offset` | number | `0` | 페이지네이션 오프셋 |
+| `period` | `daily` \| `weekly` \| `monthly` | `daily` | Trending period |
+| `limit` | number | `20` | Number of items to return per request |
+| `offset` | number | `0` | Pagination offset |
 
 **Response** `200 OK`
 ```jsonc
@@ -739,12 +739,12 @@ GET /api/papers?period=daily&limit=20&offset=0
           "name": "ByteDance",
           "logoUrl": "/orgs/bytedance.png"
         },
-        "submittedBy": "taesiri",               // 제출자 username
-        "totalStages": 5                        // 코스 스테이지 수
+        "submittedBy": "taesiri",               // Submitter username
+        "totalStages": 5                        // Number of course stages
       }
       // ...
     ],
-    "total": 142,                               // 전체 논문 수
+    "total": 142,                               // Total number of papers
     "hasMore": true
   }
 }
@@ -757,9 +757,9 @@ fetchTrendingPapers(period: 'daily' | 'weekly' | 'monthly'): Promise<Paper[]>
 
 ---
 
-### 7. 논문 검색
+### 7. Search Papers
 
-검색어로 논문을 검색합니다. 제목, 설명, 저자명을 대상으로 합니다.
+Searches papers by query. Searches against title, description, and author names.
 
 ```
 GET /api/papers/search?q=transformer&limit=20&offset=0
@@ -769,16 +769,16 @@ GET /api/papers/search?q=transformer&limit=20&offset=0
 
 | Param | Type | Default | Description |
 |-------|------|---------|-------------|
-| `q` | string | (required) | 검색 쿼리 |
-| `limit` | number | `20` | 반환 개수 |
-| `offset` | number | `0` | 페이지네이션 오프셋 |
+| `q` | string | (required) | Search query |
+| `limit` | number | `20` | Number of results |
+| `offset` | number | `0` | Pagination offset |
 
 **Response** `200 OK`
 ```jsonc
 {
   "ok": true,
   "data": {
-    "papers": [ /* Paper[] — 위와 동일한 형식 */ ],
+    "papers": [ /* Paper[] — same format as above */ ],
     "total": 8,
     "hasMore": false
   }
@@ -792,9 +792,9 @@ searchPapers(query: string): Promise<Paper[]>
 
 ---
 
-### 8. 논문 상세 조회
+### 8. Retrieve Paper Details
 
-단일 논문의 상세 정보를 반환합니다. Learn 페이지 진입 시 호출됩니다.
+Returns detailed information for a single paper. Called when entering the Learn page.
 
 ```
 GET /api/papers/:paperId
@@ -827,7 +827,7 @@ GET /api/papers/:paperId
 
 | Status | Condition |
 |--------|-----------|
-| `404` | 해당 paperId의 논문이 존재하지 않음 |
+| `404` | Paper with the given paperId does not exist |
 
 **Frontend Adapter Interface**
 ```typescript
@@ -836,9 +836,9 @@ getPaperById(id: string): Promise<Paper | null>
 
 ---
 
-### Paper 타입 정의 (참조)
+### Paper Type Definition (Reference)
 
-프론트엔드 `src/types/paper.ts`:
+Frontend `src/types/paper.ts`:
 
 ```typescript
 interface Author {
@@ -853,27 +853,27 @@ interface Paper {
   description: string;
   authors: Author[];
   publishedAt: string;                     // ISO date "YYYY-MM-DD"
-  thumbnailUrl: string;                    // 논문 썸네일 이미지 경로
-  arxivUrl: string;                        // arXiv 링크
-  githubUrl?: string;                      // GitHub 레포 URL (nullable)
-  githubStars?: number;                    // GitHub 스타 수 (nullable)
-  organization?: { name: string; logoUrl: string };  // 소속 기관 (nullable)
-  submittedBy: string;                     // 제출자 username
-  totalStages: number;                     // 코스의 총 스테이지 수
+  thumbnailUrl: string;                    // Paper thumbnail image path
+  arxivUrl: string;                        // arXiv link
+  githubUrl?: string;                      // GitHub repo URL (nullable)
+  githubStars?: number;                    // GitHub star count (nullable)
+  organization?: { name: string; logoUrl: string };  // Affiliated organization (nullable)
+  submittedBy: string;                     // Submitter username
+  totalStages: number;                     // Total number of course stages
 }
 ```
 
 ---
 
-### 논문 데이터 소스 논의사항
+### Discussion Items for Paper Data Sources
 
-현재 프론트엔드에 하드코딩된 6개 논문은 Papers with Code / arXiv 기반 mock 데이터입니다. 백엔드에서 논문 카탈로그를 제공하려면 다음 결정이 필요합니다:
+The 6 papers currently hardcoded in the frontend are mock data based on Papers with Code / arXiv. To provide a paper catalog from the backend, the following decisions are needed:
 
-1. **데이터 소스**: arXiv API 크롤링, Hugging Face Daily Papers API, 직접 DB 관리 중 어느 방식?
-2. **코스 연동**: 논문(`Paper`)과 생성된 코스(`Course`)의 관계 — 1:1인지, 하나의 논문에 여러 코스가 가능한지?
-3. **트렌딩 기준**: daily/weekly/monthly 트렌딩 순위를 어떻게 산정하는지? (GitHub stars, arXiv citations, 플랫폼 내 학습 수 등)
-4. **썸네일**: 논문 썸네일 이미지를 어디서 호스팅하는지? (arXiv figure 자동 추출, 수동 업로드, 또는 placeholder)
-5. **제출**: 유저가 새 논문을 제출하는 플로우가 있는지? (있다면 `POST /api/papers` 엔드포인트 추가 필요)
+1. **Data Source**: Which approach — arXiv API crawling, Hugging Face Daily Papers API, or direct DB management?
+2. **Course Linking**: The relationship between papers (`Paper`) and generated courses (`Course`) — is it 1:1, or can one paper have multiple courses?
+3. **Trending Criteria**: How are daily/weekly/monthly trending rankings calculated? (GitHub stars, arXiv citations, in-platform learning count, etc.)
+4. **Thumbnails**: Where are paper thumbnail images hosted? (Automatic extraction from arXiv figures, manual upload, or placeholder)
+5. **Submission**: Is there a flow for users to submit new papers? (If so, a `POST /api/papers` endpoint needs to be added)
 
 ---
 

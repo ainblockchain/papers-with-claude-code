@@ -1,5 +1,5 @@
-# API Proxy Deployment — 샌드박스 Pod의 Anthropic API 요청을 중계
-# K8s Secret에서 진짜 API 키를 로드하여 더미 키를 교체
+# API Proxy Deployment — Relays Anthropic API requests from sandbox Pods
+# Loads the real API key from K8s Secret to replace the dummy key
 
 apiVersion: apps/v1
 kind: Deployment
@@ -21,7 +21,7 @@ spec:
       containers:
         - name: api-proxy
           image: claudecode-api-proxy:latest
-          imagePullPolicy: Never  # 로컬 k3s 이미지 사용
+          imagePullPolicy: Never  # Use local k3s image
           ports:
             - containerPort: 8080
               protocol: TCP

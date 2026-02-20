@@ -1,20 +1,20 @@
 # cluster/
 
-클러스터 수준의 공통 리소스 정의 (네임스페이스, 리소스 쿼터 등).
+Cluster-level common resource definitions (namespaces, resource quotas, etc.).
 
-## 파일 구조
+## File Structure
 
 ```
 cluster/
-├── namespaces.yaml       # papers-frontend / papers-backend / papers-blockchain 네임스페이스
-└── resource-quotas.yaml  # 네임스페이스별 CPU/메모리 제한
+├── namespaces.yaml       # papers-frontend / papers-backend / papers-blockchain namespaces
+└── resource-quotas.yaml  # Per-namespace CPU/memory limits
 ```
 
-## 적용 순서
+## Application Order
 
 ```bash
 kubectl apply -f namespaces.yaml
 kubectl apply -f resource-quotas.yaml
 ```
 
-네임스페이스가 먼저 존재해야 리소스 쿼터를 적용할 수 있습니다.
+Namespaces must exist before resource quotas can be applied.

@@ -716,7 +716,7 @@ function generateMaps(knowledgeDir: string, mapDir?: string): void {
 
 // ── CLI entry point ───────────────────────────────────────────────────────
 
-// courses.json 위치 (기본: courseGenerator 하위 bible/knowledge)
+// courses.json location (default: bible/knowledge under courseGenerator)
 const knowledgeDir = process.argv[2] ??
   path.join(
     __dirname,
@@ -727,7 +727,7 @@ const knowledgeDir = process.argv[2] ??
     'knowledge',
   );
 
-// map/ 위치 (기본: knowledge-graph-builder/map — 이동된 경로)
+// map/ location (default: knowledge-graph-builder/map — relocated path)
 const mapDir = process.argv[3] ?? path.join(__dirname, 'map');
 
 generateMaps(path.resolve(knowledgeDir), path.resolve(mapDir));

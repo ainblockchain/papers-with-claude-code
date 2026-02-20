@@ -1,4 +1,4 @@
-// 논문 레포 CLAUDE.md에서 스테이지 정의를 파싱하여 반환하는 API
+// API that parses and returns stage definitions from the paper repo's CLAUDE.md
 
 import { Router, Request, Response } from 'express';
 import { AppConfig } from '../types.js';
@@ -33,7 +33,7 @@ export function createStagesRouter(_config: AppConfig): Router {
     }
 
     try {
-      // courseId가 있으면 해당 논문 경로, 없으면 레거시 경로 사용
+      // Use the paper path if courseId exists, otherwise use the legacy path
       const paperDir = session.courseId
         ? `/home/claude/papers/${session.courseId}`
         : '/home/claude/papers/current';

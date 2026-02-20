@@ -1,5 +1,5 @@
-# API Proxy ClusterIP 서비스 — 클러스터 내부에서만 접근 가능
-# 샌드박스 Pod → api-proxy.claudecode-terminal.svc.cluster.local:8080
+# API Proxy ClusterIP Service — Accessible only within the cluster
+# Sandbox Pod → api-proxy.claudecode-terminal.svc.cluster.local:8080
 
 apiVersion: v1
 kind: Service

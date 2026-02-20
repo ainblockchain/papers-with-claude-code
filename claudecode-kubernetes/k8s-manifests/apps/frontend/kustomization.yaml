@@ -1,4 +1,4 @@
-# 프론트엔드 앱 Kustomize base 리소스 정의
+# Frontend app Kustomize base resource definition
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 

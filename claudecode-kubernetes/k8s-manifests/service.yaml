@@ -1,5 +1,5 @@
-# 웹 터미널 서비스 외부 노출 - NodePort를 통해 클러스터 외부에서 접근 가능
-# 접속 주소: http://<K8S_NODE_IP>:31000
+# Web terminal service external exposure - Accessible from outside the cluster via NodePort
+# Access URL: http://<K8S_NODE_IP>:31000
 apiVersion: v1
 kind: Service
 metadata:

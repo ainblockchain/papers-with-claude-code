@@ -4,7 +4,7 @@
 Input:  knowledge_graph_builder/analysis.json/knowledge/repo_analysis.json
 Output: scripts/test/results/graph_<timestamp>.json
 
-실행 위치: knowledge-graph-builder/ (프로젝트 루트)
+Run from: knowledge-graph-builder/ (project root)
   python scripts/test/run_legacy_extraction.py
 """
 

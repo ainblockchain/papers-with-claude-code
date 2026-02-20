@@ -1,5 +1,5 @@
-# Papers with Claude Code 프로젝트의 애플리케이션 네임스페이스 정의
-# 프론트엔드, 백엔드, 블록체인 서비스를 각각 격리된 네임스페이스에서 운영
+# Application namespace definitions for the Papers with Claude Code project
+# Operate frontend, backend, and blockchain services in separate isolated namespaces
 apiVersion: v1
 kind: Namespace
 metadata:

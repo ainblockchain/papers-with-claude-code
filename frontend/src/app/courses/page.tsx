@@ -6,40 +6,40 @@ export default function CoursesPage() {
   const courses = [
     {
       id: 1,
-      title: 'Python 기초',
-      description: '프로그래밍의 기초부터 시작하는 Python 강좌',
+      title: 'Python Basics',
+      description: 'A Python course starting from the fundamentals of programming',
       progress: 30,
       color: 'from-lms-blue-400 to-lms-blue-600',
       buttonColor: 'bg-lms-blue-500 hover:bg-lms-blue-600',
     },
     {
       id: 2,
-      title: '데이터 분석 입문',
-      description: '데이터를 다루는 기본 기술을 배웁니다',
+      title: 'Introduction to Data Analysis',
+      description: 'Learn the basic skills for handling data',
       progress: 65,
       color: 'from-purple-400 to-purple-600',
       buttonColor: 'bg-purple-500 hover:bg-purple-600',
     },
     {
       id: 3,
-      title: '웹 개발 기초',
-      description: 'HTML, CSS, JavaScript를 활용한 웹 개발',
+      title: 'Web Development Basics',
+      description: 'Web development using HTML, CSS, and JavaScript',
       progress: 10,
       color: 'from-green-400 to-green-600',
       buttonColor: 'bg-green-500 hover:bg-green-600',
     },
     {
       id: 4,
-      title: '머신러닝 기초',
-      description: '인공지능과 머신러닝의 기초 개념',
+      title: 'Machine Learning Basics',
+      description: 'Fundamental concepts of AI and machine learning',
       progress: 0,
       color: 'from-orange-400 to-orange-600',
       buttonColor: 'bg-orange-500 hover:bg-orange-600',
     },
     {
       id: 5,
-      title: '데이터베이스 설계',
-      description: 'SQL과 데이터베이스 설계의 기초',
+      title: 'Database Design',
+      description: 'Fundamentals of SQL and database design',
       progress: 45,
       color: 'from-blue-400 to-blue-600',
       buttonColor: 'bg-blue-500 hover:bg-blue-600',
@@ -47,7 +47,7 @@ export default function CoursesPage() {
     {
       id: 6,
       title: 'Git & GitHub',
-      description: '버전 관리 시스템의 이해와 활용',
+      description: 'Understanding and utilizing version control systems',
       progress: 80,
       color: 'from-gray-400 to-gray-600',
       buttonColor: 'bg-gray-500 hover:bg-gray-600',
@@ -64,13 +64,13 @@ export default function CoursesPage() {
           </Link>
           <nav className="flex gap-6">
             <Link href="/" className="text-gray-700 hover:text-lms-blue-600">
-              대시보드
+              Dashboard
             </Link>
             <Link href="/courses" className="text-lms-blue-600 font-medium">
-              과정
+              Courses
             </Link>
             <Link href="/editor" className="text-gray-700 hover:text-lms-blue-600">
-              에디터
+              Editor
             </Link>
           </nav>
         </div>
@@ -81,27 +81,27 @@ export default function CoursesPage() {
         <div className="container mx-auto px-4 py-8">
           {/* Page Header */}
           <div className="mb-8">
-            <h1 className="mb-2 text-3xl font-bold">전체 과정</h1>
-            <p className="text-gray-600">다양한 과정을 탐색하고 학습을 시작하세요</p>
+            <h1 className="mb-2 text-3xl font-bold">All Courses</h1>
+            <p className="text-gray-600">Explore various courses and start learning</p>
           </div>
 
           {/* Filter/Sort Options */}
           <div className="mb-6 flex items-center justify-between">
             <div className="flex gap-2">
               <button className="rounded-md bg-lms-blue-500 px-4 py-2 text-sm text-white">
-                전체
+                All
               </button>
               <button className="rounded-md bg-white px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                진행 중
+                In Progress
               </button>
               <button className="rounded-md bg-white px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                완료
+                Completed
               </button>
             </div>
             <select className="rounded-md border bg-white px-4 py-2 text-sm">
-              <option>최신순</option>
-              <option>인기순</option>
-              <option>진행률순</option>
+              <option>Most Recent</option>
+              <option>Most Popular</option>
+              <option>By Progress</option>
             </select>
           </div>
 
@@ -119,7 +119,7 @@ export default function CoursesPage() {
                 <p className="mb-4 text-sm text-gray-600">{course.description}</p>
                 <div className="mb-3">
                   <div className="mb-1 flex justify-between text-sm">
-                    <span className="text-gray-600">진행률</span>
+                    <span className="text-gray-600">Progress</span>
                     <span className="font-medium">{course.progress}%</span>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-gray-200">
@@ -133,7 +133,7 @@ export default function CoursesPage() {
                   href={`/courses/${course.id}`}
                   className={`inline-block w-full rounded-md ${course.buttonColor} py-2 text-center text-white transition-colors`}
                 >
-                  {course.progress > 0 ? '계속 학습하기' : '시작하기'}
+                  {course.progress > 0 ? 'Continue Learning' : 'Get Started'}
                 </Link>
               </div>
             ))}

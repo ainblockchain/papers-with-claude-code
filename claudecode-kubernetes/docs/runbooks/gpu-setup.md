@@ -1,52 +1,52 @@
-# GPU 노드 셋업 가이드
+# GPU Node Setup Guide
 
-T640(T4 x4), T550(A2 x4) 서버를 K8s Worker 노드로 추가하고 GPU를 사용할 수 있게 구성하는 가이드.
+A guide for adding T640 (T4 x4) and T550 (A2 x4) servers as K8s Worker nodes and configuring them for GPU usage.
 
-> 현재 미구현. GPU 노드 추가 시 이 문서를 따라 진행한다.
+> Not yet implemented. Follow this document when adding GPU nodes.
 
 ---
 
-## 사전 조건
+## Prerequisites
 
-- <SERVER2>의 k3s Master 노드가 정상 운영 중
-- 대상 서버(T640/T550)에 ESXi가 설치되어 있고 접근 가능
-- VPN + 라우팅 설정 완료
+- k3s Master node on <SERVER2> is operating normally
+- ESXi is installed and accessible on the target servers (T640/T550)
+- VPN + routing configuration completed
 
-## 1단계: ESXi GPU Passthrough
+## Step 1: ESXi GPU Passthrough
 
-BIOS와 ESXi에서 GPU 직접 연결(Passthrough)을 활성화해야 한다.
+GPU Passthrough must be enabled in both BIOS and ESXi.
 
-### 1-1. BIOS 설정
+### 1-1. BIOS Settings
 
-서버 재부팅 → BIOS 진입:
+Reboot server → Enter BIOS:
 
-1. **VT-d (Intel Virtualization Technology for Directed I/O)** 활성화
+1. **Enable VT-d (Intel Virtualization Technology for Directed I/O)**
    - Advanced → Processor Settings → Intel VT for Directed I/O → **Enabled**
-2. 저장 후 재부팅
+2. Save and reboot
 
-### 1-2. ESXi DirectPath I/O 설정
+### 1-2. ESXi DirectPath I/O Settings
 
-ESXi 웹 UI에서:
+In ESXi Web UI:
 
-1. 관리 → 하드웨어 → PCI 디바이스
-2. NVIDIA GPU 디바이스 선택 → **Passthrough 전환** 클릭
-3. ESXi 호스트 재부팅 (반드시 필요)
+1. Manage → Hardware → PCI Devices
+2. Select NVIDIA GPU device → Click **Toggle Passthrough**
+3. Reboot ESXi host (required)
 
-### 1-3. VM에 GPU 할당
+### 1-3. Assign GPU to VM
 
-1. VM 설정 편집 → PCI 디바이스 추가
-2. Passthrough 설정된 NVIDIA GPU 선택
-3. **메모리 예약**: 전체 메모리를 예약으로 설정 (GPU Passthrough 필수 조건)
+1. Edit VM settings → Add PCI device
+2. Select the NVIDIA GPU configured for Passthrough
+3. **Memory reservation**: Set full memory as reserved (GPU Passthrough mandatory requirement)
 
-## 2단계: Ubuntu VM 설정
+## Step 2: Ubuntu VM Configuration
 
-Phase 1과 동일하게 Ubuntu 22.04 VM을 생성하고 K8s 기본 설정을 진행한다.
-`docs/cluster-setup.md`의 Phase 1 참고.
+Create an Ubuntu 22.04 VM and proceed with K8s base configuration, same as Phase 1.
+See Phase 1 in `docs/cluster-setup.md`.
 
-### 2-1. NVIDIA 드라이버 설치
+### 2-1. Install NVIDIA Drivers
 
 ```bash
-# nouveau 드라이버 비활성화
+# Disable nouveau driver
 cat <<EOF | sudo tee /etc/modprobe.d/blacklist-nouveau.conf
 blacklist nouveau
 options nouveau modeset=0
@@ -54,73 +54,73 @@ EOF
 sudo update-initramfs -u
 sudo reboot
 
-# NVIDIA 드라이버 설치
+# Install NVIDIA driver
 sudo apt update
 sudo apt install -y nvidia-driver-535
 sudo reboot
 
-# 설치 확인
+# Verify installation
 nvidia-smi
-# GPU 목록과 드라이버 버전이 표시되어야 함
+# GPU list and driver version should be displayed
 ```
 
-### 2-2. NVIDIA Container Toolkit 설치
+### 2-2. Install NVIDIA Container Toolkit
 
-컨테이너 내부에서 GPU를 사용하기 위해 NVIDIA Container Toolkit이 필요하다.
+NVIDIA Container Toolkit is required to use GPUs inside containers.
 
 ```bash
-# 저장소 추가
+# Add repository
 curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
 curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
   sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
   sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
 
-# 설치
+# Install
 sudo apt update
 sudo apt install -y nvidia-container-toolkit
 
-# containerd 연동 설정
+# Configure containerd integration
 sudo nvidia-ctk runtime configure --runtime=containerd
 sudo systemctl restart containerd
 ```
 
-## 3단계: k3s Worker 조인
+## Step 3: k3s Worker Join
 
 ```bash
-# Master에서 토큰 확인
+# Check token on Master
 ssh <USERNAME>@<K8S_NODE_IP> "sudo cat /var/lib/rancher/k3s/server/node-token"
 
-# Worker에서 k3s agent 설치
-curl -sfL https://get.k3s.io | K3S_URL=https://<K8S_NODE_IP>:6443 K3S_TOKEN=<토큰> sh -
+# Install k3s agent on Worker
+curl -sfL https://get.k3s.io | K3S_URL=https://<K8S_NODE_IP>:6443 K3S_TOKEN=<token> sh -
 
-# Master에서 노드 확인
+# Verify nodes from Master
 kubectl get nodes
 # k8s-node    Ready    control-plane   ...
 # t640-node   Ready    <none>          ...
 ```
 
-## 4단계: NVIDIA Device Plugin 배포
+## Step 4: Deploy NVIDIA Device Plugin
 
-K8s가 GPU 리소스를 인식하려면 NVIDIA Device Plugin DaemonSet이 필요하다.
+The NVIDIA Device Plugin DaemonSet is required for K8s to recognize GPU resources.
 
 ```bash
 kubectl apply -f https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/v0.14.1/nvidia-device-plugin.yml
 ```
 
-배포 확인:
+Verify deployment:
 
 ```bash
-# DaemonSet 상태 확인
+# Check DaemonSet status
 kubectl get daemonset -n kube-system nvidia-device-plugin-daemonset
 
-# GPU 리소스 확인
+# Check GPU resources
 kubectl describe node t640-node | grep nvidia.com/gpu
 # Allocatable: nvidia.com/gpu: 4
 ```
 
-## 5단계: 검증
+## Step 5: Verification
 
-### GPU 테스트 Pod
+### GPU Test Pod
 
 ```yaml
 # gpu-test-pod.yaml
@@ -138,22 +138,22 @@ spec:
         limits:
           nvidia.com/gpu: 1
   nodeSelector:
-    # GPU 노드에만 스케줄링
+    # Schedule only on GPU nodes
     kubernetes.io/hostname: t640-node
 ```
 
 ```bash
 kubectl apply -f gpu-test-pod.yaml
 kubectl logs gpu-test
-# nvidia-smi 출력이 보여야 함
+# nvidia-smi output should be displayed
 
-# 정리
+# Clean up
 kubectl delete pod gpu-test
 ```
 
-## GPU별 특성 참고
+## GPU Specifications Reference
 
-| GPU | VRAM | 주요 용도 | 비고 |
-|-----|------|----------|------|
-| NVIDIA T4 | 16GB | 추론, 가벼운 학습 | INT8/FP16 Tensor Core |
-| NVIDIA A2 | 16GB | 엣지 추론 | 저전력, 보조 워크로드 |
+| GPU | VRAM | Primary Use | Notes |
+|-----|------|-------------|-------|
+| NVIDIA T4 | 16GB | Inference, light training | INT8/FP16 Tensor Core |
+| NVIDIA A2 | 16GB | Edge inference | Low power, auxiliary workloads |

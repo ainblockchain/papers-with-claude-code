@@ -1,11 +1,11 @@
-// Kubernetes 클라이언트 초기화
-// 로딩 전략: KUBECONFIG 환경변수가 있으면 해당 파일에서 로드,
-// 없으면 클러스터 내부 서비스어카운트 토큰으로 수동 구성,
-// 그것도 실패하면 기본 kubeconfig(~/.kube/config)에서 로드
+// Kubernetes client initialization
+// Loading strategy: Load from the file if the KUBECONFIG environment variable is set,
+// otherwise manually configure with the in-cluster service account token,
+// and if that also fails, load from the default kubeconfig (~/.kube/config)
 //
-// [중요] in-cluster 모드에서 loadFromCluster()는 authProvider: tokenFile 방식을 사용하는데,
-// @kubernetes/client-node v1.x의 Exec(WebSocket)에서 이 토큰이 전달되지 않는 이슈가 있음.
-// 따라서 in-cluster 모드에서는 loadFromOptions()로 토큰을 직접 포함시켜 구성한다.
+// [Important] In in-cluster mode, loadFromCluster() uses the authProvider: tokenFile approach,
+// but there is an issue in @kubernetes/client-node v1.x where this token is not passed in Exec (WebSocket).
+// Therefore, in in-cluster mode, we use loadFromOptions() to directly include the token in the configuration.
 
 import * as k8s from '@kubernetes/client-node';
 import { readFileSync, existsSync } from 'fs';
@@ -19,8 +19,8 @@ if (process.env.KUBECONFIG) {
   kc.loadFromFile(process.env.KUBECONFIG);
   console.log(`[k8s-client] Loaded kubeconfig from file: ${process.env.KUBECONFIG}`);
 } else if (existsSync(SA_TOKEN_PATH)) {
-  // in-cluster: loadFromOptions()로 토큰을 직접 포함하여 구성
-  // loadFromCluster() 대신 사용하여 Exec WebSocket에서도 토큰이 정상 전달되도록 함
+  // in-cluster: Configure by directly including the token via loadFromOptions()
+  // Used instead of loadFromCluster() to ensure the token is properly passed in Exec WebSocket
   const token = readFileSync(SA_TOKEN_PATH, 'utf-8').trim();
   kc.loadFromOptions({
     clusters: [{

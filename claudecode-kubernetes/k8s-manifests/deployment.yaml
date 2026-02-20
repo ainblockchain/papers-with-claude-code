@@ -1,4 +1,4 @@
-# 웹 터미널 서비스 Deployment - 사용자 요청을 받아 샌드박스 Pod를 동적으로 생성/관리하는 백엔드 서비스
+# Web terminal service Deployment - Backend service that receives user requests and dynamically creates/manages sandbox Pods
 apiVersion: apps/v1
 kind: Deployment
 metadata:

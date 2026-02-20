@@ -1,11 +1,11 @@
-// WebSocket <-> K8s exec 브릿지
-// 브라우저의 xterm.js WebSocket 연결을 K8s Pod의 Claude Code exec 세션으로 중계.
-// 유저는 bash 셸이 아닌, 사전 구성된 Claude Code 강의에 바로 연결됨.
+// WebSocket <-> K8s exec bridge
+// Relays browser xterm.js WebSocket connections to K8s Pod Claude Code exec sessions.
+// Users are connected directly to a pre-configured Claude Code lesson, not a bash shell.
 //
-// 초기 메시지: start-claude.sh가 CLI 인자로 처리 (첫 방문: 초기 프롬프트, 재방문: --continue)
-// 스테이지 감지: stdout에서 [STAGE_COMPLETE:N] / [DUNGEON_COMPLETE] 마커를 감지하여
-//   DB 저장 + 구조화된 WebSocket 이벤트 전송 + 마커 strip.
-// idle nudge: 유저가 일정 시간 입력 없으면 Claude가 자율적으로 강의 계속.
+// Initial message: Handled by start-claude.sh as a CLI argument (first visit: initial prompt, return visit: --continue)
+// Stage detection: Detects [STAGE_COMPLETE:N] / [DUNGEON_COMPLETE] markers in stdout,
+//   saves to DB + sends structured WebSocket events + strips markers.
+// Idle nudge: When the user is inactive for a period, Claude autonomously continues the lesson.
 
 import WebSocket from 'ws';
 import * as k8s from '@kubernetes/client-node';
@@ -17,17 +17,17 @@ const STAGE_COMPLETE_RE = /\[STAGE_COMPLETE:(\d+)\]/g;
 const PAYMENT_CONFIRMED_RE = /\[PAYMENT_CONFIRMED:(\d+):(0x[a-fA-F0-9]+)\]/g;
 const COURSE_COMPLETE_STR = '[DUNGEON_COMPLETE]';
 
-// 유저 비활성 시 Claude가 자율적으로 강의를 계속하도록 stdin에 주입하는 프롬프트
+// Prompts injected into stdin so Claude autonomously continues the lesson when the user is idle
 const IDLE_NUDGE_PROMPTS = [
-  '계속 다음 내용을 탐구해주세요\n',
-  '더 흥미로운 부분을 찾아서 설명해주세요\n',
-  '다음으로 중요한 개념을 살펴볼까요\n',
+  'Please continue exploring the next topic\n',
+  'Please find and explain more interesting parts\n',
+  'Shall we look at the next important concept\n',
 ];
 
 export interface TerminalOptions {
-  courseId?: string;     // 코스 ID (start-claude.sh에 전달)
-  model?: string;       // Claude 모델 (haiku, sonnet, opus)
-  idleNudgeMs?: number; // 0이면 비활성, 양수면 해당 ms 후 자율 탐구 재개
+  courseId?: string;     // Course ID (passed to start-claude.sh)
+  model?: string;       // Claude model (haiku, sonnet, opus)
+  idleNudgeMs?: number; // 0 means disabled, positive value resumes autonomous exploration after that many ms
 }
 
 export async function attachTerminal(
@@ -47,7 +47,7 @@ export async function attachTerminal(
   let idleTimer: ReturnType<typeof setTimeout> | null = null;
   let nudgeIndex = 0;
 
-  // Idle heartbeat: 유저 비활성 시 Claude에 자율 탐구 프롬프트 주입
+  // Idle heartbeat: Inject autonomous exploration prompt to Claude when user is inactive
   function resetIdleTimer() {
     if (idleTimer) clearTimeout(idleTimer);
     if (idleNudgeMs <= 0 || isCleanedUp) return;
@@ -61,8 +61,8 @@ export async function attachTerminal(
     }, idleNudgeMs);
   }
 
-  // Pod stdout/stderr -> 브라우저 WebSocket 으로 전달하는 writable stream
-  // [STAGE_COMPLETE:N] / [DUNGEON_COMPLETE] 마커를 감지하여 이벤트 전송 + 마커 strip
+  // Writable stream that forwards Pod stdout/stderr to the browser WebSocket
+  // Detects [STAGE_COMPLETE:N] / [DUNGEON_COMPLETE] markers and sends events + strips markers
   const stdoutStream = new Writable({
     write(chunk: Buffer, _encoding, callback) {
       if (ws.readyState !== WebSocket.OPEN) {
@@ -72,7 +72,7 @@ export async function attachTerminal(
 
       let text = chunk.toString();
 
-      // [PAYMENT_CONFIRMED:N:txHash] 결제 확인 마커 감지
+      // Detect [PAYMENT_CONFIRMED:N:txHash] payment confirmation marker
       let paymentMatch: RegExpExecArray | null;
       PAYMENT_CONFIRMED_RE.lastIndex = 0;
       while ((paymentMatch = PAYMENT_CONFIRMED_RE.exec(text)) !== null) {
@@ -86,7 +86,7 @@ export async function attachTerminal(
       }
       text = text.replace(PAYMENT_CONFIRMED_RE, '');
 
-      // [STAGE_COMPLETE:N] 마커 감지 및 처리
+      // Detect and process [STAGE_COMPLETE:N] marker
       let stageMatch: RegExpExecArray | null;
       STAGE_COMPLETE_RE.lastIndex = 0;
       while ((stageMatch = STAGE_COMPLETE_RE.exec(text)) !== null) {
@@ -98,7 +98,7 @@ export async function attachTerminal(
       }
       text = text.replace(STAGE_COMPLETE_RE, '');
 
-      // [DUNGEON_COMPLETE] 마커 감지 및 처리
+      // Detect and process [DUNGEON_COMPLETE] marker
       if (text.includes(COURSE_COMPLETE_STR)) {
         if (userId && courseId && progressStore) {
           progressStore.saveCourseComplete(userId, courseId);
@@ -107,7 +107,7 @@ export async function attachTerminal(
         text = text.replaceAll(COURSE_COMPLETE_STR, '');
       }
 
-      // 마커 strip 후 남은 텍스트만 터미널에 전달
+      // Forward only the remaining text to the terminal after stripping markers
       if (text.length > 0) {
         ws.send(text, { binary: false }, (err) => {
           if (err) {
@@ -121,10 +121,10 @@ export async function attachTerminal(
     },
   });
 
-  // 브라우저 키 입력을 받아 Pod stdin 으로 전달할 readable stream
+  // Readable stream that receives browser key input and forwards it to Pod stdin
   const stdinStream = new Readable({
     read() {
-      // 외부에서 push()로 데이터를 주입
+      // Data is injected externally via push()
     },
   });
 
@@ -137,7 +137,7 @@ export async function attachTerminal(
     stdoutStream.destroy();
   }
 
-  // 브라우저에서 키 입력이 올 때마다 stdin 으로 전달
+  // Forward each key input from the browser to stdin
   ws.on('message', (data: WebSocket.RawData) => {
     const message = data.toString();
 
@@ -152,17 +152,17 @@ export async function attachTerminal(
       }
 
       if (parsed.type === 'resize') {
-        // TODO: K8s exec resize 지원 시 구현
+        // TODO: Implement when K8s exec resize is supported
         return;
       }
 
       if (parsed.type === 'input' && typeof parsed.data === 'string') {
         stdinStream.push(parsed.data);
-        resetIdleTimer(); // 유저 입력 시 idle 타이머 리셋
+        resetIdleTimer(); // Reset idle timer on user input
         return;
       }
     } catch {
-      // JSON이 아니면 raw 텍스트로 처리 (fallback)
+      // If not JSON, treat as raw text (fallback)
     }
 
     stdinStream.push(message);
@@ -178,7 +178,7 @@ export async function attachTerminal(
     cleanup();
   });
 
-  // 서버 사이드 ping/pong (WebSocket 프로토콜 레벨)
+  // Server-side ping/pong (WebSocket protocol level)
   const pingInterval = setInterval(() => {
     if (ws.readyState === WebSocket.OPEN) {
       ws.ping();
@@ -189,8 +189,8 @@ export async function attachTerminal(
 
   ws.on('close', () => clearInterval(pingInterval));
 
-  // start-claude.sh에 courseId와 model을 인자로 전달
-  // start-claude.sh가 첫 방문/재방문을 자체 판별하여 적절한 모드로 Claude Code 실행
+  // Pass courseId and model as arguments to start-claude.sh
+  // start-claude.sh determines first visit/return visit on its own and runs Claude Code in the appropriate mode
   const execCommand = ['/usr/local/bin/start-claude.sh', courseId || '', model];
 
   try {
@@ -202,15 +202,15 @@ export async function attachTerminal(
       stdoutStream,
       stdoutStream,
       stdinStream,
-      true, // TTY 모드
+      true, // TTY mode
     );
     console.log(`[terminal-bridge] exec attached for pod ${podName} (model: ${model})`);
 
-    // 프론트엔드에 auto_start 이벤트 전달 (로딩 UI → "강의 중" 전환용)
-    // start-claude.sh가 초기 메시지를 CLI 인자로 보내므로 별도 프롬프트 주입 불필요
+    // Send auto_start event to frontend (for loading UI -> "lesson in progress" transition)
+    // No need for separate prompt injection since start-claude.sh sends the initial message as a CLI argument
     if (courseId) {
       ws.send(JSON.stringify({ type: 'auto_start' }));
-      resetIdleTimer(); // idle 타이머 시작
+      resetIdleTimer(); // Start idle timer
     }
   } catch (err: unknown) {
     clearInterval(pingInterval);

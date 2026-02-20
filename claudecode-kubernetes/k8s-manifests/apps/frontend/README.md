@@ -1,12 +1,12 @@
 # apps/frontend/
 
-Papers with Claude Code 프로젝트의 프론트엔드 웹 애플리케이션 배포.
+Frontend web application deployment for the Papers with Claude Code project.
 
-## 현재 상태
+## Current Status
 
-`nginx:alpine` 이미지를 사용하는 플레이스홀더 배포입니다. 실제 프론트엔드 앱이 준비되면 이미지를 교체합니다.
+This is a placeholder deployment using the `nginx:alpine` image. Replace the image when the actual frontend app is ready.
 
-## 파일 구조
+## File Structure
 
 ```
 frontend/
@@ -14,7 +14,7 @@ frontend/
 └── service.yaml      # ClusterIP, port 80
 ```
 
-## 배포
+## Deployment
 
 ```bash
 kubectl apply -f deployment.yaml

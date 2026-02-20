@@ -1,7 +1,7 @@
 # Future Architecture Plan: GitHub OAuth + Passkey + Blockchain
 
-> 이 문서는 README.md의 merge conflict에서 분리된 미래 아키텍처 계획입니다.
-> GitHub OAuth 인증 + P256 passkey 블록체인 지갑 기반의 배포 구조를 설명합니다.
+> This document is the future architecture plan separated from the README.md merge conflict.
+> It describes the deployment structure based on GitHub OAuth authentication + P256 passkey blockchain wallets.
 
 ---
 

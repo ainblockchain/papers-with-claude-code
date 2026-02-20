@@ -1,7 +1,7 @@
-# API Proxy — 멀티스테이지 빌드
-# 샌드박스 Pod의 더미 API 키를 진짜 키로 교체하여 Anthropic API에 전달
+# API Proxy — multi-stage build
+# Replaces the dummy API key from sandbox Pods with the real key and forwards to the Anthropic API
 
-# Stage 1: 빌드
+# Stage 1: Build
 FROM node:20-alpine AS builder
 
 WORKDIR /app
@@ -11,12 +11,12 @@ COPY tsconfig.json ./
 COPY src/ ./src/
 RUN npm run build
 
-# Stage 2: 프로덕션
+# Stage 2: Production
 FROM node:20-alpine
 
 WORKDIR /app
 
-# 보안: non-root 유저 사용
+# Security: use non-root user
 RUN addgroup -S proxy && adduser -S proxy -G proxy
 
 COPY --from=builder /app/package.json /app/package-lock.json* ./

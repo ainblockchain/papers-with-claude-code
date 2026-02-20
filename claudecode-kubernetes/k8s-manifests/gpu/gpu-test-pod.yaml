@@ -1,6 +1,6 @@
-# GPU 동작 확인용 테스트 Pod - nvidia-smi 실행 후 종료
-# GPU 노드와 device plugin이 설정된 후 이 Pod으로 GPU 접근을 검증
-# 사용법: kubectl apply -f gpu-test-pod.yaml && kubectl logs gpu-test -f
+# Test Pod for verifying GPU operation - Runs nvidia-smi and then exits
+# Use this Pod to verify GPU access after GPU node and device plugin are configured
+# Usage: kubectl apply -f gpu-test-pod.yaml && kubectl logs gpu-test -f
 apiVersion: v1
 kind: Pod
 metadata:

@@ -1,26 +1,26 @@
 # overlays/
 
-Kustomize 환경별 오버레이. 동일한 base 매니페스트를 환경에 맞게 커스터마이징합니다.
+Kustomize environment-specific overlays. Customize the same base manifests for each environment.
 
-## 디렉토리 구조
+## Directory Structure
 
 ```
 overlays/
-├── dev/                    # 개발 환경 (1 replica, 최소 리소스)
+├── dev/                    # Development environment (1 replica, minimal resources)
 │   └── kustomization.yaml
-└── production/             # 프로덕션 환경 (2+ replicas, 충분한 리소스)
+└── production/             # Production environment (2+ replicas, sufficient resources)
     └── kustomization.yaml
 ```
 
-## 사용법
+## Usage
 
 ```bash
-# 개발 환경 적용
+# Apply development environment
 kubectl apply -k overlays/dev/
 
-# 프로덕션 환경 적용
+# Apply production environment
 kubectl apply -k overlays/production/
 
-# 적용 전 미리보기
+# Preview before applying
 kubectl kustomize overlays/dev/
 ```

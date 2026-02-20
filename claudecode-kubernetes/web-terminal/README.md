@@ -1,43 +1,43 @@
 # Web Terminal Backend
 
-Express + WebSocket 서버로, 브라우저 xterm.js 클라이언트와 K8s 샌드박스 Pod 사이를 중계하는 백엔드 서비스.
+An Express + WebSocket server that acts as a backend service bridging browser xterm.js clients with K8s sandbox Pods.
 
-## 구조
+## Structure
 
 ```
 web-terminal/
   src/
-    server.ts            # 진입점 (Express + WebSocket 서버)
-    types.ts             # Session, AppConfig 타입 정의
+    server.ts            # Entry point (Express + WebSocket server)
+    types.ts             # Session, AppConfig type definitions
     k8s/
-      client.ts          # KubeConfig 로드 및 K8s API 클라이언트 초기화
-      pod-template.ts    # 샌드박스 Pod 스펙 빌더
-      pod-manager.ts     # Pod 생성/삭제/상태 관리
+      client.ts          # KubeConfig loading and K8s API client initialization
+      pod-template.ts    # Sandbox Pod spec builder
+      pod-manager.ts     # Pod creation/deletion/status management
     ws/
-      terminal-bridge.ts # WebSocket <-> K8s exec 브릿지 (핵심 모듈)
+      terminal-bridge.ts # WebSocket <-> K8s exec bridge (core module)
     routes/
-      sessions.ts        # REST API 라우터 (세션 CRUD)
-  public/                # 정적 프론트엔드 파일 (xterm.js UI)
-  .env.example           # 환경변수 예시
+      sessions.ts        # REST API router (session CRUD)
+  public/                # Static frontend files (xterm.js UI)
+  .env.example           # Environment variable examples
 ```
 
-## 의존성
+## Dependencies
 
-- `@kubernetes/client-node` - K8s API 접근 (Pod 관리, exec)
+- `@kubernetes/client-node` - K8s API access (Pod management, exec)
 - `express` - HTTP REST API
-- `ws` - WebSocket 서버
-- `uuid` - 세션 ID 생성
+- `ws` - WebSocket server
+- `uuid` - Session ID generation
 
-## 개발
+## Development
 
 ```bash
 npm install
-npm run dev     # tsx watch 모드
-npm run build   # TypeScript 컴파일
-npm start       # 프로덕션 실행
+npm run dev     # tsx watch mode
+npm run build   # TypeScript compilation
+npm start       # Production run
 ```
 
-## 연관
+## Related
 
-- Docker 이미지: `../docker/web-terminal/Dockerfile`
-- K8s 배포: `../k8s-manifests/deployment.yaml`
+- Docker image: `../docker/web-terminal/Dockerfile`
+- K8s deployment: `../k8s-manifests/deployment.yaml`

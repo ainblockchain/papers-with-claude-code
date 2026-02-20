@@ -1,6 +1,6 @@
 # Frontend
 
-Next.js 기반 논문 탐색 및 지식 그래프 학습 플랫폼 웹 애플리케이션.
+A Next.js-based web application for paper exploration and knowledge graph learning platform.
 
 ## Tech Stack
 
@@ -9,62 +9,62 @@ Next.js 기반 논문 탐색 및 지식 그래프 학습 플랫폼 웹 애플리
 
 ## Core Features
 
-| 기능 | 라우트 | 설명 |
-|------|--------|------|
-| **GitHub Login** | `/login` | GitHub OAuth를 통한 소셜 로그인 |
-| **My Dashboard** | `/dashboard` | 사용자 개인 대시보드. 학습 통계, 진행 중인 논문, 활동 내역 |
-| **Explore** | `/explore` | 논문 검색 및 탐색 (HuggingFace Papers 스타일). "Learn (Claude Code)" 버튼으로 학습 시작 |
-| **Learn** | `/learn/[paperId]` | 60/40 분할 학습 뷰 — 좌측 던전 캔버스 + 우측 Claude Code 웹 터미널 |
-| **Village** | `/village` | 2D 타일맵 마을. 과목별 던전 입구, 친구 위치, 리더보드, 월드맵 |
+| Feature | Route | Description |
+|---------|-------|-------------|
+| **GitHub Login** | `/login` | Social login via GitHub OAuth |
+| **My Dashboard** | `/dashboard` | User personal dashboard. Learning statistics, papers in progress, activity history |
+| **Explore** | `/explore` | Paper search and exploration (HuggingFace Papers style). Start learning with the "Learn (Claude Code)" button |
+| **Learn** | `/learn/[paperId]` | 60/40 split learning view — left dungeon canvas + right Claude Code web terminal |
+| **Village** | `/village` | 2D tilemap village. Subject-specific dungeon entrances, friend locations, leaderboard, world map |
 | **Publish** | `/publish` | _To be continued_ |
 
 ---
 
 ## User Flow
 
-> 전체 사용자 경험 플로우. 상세 구현 스펙은 `TODO.md` 참조.
+> Full user experience flow. See `TODO.md` for detailed implementation specs.
 
 ```
 [Explore Page]                    [Learning View]                     [Village]
-┌─────────────┐   "Learn" 클릭   ┌──────────┬──────────┐            ┌──────────┐
-│ Paper Cards │ ──────────────→  │ Course  │ Claude   │  던전 탈출  │ 2D 마을  │
-│ (HF style)  │                  │ Canvas   │ Code     │ ─────────→ │ 던전 입구 │
-│             │                  │ (60%)    │ Terminal │            │ 친구 위치 │
-│ [Learn ▶]  │                  │          │ (40%)    │            │ 리더보드  │
-│ [GitHub ★] │                  │ Stage 1  │ 학습+퀴즈│            │ 알림     │
-│ [arXiv 📄] │                  │   ↓ 🔓   │          │            │          │
-│             │                  │ Stage 2  │          │            │          │
+┌─────────────┐   "Learn" click  ┌──────────┬──────────┐            ┌──────────┐
+│ Paper Cards │ ──────────────→  │ Course  │ Claude   │  Exit       │ 2D       │
+│ (HF style)  │                  │ Canvas   │ Code     │  dungeon   │ Village  │
+│             │                  │ (60%)    │ Terminal │ ─────────→ │ Dungeon  │
+│ [Learn ▶]  │                  │          │ (40%)    │            │ Entrance │
+│ [GitHub ★] │                  │ Stage 1  │Learn+Quiz│            │ Friends  │
+│ [arXiv]    │                  │   ↓      │          │            │Leaderboard│
+│             │                  │ Stage 2  │          │            │ Alerts   │
 │             │                  │   ↓ ...  │          │            │          │
 └─────────────┘                  └──────────┴──────────┘            └──────────┘
                                        │                                  │
-                                       │  x402 결제로                      │
-                                       │  다음 스테이지 해금               │
+                                       │  Unlock next stage               │
+                                       │  via x402 payment                │
                                        │                                  │
-                                  [Checkpoint DB에 저장]           [친구 알림 수신]
+                                  [Save to Checkpoint DB]         [Receive friend alerts]
 ```
 
 ### Flow Detail
 
-1. **Explore** — 유저는 HuggingFace Papers Trending과 유사한 UI에서 논문을 탐색한다
-2. **Learn 버튼** — 논문 카드의 "Learn (Claude Code)" 버튼 클릭 시 `/learn/[paperId]`로 이동
-3. **60/40 Split View** — 좌측 60%는 2D 던전 캔버스, 우측 40%는 Claude Code 웹 터미널
-4. **Stage Learning** — 유저는 던전 내 칠판 오브젝트와 상호작용하며 개념을 학습하고, Claude Code 터미널에서 AI와 대화하며 심화 학습
-5. **Quiz Gate** — 스테이지 완료 시 퀴즈를 풀어야 다음 방으로 이동 가능
-6. **x402 Payment** — 다음 스테이지의 잠긴 문을 x402 프로토콜 결제로 해금
-7. **Checkpoint** — 스테이지 클리어 시마다 DB에 체크포인트 저장. 나갔다 돌아와도 진행도 유지
-8. **Exit to Village** — 던전을 나가면 2D 마을 뷰로 이동. 다양한 논문 주제의 던전 건물 배치
-9. **Social** — 마을/던전에서 친구 캐릭터 위치 확인 가능. 친구가 스테이지 클리어 시 알림 팝업
-10. **Dynamic Map** — 마을 맵은 Gemini API를 활용해 아웃페인팅 방식으로 동적 생성
+1. **Explore** — Users browse papers in a UI similar to HuggingFace Papers Trending
+2. **Learn Button** — Clicking the "Learn (Claude Code)" button on a paper card navigates to `/learn/[paperId]`
+3. **60/40 Split View** — Left 60% is a 2D dungeon canvas, right 40% is a Claude Code web terminal
+4. **Stage Learning** — Users learn concepts by interacting with chalkboard objects in the dungeon, and deepen learning by chatting with AI in the Claude Code terminal
+5. **Quiz Gate** — Must pass a quiz to move to the next room upon stage completion
+6. **x402 Payment** — Unlock the locked door to the next stage via x402 protocol payment
+7. **Checkpoint** — Checkpoint saved to DB each time a stage is cleared. Progress persists even after leaving and returning
+8. **Exit to Village** — Exiting the dungeon moves to the 2D village view. Dungeon buildings for various paper topics are placed on the map
+9. **Social** — Friend character locations visible in village/dungeon. Alert popup when a friend clears a stage
+10. **Dynamic Map** — Village map is dynamically generated using outpainting via the Gemini API
 
 ---
 
 ## UI Layout & Design Reference
 
-> Hugging Face Papers Trending 페이지(https://huggingface.co/papers/trending)를 레퍼런스로 분석한 UI 배치 및 디자인 명세.
+> UI layout and design specification analyzed using the Hugging Face Papers Trending page (https://huggingface.co/papers/trending) as reference.
 
-### 전체 페이지 구조 (Explore 페이지 기준)
+### Overall Page Structure (Based on Explore Page)
 
-페이지는 크게 **Header(네비게이션 바)**, **Hero Section(페이지 헤더)**, **Paper List(논문 리스트)** 로 구성된다. 배경은 `#FFFFFF` 흰색이며, 최대 콘텐츠 폭은 약 1280px로 중앙 정렬된다.
+The page consists of **Header (navigation bar)**, **Hero Section (page header)**, and **Paper List**. Background is `#FFFFFF` white, and max content width is approximately 1280px, center-aligned.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
@@ -77,13 +77,13 @@ Next.js 기반 논문 탐색 및 지식 그래프 학습 플랫폼 웹 애플리
 ├──────────────────────────────────────────────────────────────────────┤
 │  ┌─────────┐                                     ┌────────────────┐ │
 │  │Thumbnail│  Title (h3, bold, link)             │ [★ GitHub   N] │ │
-│  │         │  Description (gray, 1-2 lines)      │ [📄 arXiv Page]│ │  ← Paper Card
+│  │         │  Description (gray, 1-2 lines)      │ [arXiv Page]   │ │  ← Paper Card
 │  │         │  Authors · Published on Date         └────────────────┘ │
 │  └─────────┘                                                         │
 │  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─  │
 │  ┌─────────┐                                     ┌────────────────┐ │
 │  │Thumbnail│  Title                              │ [★ GitHub   N] │ │
-│  │         │  Description                        │ [📄 arXiv Page]│ │  ← Paper Card
+│  │         │  Description                        │ [arXiv Page]   │ │  ← Paper Card
 │  │         │  Authors · Published on Date         └────────────────┘ │
 │  └─────────┘                                                         │
 │  ...                                                                 │
@@ -94,343 +94,345 @@ Next.js 기반 논문 탐색 및 지식 그래프 학습 플랫폼 웹 애플리
 
 ### 1. Header (Global Navigation Bar)
 
-| 요소 | 설명 |
-|------|------|
-| **로고** | 좌측 상단. 아이콘 + 서비스명. 홈(`/`)으로 링크 |
-| **네비게이션 메뉴** | 가로 정렬: Explore, Dashboard, Publish |
-| **인증 영역** | 비로그인 시: "GitHub로 로그인" 버튼. 로그인 시: 사용자 아바타 + 드롭다운 메뉴 |
+| Element | Description |
+|---------|-------------|
+| **Logo** | Top left. Icon + service name. Links to home (`/`) |
+| **Navigation Menu** | Horizontal alignment: Explore, Dashboard, Publish |
+| **Auth Area** | When not logged in: "Login with GitHub" button. When logged in: User avatar + dropdown menu |
 
-- 높이: 약 48~56px
-- 배경: `#FFFFFF`, 하단에 미세한 border/shadow
-- 폰트: 14~15px, 중간 weight
-
----
-
-### 2. Hero Section (Explore 페이지 헤더)
-
-좌우 2열 배치:
-
-**좌측:**
-- `h1` "Explore Papers" — bold, 약 28~32px, 검정
-- 부제목 — 회색, 약 14px
-
-**우측:**
-- **AI 검색 바**: 아이콘(✨) + placeholder "Search any paper with AI". 라운드 border, 약 400px 폭
-- **기간 필터 탭**: `Daily` | `Weekly` | `Monthly` — 텍스트 버튼, 선택 시 bold/underline
+- Height: approx. 48~56px
+- Background: `#FFFFFF`, subtle border/shadow at the bottom
+- Font: 14~15px, medium weight
 
 ---
 
-### 3. Paper Card (논문 카드 — 핵심 반복 컴포넌트)
+### 2. Hero Section (Explore Page Header)
 
-각 카드는 `<article>` 요소로 구성되며 수직으로 나열된다. 카드 간 구분은 얇은 border-top (`1px solid #E5E7EB`).
+Left-right 2-column layout:
 
-#### 레이아웃: 3열 구조
+**Left:**
+- `h1` "Explore Papers" — bold, approx. 28~32px, black
+- Subtitle — gray, approx. 14px
+
+**Right:**
+- **AI Search Bar**: Icon + placeholder "Search any paper with AI". Rounded border, approx. 400px width
+- **Period Filter Tabs**: `Daily` | `Weekly` | `Monthly` — text buttons, bold/underline when selected
+
+---
+
+### 3. Paper Card (Core Repeated Component)
+
+Each card is an `<article>` element arranged vertically. Cards are separated by a thin border-top (`1px solid #E5E7EB`).
+
+#### Layout: 3-Column Structure
 
 ```
 [Thumbnail]  [Content Area]                              [Action Buttons]
   ~160px         flex-grow                                  ~120px
 ```
 
-#### 3-1. Thumbnail (좌측)
+#### 3-1. Thumbnail (Left)
 
-- 논문 첫 페이지 미리보기 이미지
-- 크기: 약 160x200px
+- Paper first page preview image
+- Size: approx. 160x200px
 - border-radius: 8px
-- 하단 오버레이: 제출자 정보 ("Submitted by @username") — 반투명 배경
-- 상단 우측: 조직 뱃지 (예: "Google", "IBM Granite") — 라운드 pill
+- Bottom overlay: Submitter info ("Submitted by @username") — semi-transparent background
+- Top right: Organization badge (e.g., "Google", "IBM Granite") — rounded pill
 
-#### 3-2. Content Area (중앙)
+#### 3-2. Content Area (Center)
 
-| 요소 | 스타일 |
-|------|--------|
-| **제목** | `h3`, bold, 약 18~20px, 검정. 클릭 시 논문 상세로 이동 |
-| **설명** | 회색 (`#6B7280`), 14px, 최대 2줄. 논문 요약 |
-| **저자 목록** | 아바타 아이콘(원형, ~20px) 나열 + "N authors" 텍스트 |
-| **게시일** | "· Published on Feb 15, 2026" — 회색, 14px |
-| **조직 뱃지** | (일부 카드) 조직 로고 + 이름 pill |
+| Element | Style |
+|---------|-------|
+| **Title** | `h3`, bold, approx. 18~20px, black. Navigates to paper detail on click |
+| **Description** | Gray (`#6B7280`), 14px, max 2 lines. Paper summary |
+| **Author List** | Avatar icons (circular, ~20px) listed + "N authors" text |
+| **Published Date** | "· Published on Feb 15, 2026" — gray, 14px |
+| **Organization Badge** | (Some cards) Organization logo + name pill |
 
-#### 3-3. Action Buttons (우측)
+#### 3-3. Action Buttons (Right)
 
-세로 정렬된 2개 버튼:
+2 buttons vertically aligned:
 
-| 버튼 | 스타일 |
-|------|--------|
-| **GitHub** | `★ GitHub [N]` — outline 버튼, star 수 표시. GitHub 저장소로 링크 |
-| **arXiv Page** | `📄 arXiv Page` — outline 버튼, arXiv 논문 링크 |
+| Button | Style |
+|--------|-------|
+| **GitHub** | `★ GitHub [N]` — outline button, showing star count. Links to GitHub repository |
+| **arXiv Page** | `arXiv Page` — outline button, arXiv paper link |
 
-- 버튼 폭: 약 120~140px
-- 간격: 각 버튼 사이 4~8px
-- 스타일: 연한 회색 border, 흰 배경, hover 시 배경색 변경
+- Button width: approx. 120~140px
+- Spacing: 4~8px between buttons
+- Style: light gray border, white background, background color change on hover
 
 ---
 
-### 4. 디자인 토큰 요약
+### 4. Design Token Summary
 
-| 토큰 | 값 |
-|------|-----|
-| **Primary Color** | `#FF9D00` (주황 — 주요 액센트) |
-| **Text Primary** | `#111827` (거의 검정) |
-| **Text Secondary** | `#6B7280` (회색 — 설명, 날짜, 저자) |
-| **Border Color** | `#E5E7EB` (카드 구분선) |
+| Token | Value |
+|-------|-------|
+| **Primary Color** | `#FF9D00` (orange — main accent) |
+| **Text Primary** | `#111827` (near black) |
+| **Text Secondary** | `#6B7280` (gray — descriptions, dates, authors) |
+| **Border Color** | `#E5E7EB` (card separator) |
 | **Background** | `#FFFFFF` |
-| **Border Radius** | 8px (카드, 버튼), 9999px (pill/뱃지) |
+| **Border Radius** | 8px (cards, buttons), 9999px (pill/badge) |
 | **Font Family** | Source Sans Pro / system sans-serif |
-| **Card Padding** | 약 16~24px |
-| **Content Max Width** | ~1280px, 중앙 정렬 |
+| **Card Padding** | approx. 16~24px |
+| **Content Max Width** | ~1280px, center-aligned |
 
 ---
 
-### 5. 반응형 고려사항
+### 5. Responsive Considerations
 
-- 데스크톱(1920px) 기준 분석이며, 모바일에서는 3열 → 1열 스택 레이아웃으로 전환
-- Thumbnail이 상단, Content가 중간, Action 버튼이 하단으로 재배치
-- 네비게이션은 햄버거 메뉴로 축소
-
----
-
-### 6. 참고 스크린샷
-
-- `huggingface-papers-trending.png` — 페이지 상단 (Header + Title + 첫 4개 카드)
-- `huggingface-papers-trending-scrolled.png` — 스크롤 후 추가 카드 확인
+- Analyzed based on desktop (1920px); on mobile, 3-column transitions to 1-column stack layout
+- Thumbnail at top, Content in middle, Action buttons at bottom
+- Navigation collapses to hamburger menu
 
 ---
 
-## AINSpace — LMS 재구성 명세
+### 6. Reference Screenshots
 
-> 기존 AINSpace(2D 타일맵 가상 마을)의 인프라를 유지하면서, LMS(학습 관리 시스템) 컨셉으로 재구성한다.
+- `huggingface-papers-trending.png` — Top of page (Header + Title + first 4 cards)
+- `huggingface-papers-trending-scrolled.png` — Additional cards after scrolling
 
-### 참고 이미지
+---
 
-- `reference/ainspace-lms-village.png` — 마을 전체 뷰 (던전 입구, 친구, 리더보드, 월드맵)
-- `reference/ainspace-lms-course.png` — 던전 내부 (스테이지, 학습 콘텐츠, 퀴즈 게이트)
+## AINSpace — LMS Restructuring Specification
 
-### 전체 화면 구조
+> Restructuring the existing AINSpace (2D tilemap virtual village) infrastructure as an LMS (Learning Management System) concept while maintaining the existing infrastructure.
+
+### Reference Images
+
+- `reference/ainspace-lms-village.png` — Full village view (dungeon entrances, friends, leaderboard, world map)
+- `reference/ainspace-lms-course.png` — Dungeon interior (stages, learning content, quiz gates)
+
+### Overall Screen Structure
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│ [LMS Logo]  내 강의실 | 현재 학습 중: ○○ 던전 | 진행도: 16% (스테이지 1/7) [👤]│ ← Top Bar
-├────┬─────────────────────────────────────────────────────────┬───────────────┤
-│    │                                                         │ 출석 중인 친구들│
-│ 대 │                                                         │  친구 A 🟢 St.2│
-│ 시 │              2D 타일맵 메인 뷰                           │  친구 B 🔴 St.3│
-│ 보 │         (마을 / 던전 내부 전환)                           │               │
-│ 드 │                                                         │ 리더보드       │
-│    │                                                         │  1. 친구B St.3 │
-│ 수 │                                                         │  2. 친구A St.2 │
-│ 강 │                                                         │  3. 나    St.1 │
-│ 신 │                                                         │               │
-│ 청 │                                                         │               │
+│ [LMS Logo]  My Classes | Currently Learning: XX Dungeon | Progress: 16% (Stage 1/7) [Profile]│ ← Top Bar
+├────┬─────────────────────────────────────────────────────┬───────────────┤
+│    │                                                         │ Friends Online│
+│ Da │                                                         │  Friend A  St.2│
+│ sh │              2D Tilemap Main View                       │  Friend B  St.3│
+│ bo │         (Village / Dungeon Interior Switch)             │               │
+│ ar │                                                         │ Leaderboard   │
+│ d  │                                                         │  1. FriendB St.3│
+│    │                                                         │  2. FriendA St.2│
+│ En │                                                         │  3. Me    St.1 │
+│ ro │                                                         │               │
+│ ll │                                                         │               │
 │    │                                                         │               │
-│ 옷 │                                                         │               │
-│    │                                                         ├───────────────┤
-│ 커 │                                                         │ [월드맵/       │
-│ 뮤 │                                                         │  스테이지 맵]  │
-│ 니 │                                                         │               │
-│ 티 │                                                         │               │
-├────┴─────────────────────────────────────────────────────────┴───────────────┤
+│ Ou │                                                         │               │
+│ tf │                                                         ├───────────────┤
+│ it │                                                         │ [World Map/   │
+│    │                                                         │  Stage Map]   │
+│ Co │                                                         │               │
+│ mm │                                                         │               │
+│ un │                                                         │               │
+│ ity│                                                         │               │
+├────┴─────────────────────────────────────────────────────┴───────────────┤
 ```
 
-### 1. Top Bar (상단 네비게이션)
+### 1. Top Bar (Top Navigation)
 
-| 요소 | 설명 |
-|------|------|
-| **LMS Logo** | 좌측. 홈으로 이동 |
-| **내 강의실** | 수강 중인 과목 목록 페이지로 이동 |
-| **현재 학습 상태** | "현재 학습 중: 강화학습 (Reinforcement Learning) 던전" — 현재 활동 컨텍스트 표시 |
-| **진행도** | "진행도: 16% (스테이지 1/7)" — 프로그레스 표시 |
-| **프로필** | 우측 끝. 사용자 아바타 |
+| Element | Description |
+|---------|-------------|
+| **LMS Logo** | Left side. Navigates to home |
+| **My Classes** | Navigates to enrolled courses list page |
+| **Current Learning Status** | "Currently Learning: Reinforcement Learning Dungeon" — shows current activity context |
+| **Progress** | "Progress: 16% (Stage 1/7)" — progress indicator |
+| **Profile** | Right end. User avatar |
 
-### 2. Left Sidebar (좌측 사이드바)
+### 2. Left Sidebar
 
-아이콘 + 텍스트 세로 메뉴:
+Icon + text vertical menu:
 
-| 메뉴 | 설명 |
-|------|------|
-| **대시보드** | 학습 현황 요약, 통계 |
-| **수강신청** | 새로운 과목(던전) 탐색 및 등록 |
-| **옷** | 캐릭터 커스터마이징 |
-| **커뮤니티** | 소셜 기능, 채팅 |
+| Menu | Description |
+|------|-------------|
+| **Dashboard** | Learning status summary, statistics |
+| **Enrollment** | Browse and enroll in new courses (dungeons) |
+| **Outfits** | Character customization |
+| **Community** | Social features, chat |
 
-### 3. Main View — 마을 (Village)
+### 3. Main View — Village
 
-기존 AINSpace 2D 타일맵을 학습 마을로 재구성:
+Restructuring the existing AINSpace 2D tilemap as a learning village:
 
-| 요소 | 설명 |
-|------|------|
-| **던전 입구들** | 각 과목이 던전으로 표현됨. 예: "딥러닝(DL) 던전 입구", "강화학습(RL) 던전 입구", "A2A 던전 입구". 건물 형태로 맵에 배치 |
-| **플레이어 캐릭터** | 사용자 아바타(파란 캐릭터)가 마을을 돌아다님 |
-| **친구 캐릭터** | 같은 마을에 접속한 친구들이 실시간으로 보임. 말풍선으로 진행 상태 공유 ("스테이지 3 클리어 🏆") |
-| **NPC / 가이드** | 학습 안내 캐릭터 (선택) |
+| Element | Description |
+|---------|-------------|
+| **Dungeon Entrances** | Each course is represented as a dungeon. e.g., "Deep Learning (DL) Dungeon Entrance", "Reinforcement Learning (RL) Dungeon Entrance", "A2A Dungeon Entrance". Placed on the map as buildings |
+| **Player Character** | User avatar (blue character) walks around the village |
+| **Friend Characters** | Friends connected to the same village visible in real-time. Share progress status via speech bubbles ("Stage 3 cleared!") |
+| **NPC / Guide** | Learning guide character (optional) |
 
-### 4. Main View — 던전 내부 (Course Stage)
+### 4. Main View — Dungeon Interior (Course Stage)
 
-던전 입구에 진입하면 해당 과목의 학습 공간으로 전환:
+Entering a dungeon entrance transitions to that course's learning space:
 
-| 요소 | 설명 |
-|------|------|
-| **스테이지 방** | "스테이지 1: 기초 개념의 방" — 각 방이 하나의 학습 단계 |
-| **학습 콘텐츠** | 칠판 오브젝트에 핵심 개념 표시 (예: "Agent", "Reward"). 상호작용 시 상세 학습 자료 열람 |
-| **퀴즈 게이트** | 다음 스테이지로 가는 문 앞에 잠금. "스테이지 2로 이동 (퀴즈 통과 필요)" — 퀴즈를 풀어야 통과 |
-| **스테이지 간 이동** | 문을 통해 다음 스테이지로 연결. 선형 진행 (St.1 → St.2 → St.3 → ...) |
-| **함께 푸는 친구** | 같은 던전에 있는 친구가 보임. 실시간 위치 공유 |
+| Element | Description |
+|---------|-------------|
+| **Stage Rooms** | "Stage 1: Room of Basic Concepts" — each room is one learning step |
+| **Learning Content** | Key concepts displayed on chalkboard objects (e.g., "Agent", "Reward"). Detailed learning materials accessible on interaction |
+| **Quiz Gate** | Locked before the door to the next stage. "Move to Stage 2 (quiz required)" — must pass quiz to proceed |
+| **Inter-stage Movement** | Connected to next stage via doors. Linear progression (St.1 -> St.2 -> St.3 -> ...) |
+| **Friends in Same Dungeon** | Friends in the same dungeon are visible. Real-time location sharing |
 
-### 5. Right Sidebar (우측 사이드바)
+### 5. Right Sidebar
 
-컨텍스트에 따라 내용이 전환됨:
+Content switches depending on context:
 
-**마을 뷰일 때:**
+**Village View:**
 
-| 요소 | 설명 |
-|------|------|
-| **출석 중인 친구들** | 현재 접속 중인 친구 목록 + 각자 진행 중인 스테이지 (🟢 온라인 / 🔴 바쁨) |
-| **리더보드** | 학습 진행도 순위. "1. 친구B (RL St.3) / 2. 친구A (DL St.2) / 3. 나 (RL St.1)" |
-| **월드맵** | 우하단. 과목별 던전 위치를 미니맵으로 표시. RL, DL, A2A 영역이 색상으로 구분됨 |
+| Element | Description |
+|---------|-------------|
+| **Friends Online** | List of currently connected friends + each one's current stage (online / busy) |
+| **Leaderboard** | Learning progress ranking. "1. FriendB (RL St.3) / 2. FriendA (DL St.2) / 3. Me (RL St.1)" |
+| **World Map** | Bottom right. Shows dungeon locations by subject on a minimap. RL, DL, A2A areas distinguished by color |
 
-**던전 내부일 때:**
+**Dungeon Interior:**
 
-| 요소 | 설명 |
-|------|------|
-| **함께 풀인 친구들** | 같은 던전 안에 있는 친구 목록 + 각자 스테이지 |
-| **스테이지 맵** | 우하단. 현재 던전의 스테이지 진행 흐름도 (St.1 → St.2 → St.3). 현재 위치, 친구 위치 표시 |
+| Element | Description |
+|---------|-------------|
+| **Friends in Same Dungeon** | List of friends in the same dungeon + each one's stage |
+| **Stage Map** | Bottom right. Stage progression flowchart of the current dungeon (St.1 -> St.2 -> St.3). Shows current position, friend positions |
 
-### 6. 핵심 LMS 학습 플로우
+### 6. Core LMS Learning Flow
 
 ```
-수강신청 → 마을에서 던전 입구로 이동 → 던전 진입
-  → 스테이지 1 (기초 개념 학습, 칠판 상호작용)
-  → 퀴즈 통과 → 스테이지 2 진입
-  → ... 반복 ...
-  → 최종 스테이지 클리어 → 과목 완료
+Enrollment -> Move to dungeon entrance in village -> Enter dungeon
+  -> Stage 1 (basic concept learning, chalkboard interaction)
+  -> Pass quiz -> Enter Stage 2
+  -> ... repeat ...
+  -> Clear final stage -> Course completed
 ```
 
-### 7. 기존 AINSpace에서 유지하는 기능
+### 7. Features Retained from Existing AINSpace
 
-| 기능 | 설명 |
-|------|------|
-| **2D 타일맵 렌더링** | Canvas 기반 타일맵, 3-레이어 시스템 |
-| **캐릭터 이동** | 키보드/터치 기반 이동, 충돌 처리 |
-| **월렛 인증** | Coinbase Wallet 연동, Base 체인 기반 |
-| **실시간 채팅** | SSE 기반 스트리밍, 말풍선 |
-| **맵 탐험** | 마을/던전 간 씬 전환, 미니맵 |
-| **캐릭터 커스터마이징** | 옷/외형 변경 |
-
----
-
-# AINSpace Frontend - 완전한 개발 문서 (인수인계용)
-
-> **프로젝트**: AINSpace — AI 에이전트가 2D 가상 마을에서 자율적으로 상호작용하는 Web3 메타버스 MiniApp
-> **버전**: 1.0.3
-> **원본 경로**: `ain-space/ainspace`
+| Feature | Description |
+|---------|-------------|
+| **2D Tilemap Rendering** | Canvas-based tilemap, 3-layer system |
+| **Character Movement** | Keyboard/touch-based movement, collision handling |
+| **Wallet Authentication** | Coinbase Wallet integration, Base chain based |
+| **Real-time Chat** | SSE-based streaming, speech bubbles |
+| **Map Exploration** | Scene transitions between village/dungeon, minimap |
+| **Character Customization** | Outfit/appearance changes |
 
 ---
 
-## 목차
+# AINSpace Frontend - Complete Development Documentation (Handoff Document)
 
-1. [프로젝트 개요](#1-프로젝트-개요)
-2. [기술 스택](#2-기술-스택)
-3. [프로젝트 구조](#3-프로젝트-구조)
-4. [환경 설정 및 실행](#4-환경-설정-및-실행)
-5. [아키텍처 개요](#5-아키텍처-개요)
-6. [라우팅 구조](#6-라우팅-구조)
-7. [상태 관리 (Zustand Stores)](#7-상태-관리-zustand-stores)
-8. [핵심 데이터 타입](#8-핵심-데이터-타입)
-9. [Provider 계층 구조](#9-provider-계층-구조)
-10. [인증 시스템 (AuthGuard)](#10-인증-시스템-authguard)
-11. [페이지별 상세 구현](#11-페이지별-상세-구현)
-12. [컴포넌트 아키텍처](#12-컴포넌트-아키텍처)
-13. [게임 시스템 상세](#13-게임-시스템-상세)
-14. [에이전트 시스템](#14-에이전트-시스템)
-15. [맵 빌딩 시스템](#15-맵-빌딩-시스템)
-16. [채팅 및 스레딩 시스템](#16-채팅-및-스레딩-시스템)
-17. [Custom Hooks 상세](#17-custom-hooks-상세)
-18. [유틸리티 라이브러리](#18-유틸리티-라이브러리)
-19. [API 라우트 상세](#19-api-라우트-상세)
-20. [외부 서비스 연동](#20-외부-서비스-연동)
-21. [스타일링 시스템](#21-스타일링-시스템)
-22. [빌드 및 배포](#22-빌드-및-배포)
-23. [핵심 동작 흐름](#23-핵심-동작-흐름)
-24. [설정 파일 상세](#24-설정-파일-상세)
-25. [주의사항 및 알려진 이슈](#25-주의사항-및-알려진-이슈)
+> **Project**: AINSpace — A Web3 Metaverse MiniApp where AI agents autonomously interact in a 2D virtual village
+> **Version**: 1.0.3
+> **Original Path**: `ain-space/ainspace`
 
 ---
 
-## 1. 프로젝트 개요
+## Table of Contents
 
-AINSpace는 **2D 타일맵 기반 가상 마을**에서 AI 에이전트들이 자율적으로 활동하는 Web3 MiniApp이다. 사용자는 지갑을 연결하고, 마을을 탐험하며, A2A(Agent-to-Agent) 프로토콜을 통해 AI 에이전트를 임포트하고, 에이전트와 대화할 수 있다.
-
-### 핵심 기능
-
-| 기능 | 설명 |
-|------|------|
-| **월렛 인증** | Coinbase Wallet 연동, Base 체인 기반 로그인 |
-| **2D 타일맵** | 105x105 타일 맵, Canvas 렌더링, 3-레이어 시스템 |
-| **AI 에이전트** | A2A 프로토콜 기반 에이전트 임포트/배치/대화 |
-| **맵 빌딩** | 아이템 배치, 충돌 맵, 커스텀 타일 퍼블리시 |
-| **실시간 채팅** | SSE 기반 스트리밍, 스레드 대화, 브로드캐스트 |
-| **Farcaster MiniApp** | Farcaster 프레임 SDK 통합 |
+1. [Project Overview](#1-project-overview)
+2. [Tech Stack](#2-tech-stack)
+3. [Project Structure](#3-project-structure)
+4. [Environment Setup and Running](#4-environment-setup-and-running)
+5. [Architecture Overview](#5-architecture-overview)
+6. [Routing Structure](#6-routing-structure)
+7. [State Management (Zustand Stores)](#7-state-management-zustand-stores)
+8. [Core Data Types](#8-core-data-types)
+9. [Provider Hierarchy](#9-provider-hierarchy)
+10. [Authentication System (AuthGuard)](#10-authentication-system-authguard)
+11. [Page-by-Page Implementation Details](#11-page-by-page-implementation-details)
+12. [Component Architecture](#12-component-architecture)
+13. [Game System Details](#13-game-system-details)
+14. [Agent System](#14-agent-system)
+15. [Map Building System](#15-map-building-system)
+16. [Chat and Threading System](#16-chat-and-threading-system)
+17. [Custom Hooks Details](#17-custom-hooks-details)
+18. [Utility Library](#18-utility-library)
+19. [API Route Details](#19-api-route-details)
+20. [External Service Integration](#20-external-service-integration)
+21. [Styling System](#21-styling-system)
+22. [Build and Deployment](#22-build-and-deployment)
+23. [Core Behavior Flows](#23-core-behavior-flows)
+24. [Configuration File Details](#24-configuration-file-details)
+25. [Caveats and Known Issues](#25-caveats-and-known-issues)
 
 ---
 
-## 2. 기술 스택
+## 1. Project Overview
+
+AINSpace is a Web3 MiniApp where AI agents autonomously operate in a **2D tilemap-based virtual village**. Users connect their wallets, explore the village, import AI agents via the A2A (Agent-to-Agent) protocol, and chat with agents.
+
+### Core Features
+
+| Feature | Description |
+|---------|-------------|
+| **Wallet Authentication** | Coinbase Wallet integration, Base chain-based login |
+| **2D Tilemap** | 105x105 tile map, Canvas rendering, 3-layer system |
+| **AI Agents** | A2A protocol-based agent import/placement/conversation |
+| **Map Building** | Item placement, collision map, custom tile publishing |
+| **Real-time Chat** | SSE-based streaming, threaded conversations, broadcast |
+| **Farcaster MiniApp** | Farcaster Frame SDK integration |
+
+---
+
+## 2. Tech Stack
 
 ### Core
 
-| 분류 | 기술 | 버전 |
-|------|------|------|
-| **프레임워크** | Next.js (App Router) | 15.5.9 |
-| **UI 라이브러리** | React | 19.1.0 |
-| **언어** | TypeScript (strict mode) | ^5 |
-| **상태관리** | Zustand | 5.0.8 |
-| **스타일링** | Tailwind CSS v4 + PostCSS | ^4 |
+| Category | Technology | Version |
+|----------|------------|---------|
+| **Framework** | Next.js (App Router) | 15.5.9 |
+| **UI Library** | React | 19.1.0 |
+| **Language** | TypeScript (strict mode) | ^5 |
+| **State Management** | Zustand | 5.0.8 |
+| **Styling** | Tailwind CSS v4 + PostCSS | ^4 |
 
 ### Web3 / Blockchain
 
-| 기술 | 용도 |
-|------|------|
+| Technology | Purpose |
+|------------|---------|
 | **wagmi** (2.18.2) | React hooks for Ethereum |
-| **viem** (2.38.3) | Ethereum 유틸리티 |
-| **@coinbase/onchainkit** (latest) | Base 체인 통합, MiniKit |
-| **@farcaster/miniapp-sdk** (0.2.1) | Farcaster 프레임 통합 |
+| **viem** (2.38.3) | Ethereum utilities |
+| **@coinbase/onchainkit** (latest) | Base chain integration, MiniKit |
+| **@farcaster/miniapp-sdk** (0.2.1) | Farcaster frame integration |
 
 ### AI / Agent
 
-| 기술 | 용도 |
-|------|------|
-| **@a2a-js/sdk** (0.3.4) | Agent-to-Agent 프로토콜 |
+| Technology | Purpose |
+|------------|---------|
+| **@a2a-js/sdk** (0.3.4) | Agent-to-Agent protocol |
 | **@google/generative-ai** (0.24.1) | Gemini API |
 | **openai** (6.2.0) | ChatGPT API |
 
 ### Backend / Storage
 
-| 기술 | 용도 |
-|------|------|
-| **redis** (5.8.2) | 데이터 영속화 (위치, 타일, 에이전트, 스레드) |
-| **@vercel/blob** (2.0.0) | 파일 스토리지 |
-| **firebase-admin** (13.6.0) | Firebase 백엔드 서비스 |
+| Technology | Purpose |
+|------------|---------|
+| **redis** (5.8.2) | Data persistence (positions, tiles, agents, threads) |
+| **@vercel/blob** (2.0.0) | File storage |
+| **firebase-admin** (13.6.0) | Firebase backend services |
 
 ### UI Components
 
-| 기술 | 용도 |
-|------|------|
-| **lucide-react** | 아이콘 |
-| **react-joystick-component** | 모바일 조이스틱 |
-| **react-sprite-animator** | 스프라이트 애니메이션 |
-| **react-markdown** | 마크다운 렌더링 |
-| **vaul** | Drawer 컴포넌트 |
-| **@radix-ui/react-dialog** | 다이얼로그 |
-| **class-variance-authority** | 컴포넌트 변형 |
+| Technology | Purpose |
+|------------|---------|
+| **lucide-react** | Icons |
+| **react-joystick-component** | Mobile joystick |
+| **react-sprite-animator** | Sprite animation |
+| **react-markdown** | Markdown rendering |
+| **vaul** | Drawer component |
+| **@radix-ui/react-dialog** | Dialog |
+| **class-variance-authority** | Component variants |
 
 ### DevTools
 
-| 기술 | 용도 |
-|------|------|
-| **@sentry/nextjs** (10.22.0) | 에러 트래킹 |
-| **@vercel/analytics** (1.5.0) | 분석 |
-| **eruda** (3.4.3) | 모바일 디버깅 (개발환경 전용) |
-| **sharp** (0.34.4) | 이미지 처리 |
-| **prettier** + **prettier-plugin-tailwindcss** | 코드 포매팅 |
+| Technology | Purpose |
+|------------|---------|
+| **@sentry/nextjs** (10.22.0) | Error tracking |
+| **@vercel/analytics** (1.5.0) | Analytics |
+| **eruda** (3.4.3) | Mobile debugging (dev environment only) |
+| **sharp** (0.34.4) | Image processing |
+| **prettier** + **prettier-plugin-tailwindcss** | Code formatting |
 
-### 패키지 매니저
+### Package Manager
 
 ```
 yarn@1.22.19
@@ -438,91 +440,91 @@ yarn@1.22.19
 
 ---
 
-## 3. 프로젝트 구조
+## 3. Project Structure
 
 ```
 ainspace/
 ├── public/
-│   ├── map/                        # 타일맵 이미지 리소스
-│   │   ├── tiles/                  # 5x5 분할 타일 이미지
+│   ├── map/                        # Tilemap image resources
+│   │   ├── tiles/                  # 5x5 split tile images
 │   │   │   └── land_layer_1/       # tile_0_0.webp ~ tile_4_4.webp
-│   │   ├── land_layer_0.webp       # 기본 지형 레이어
-│   │   └── land_layer_1.webp       # 충돌 감지용 레이어
-│   ├── footer/bottomTab/           # 하단 탭 아이콘 SVG
-│   ├── login/                      # 로그인 페이지 이미지
-│   └── items/                      # 아이템 이미지
+│   │   ├── land_layer_0.webp       # Base terrain layer
+│   │   └── land_layer_1.webp       # Collision detection layer
+│   ├── footer/bottomTab/           # Bottom tab icon SVGs
+│   ├── login/                      # Login page images
+│   └── items/                      # Item images
 ├── src/
 │   ├── app/                        # Next.js App Router
-│   │   ├── layout.tsx              # 루트 레이아웃 (Providers + AuthGuard)
-│   │   ├── page.tsx                # 메인 게임 페이지 (/)
-│   │   ├── globals.css             # 전역 스타일 + Tailwind 설정
+│   │   ├── layout.tsx              # Root layout (Providers + AuthGuard)
+│   │   ├── page.tsx                # Main game page (/)
+│   │   ├── globals.css             # Global styles + Tailwind config
 │   │   ├── login/
-│   │   │   └── page.tsx            # 월렛 로그인 페이지
-│   │   └── api/                    # 서버사이드 API 라우트 (19개)
+│   │   │   └── page.tsx            # Wallet login page
+│   │   └── api/                    # Server-side API routes (19)
 │   │       ├── agents/
-│   │       │   ├── route.ts        # GET/POST/PUT/DELETE 에이전트 CRUD
+│   │       │   ├── route.ts        # GET/POST/PUT/DELETE agent CRUD
 │   │       │   └── upload-image/
-│   │       │       └── route.ts    # 스프라이트 이미지 업로드
+│   │       │       └── route.ts    # Sprite image upload
 │   │       ├── agent-chat/
-│   │       │   └── route.ts        # A2A 에이전트 채팅
+│   │       │   └── route.ts        # A2A agent chat
 │   │       ├── agent-proxy/
-│   │       │   └── route.ts        # A2A 카드 프록시
+│   │       │   └── route.ts        # A2A card proxy
 │   │       ├── agent-response/
-│   │       │   └── route.ts        # Gemini AI 응답 생성
+│   │       │   └── route.ts        # Gemini AI response generation
 │   │       ├── create-agent/
-│   │       │   └── route.ts        # AI 프롬프트로 에이전트 생성
+│   │       │   └── route.ts        # Create agent via AI prompt
 │   │       ├── threads/
-│   │       │   ├── route.ts        # GET/POST 스레드 관리
+│   │       │   ├── route.ts        # GET/POST thread management
 │   │       │   └── [id]/
-│   │       │       └── route.ts    # GET/DELETE 개별 스레드
+│   │       │       └── route.ts    # GET/DELETE individual thread
 │   │       ├── thread-message/
-│   │       │   └── route.ts        # 스레드 메시지 전송
+│   │       │   └── route.ts        # Thread message sending
 │   │       ├── thread-stream/
 │   │       │   └── [threadId]/
-│   │       │       └── route.ts    # SSE 스트리밍 프록시
+│   │       │       └── route.ts    # SSE streaming proxy
 │   │       ├── custom-tiles/
-│   │       │   └── route.ts        # GET/POST 커스텀 타일
+│   │       │   └── route.ts        # GET/POST custom tiles
 │   │       ├── position/
-│   │       │   └── route.ts        # GET/POST 플레이어 위치
+│   │       │   └── route.ts        # GET/POST player position
 │   │       ├── commentary/
-│   │       │   └── route.ts        # Gemini 해설 생성
+│   │       │   └── route.ts        # Gemini commentary generation
 │   │       ├── clear-layer1/
-│   │       │   └── route.ts        # 충돌 레이어 초기화
+│   │       │   └── route.ts        # Collision layer reset
 │   │       ├── convert-image/
-│   │       │   └── route.ts        # 이미지 포맷 변환
+│   │       │   └── route.ts        # Image format conversion
 │   │       ├── convert-status/
-│   │       │   └── route.ts        # 상태 데이터 변환
+│   │       │   └── route.ts        # Status data conversion
 │   │       └── upload-tile/
-│   │           └── route.ts        # 타일 이미지 업로드
+│   │           └── route.ts        # Tile image upload
 │   ├── components/
-│   │   ├── tabs/                   # 탭 뷰 컴포넌트
-│   │   │   ├── MapTab.tsx          # 게임 맵 + 조이스틱 + 채팅
-│   │   │   ├── AgentTab.tsx        # 에이전트 관리 UI
-│   │   │   └── TempBuildTab.tsx    # 맵 빌딩 UI
-│   │   ├── agent-builder/          # 에이전트 빌더 UI
+│   │   ├── tabs/                   # Tab view components
+│   │   │   ├── MapTab.tsx          # Game map + joystick + chat
+│   │   │   ├── AgentTab.tsx        # Agent management UI
+│   │   │   └── TempBuildTab.tsx    # Map building UI
+│   │   ├── agent-builder/          # Agent builder UI
 │   │   │   ├── ImportAgentSection.tsx
 │   │   │   ├── CreateAgentSection.tsx
 │   │   │   ├── ImportedAgentList.tsx
 │   │   │   └── ImportedAgentCard.tsx
-│   │   ├── overlays/               # 오버레이/모달
+│   │   ├── overlays/               # Overlays/modals
 │   │   │   ├── ChatBoxOverlay.tsx
 │   │   │   ├── ChatBottomDrawer.tsx
 │   │   │   ├── HolderModal.tsx
 │   │   │   └── LoadingModal.tsx
-│   │   ├── ui/                     # 공용 UI 컴포넌트 (Shadcn 기반)
+│   │   ├── ui/                     # Shared UI components (Shadcn-based)
 │   │   │   ├── Button.tsx
 │   │   │   ├── Dialog.tsx
 │   │   │   ├── Drawer.tsx
 │   │   │   ├── Spinner.tsx
 │   │   │   └── context-menu.tsx
-│   │   ├── canvas/                 # 캔버스 관련
-│   │   ├── controls/               # 게임 컨트롤 (조이스틱 등)
-│   │   ├── TileMap.tsx             # 핵심: 캔버스 기반 맵 렌더러
-│   │   ├── ChatBox.tsx             # 핵심: 메인 채팅 인터페이스
-│   │   ├── Footer.tsx              # 하단 탭 네비게이션
-│   │   └── AuthGuard.tsx           # 인증 가드
-│   ├── stores/                     # Zustand 상태 저장소 (7개)
-│   │   ├── index.ts                # 스토어 통합 export
+│   │   ├── canvas/                 # Canvas-related
+│   │   ├── controls/               # Game controls (joystick, etc.)
+│   │   ├── TileMap.tsx             # Core: Canvas-based map renderer
+│   │   ├── ChatBox.tsx             # Core: Main chat interface
+│   │   ├── Footer.tsx              # Bottom tab navigation
+│   │   └── AuthGuard.tsx           # Authentication guard
+│   ├── stores/                     # Zustand state stores (7)
+│   │   ├── index.ts                # Unified store export
 │   │   ├── useUIStore.ts
 │   │   ├── useGameStateStore.ts
 │   │   ├── useAgentStore.ts
@@ -530,44 +532,44 @@ ainspace/
 │   │   ├── useBuildStore.ts
 │   │   ├── useChatStore.ts
 │   │   └── useMapStore.ts
-│   ├── hooks/                      # Custom React Hooks (10개)
-│   │   ├── useGameState.tsx        # 게임 상태 + 이동 + 충돌
-│   │   ├── useAgents.ts            # 에이전트 AI 행동
-│   │   ├── useSession.ts           # Firebase 인증
-│   │   ├── useTiledMap.ts          # TMJ 맵 로드 + 렌더링
-│   │   ├── useThreadStream.ts      # SSE 실시간 스트림
-│   │   ├── useProgressiveImage.ts  # 이미지 지연 로딩
-│   │   ├── useSpritePreload.ts     # 스프라이트 프리로드
-│   │   ├── useKeyboardOpen.ts      # 모바일 키보드 감지
-│   │   ├── useSearchHolders.ts     # 토큰 홀더 검증
-│   │   └── useWorld.ts             # 월드 상태
-│   ├── lib/                        # 유틸리티 라이브러리
-│   │   ├── a2aOrchestration.ts     # A2A 오케스트레이션 API 클라이언트
-│   │   ├── agent.ts                # 에이전트 클래스 계층
-│   │   ├── redis.ts                # Redis 클라이언트 + CRUD
-│   │   ├── wagmi-config.ts         # Wagmi 설정
-│   │   ├── utils.ts                # 유틸 함수 (cn, createSession, shortAddress)
-│   │   ├── hash.ts                 # SHA-256 해시 생성
-│   │   ├── firebase.ts             # Firebase 초기화
-│   │   ├── gemini.ts               # Gemini API 클라이언트
-│   │   ├── initializeAgents.ts     # 기본 에이전트 초기화
-│   │   ├── world.ts                # 월드 상태 로직
-│   │   ├── jobManager.ts           # 비동기 작업 관리
-│   │   └── messageDAG.ts           # 메시지 DAG 구조
+│   ├── hooks/                      # Custom React Hooks (10)
+│   │   ├── useGameState.tsx        # Game state + movement + collision
+│   │   ├── useAgents.ts            # Agent AI behavior
+│   │   ├── useSession.ts           # Firebase authentication
+│   │   ├── useTiledMap.ts          # TMJ map load + rendering
+│   │   ├── useThreadStream.ts      # SSE real-time stream
+│   │   ├── useProgressiveImage.ts  # Image lazy loading
+│   │   ├── useSpritePreload.ts     # Sprite preloading
+│   │   ├── useKeyboardOpen.ts      # Mobile keyboard detection
+│   │   ├── useSearchHolders.ts     # Token holder verification
+│   │   └── useWorld.ts             # World state
+│   ├── lib/                        # Utility library
+│   │   ├── a2aOrchestration.ts     # A2A orchestration API client
+│   │   ├── agent.ts                # Agent class hierarchy
+│   │   ├── redis.ts                # Redis client + CRUD
+│   │   ├── wagmi-config.ts         # Wagmi configuration
+│   │   ├── utils.ts                # Utility functions (cn, createSession, shortAddress)
+│   │   ├── hash.ts                 # SHA-256 hash generation
+│   │   ├── firebase.ts             # Firebase initialization
+│   │   ├── gemini.ts               # Gemini API client
+│   │   ├── initializeAgents.ts     # Default agent initialization
+│   │   ├── world.ts                # World state logic
+│   │   ├── jobManager.ts           # Async job management
+│   │   └── messageDAG.ts           # Message DAG structure
 │   ├── providers/
-│   │   ├── Providers.tsx           # 루트 프로바이더 (Wagmi + QueryClient + OnchainKit)
-│   │   └── MapDataProvider.tsx     # 맵 데이터 Context
+│   │   ├── Providers.tsx           # Root provider (Wagmi + QueryClient + OnchainKit)
+│   │   └── MapDataProvider.tsx     # Map data Context
 │   ├── constants/
-│   │   ├── game.ts                 # 게임 상수
-│   │   ├── common.ts               # 공통 상수 (Z_INDEX)
-│   │   └── agentContract.ts        # 스마트 컨트랙트 ABI
+│   │   ├── game.ts                 # Game constants
+│   │   ├── common.ts               # Common constants (Z_INDEX)
+│   │   └── agentContract.ts        # Smart contract ABI
 │   └── types/
-│       └── thread.ts               # Thread 타입 정의
+│       └── thread.ts               # Thread type definitions
 ├── package.json
 ├── next.config.ts
 ├── tsconfig.json
 ├── postcss.config.mjs
-├── components.json                  # Shadcn UI 설정
+├── components.json                  # Shadcn UI configuration
 ├── sentry.server.config.ts
 ├── sentry.edge.config.ts
 ├── instrumentation.ts
@@ -576,66 +578,66 @@ ainspace/
 
 ---
 
-## 4. 환경 설정 및 실행
+## 4. Environment Setup and Running
 
-### 환경 변수 (.env)
+### Environment Variables (.env)
 
 ```env
 # AI API Keys
-GEMINI_API_KEY=                          # Google Gemini API 키
-OPENAI_API_KEY=                          # OpenAI API 키
+GEMINI_API_KEY=                          # Google Gemini API key
+OPENAI_API_KEY=                          # OpenAI API key
 
 # A2A Orchestration
-NEXT_PUBLIC_A2A_ORCHESTRATION_BASE_URL=  # A2A 오케스트레이션 서버 URL
-                                         # 예: https://a2a-orchestration-dev.ainetwork.ai/api
+NEXT_PUBLIC_A2A_ORCHESTRATION_BASE_URL=  # A2A orchestration server URL
+                                         # e.g.: https://a2a-orchestration-dev.ainetwork.ai/api
 
 # Storage
-AINSPACE_STORAGE_REDIS_URL=              # Redis 연결 URL (예: redis://localhost:6379)
-AINSPACE_BLOB_READ_WRITE_TOKEN=          # Vercel Blob 토큰
+AINSPACE_STORAGE_REDIS_URL=              # Redis connection URL (e.g.: redis://localhost:6379)
+AINSPACE_BLOB_READ_WRITE_TOKEN=          # Vercel Blob token
 
 # Blockchain
-NEXT_PUBLIC_AGENT_CONTRACT_ADDRESS=      # 에이전트 스마트 컨트랙트 주소
-NEXT_PUBLIC_ONCHAINKIT_API_KEY=          # OnchainKit API 키
-NEXT_PUBLIC_ONCHAINKIT_PROJECT_NAME=     # 프로젝트명 (예: AINSPACE)
-NEXT_PUBLIC_ONCHAINKIT_PROJECT_DESCRIPTION= # 프로젝트 설명
+NEXT_PUBLIC_AGENT_CONTRACT_ADDRESS=      # Agent smart contract address
+NEXT_PUBLIC_ONCHAINKIT_API_KEY=          # OnchainKit API key
+NEXT_PUBLIC_ONCHAINKIT_PROJECT_NAME=     # Project name (e.g.: AINSPACE)
+NEXT_PUBLIC_ONCHAINKIT_PROJECT_DESCRIPTION= # Project description
 
 # App URLs & Meta
-NEXT_PUBLIC_URL=                         # 앱 배포 URL
-NEXT_PUBLIC_API_BASE_URL=                # API 기본 URL
-NEXT_PUBLIC_APP_OG_IMAGE=                # OG 이미지 URL
-NEXT_PUBLIC_APP_ICON=                    # 앱 아이콘 URL
-NEXT_PUBLIC_SPLASH_IMAGE=                # 스플래시 이미지
-NEXT_PUBLIC_SPLASH_BACKGROUND_COLOR=     # 스플래시 배경색
-NEXT_PUBLIC_ENV=                         # 환경 (production/development)
-NEXT_PUBLIC_NODE_ENV=                    # Node 환경
+NEXT_PUBLIC_URL=                         # App deployment URL
+NEXT_PUBLIC_API_BASE_URL=                # API base URL
+NEXT_PUBLIC_APP_OG_IMAGE=                # OG image URL
+NEXT_PUBLIC_APP_ICON=                    # App icon URL
+NEXT_PUBLIC_SPLASH_IMAGE=                # Splash image
+NEXT_PUBLIC_SPLASH_BACKGROUND_COLOR=     # Splash background color
+NEXT_PUBLIC_ENV=                         # Environment (production/development)
+NEXT_PUBLIC_NODE_ENV=                    # Node environment
 
 # Sentry
 SENTRY_DSN=                              # Sentry DSN
-SENTRY_AUTH_TOKEN=                       # Sentry 인증 토큰
+SENTRY_AUTH_TOKEN=                       # Sentry auth token
 ```
 
-### 설치 및 실행
+### Installation and Running
 
 ```bash
-# 의존성 설치
+# Install dependencies
 yarn install
 
-# 개발 서버 시작
+# Start development server
 yarn dev
 
-# 프로덕션 빌드
+# Production build
 yarn build
 
-# 프로덕션 서버 시작
+# Start production server
 yarn start
 
-# 린트
+# Lint
 yarn lint
 ```
 
 ---
 
-## 5. 아키텍처 개요
+## 5. Architecture Overview
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -646,7 +648,7 @@ yarn lint
 │  │  ┌──────────────────────────────────────────────────┐    │  │
 │  │  │  Providers (Wagmi → QueryClient → MapData → OCK) │    │  │
 │  │  │  ┌──────────────────────────────────────────┐    │    │  │
-│  │  │  │  AuthGuard (월렛 연결 검증)                │    │    │  │
+│  │  │  │  AuthGuard (wallet connection check)      │    │    │  │
 │  │  │  │  ┌─────────────────────────────────┐     │    │    │  │
 │  │  │  │  │  Page (/ or /login)              │     │    │    │  │
 │  │  │  │  │  ┌──────────┬──────┬──────┐     │     │    │    │  │
@@ -658,7 +660,7 @@ yarn lint
 │  │  │  │  │  │ └──────┘ │      │      │     │     │    │    │  │
 │  │  │  │  │  │ ChatBox  │      │      │     │     │    │    │  │
 │  │  │  │  │  └──────────┴──────┴──────┘     │     │    │    │  │
-│  │  │  │  │  Footer (탭 네비게이션)           │     │    │    │  │
+│  │  │  │  │  Footer (tab navigation)         │     │    │    │  │
 │  │  │  │  └─────────────────────────────────┘     │    │    │  │
 │  │  │  └──────────────────────────────────────────┘    │    │  │
 │  │  └──────────────────────────────────────────────────┘    │  │
@@ -681,66 +683,66 @@ yarn lint
         ▼               ▼               ▼
 ┌──────────────┐ ┌────────────┐ ┌──────────────────┐
 │    Redis     │ │ A2A Orch.  │ │  External APIs   │
-│ (데이터 저장)│ │  Server    │ │ Gemini / OpenAI  │
-│              │ │ (에이전트  │ │ Firebase         │
-│              │ │  오케스트  │ │ Vercel Blob      │
-│              │ │  레이션)   │ │                  │
+│ (data store) │ │  Server    │ │ Gemini / OpenAI  │
+│              │ │ (agent     │ │ Firebase         │
+│              │ │  orchest-  │ │ Vercel Blob      │
+│              │ │  ration)   │ │                  │
 └──────────────┘ └────────────┘ └──────────────────┘
 ```
 
-### 데이터 흐름 요약
+### Data Flow Summary
 
-1. **사용자 → AuthGuard**: 월렛 연결 검증 후 메인 페이지 또는 로그인 리다이렉트
-2. **메인 페이지 → Zustand Stores**: 컴포넌트가 store를 구독하고 상태를 업데이트
-3. **컴포넌트 → API Routes**: fetch 호출로 서버와 통신
-4. **API Routes → Redis**: 에이전트, 타일, 위치, 스레드 데이터 영속화
-5. **API Routes → A2A Orchestration**: 스레드 생성, 메시지 전송, 에이전트 관리
-6. **SSE Stream**: 실시간 메시지를 thread-stream API를 통해 수신
-
----
-
-## 6. 라우팅 구조
-
-### 페이지 라우트
-
-| 경로 | 파일 | 인증 | 설명 |
-|------|------|------|------|
-| `/` | `app/page.tsx` | 필요 | 메인 게임 인터페이스 |
-| `/login` | `app/login/page.tsx` | 불필요 | 월렛 연결 페이지 |
-
-### API 라우트 (19개)
-
-| 경로 | 메서드 | 설명 |
-|------|--------|------|
-| `/api/agents` | GET, POST, PUT, DELETE | 에이전트 CRUD |
-| `/api/agents/upload-image` | POST | 스프라이트 이미지 업로드 (Firebase Storage) |
-| `/api/agent-chat` | POST | A2A SDK로 에이전트와 대화 |
-| `/api/agent-proxy` | POST | A2A 카드 URL 프록시 |
-| `/api/agent-response` | POST | Gemini AI 응답 생성 |
-| `/api/create-agent` | POST | AI 프롬프트로 에이전트 생성/배포 |
-| `/api/threads` | GET, POST | 스레드 목록/생성 |
-| `/api/threads/[id]` | GET, DELETE | 개별 스레드 조회/삭제 |
-| `/api/thread-message` | POST | 스레드에 메시지 전송 (반경 기반 에이전트 탐색) |
-| `/api/thread-stream/[threadId]` | GET | SSE 실시간 스트리밍 프록시 |
-| `/api/custom-tiles` | GET, POST | 커스텀 타일 CRUD |
-| `/api/position` | GET, POST | 플레이어 위치 저장/조회 |
-| `/api/commentary` | POST | Gemini 게임 해설 생성 |
-| `/api/clear-layer1` | POST | 충돌 레이어 초기화 |
-| `/api/convert-image` | POST | 이미지 포맷 변환 |
-| `/api/convert-status` | POST | 상태 데이터 변환 |
-| `/api/upload-tile` | POST | 타일 이미지 업로드 |
-| `/api/test-agent` | - | 에이전트 테스트 |
-| `/api/sentry-example-api` | - | Sentry 테스트 |
+1. **User -> AuthGuard**: Wallet connection check, then redirect to main page or login
+2. **Main Page -> Zustand Stores**: Components subscribe to stores and update state
+3. **Components -> API Routes**: Communicate with server via fetch calls
+4. **API Routes -> Redis**: Persist agent, tile, position, and thread data
+5. **API Routes -> A2A Orchestration**: Thread creation, message sending, agent management
+6. **SSE Stream**: Receive real-time messages via thread-stream API
 
 ---
 
-## 7. 상태 관리 (Zustand Stores)
+## 6. Routing Structure
 
-모든 store는 Zustand v5를 사용하며 `src/stores/` 디렉토리에 위치한다. `index.ts`에서 통합 export한다.
+### Page Routes
+
+| Path | File | Auth | Description |
+|------|------|------|-------------|
+| `/` | `app/page.tsx` | Required | Main game interface |
+| `/login` | `app/login/page.tsx` | Not required | Wallet connection page |
+
+### API Routes (19)
+
+| Path | Method | Description |
+|------|--------|-------------|
+| `/api/agents` | GET, POST, PUT, DELETE | Agent CRUD |
+| `/api/agents/upload-image` | POST | Sprite image upload (Firebase Storage) |
+| `/api/agent-chat` | POST | Chat with agent via A2A SDK |
+| `/api/agent-proxy` | POST | A2A card URL proxy |
+| `/api/agent-response` | POST | Gemini AI response generation |
+| `/api/create-agent` | POST | Create agent via AI prompt |
+| `/api/threads` | GET, POST | Thread list/creation |
+| `/api/threads/[id]` | GET, DELETE | Individual thread query/deletion |
+| `/api/thread-message` | POST | Send message to thread (radius-based agent search) |
+| `/api/thread-stream/[threadId]` | GET | SSE real-time streaming proxy |
+| `/api/custom-tiles` | GET, POST | Custom tile CRUD |
+| `/api/position` | GET, POST | Player position save/query |
+| `/api/commentary` | POST | Gemini game commentary generation |
+| `/api/clear-layer1` | POST | Collision layer reset |
+| `/api/convert-image` | POST | Image format conversion |
+| `/api/convert-status` | POST | Status data conversion |
+| `/api/upload-tile` | POST | Tile image upload |
+| `/api/test-agent` | - | Agent test |
+| `/api/sentry-example-api` | - | Sentry test |
+
+---
+
+## 7. State Management (Zustand Stores)
+
+All stores use Zustand v5 and are located in the `src/stores/` directory. Unified export from `index.ts`.
 
 ### 7.1 useUIStore
 
-**역할**: 탭 네비게이션 UI 상태
+**Role**: Tab navigation UI state
 
 ```typescript
 // src/stores/useUIStore.ts
@@ -752,12 +754,12 @@ interface UIState {
 }
 ```
 
-- 기본값: `activeTab = 'map'`
-- Footer 높이 상수도 여기서 export
+- Default: `activeTab = 'map'`
+- Footer height constant also exported from here
 
 ### 7.2 useGameStateStore
 
-**역할**: 플레이어 위치, 방향, 이동 상태
+**Role**: Player position, direction, movement state
 
 ```typescript
 interface GameState {
@@ -774,14 +776,14 @@ interface GameState {
 
 ### 7.3 useAgentStore
 
-**역할**: A2A 에이전트 목록 관리
+**Role**: A2A agent list management
 
 ```typescript
 // src/stores/useAgentStore.ts
 interface AgentStore {
     agents: AgentState[];
     getAgentByName: (name: string) => AgentState | undefined;
-    spawnAgent: (agent: AgentState) => void;      // 중복 체크 후 추가
+    spawnAgent: (agent: AgentState) => void;      // Add after duplicate check
     removeAgent: (agentUrl: string) => void;
     updateAgentPosition: (agentUrl: string, x: number, y: number) => void;
     updateAgentCharacterImage: (agentUrl: string, imageUrl: string) => void;
@@ -790,12 +792,12 @@ interface AgentStore {
 }
 ```
 
-- 에이전트 식별자: `agentUrl` (유니크)
-- `spawnAgent`: 이미 같은 `agentUrl`이 있으면 무시
+- Agent identifier: `agentUrl` (unique)
+- `spawnAgent`: Ignores if an agent with the same `agentUrl` already exists
 
 ### 7.4 useThreadStore
 
-**역할**: 대화 스레드 및 브로드캐스트 상태
+**Role**: Conversation threads and broadcast state
 
 ```typescript
 // src/stores/useThreadStore.ts
@@ -807,7 +809,7 @@ interface BroadcastStatus {
 
 interface ThreadState {
     threads: Thread[];
-    currentThreadId: string | undefined;  // 기본값: '0'
+    currentThreadId: string | undefined;  // Default: '0'
     broadcastMessage: string;
     broadcastStatus: BroadcastStatus | null;
 
@@ -820,28 +822,28 @@ interface ThreadState {
 
 ### 7.5 useBuildStore
 
-**역할**: 맵 빌딩, 타일 관리, 충돌 맵
+**Role**: Map building, tile management, collision map
 
 ```typescript
 // src/stores/useBuildStore.ts
 export interface ItemTileData {
     image: string;
-    width: number;        // 타일 단위
-    height: number;       // 타일 단위
-    topLeftX: number;     // 배치 시작 X 좌표
-    topLeftY: number;     // 배치 시작 Y 좌표
-    isSecondaryTile?: boolean;  // top-left 앵커가 아닌 보조 타일
+    width: number;        // In tile units
+    height: number;       // In tile units
+    topLeftX: number;     // Placement start X coordinate
+    topLeftY: number;     // Placement start Y coordinate
+    isSecondaryTile?: boolean;  // Secondary tile (not the top-left anchor)
 }
 
 export type TileLayers = {
-    layer0: { [key: string]: string };                    // 지면 레이어
-    layer1: { [key: string]: string | ItemTileData };     // 오브젝트 레이어 (충돌)
-    layer2: { [key: string]: string };                    // 상위 레이어
+    layer0: { [key: string]: string };                    // Ground layer
+    layer1: { [key: string]: string | ItemTileData };     // Object layer (collision)
+    layer2: { [key: string]: string };                    // Upper layer
 };
 
 interface BuildState {
-    customTiles: TileLayers;           // 현재 편집 중인 타일 (draft)
-    publishedTiles: TileLayers;        // 서버에서 로드/퍼블리시된 타일
+    customTiles: TileLayers;           // Currently editing tiles (draft)
+    publishedTiles: TileLayers;        // Tiles loaded/published from server
     selectedImage: string | null;
     buildMode: 'select' | 'paint';
     isPublishing: boolean;
@@ -849,21 +851,21 @@ interface BuildState {
     showCollisionMap: boolean;
     collisionMap: { [key: string]: boolean };  // "x,y" → true
 
-    // 핵심 메서드
+    // Core methods
     updateCollisionMapFromImage: (imageSrc: string) => Promise<void>;
     isBlocked: (worldX: number, worldY: number) => boolean;
 }
 ```
 
-**충돌 맵 생성 로직** (`updateCollisionMapFromImage`):
-1. `/map/tiles/land_layer_1/tile_{row}_{col}.webp` 이미지를 5x5 그리드로 로드
-2. 각 이미지 타일은 840x840px, 21x21 게임 타일 포함
-3. Canvas에 그려서 각 게임 타일 영역의 불투명 픽셀 비율 계산
-4. **불투명 비율 >= 50%** 이면 해당 좌표를 충돌 타일로 마킹
+**Collision Map Generation Logic** (`updateCollisionMapFromImage`):
+1. Load `/map/tiles/land_layer_1/tile_{row}_{col}.webp` images in a 5x5 grid
+2. Each image tile is 840x840px, containing 21x21 game tiles
+3. Draw to Canvas and calculate opaque pixel ratio for each game tile area
+4. **Opaque ratio >= 50%** marks that coordinate as a collision tile
 
 ### 7.6 useChatStore
 
-**역할**: 스레드별 채팅 메시지, 에이전트 로딩 상태
+**Role**: Per-thread chat messages, agent loading state
 
 ```typescript
 // src/stores/useChatStore.ts
@@ -895,7 +897,7 @@ interface ChatState {
 
 ### 7.7 useMapStore
 
-**역할**: Tiled 맵 데이터, 타일셋 리소스, 충돌 타일
+**Role**: Tiled map data, tileset resources, collision tiles
 
 ```typescript
 // src/stores/useMapStore.ts
@@ -930,7 +932,7 @@ interface MapState {
 }
 ```
 
-### Store 통합 Export
+### Store Unified Export
 
 ```typescript
 // src/stores/index.ts
@@ -948,7 +950,7 @@ export type { ChatMessage } from './useChatStore';
 
 ---
 
-## 8. 핵심 데이터 타입
+## 8. Core Data Types
 
 ### Thread
 
@@ -958,10 +960,10 @@ export interface Thread {
     id: string;
     threadName: string;
     agentNames: string[];
-    agentComboId: string;        // SHA-256 해시 (에이전트 조합 식별)
+    agentComboId: string;        // SHA-256 hash (agent combination identifier)
     createdAt: string;
     lastMessageAt: string;
-    hasUnplacedAgents?: boolean;   // 맵에 배치되지 않은 에이전트 포함 여부
+    hasUnplacedAgents?: boolean;   // Whether it contains agents not placed on the map
     unplacedAgentNames?: string[];
 }
 
@@ -970,7 +972,7 @@ export interface ThreadInOrchestration extends Omit<Thread, 'hasUnplacedAgents' 
 }
 ```
 
-### Agent 관련 타입
+### Agent-Related Types
 
 ```typescript
 // src/lib/agent.ts
@@ -1000,11 +1002,11 @@ export interface AgentVisualState {
 
 export interface AgentState extends AgentInfo, AgentWorldState, AgentVisualState {}
 
-// DB 저장용 (방향, 이동 상태 제외)
+// For DB storage (excluding direction, movement state)
 export interface AgentStateForDB extends Omit<AgentWorldState, 'direction' | 'lastMoved' | 'isMoving'> {}
 ```
 
-### Redis 저장 타입
+### Redis Storage Types
 
 ```typescript
 // src/lib/redis.ts
@@ -1022,7 +1024,7 @@ export interface StoredAgent {
 export interface PlayerPosition {
     x: number;
     y: number;
-    lastUpdated: string;       // ISO 날짜
+    lastUpdated: string;       // ISO date
 }
 
 export interface CustomTilesData {
@@ -1031,7 +1033,7 @@ export interface CustomTilesData {
 }
 ```
 
-### SSE 스트림 이벤트
+### SSE Stream Events
 
 ```typescript
 // src/lib/a2aOrchestration.ts
@@ -1061,25 +1063,25 @@ export interface StreamEvent {
 
 ---
 
-## 9. Provider 계층 구조
+## 9. Provider Hierarchy
 
 ```typescript
 // src/providers/Providers.tsx
-// 중첩 순서:
-WagmiProvider           // 1. 블록체인 월렛 연결
+// Nesting order:
+WagmiProvider           // 1. Blockchain wallet connection
   → QueryClientProvider // 2. TanStack Query (staleTime: 60s, retry: 1)
-    → MapDataProvider   // 3. 맵 데이터 Context
-      → OnchainKitProvider  // 4. Base 체인 + MiniKit
+    → MapDataProvider   // 3. Map data Context
+      → OnchainKitProvider  // 4. Base chain + MiniKit
         → children
 ```
 
-### 주요 동작
+### Key Behaviors
 
-1. **마운트 시** `mounted` 상태를 true로 설정 (hydration 보호)
-2. **월렛 체인 자동 전환**: `wallet_switchEthereumChain`으로 Base 체인(`0x2105`)으로 전환
-3. **기본 에이전트 초기화**: `initializeDefaultAgents()` 호출 (현재 비활성화됨)
+1. **On mount**: Set `mounted` state to true (hydration protection)
+2. **Auto chain switching**: Switch to Base chain (`0x2105`) via `wallet_switchEthereumChain`
+3. **Default agent initialization**: Calls `initializeDefaultAgents()` (currently disabled)
 
-### OnchainKit 설정
+### OnchainKit Configuration
 
 ```typescript
 {
@@ -1096,7 +1098,7 @@ WagmiProvider           // 1. 블록체인 월렛 연결
 }
 ```
 
-### Wagmi 설정
+### Wagmi Configuration
 
 ```typescript
 // src/lib/wagmi-config.ts
@@ -1119,75 +1121,75 @@ createConfig({
 
 ---
 
-## 10. 인증 시스템 (AuthGuard)
+## 10. Authentication System (AuthGuard)
 
-### 동작 원리
+### How It Works
 
 ```
-[사용자 접속]
+[User Access]
       │
       ▼
- AuthGuard (layout.tsx의 children 래핑)
+ AuthGuard (wraps children in layout.tsx)
       │
-      ├── pathname === '/' → 인증 필요
+      ├── pathname === '/' → Auth required
       │     │
-      │     ├── isConnecting || !isHydrated → 로딩 스피너 표시
+      │     ├── isConnecting || !isHydrated → Show loading spinner
       │     │
-      │     ├── !isConnected → /login으로 리다이렉트
-      │     │   └── redirectAttemptedRef로 무한 리다이렉트 방지
+      │     ├── !isConnected → Redirect to /login
+      │     │   └── Prevent infinite redirect with redirectAttemptedRef
       │     │
-      │     └── isConnected → children 렌더링
+      │     └── isConnected → Render children
       │
-      └── pathname !== '/' → children 바로 렌더링
+      └── pathname !== '/' → Render children directly
 ```
 
-### Hydration 처리
+### Hydration Handling
 
-1. `isMounted` → useEffect로 클라이언트 마운트 확인
-2. `isHydrated` → wagmi의 `isConnecting`이 끝나고 100ms 후 true
-3. 두 조건 모두 만족해야 인증 체크 시작
+1. `isMounted` → Confirm client mount via useEffect
+2. `isHydrated` → Set to true 100ms after wagmi's `isConnecting` finishes
+3. Auth check starts only when both conditions are met
 
-### Sentry 추적
+### Sentry Tracking
 
-- 모든 상태 변화를 breadcrumb으로 기록
-- 리다이렉트 발생 시 `captureMessage`
-- 무한 리다이렉트 감지 시 warning 레벨 보고
+- All state changes recorded as breadcrumbs
+- `captureMessage` on redirect
+- Warning level report on infinite redirect detection
 
 ---
 
-## 11. 페이지별 상세 구현
+## 11. Page-by-Page Implementation Details
 
-### 11.1 로그인 페이지 (`/login`)
+### 11.1 Login Page (`/login`)
 
 ```
 ┌──────────────────────────┐
-│      #B1E1FF 배경         │
+│      #B1E1FF background   │
 │                           │
-│     [AINSpace 로고]       │
+│     [AINSpace Logo]       │
 │                           │
-│   [Wallet Login 버튼]     │ ← Coinbase OnchainKit Signature
+│   [Wallet Login Button]   │ ← Coinbase OnchainKit Signature
 │                           │
-│     [AI Network 로고]     │
+│     [AI Network Logo]     │
 │                           │
-│   [로그인 배경 이미지]     │ ← fixed, bottom
+│   [Login Background Image]│ ← fixed, bottom
 └──────────────────────────┘
 ```
 
-**핵심 로직**:
-1. `Signature` 컴포넌트로 메시지 서명 요청: `"Welcome to the AINSpace MiniApp!\n\nNonce: {timestamp}"`
-2. 서명 성공 후 useEffect에서 `isConnected` 감지 → `router.push('/')` 리다이렉트
-3. 이미 연결된 상태면 바로 홈으로 리다이렉트
-4. 버튼은 100ms 후 fade-in 애니메이션
+**Core Logic**:
+1. Request message signing via `Signature` component: `"Welcome to the AINSpace MiniApp!\n\nNonce: {timestamp}"`
+2. After successful signing, useEffect detects `isConnected` -> `router.push('/')` redirect
+3. If already connected, redirect to home immediately
+4. Button has 100ms fade-in animation
 
-### 11.2 메인 게임 페이지 (`/`)
+### 11.2 Main Game Page (`/`)
 
-탭 기반 SPA. 모든 탭 컴포넌트가 동시에 마운트되지만 `isActive` prop으로 가시성 제어.
+Tab-based SPA. All tab components are mounted simultaneously but visibility is controlled via the `isActive` prop.
 
 ```
 ┌──────────────────────────────┐
 │                               │
 │  ┌─────────────────────────┐ │
-│  │  MapTab / AgentTab /    │ │  ← 탭 콘텐츠 (absolute, inset-0)
+│  │  MapTab / AgentTab /    │ │  ← Tab content (absolute, inset-0)
 │  │  TempBuildTab           │ │     padding-bottom: 73px
 │  │                         │ │
 │  │  (Canvas + Joystick +   │ │
@@ -1200,16 +1202,16 @@ createConfig({
 └──────────────────────────────┘
 ```
 
-**초기화 시퀀스** (`page.tsx`의 useEffect들):
+**Initialization Sequence** (useEffects in `page.tsx`):
 
-1. **Farcaster 프레임 레디**: `setFrameReady()` + `sdk.actions.ready()`
-2. **Eruda 디버거**: 개발환경에서만 동적 import
-3. **충돌 맵 초기화**: `/map/land_layer_1.webp` 이미지 분석으로 collision map 생성
-4. **커스텀 타일 로드**: userId로 서버에서 published tiles 가져오기
-5. **배포된 에이전트 로드**: Redis에서 `isPlaced: true`인 에이전트 복원
-6. **에이전트 이동 시스템**: 100ms 간격 setInterval (현재 `ENABLE_AGENT_MOVEMENT = false`로 비활성화)
+1. **Farcaster frame ready**: `setFrameReady()` + `sdk.actions.ready()`
+2. **Eruda debugger**: Dynamic import in dev environment only
+3. **Collision map initialization**: Generate collision map by analyzing `/map/land_layer_1.webp` image
+4. **Custom tiles load**: Fetch published tiles from server by userId
+5. **Deployed agents load**: Restore agents with `isPlaced: true` from Redis
+6. **Agent movement system**: 100ms interval setInterval (currently disabled with `ENABLE_AGENT_MOVEMENT = false`)
 
-**배포 존 (Deploy Zone)**:
+**Deploy Zone**:
 ```typescript
 const ALLOWED_DEPLOY_ZONE = [{
     startX: -10, startY: -19,
@@ -1219,237 +1221,237 @@ const ALLOWED_DEPLOY_ZONE = [{
 
 ---
 
-## 12. 컴포넌트 아키텍처
+## 12. Component Architecture
 
 ### 12.1 MapTab
 
-**역할**: 게임 맵 디스플레이, 플레이어 이동, 채팅 오버레이
+**Role**: Game map display, player movement, chat overlay
 
-**주요 기능**:
-- TileMap 렌더링 (캔버스 기반)
-- 키보드 이동: WASD / 방향키
-- 모바일 조이스틱: `react-joystick-component`
-- 채팅 오버레이: ChatBoxOverlay
-- HUD 토글: `Ctrl+H`로 전체 UI 숨기기/표시
-- 위치 리셋: `Ctrl+R`로 원점 복귀
+**Key Features**:
+- TileMap rendering (Canvas-based)
+- Keyboard movement: WASD / arrow keys
+- Mobile joystick: `react-joystick-component`
+- Chat overlay: ChatBoxOverlay
+- HUD toggle: `Ctrl+H` to hide/show all UI
+- Position reset: `Ctrl+R` to return to origin
 
-### 12.2 TileMap (핵심 렌더러)
+### 12.2 TileMap (Core Renderer)
 
-**역할**: Canvas 기반 2D 타일맵 렌더링
+**Role**: Canvas-based 2D tilemap rendering
 
-**렌더링 순서**:
-1. **Layer 0**: 지면 타일 (캔버스 drawImage)
-2. **Published Tiles (layer0)**: 서버에서 로드된 커스텀 지면 타일
-3. **Custom Tiles (layer0)**: 로컬 편집 중인 지면 타일
-4. **Layer 1**: 오브젝트 타일 (충돌 대상)
-5. **Published/Custom Tiles (layer1)**: 멀티타일 아이템 포함
-6. **Layer 2**: 상위 레이어
-7. **에이전트**: 스프라이트 애니메이션 (SpriteAnimator) 또는 색상 원
-8. **플레이어**: 스프라이트 애니메이션 또는 파란 원
-9. **충돌 맵 오버레이**: 디버그 시 반투명 빨간색 표시
-10. **에이전트 이름 라벨**: 캔버스 위 HTML div로 오버레이
+**Rendering Order**:
+1. **Layer 0**: Ground tiles (Canvas drawImage)
+2. **Published Tiles (layer0)**: Custom ground tiles loaded from server
+3. **Custom Tiles (layer0)**: Locally editing ground tiles
+4. **Layer 1**: Object tiles (collision targets)
+5. **Published/Custom Tiles (layer1)**: Including multi-tile items
+6. **Layer 2**: Upper layer
+7. **Agents**: Sprite animation (SpriteAnimator) or colored circles
+8. **Player**: Sprite animation or blue circle
+9. **Collision Map Overlay**: Semi-transparent red display during debug
+10. **Agent Name Labels**: HTML div overlay on top of Canvas
 
-**줌 제어**: 0.5x ~ 2.0x (버튼 UI)
+**Zoom Control**: 0.5x ~ 2.0x (button UI)
 
-**터치/마우스 이벤트**: 빌드 모드에서 타일 페인팅 지원
+**Touch/Mouse Events**: Tile painting support in build mode
 
 ### 12.3 AgentTab
 
-**역할**: A2A 에이전트 임포트/관리
+**Role**: A2A agent import/management
 
-**구성**:
+**Structure**:
 ```
 AgentTab
-├── ImportAgentSection     # URL 입력 → A2A 카드 임포트
-├── CreateAgentSection     # A2A Builder 링크 (외부 이동)
-└── ImportedAgentList      # 임포트된 에이전트 목록
-    └── ImportedAgentCard  # 개별 에이전트 카드
-        ├── 에이전트 프로필 (스프라이트)
-        ├── Place/Unplace 버튼
-        ├── 이미지 업로드 버튼
-        └── 삭제 버튼
+├── ImportAgentSection     # URL input → A2A card import
+├── CreateAgentSection     # A2A Builder link (external navigation)
+└── ImportedAgentList      # Imported agent list
+    └── ImportedAgentCard  # Individual agent card
+        ├── Agent profile (sprite)
+        ├── Place/Unplace button
+        ├── Image upload button
+        └── Delete button
 ```
 
-**에이전트 임포트 플로우**:
-1. A2A 카드 URL 입력 → `/api/agent-proxy` 호출 → 카드 정보 획득
-2. Redis에 에이전트 등록 (`/api/agents` POST)
-3. "Place" 클릭 → 배포존에서 빈 위치 탐색 → 에이전트 스폰
+**Agent Import Flow**:
+1. Enter A2A card URL -> call `/api/agent-proxy` -> obtain card info
+2. Register agent in Redis (`/api/agents` POST)
+3. Click "Place" -> search for empty position in deploy zone -> spawn agent
 
-**토큰 홀더 검증** (AgentTab):
-- AIN, sAIN, Mini Egg NFT 잔액 확인
-- 홀더만 특정 기능 접근 가능
+**Token Holder Verification** (AgentTab):
+- Check AIN, sAIN, Mini Egg NFT balances
+- Only holders can access certain features
 
 ### 12.4 TempBuildTab
 
-**역할**: 맵에 아이템 배치
+**Role**: Place items on the map
 
-**기능**:
-- 6종 아이템 선택 (인덱스 0~5)
-- 멀티타일 아이템 배치 (collision 자동 설정)
-- 아이템 삭제
-- 충돌 맵 시각화
-- Publish → 서버 저장
+**Features**:
+- Select from 6 item types (index 0~5)
+- Multi-tile item placement (collision auto-configured)
+- Item deletion
+- Collision map visualization
+- Publish -> save to server
 
-### 12.5 ChatBox (핵심 채팅)
+### 12.5 ChatBox (Core Chat)
 
-**역할**: 에이전트와의 대화 인터페이스
+**Role**: Chat interface with agents
 
-**핵심 기능**:
-- **스레드 기반 대화**: 에이전트 조합별 스레드 자동 생성/관리
-- **@멘션**: 입력 중 `@`로 에이전트 추천 목록 표시
-- **브로드캐스트**: 반경 내 에이전트에게 메시지 전파
-- **SSE 스트리밍**: 실시간 에이전트 응답 수신
-- **A2A Orchestration**: 스레드 생성 → 에이전트 추가 → 메시지 전송 → 스트림 수신
+**Core Features**:
+- **Thread-based conversations**: Auto-create/manage threads per agent combination
+- **@mentions**: Show agent suggestion list when typing `@`
+- **Broadcast**: Propagate messages to agents within radius
+- **SSE Streaming**: Real-time agent response reception
+- **A2A Orchestration**: Thread creation -> add agents -> send message -> receive stream
 
-**관리자 명령어**:
-- `"show me grid"`: 그리드 표시
-- `"exit"`: 종료
-- `"clear items"`: 아이템 초기화
+**Admin Commands**:
+- `"show me grid"`: Show grid
+- `"exit"`: Exit
+- `"clear items"`: Reset items
 
-**메시지 전송 플로우**:
-1. 메시지 입력 → 브로드캐스트 반경 내 에이전트 탐색
-2. 에이전트 조합으로 기존 스레드 검색 (SHA-256 해시)
-3. 없으면 새 스레드 생성 (A2A Orchestration)
-4. 스레드에 에이전트 추가 → 메시지 전송
-5. SSE로 에이전트 응답 실시간 수신
+**Message Sending Flow**:
+1. Enter message -> search for agents within broadcast radius
+2. Search for existing thread by agent combination (SHA-256 hash)
+3. If none, create new thread (A2A Orchestration)
+4. Add agents to thread -> send message
+5. Receive agent responses in real-time via SSE
 
 ### 12.6 ChatBoxOverlay
 
-**역할**: MapTab 위에 채팅 UI 오버레이
+**Role**: Chat UI overlay on top of MapTab
 
-**구성**:
+**Structure**:
 ```
 ChatBoxOverlay
-├── ThreadListLeftDrawer   # 좌측 스레드 목록 드로어
-└── ChatBottomDrawer       # 하단 채팅 드로어
-    └── ChatBox            # 채팅 인터페이스
+├── ThreadListLeftDrawer   # Left thread list drawer
+└── ChatBottomDrawer       # Bottom chat drawer
+    └── ChatBox            # Chat interface
 ```
 
-- 시트 열림 상태에 따라 조이스틱 가시성 제어
+- Joystick visibility controlled based on sheet open state
 
 ### 12.7 Footer
 
-**역할**: 하단 탭 네비게이션 (72px + 1px border = 73px)
+**Role**: Bottom tab navigation (72px + 1px border = 73px)
 
-| 탭 | 아이콘 | 라벨 |
-|----|--------|------|
+| Tab | Icon | Label |
+|-----|------|-------|
 | Agent | `tab_icon_agent.svg` | Agent |
 | Map | `tab_icon_map.svg` | Map |
 | Build | `tab_icon_build.svg` | Build |
 
-- 배경: 검정(#000) / 비활성 탭: `#424049`
-- `Z_INDEX_OFFSETS.UI = 1000`으로 최상단 레이어
-- HUD Off 시 숨김 처리
+- Background: black (#000) / inactive tab: `#424049`
+- `Z_INDEX_OFFSETS.UI = 1000` for topmost layer
+- Hidden when HUD is off
 
 ---
 
-## 13. 게임 시스템 상세
+## 13. Game System Details
 
-### 13.1 게임 상수
+### 13.1 Game Constants
 
 ```typescript
 // src/constants/game.ts
-TILE_SIZE = 40              // 타일 크기 (px)
-MAP_SIZE_PIXELS = 4200      // 맵 전체 크기 (px)
-MAP_TILES = 105             // 맵 타일 수 (105x105)
-MAP_WIDTH = 16              // 뷰포트 가로 타일 수
-MAP_HEIGHT = 12             // 뷰포트 세로 타일 수
-VIEW_RADIUS = 6             // 가시 반경 (타일)
-BROADCAST_RADIUS = 5        // 브로드캐스트 반경 (타일)
-AGENT_RESPONSE_DISTANCE = 2 // 에이전트 응답 거리 (타일)
-MIN_MOVE_INTERVAL = 150     // 최소 이동 간격 (ms)
+TILE_SIZE = 40              // Tile size (px)
+MAP_SIZE_PIXELS = 4200      // Total map size (px)
+MAP_TILES = 105             // Number of map tiles (105x105)
+MAP_WIDTH = 16              // Viewport horizontal tile count
+MAP_HEIGHT = 12             // Viewport vertical tile count
+VIEW_RADIUS = 6             // Visibility radius (tiles)
+BROADCAST_RADIUS = 5        // Broadcast radius (tiles)
+AGENT_RESPONSE_DISTANCE = 2 // Agent response distance (tiles)
+MIN_MOVE_INTERVAL = 150     // Minimum move interval (ms)
 INITIAL_PLAYER_POSITION = { x: 0, y: 0 }
-ENABLE_AGENT_MOVEMENT = false  // 에이전트 자동 이동 비활성화
+ENABLE_AGENT_MOVEMENT = false  // Agent auto-movement disabled
 
 enum DIRECTION { UP, DOWN, LEFT, RIGHT, STOP }
 ```
 
-### 13.2 Z-Index 체계
+### 13.2 Z-Index System
 
 ```typescript
 // src/constants/common.ts
 Z_INDEX_OFFSETS = {
-    DEFAULT: 0,    // 기본
-    GAME: 500,     // 게임 캔버스
-    UI: 1000       // UI 요소 (Footer, Overlay 등)
+    DEFAULT: 0,    // Default
+    GAME: 500,     // Game canvas
+    UI: 1000       // UI elements (Footer, Overlay, etc.)
 }
 ```
 
-### 13.3 충돌 감지 시스템
+### 13.3 Collision Detection System
 
-**3단계 충돌 체크**:
+**3-Stage Collision Check**:
 
-1. **맵 경계 체크**: `mapStartPosition` ~ `mapEndPosition` 범위
-2. **타일 충돌 체크**:
-   - `useMapStore.isCollisionTile(x, y)`: Tiled 맵의 collision layer
-   - `useBuildStore.isBlocked(x, y)`: 이미지 분석 기반 collision map
-3. **에이전트/플레이어 충돌**: 해당 좌표에 다른 에이전트나 플레이어가 있는지 확인
+1. **Map boundary check**: Within `mapStartPosition` ~ `mapEndPosition` range
+2. **Tile collision check**:
+   - `useMapStore.isCollisionTile(x, y)`: Tiled map collision layer
+   - `useBuildStore.isBlocked(x, y)`: Image analysis-based collision map
+3. **Agent/Player collision**: Check if another agent or player occupies that coordinate
 
-### 13.4 에이전트 이동 시스템
+### 13.4 Agent Movement System
 
-`page.tsx`에서 100ms 간격 `setInterval`로 구현 (현재 비활성화):
+Implemented with 100ms interval `setInterval` in `page.tsx` (currently disabled):
 
 ```
-매 100ms:
-  각 에이전트에 대해:
-    1. moveInterval 경과 확인 (600~1000ms 랜덤)
-    2. 4방향 셔플 → 순서대로 유효한 이동 시도
-    3. 이동 가능:
-       - 맵 경계 내
-       - 플레이어/다른 에이전트와 미충돌
-       - layer1 충돌 맵에 미차단
-    4. 이동 성공 시:
-       - 위치 업데이트 + direction 설정 + isMoving = true
-       - 500ms 후 isMoving = false (애니메이션 종료)
-    5. 이동 불가 시: lastMoved만 갱신 (stuck 방지)
+Every 100ms:
+  For each agent:
+    1. Check if moveInterval has elapsed (600~1000ms random)
+    2. Shuffle 4 directions -> try valid movement in order
+    3. Movement possible if:
+       - Within map boundaries
+       - No collision with player/other agents
+       - Not blocked by layer1 collision map
+    4. On successful move:
+       - Update position + set direction + isMoving = true
+       - After 500ms, isMoving = false (animation end)
+    5. On failed move: Only update lastMoved (prevent stuck)
 ```
 
-### 13.5 에이전트 스폰 위치 탐색
+### 13.5 Agent Spawn Position Search
 
-**Zone 기반 탐색** (`findAvailableSpawnPositionByZone`):
-- 허용 존 내 모든 좌표를 셔플
-- 유효한 위치가 나올 때까지 순회
+**Zone-based Search** (`findAvailableSpawnPositionByZone`):
+- Shuffle all coordinates within allowed zone
+- Iterate until a valid position is found
 
-**Radius 기반 탐색** (`findAvailableSpawnPositionByRadius`):
-- 중심점에서 반경 1부터 `BROADCAST_RADIUS`까지 확장
-- 각 반경의 둘레(perimeter) 좌표 셔플 후 유효 위치 탐색
+**Radius-based Search** (`findAvailableSpawnPositionByRadius`):
+- Expand from center point, radius 1 to `BROADCAST_RADIUS`
+- Shuffle perimeter coordinates at each radius and search for valid position
 
 ---
 
-## 14. 에이전트 시스템
+## 14. Agent System
 
-### 14.1 에이전트 클래스 계층
+### 14.1 Agent Class Hierarchy
 
 ```
 BaseAgent (abstract)
-├── ExplorerAgent      # type: 'random' - 항상 응답
-├── PatrolAgent        # type: 'patrol' - 항상 응답
-├── WandererAgent      # type: 'explorer' - 항상 응답
-└── A2AAgent           # type: 'A2A Agent' - A2A 프로토콜 기반
+├── ExplorerAgent      # type: 'random' - always responds
+├── PatrolAgent        # type: 'patrol' - always responds
+├── WandererAgent      # type: 'explorer' - always responds
+└── A2AAgent           # type: 'A2A Agent' - A2A protocol based
 ```
 
-### 14.2 BaseAgent 핵심 로직
+### 14.2 BaseAgent Core Logic
 
-**메시지 응답 판단**:
-1. **Chebyshev 거리 계산**: `max(|dx|, |dy|)` (대각선 이동 허용)
-2. 멘션되지 않았고 거리 > `AGENT_RESPONSE_DISTANCE(2)` → 무시
-3. 스레드 참여 여부 확인:
-   - 스레드 메시지: 스레드 멤버이거나 멘션되어야 응답
-   - 멘션으로 새 스레드 참여 자동 가입
-4. 응답 생성: `/api/agent-response` (Gemini API)
+**Message Response Decision**:
+1. **Chebyshev distance calculation**: `max(|dx|, |dy|)` (diagonal movement allowed)
+2. Not mentioned and distance > `AGENT_RESPONSE_DISTANCE(2)` -> ignore
+3. Thread participation check:
+   - Thread message: Must be a thread member or mentioned to respond
+   - Auto-join thread via mention
+4. Response generation: `/api/agent-response` (Gemini API)
 
-**로딩 상태 관리**:
-- API 호출 전: `useChatStore.setAgentLoading(id, true)`
-- 응답 수신/에러 후: `useChatStore.setAgentLoading(id, false)`
+**Loading State Management**:
+- Before API call: `useChatStore.setAgentLoading(id, true)`
+- After response/error: `useChatStore.setAgentLoading(id, false)`
 
-### 14.3 A2AAgent 특수 동작
+### 14.3 A2AAgent Special Behavior
 
-- `/api/agent-chat`을 통해 A2A SDK로 외부 에이전트와 통신
-- 메시지 포맷: `[From player at (x, y)]: {content}`
-- 응답 거리 제한: 10 타일
-- 응답 지연: 0.5~1.5초 랜덤
+- Communicates with external agents via A2A SDK through `/api/agent-chat`
+- Message format: `[From player at (x, y)]: {content}`
+- Response distance limit: 10 tiles
+- Response delay: 0.5~1.5s random
 
-### 14.4 에이전트 팩토리
+### 14.4 Agent Factory
 
 ```typescript
 function createAgent(type: string, initialState: AgentState): BaseAgent {
@@ -1464,59 +1466,59 @@ function createAgent(type: string, initialState: AgentState): BaseAgent {
 
 ---
 
-## 15. 맵 빌딩 시스템
+## 15. Map Building System
 
-### 15.1 타일 레이어 구조
+### 15.1 Tile Layer Structure
 
 ```
-Layer 2 (layer2)  ← 최상위 (디코레이션)
-Layer 1 (layer1)  ← 오브젝트 (충돌 대상, ItemTileData 지원)
-Layer 0 (layer0)  ← 지면 (바닥 텍스처)
+Layer 2 (layer2)  ← Topmost (decoration)
+Layer 1 (layer1)  ← Objects (collision targets, ItemTileData supported)
+Layer 0 (layer0)  ← Ground (floor textures)
 ```
 
-### 15.2 멀티타일 아이템
+### 15.2 Multi-Tile Items
 
-`layer1`에 배치되는 아이템은 여러 타일을 차지할 수 있다:
+Items placed on `layer1` can occupy multiple tiles:
 
 ```typescript
 interface ItemTileData {
-    image: string;           // 이미지 URL
-    width: number;           // 가로 타일 수
-    height: number;          // 세로 타일 수
-    topLeftX: number;        // 앵커 타일 X
-    topLeftY: number;        // 앵커 타일 Y
-    isSecondaryTile?: boolean;  // 보조 타일 여부
+    image: string;           // Image URL
+    width: number;           // Horizontal tile count
+    height: number;          // Vertical tile count
+    topLeftX: number;        // Anchor tile X
+    topLeftY: number;        // Anchor tile Y
+    isSecondaryTile?: boolean;  // Whether it's a secondary tile
 }
 ```
 
-- 앵커 타일: `isSecondaryTile = false` (이미지 렌더링 담당)
-- 보조 타일: `isSecondaryTile = true` (충돌 영역만 차지)
+- Anchor tile: `isSecondaryTile = false` (handles image rendering)
+- Secondary tile: `isSecondaryTile = true` (only occupies collision area)
 
-### 15.3 퍼블리시 플로우
+### 15.3 Publish Flow
 
 ```
-1. 아이템 배치 (customTiles에 저장)
+1. Place items (saved in customTiles)
       ↓
-2. "Publish" 클릭
+2. Click "Publish"
       ↓
 3. POST /api/custom-tiles { userId, customTiles }
       ↓
-4. Redis 'global-tiles'에 병합 저장
+4. Merge and save to Redis 'global-tiles'
       ↓
-5. customTiles → publishedTiles로 이동
+5. Move customTiles → publishedTiles
       ↓
-6. layer1 아이템 위치를 collisionMap에 추가
+6. Add layer1 item positions to collisionMap
       ↓
-7. customTiles 초기화 (draft 클리어)
+7. Reset customTiles (clear draft)
 ```
 
 ---
 
-## 16. 채팅 및 스레딩 시스템
+## 16. Chat and Threading System
 
-### 16.1 스레드 관리
+### 16.1 Thread Management
 
-**스레드 식별**: 에이전트 조합의 SHA-256 해시 (`agentComboId`)
+**Thread Identification**: SHA-256 hash of agent combination (`agentComboId`)
 
 ```typescript
 // src/lib/hash.ts
@@ -1528,68 +1530,68 @@ async function generateAgentComboId(agentNames: string[]): Promise<string> {
 }
 ```
 
-같은 에이전트 조합이면 같은 스레드를 재사용한다.
+Same agent combination reuses the same thread.
 
-### 16.2 메시지 전송 플로우
+### 16.2 Message Sending Flow
 
 ```
-사용자 메시지 입력
+User message input
       ↓
 POST /api/thread-message
-  ├── playerPosition으로 반경 내 에이전트 탐색 (유클리드 거리)
-  ├── @멘션된 에이전트 포함
-  ├── agentComboId 생성
-  ├── 기존 스레드 검색 (Redis) → 없으면 A2A Orchestration에 생성
-  ├── 스레드에 에이전트 추가
-  └── 메시지 전송
+  ├── Search for agents within radius using playerPosition (Euclidean distance)
+  ├── Include @mentioned agents
+  ├── Generate agentComboId
+  ├── Search for existing thread (Redis) → create in A2A Orchestration if none
+  ├── Add agents to thread
+  └── Send message
       ↓
 SSE Stream (GET /api/thread-stream/[threadId])
-  ├── A2A Orchestration 서버의 SSE를 프록시
-  ├── 에이전트 응답을 실시간으로 클라이언트에 전달
-  └── 5분 타임아웃
+  ├── Proxy SSE from A2A Orchestration server
+  ├── Deliver agent responses to client in real-time
+  └── 5-minute timeout
 ```
 
-### 16.3 SSE 연결 관리 (useThreadStream)
+### 16.3 SSE Connection Management (useThreadStream)
 
 ```typescript
-// 연결 상태: disconnected → connecting → connected → error/reconnecting
-// 재연결: 지수 백오프 (1s → 2s → 4s → 8s → 16s), 최대 5회
-// 에러 시 Sentry 보고
+// Connection states: disconnected → connecting → connected → error/reconnecting
+// Reconnection: Exponential backoff (1s → 2s → 4s → 8s → 16s), max 5 attempts
+// Report errors to Sentry
 ```
 
-### 16.4 Redis 스레드 저장 구조
+### 16.4 Redis Thread Storage Structure
 
 ```
 user:{userId}:threads         → Hash { threadId: JSON(Thread) }
 user:{userId}:agent_combos    → Hash { agentComboId: threadId }
 ```
 
-- 만료: 30일
+- Expiration: 30 days
 
 ---
 
-## 17. Custom Hooks 상세
+## 17. Custom Hooks Details
 
 ### useGameState (`hooks/useGameState.tsx`)
 
-**가장 큰 hook** — 게임 핵심 로직 담당
+**Largest hook** — handles core game logic
 
-| 기능 | 설명 |
-|------|------|
-| 플레이어 이동 | 키보드/조이스틱 입력 처리, 충돌 감지 |
-| 위치 관리 | worldPosition 갱신, 서버 동기화 |
-| 가시 영역 | 맵 데이터 + 에이전트 가시성 계산 |
-| AI 해설 | 자율 이동 시 Gemini 기반 해설 생성 |
-| 지형 감지 | 현재 위치의 바이옴/지형 판별 |
+| Feature | Description |
+|---------|-------------|
+| Player movement | Keyboard/joystick input handling, collision detection |
+| Position management | worldPosition updates, server sync |
+| Visible area | Map data + agent visibility calculation |
+| AI commentary | Gemini-based commentary generation during autonomous movement |
+| Terrain detection | Current position biome/terrain determination |
 
 ### useThreadStream (`hooks/useThreadStream.ts`)
 
-SSE 스트림 관리 hook
+SSE stream management hook
 
 ```typescript
 interface Return {
-    reconnect: () => void;          // 수동 재연결
-    disconnect: () => void;          // 수동 해제
+    reconnect: () => void;          // Manual reconnection
+    disconnect: () => void;          // Manual disconnect
     isConnected: boolean;
     connectionStatus: 'disconnected' | 'connecting' | 'connected' | 'error' | 'reconnecting';
     lastError: string | null;
@@ -1599,111 +1601,111 @@ interface Return {
 
 ### useAgents (`hooks/useAgents.ts`)
 
-에이전트 AI 행동, 경로 탐색, 충돌 로직
+Agent AI behavior, pathfinding, collision logic
 
 ### useTiledMap (`hooks/useTiledMap.ts`)
 
-Tiled(.tmj) 맵 파일 로드, Canvas 렌더링
+Tiled (.tmj) map file loading, Canvas rendering
 
 ### useSession (`hooks/useSession.ts`)
 
-Firebase auth, 사용자 관리
+Firebase auth, user management
 
 ### useKeyboardOpen (`hooks/useKeyboardOpen.ts`)
 
-모바일 가상 키보드 감지 (화면 높이 변화 기반)
+Mobile virtual keyboard detection (based on screen height changes)
 
 ### useProgressiveImage (`hooks/useProgressiveImage.ts`)
 
-이미지 지연 로딩 전략
+Image lazy loading strategy
 
 ### useSpritePreload (`hooks/useSpritePreload.ts`)
 
-스프라이트 이미지 프리로드
+Sprite image preloading
 
 ### useSearchHolders (`hooks/useSearchHolders.ts`)
 
-토큰 홀더 검증 (AIN, sAIN, Mini Egg NFT)
+Token holder verification (AIN, sAIN, Mini Egg NFT)
 
 ### useWorld (`hooks/useWorld.ts`)
 
-월드 상태 관리
+World state management
 
 ---
 
-## 18. 유틸리티 라이브러리
+## 18. Utility Library
 
 ### lib/utils.ts
 
 ```typescript
-// Tailwind 클래스 병합
+// Tailwind class merging
 function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
 }
 
-// UUID 세션 생성
+// UUID session creation
 function createSession(): string {
     return uuidv4();
 }
 
-// 지갑 주소 축약 (0x1234...5678)
+// Wallet address abbreviation (0x1234...5678)
 function shortAddress(address: string, startIndex = 3): string
 ```
 
 ### lib/a2aOrchestration.ts
 
-A2A 오케스트레이션 API 클라이언트:
+A2A orchestration API client:
 
-| 함수 | 설명 |
-|------|------|
-| `createThread(userId, name)` | 스레드 생성 |
-| `importAgent(a2aUrl)` | 에이전트 임포트 |
-| `addAgentToThread(threadId, agent)` | 스레드에 에이전트 추가 |
-| `sendMessage(threadId, message)` | 메시지 전송 |
-| `getAllThreads()` | 스레드 목록 조회 |
-| `getThread(threadId)` | 개별 스레드 조회 |
-| `deleteThread(threadId)` | 스레드 삭제 |
-| `removeAgentFromThread(threadId, agentName)` | 에이전트 제거 |
-| `connectToThreadStream(threadId, onMessage)` | SSE 연결 (EventSource) |
+| Function | Description |
+|----------|-------------|
+| `createThread(userId, name)` | Create thread |
+| `importAgent(a2aUrl)` | Import agent |
+| `addAgentToThread(threadId, agent)` | Add agent to thread |
+| `sendMessage(threadId, message)` | Send message |
+| `getAllThreads()` | List threads |
+| `getThread(threadId)` | Get individual thread |
+| `deleteThread(threadId)` | Delete thread |
+| `removeAgentFromThread(threadId, agentName)` | Remove agent |
+| `connectToThreadStream(threadId, onMessage)` | SSE connection (EventSource) |
 
 ### lib/redis.ts
 
-Redis 클라이언트 + 데이터 CRUD:
+Redis client + data CRUD:
 
-| 함수 | Redis 키 | 만료 |
-|------|----------|------|
-| `savePlayerPosition` | `player:{userId}` (Hash) | 24시간 |
+| Function | Redis Key | Expiration |
+|----------|-----------|------------|
+| `savePlayerPosition` | `player:{userId}` (Hash) | 24 hours |
 | `getPlayerPosition` | `player:{userId}` | - |
-| `saveCustomTiles` | `global-tiles` (Hash) | 없음 (영구) |
+| `saveCustomTiles` | `global-tiles` (Hash) | None (permanent) |
 | `getCustomTiles` | `global-tiles` | - |
 | `getAgents` | `agents:*` (String) | - |
-| `saveThread` | `user:{userId}:threads` + `user:{userId}:agent_combos` | 30일 |
+| `saveThread` | `user:{userId}:threads` + `user:{userId}:agent_combos` | 30 days |
 | `getThreads` | `user:{userId}:threads` | - |
 | `findThreadByAgentCombo` | `user:{userId}:agent_combos` → thread lookup | - |
-| `deleteThread` | 양쪽 키 삭제 | - |
+| `deleteThread` | Delete both keys | - |
 
-**주의**: `saveCustomTiles`는 global 키에 병합 저장. userId는 하위 호환용으로 받지만 실제로 무시.
+**Note**: `saveCustomTiles` merges into a global key. userId is accepted for backward compatibility but is actually ignored.
 
 ### lib/hash.ts
 
 ```typescript
-// 에이전트 조합 해시 (Browser: Web Crypto / Node: crypto)
+// Agent combination hash (Browser: Web Crypto / Node: crypto)
 async function generateAgentComboId(agentNames: string[]): Promise<string>
 ```
 
 ---
 
-## 19. API 라우트 상세
+## 19. API Route Details
 
 ### 19.1 `/api/agents` (CRUD)
 
-**GET**: 모든 에이전트 조회
+**GET**: Query all agents
 ```
-Query: ?address={creatorAddress}  (선택사항)
+Query: ?address={creatorAddress}  (optional)
 Response: { success: true, agents: StoredAgent[], count: number }
 ```
 
-**POST**: 에이전트 등록
+**POST**: Register agent
 ```json
 {
     "url": "https://agent-a2a-url",
@@ -1714,10 +1716,10 @@ Response: { success: true, agents: StoredAgent[], count: number }
     "spriteHeight": 50
 }
 ```
-- Redis 키: `agents:{base64(url)}`
-- 중복 등록 시 409 Conflict
+- Redis key: `agents:{base64(url)}`
+- 409 Conflict on duplicate registration
 
-**PUT**: 에이전트 업데이트 (partial update)
+**PUT**: Update agent (partial update)
 ```json
 {
     "url": "https://agent-url",
@@ -1726,7 +1728,7 @@ Response: { success: true, agents: StoredAgent[], count: number }
 }
 ```
 
-**DELETE**: 에이전트 삭제
+**DELETE**: Delete agent
 ```json
 { "url": "https://agent-url" }
 ```
@@ -1735,19 +1737,19 @@ Response: { success: true, agents: StoredAgent[], count: number }
 
 **POST** (FormData):
 ```
-image: File      # 이미지 파일
-agentUrl: string # 에이전트 URL
+image: File      # Image file
+agentUrl: string # Agent URL
 ```
 
-**처리 과정**:
-1. sharp로 이미지 dimensions 추출
-2. Firebase Storage에 업로드 (production/develop 버킷 구분)
-3. 기존 스프라이트 파일 삭제
-4. Redis 에이전트 데이터에 `spriteUrl`, `spriteHeight` 업데이트
+**Processing**:
+1. Extract image dimensions with sharp
+2. Upload to Firebase Storage (production/develop bucket separation)
+3. Delete existing sprite file
+4. Update Redis agent data with `spriteUrl`, `spriteHeight`
 
 ### 19.3 `/api/agent-chat`
 
-**POST**: A2A SDK로 에이전트에 메시지 전송
+**POST**: Send message to agent via A2A SDK
 ```json
 {
     "agentUrl": "https://agent-url",
@@ -1755,11 +1757,11 @@ agentUrl: string # 에이전트 URL
     "contextId": "optional-context-id"
 }
 ```
-- JSON-RPC, direct, nested 등 다양한 응답 포맷 파싱
+- Parses various response formats: JSON-RPC, direct, nested, etc.
 
 ### 19.4 `/api/thread-message`
 
-**POST**: 스레드 메시지 전송 + 에이전트 탐색
+**POST**: Send thread message + agent search
 ```json
 {
     "message": "Hello everyone",
@@ -1772,13 +1774,13 @@ agentUrl: string # 에이전트 URL
 }
 ```
 
-**에이전트 탐색 로직**:
-- 유클리드 거리: `sqrt((ax-px)^2 + (ay-py)^2) <= broadcastRadius`
-- 명시적으로 지정된 에이전트 + 반경 내 에이전트 병합
+**Agent Search Logic**:
+- Euclidean distance: `sqrt((ax-px)^2 + (ay-py)^2) <= broadcastRadius`
+- Merge explicitly specified agents + agents within radius
 
 ### 19.5 `/api/thread-stream/[threadId]`
 
-**GET**: SSE 프록시
+**GET**: SSE proxy
 ```
 Headers:
   Content-Type: text/event-stream
@@ -1786,95 +1788,95 @@ Headers:
   Connection: keep-alive
   X-Accel-Buffering: no
 ```
-- A2A Orchestration의 SSE를 클라이언트에 프록시
-- 최대 5분 유지
-- AbortController로 연결 정리
+- Proxies A2A Orchestration's SSE to client
+- Max 5-minute duration
+- Connection cleanup via AbortController
 
 ### 19.6 `/api/custom-tiles`
 
-**GET**: `?userId={id}` → 글로벌 타일 조회
-**POST**: 커스텀 타일 저장 (기존 글로벌 타일에 병합)
+**GET**: `?userId={id}` -> Query global tiles
+**POST**: Save custom tiles (merge with existing global tiles)
 
 ### 19.7 `/api/position`
 
-**GET**: `?userId={id}` → 플레이어 위치 조회 (기본값: 0,0)
-**POST**: `{ userId, x, y }` → 위치 저장 (24시간 만료)
+**GET**: `?userId={id}` -> Query player position (default: 0,0)
+**POST**: `{ userId, x, y }` -> Save position (24-hour expiration)
 
 ### 19.8 `/api/create-agent`
 
-**POST**: AI 프롬프트로 에이전트 생성
+**POST**: Create agent via AI prompt
 ```json
 { "prompt": "Create a helpful weather agent" }
 ```
 
-**처리 과정**:
-1. 빌더 API로 에이전트 config 생성
-2. 필수 필드 추가 (id, url, protocolVersion, etc.)
-3. 빌더 서비스에 배포
-4. A2A 엔드포인트 URL 반환
+**Processing**:
+1. Generate agent config via builder API
+2. Add required fields (id, url, protocolVersion, etc.)
+3. Deploy to builder service
+4. Return A2A endpoint URL
 
 ---
 
-## 20. 외부 서비스 연동
+## 20. External Service Integration
 
 ### 20.1 A2A Orchestration
 
-| 엔드포인트 | 메서드 | 용도 |
-|------------|--------|------|
-| `/threads` | POST | 스레드 생성 |
-| `/threads` | GET | 스레드 목록 |
-| `/threads/{id}` | GET/DELETE | 스레드 조회/삭제 |
-| `/threads/{id}/agents` | POST | 에이전트 추가 |
-| `/threads/{id}/agents/{name}` | DELETE | 에이전트 제거 |
-| `/threads/{id}/messages` | POST | 메시지 전송 |
-| `/threads/{id}/stream` | GET (SSE) | 실시간 스트림 |
-| `/agents/import` | POST | 에이전트 임포트 |
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/threads` | POST | Create thread |
+| `/threads` | GET | List threads |
+| `/threads/{id}` | GET/DELETE | Query/delete thread |
+| `/threads/{id}/agents` | POST | Add agent |
+| `/threads/{id}/agents/{name}` | DELETE | Remove agent |
+| `/threads/{id}/messages` | POST | Send message |
+| `/threads/{id}/stream` | GET (SSE) | Real-time stream |
+| `/agents/import` | POST | Import agent |
 
-기본 URL: `NEXT_PUBLIC_A2A_ORCHESTRATION_BASE_URL`
+Base URL: `NEXT_PUBLIC_A2A_ORCHESTRATION_BASE_URL`
 
-### 20.2 Redis 데이터 구조
+### 20.2 Redis Data Structure
 
 ```
 player:{userId}                  → Hash { x, y, lastUpdated }           # 24h TTL
-global-tiles                     → Hash { tiles: JSON, lastUpdated }    # 영구
-agents:{base64(url)}             → String (JSON StoredAgent)            # 영구
-user:{userId}:threads            → Hash { threadId: JSON(Thread) }      # 30일 TTL
-user:{userId}:agent_combos       → Hash { agentComboId: threadId }      # 30일 TTL
+global-tiles                     → Hash { tiles: JSON, lastUpdated }    # Permanent
+agents:{base64(url)}             → String (JSON StoredAgent)            # Permanent
+user:{userId}:threads            → Hash { threadId: JSON(Thread) }      # 30-day TTL
+user:{userId}:agent_combos       → Hash { agentComboId: threadId }      # 30-day TTL
 ```
 
 ### 20.3 Firebase Storage
 
-- 에이전트 스프라이트 이미지 저장
-- 버킷: production/develop 구분
-- 파일명: `agent_sprite_{base64(agentUrl)}_{timestamp}.{ext}`
+- Agent sprite image storage
+- Buckets: production/develop separation
+- Filename: `agent_sprite_{base64(agentUrl)}_{timestamp}.{ext}`
 
 ### 20.4 Sentry
 
 - Server: `sentry.server.config.ts`
 - Edge: `sentry.edge.config.ts`
-- Client: Next.js 자동 설정
+- Client: Next.js auto-configuration
 - Org: `comcom-xr`, Project: `ainspace`
 
 ### 20.5 Farcaster
 
 - **MiniApp SDK**: `sdk.actions.ready({ disableNativeGestures: true })`
-- **Manifest**: `/.well-known/farcaster.json` → Farcaster hosted manifest 리다이렉트
-- **Frame Metadata**: `fc:frame` JSON 메타데이터 (layout.tsx)
+- **Manifest**: `/.well-known/farcaster.json` -> Farcaster hosted manifest redirect
+- **Frame Metadata**: `fc:frame` JSON metadata (layout.tsx)
 
 ---
 
-## 21. 스타일링 시스템
+## 21. Styling System
 
 ### Tailwind CSS v4
 
 ```css
 /* globals.css */
 @import 'tailwindcss';
-@import 'tw-animate-css';      /* 애니메이션 라이브러리 */
-@custom-variant dark (&:is(.dark *));  /* 다크 모드 커스텀 변형 */
+@import 'tw-animate-css';      /* Animation library */
+@custom-variant dark (&:is(.dark *));  /* Dark mode custom variant */
 ```
 
-### 폰트
+### Fonts
 
 ```typescript
 // layout.tsx
@@ -1883,42 +1885,42 @@ const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin']
 const manrope = Manrope({ variable: '--font-manrope', subsets: ['latin'] });
 ```
 
-### 모바일 최적화 CSS
+### Mobile Optimization CSS
 
 ```css
-/* 터치 하이라이트 제거 */
+/* Remove touch highlight */
 * { -webkit-tap-highlight-color: transparent; }
 
-/* Canvas/이미지 선택 방지 */
+/* Prevent canvas/image selection */
 canvas, img { -webkit-user-select: none; user-select: none; }
 
-/* 인풋은 선택 허용 */
+/* Allow input selection */
 input, textarea { -webkit-user-select: text !important; }
 
-/* 더블탭 줌 방지 */
+/* Prevent double-tap zoom */
 button, a { touch-action: manipulation; }
 
-/* 당겨서 새로고침 방지 */
+/* Prevent pull-to-refresh */
 body { overscroll-behavior-y: contain; }
 ```
 
-### 디자인 토큰 (CSS Variables)
+### Design Tokens (CSS Variables)
 
 ```css
 :root {
     --radius: 0.625rem;
-    --background: oklch(1 0 0);          /* 흰색 */
-    --foreground: oklch(0.145 0 0);      /* 거의 검정 */
+    --background: oklch(1 0 0);          /* White */
+    --foreground: oklch(0.145 0 0);      /* Near black */
     --primary: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.325);  /* 빨강 */
-    /* ... 전체 Shadcn 테마 변수 */
+    --destructive: oklch(0.577 0.245 27.325);  /* Red */
+    /* ... full Shadcn theme variables */
 }
 ```
 
-### 컴포넌트 변형 (CVA)
+### Component Variants (CVA)
 
 ```typescript
-// cn() 유틸로 조건부 클래스 적용
+// Conditional class application with cn() utility
 cn(
     'flex flex-1 cursor-pointer flex-col items-center justify-center',
     activeTab === 'map' ? 'text-gray-100' : 'bg-[#424049] text-white'
@@ -1927,9 +1929,9 @@ cn(
 
 ---
 
-## 22. 빌드 및 배포
+## 22. Build and Deployment
 
-### Next.js 설정 (`next.config.ts`)
+### Next.js Configuration (`next.config.ts`)
 
 ```typescript
 {
@@ -1937,16 +1939,16 @@ cn(
         remotePatterns: [{ hostname: '**.public.blob.vercel-storage.com' }]
     },
     redirects: [
-        // Farcaster manifest 리다이렉트
+        // Farcaster manifest redirect
         { source: '/.well-known/farcaster.json', destination: 'https://api.farcaster.xyz/...' }
     ],
     webpack: (config) => {
-        // Production에서 console.log 제거 (terser pure_funcs)
-        // 브라우저 불필요 모듈 fallback: false
+        // Remove console.log in production (terser pure_funcs)
+        // Browser unnecessary module fallback: false
     }
 }
 
-// Sentry 래핑
+// Sentry wrapping
 export default withSentryConfig(nextConfig, {
     org: 'comcom-xr',
     project: 'ainspace',
@@ -1956,7 +1958,7 @@ export default withSentryConfig(nextConfig, {
 });
 ```
 
-### TypeScript 설정
+### TypeScript Configuration
 
 ```json
 {
@@ -1969,98 +1971,98 @@ export default withSentryConfig(nextConfig, {
 }
 ```
 
-### 배포 (Vercel)
+### Deployment (Vercel)
 
-- Vercel 자동 배포
-- 소스맵 Sentry 업로드
-- Vercel Analytics 연동
-- Blob Storage로 파일 저장
+- Vercel auto-deployment
+- Source map upload to Sentry
+- Vercel Analytics integration
+- File storage via Blob Storage
 
-### 메타데이터 (SEO/OG)
+### Metadata (SEO/OG)
 
-`layout.tsx`의 `generateMetadata()`에서 생성:
+Generated from `generateMetadata()` in `layout.tsx`:
 - OpenGraph, Twitter Card
-- Farcaster Frame 메타데이터
-- 키워드: Web3, blockchain, Base, Farcaster, AI Network
-- 환경별 타이틀: production → "AINSPACE", dev → "AINSPACE - DEV"
+- Farcaster Frame metadata
+- Keywords: Web3, blockchain, Base, Farcaster, AI Network
+- Environment-specific title: production -> "AINSPACE", dev -> "AINSPACE - DEV"
 
 ---
 
-## 23. 핵심 동작 흐름
+## 23. Core Behavior Flows
 
-### 23.1 앱 시작 → 게임 진입
+### 23.1 App Start -> Game Entry
 
 ```
-1. 브라우저 접속
-2. RootLayout 렌더링
-3. Providers 초기화:
-   a. WagmiProvider → 월렛 상태 로드
-   b. QueryClientProvider → React Query 설정
-   c. MapDataProvider → 맵 데이터 로드
-   d. OnchainKitProvider → Base 체인 연결
+1. Browser access
+2. RootLayout renders
+3. Providers initialization:
+   a. WagmiProvider → Load wallet state
+   b. QueryClientProvider → React Query setup
+   c. MapDataProvider → Load map data
+   d. OnchainKitProvider → Base chain connection
 4. AuthGuard:
-   a. isMounted = false → null 렌더링
-   b. isConnecting → 로딩 스피너
-   c. wagmi hydration 완료 (100ms)
-   d. !isConnected → /login 리다이렉트
-   e. isConnected → children 렌더링
-5. page.tsx 마운트:
+   a. isMounted = false → render null
+   b. isConnecting → loading spinner
+   c. wagmi hydration complete (100ms)
+   d. !isConnected → redirect to /login
+   e. isConnected → render children
+5. page.tsx mount:
    a. Farcaster frame ready
-   b. Eruda 디버거 (dev only)
-   c. 충돌 맵 초기화 (land_layer_1 이미지 분석)
-   d. 커스텀 타일 로드 (Redis)
-   e. 배포된 에이전트 로드 (Redis)
-   f. Base 체인 자동 전환
+   b. Eruda debugger (dev only)
+   c. Collision map initialization (land_layer_1 image analysis)
+   d. Custom tiles load (Redis)
+   e. Deployed agents load (Redis)
+   f. Auto-switch to Base chain
 ```
 
-### 23.2 에이전트 임포트 → 배치
+### 23.2 Agent Import -> Placement
 
 ```
-1. AgentTab에서 A2A URL 입력
-2. POST /api/agent-proxy → 에이전트 카드 정보 획득
-3. POST /api/agents → Redis에 등록 (isPlaced: false)
-4. "Place" 클릭:
-   a. ALLOWED_DEPLOY_ZONE 내 빈 좌표 탐색
-   b. PUT /api/agents → isPlaced: true, 좌표 저장
-   c. useAgentStore.spawnAgent() → 맵에 표시
-   d. activeTab → 'map' 전환
+1. Enter A2A URL in AgentTab
+2. POST /api/agent-proxy → Obtain agent card info
+3. POST /api/agents → Register in Redis (isPlaced: false)
+4. Click "Place":
+   a. Search for empty coordinates within ALLOWED_DEPLOY_ZONE
+   b. PUT /api/agents → isPlaced: true, save coordinates
+   c. useAgentStore.spawnAgent() → Display on map
+   d. activeTab → switch to 'map'
 ```
 
-### 23.3 에이전트와 대화
+### 23.3 Chat with Agent
 
 ```
-1. ChatBox에서 메시지 입력 (선택적으로 @멘션)
-2. 반경 내 에이전트 탐색 (BROADCAST_RADIUS)
-3. 에이전트 조합 해시 생성
-4. 기존 스레드 검색 (Redis agentComboId)
-5. 없으면:
-   a. A2A Orchestration에 스레드 생성
-   b. Redis에 스레드 저장
-   c. 각 에이전트를 스레드에 추가
-6. 메시지 전송 (A2A Orchestration)
-7. SSE 스트림 연결 (useThreadStream)
-8. 에이전트 응답 실시간 수신 → ChatBox에 표시
+1. Enter message in ChatBox (optionally @mention)
+2. Search for agents within radius (BROADCAST_RADIUS)
+3. Generate agent combination hash
+4. Search for existing thread (Redis agentComboId)
+5. If none:
+   a. Create thread in A2A Orchestration
+   b. Save thread in Redis
+   c. Add each agent to thread
+6. Send message (A2A Orchestration)
+7. Connect SSE stream (useThreadStream)
+8. Receive agent responses in real-time → display in ChatBox
 ```
 
-### 23.4 맵 빌딩
+### 23.4 Map Building
 
 ```
-1. Build 탭 선택
-2. 아이템 선택 (6종 중 택1)
-3. 맵에서 위치 클릭 → customTiles.layer1에 추가
-4. 멀티타일: 앵커 + 보조 타일 자동 생성
-5. "Publish" 클릭:
-   a. POST /api/custom-tiles → Redis 'global-tiles'에 병합
-   b. customTiles → publishedTiles 이동
-   c. collisionMap에 layer1 아이템 위치 추가
-   d. draft 초기화
+1. Select Build tab
+2. Select item (1 of 6 types)
+3. Click position on map → add to customTiles.layer1
+4. Multi-tile: Automatically generate anchor + secondary tiles
+5. Click "Publish":
+   a. POST /api/custom-tiles → Merge into Redis 'global-tiles'
+   b. Move customTiles → publishedTiles
+   c. Add layer1 item positions to collisionMap
+   d. Reset draft
 ```
 
 ---
 
-## 24. 설정 파일 상세
+## 24. Configuration File Details
 
-### package.json 스크립트
+### package.json Scripts
 
 ```json
 {
@@ -2071,7 +2073,7 @@ export default withSentryConfig(nextConfig, {
 }
 ```
 
-### PostCSS 설정
+### PostCSS Configuration
 
 ```javascript
 // postcss.config.mjs
@@ -2082,7 +2084,7 @@ export default {
 };
 ```
 
-### Prettier 설정
+### Prettier Configuration
 
 ```json
 // .prettierrc
@@ -2091,118 +2093,118 @@ export default {
 }
 ```
 
-### Shadcn UI 설정
+### Shadcn UI Configuration
 
 ```json
 // components.json
-// Shadcn UI 컴포넌트 메타데이터
+// Shadcn UI component metadata
 ```
 
-### Sentry 설정
+### Sentry Configuration
 
 ```typescript
-// sentry.server.config.ts - 서버 에러 추적
-// sentry.edge.config.ts  - Edge Function 모니터링
-// instrumentation.ts     - 라이프사이클 훅
+// sentry.server.config.ts - Server error tracking
+// sentry.edge.config.ts  - Edge Function monitoring
+// instrumentation.ts     - Lifecycle hooks
 ```
 
 ---
 
-## 25. 주의사항 및 알려진 이슈
+## 25. Caveats and Known Issues
 
-### 현재 비활성화된 기능
+### Currently Disabled Features
 
-1. **에이전트 자동 이동**: `ENABLE_AGENT_MOVEMENT = false` — 활성화하면 100ms 간격으로 에이전트가 랜덤 이동
-2. **기본 에이전트**: `initializeDefaultAgents()`가 호출되지만 실제 에이전트 등록은 주석 처리
-3. **스마트 컨트랙트**: `addAgent` 트랜잭션 코드가 주석 처리 (NOTE: yoojin)
-4. **Thread 탭**: Footer에서 thread 탭이 제거됨, 채팅은 ChatBoxOverlay에서 처리
+1. **Agent auto-movement**: `ENABLE_AGENT_MOVEMENT = false` — Enabling causes agents to move randomly at 100ms intervals
+2. **Default agents**: `initializeDefaultAgents()` is called but actual agent registration is commented out
+3. **Smart contract**: `addAgent` transaction code is commented out (NOTE: yoojin)
+4. **Thread tab**: Thread tab removed from Footer, chat is handled in ChatBoxOverlay
 
-### 개발 시 주의
+### Development Notes
 
-1. **Redis 필수**: 에이전트, 타일, 스레드 데이터 모두 Redis에 저장. Redis 없으면 일부 API에 in-memory fallback 있음
-2. **A2A Orchestration 서버**: 스레드/메시지 기능은 별도 서버 필요
-3. **Farcaster 환경**: MiniApp으로 동작하므로 네이티브 제스처 비활성화 설정 필요
-4. **충돌 맵**: 첫 로드 시 25개 타일 이미지를 Canvas에 그려 분석하므로 초기 로딩 시간 있음
-5. **모바일 최적화**: viewport `user-scalable=no`, 터치 이벤트 최적화 CSS 적용됨
-6. **Eruda 디버거**: `NEXT_PUBLIC_NODE_ENV !== 'production'`일 때 자동 활성화
+1. **Redis required**: Agent, tile, and thread data all stored in Redis. Some APIs have in-memory fallback without Redis
+2. **A2A Orchestration server**: Thread/message features require a separate server
+3. **Farcaster environment**: Operating as MiniApp requires native gesture disable settings
+4. **Collision map**: Initial load analyzes 25 tile images on Canvas, causing initial loading time
+5. **Mobile optimization**: viewport `user-scalable=no`, touch event optimization CSS applied
+6. **Eruda debugger**: Auto-enabled when `NEXT_PUBLIC_NODE_ENV !== 'production'`
 
-### 성능 고려사항
+### Performance Considerations
 
-1. **Canvas 렌더링**: DOM 대신 Canvas로 맵 렌더링 → 성능 최적화
-2. **Zustand**: 최소 리렌더링을 위한 경량 상태 관리
-3. **이미지 프리로딩**: 스프라이트 이미지 사전 로드
-4. **SSE 프록시**: CORS 회피를 위한 서버 프록시
-5. **Production**: console.log 제거 (terser pure_funcs)
+1. **Canvas rendering**: Map rendered via Canvas instead of DOM -> performance optimization
+2. **Zustand**: Lightweight state management for minimal re-renders
+3. **Image preloading**: Sprite images pre-loaded
+4. **SSE proxy**: Server proxy to avoid CORS
+5. **Production**: console.log removed (terser pure_funcs)
 
-### 참고 외부 URL
+### Reference External URLs
 
-| 서비스 | URL 패턴 |
-|--------|----------|
-| Vercel 배포 | `https://ainspace-4g3e.vercel.app` |
-| API 서버 | `https://base-backend-dev.ainetwork.xyz` |
+| Service | URL Pattern |
+|---------|-------------|
+| Vercel Deployment | `https://ainspace-4g3e.vercel.app` |
+| API Server | `https://base-backend-dev.ainetwork.xyz` |
 | A2A Orchestration | `https://a2a-orchestration-dev.ainetwork.ai/api` |
 | Farcaster Manifest | `https://api.farcaster.xyz/miniapps/hosted-manifest/...` |
 
 ---
 
-## 부록: 재구현 체크리스트
+## Appendix: Reimplementation Checklist
 
-이 문서만으로 프로젝트를 처음부터 재구현하기 위한 순서:
+Order for reimplementing the project from scratch using only this document:
 
-### Phase 1: 프로젝트 셋업
-- [ ] Next.js 15 (App Router) + TypeScript strict 프로젝트 생성
-- [ ] 패키지 설치 (package.json 참고)
-- [ ] Tailwind CSS v4 + PostCSS 설정
-- [ ] tsconfig.json (`@/*` path alias 포함)
-- [ ] next.config.ts (이미지, Farcaster 리다이렉트, webpack, Sentry)
+### Phase 1: Project Setup
+- [ ] Create Next.js 15 (App Router) + TypeScript strict project
+- [ ] Install packages (refer to package.json)
+- [ ] Configure Tailwind CSS v4 + PostCSS
+- [ ] tsconfig.json (including `@/*` path alias)
+- [ ] next.config.ts (images, Farcaster redirect, webpack, Sentry)
 
-### Phase 2: 인프라 레이어
-- [ ] Redis 클라이언트 (lib/redis.ts)
-- [ ] Wagmi 설정 (lib/wagmi-config.ts)
-- [ ] 유틸리티 (lib/utils.ts, lib/hash.ts)
-- [ ] 환경변수 설정 (.env)
+### Phase 2: Infrastructure Layer
+- [ ] Redis client (lib/redis.ts)
+- [ ] Wagmi configuration (lib/wagmi-config.ts)
+- [ ] Utilities (lib/utils.ts, lib/hash.ts)
+- [ ] Environment variables (.env)
 
-### Phase 3: 상태 관리
-- [ ] 7개 Zustand 스토어 구현 (stores/)
-- [ ] 타입 정의 (types/thread.ts)
-- [ ] 게임 상수 (constants/game.ts, common.ts)
+### Phase 3: State Management
+- [ ] Implement 7 Zustand stores (stores/)
+- [ ] Type definitions (types/thread.ts)
+- [ ] Game constants (constants/game.ts, common.ts)
 
 ### Phase 4: Provider & Auth
-- [ ] Providers.tsx (Wagmi → Query → MapData → OnchainKit)
-- [ ] AuthGuard.tsx (월렛 인증 가드)
-- [ ] layout.tsx (폰트, 메타데이터, Provider 래핑)
+- [ ] Providers.tsx (Wagmi -> Query -> MapData -> OnchainKit)
+- [ ] AuthGuard.tsx (wallet auth guard)
+- [ ] layout.tsx (fonts, metadata, Provider wrapping)
 
-### Phase 5: 에이전트 시스템
-- [ ] 에이전트 클래스 계층 (lib/agent.ts)
-- [ ] A2A Orchestration 클라이언트 (lib/a2aOrchestration.ts)
-- [ ] 에이전트 API 라우트 (/api/agents, agent-chat, agent-proxy, agent-response, create-agent)
+### Phase 5: Agent System
+- [ ] Agent class hierarchy (lib/agent.ts)
+- [ ] A2A Orchestration client (lib/a2aOrchestration.ts)
+- [ ] Agent API routes (/api/agents, agent-chat, agent-proxy, agent-response, create-agent)
 
-### Phase 6: 맵 시스템
-- [ ] TileMap 캔버스 렌더러 (components/TileMap.tsx)
+### Phase 6: Map System
+- [ ] TileMap Canvas renderer (components/TileMap.tsx)
 - [ ] useTiledMap, useGameState hooks
-- [ ] 충돌 맵 생성 (useBuildStore.updateCollisionMapFromImage)
-- [ ] 맵 리소스 (public/map/)
+- [ ] Collision map generation (useBuildStore.updateCollisionMapFromImage)
+- [ ] Map resources (public/map/)
 
-### Phase 7: UI 컴포넌트
-- [ ] Footer (탭 네비게이션)
-- [ ] MapTab (게임 디스플레이 + 조이스틱)
-- [ ] AgentTab (에이전트 관리)
-- [ ] TempBuildTab (맵 빌딩)
+### Phase 7: UI Components
+- [ ] Footer (tab navigation)
+- [ ] MapTab (game display + joystick)
+- [ ] AgentTab (agent management)
+- [ ] TempBuildTab (map building)
 
-### Phase 8: 채팅 시스템
-- [ ] ChatBox (메시지 UI + @멘션)
+### Phase 8: Chat System
+- [ ] ChatBox (message UI + @mentions)
 - [ ] ChatBoxOverlay + ChatBottomDrawer
 - [ ] useThreadStream (SSE)
-- [ ] 스레드 API 라우트 (/api/threads, thread-message, thread-stream)
+- [ ] Thread API routes (/api/threads, thread-message, thread-stream)
 
-### Phase 9: 로그인 & 부가기능
-- [ ] 로그인 페이지 (Signature + 월렛)
-- [ ] Farcaster MiniApp 통합
-- [ ] Sentry 에러 트래킹
+### Phase 9: Login & Additional Features
+- [ ] Login page (Signature + wallet)
+- [ ] Farcaster MiniApp integration
+- [ ] Sentry error tracking
 - [ ] Vercel Analytics
 
-### Phase 10: 배포
-- [ ] Vercel 배포 설정
-- [ ] Redis 프로비저닝
-- [ ] 환경변수 등록
-- [ ] Sentry 프로젝트 연결
+### Phase 10: Deployment
+- [ ] Vercel deployment configuration
+- [ ] Redis provisioning
+- [ ] Environment variable registration
+- [ ] Sentry project connection

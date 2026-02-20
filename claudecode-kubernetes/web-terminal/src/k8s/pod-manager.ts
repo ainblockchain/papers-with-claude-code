@@ -1,5 +1,5 @@
-// K8s Pod 라이프사이클 관리
-// 세션 Pod의 생성, 삭제, 상태 확인, Ready 대기를 담당
+// K8s Pod lifecycle management
+// Handles creation, deletion, status checking, and ready-waiting for session Pods
 
 import * as k8s from '@kubernetes/client-node';
 import { Writable } from 'stream';
@@ -8,7 +8,7 @@ import { buildSandboxPodSpec } from './pod-template.js';
 import { AppConfig } from '../types.js';
 
 export class PodManager {
-  /** 새 샌드박스 Pod을 생성하고 Pod 이름을 반환 */
+  /** Create a new sandbox Pod and return the Pod name */
   async createPod(sessionId: string, config: AppConfig, userId?: string): Promise<string> {
     const podSpec = buildSandboxPodSpec(sessionId, config, userId);
     const podName = podSpec.metadata!.name!;
@@ -26,7 +26,7 @@ export class PodManager {
     }
   }
 
-  /** Pod을 삭제 (gracePeriodSeconds: 5) */
+  /** Delete a Pod (gracePeriodSeconds: 5) */
   async deletePod(podName: string, namespace: string): Promise<void> {
     try {
       await k8sApi.deleteNamespacedPod({
@@ -41,7 +41,7 @@ export class PodManager {
     }
   }
 
-  /** Pod이 Running 상태가 될 때까지 폴링 (1초 간격) */
+  /** Poll until the Pod reaches Running state (1-second interval) */
   async waitForPodReady(
     podName: string,
     namespace: string,
@@ -64,7 +64,7 @@ export class PodManager {
     throw new Error(`Pod ${podName} did not become ready within ${timeoutMs}ms`);
   }
 
-  /** Pod 내에서 one-shot 명령을 실행하고 stdout을 문자열로 반환 */
+  /** Execute a one-shot command inside a Pod and return stdout as a string */
   async execInPod(
     podName: string,
     namespace: string,
@@ -126,7 +126,7 @@ export class PodManager {
     });
   }
 
-  /** 특정 유저의 Running 상태 Pod을 K8s 라벨 셀렉터로 검색 */
+  /** Find a Running Pod for a specific user using K8s label selector */
   async findUserPod(podId: string, namespace: string): Promise<string | null> {
     try {
       const response = await k8sApi.listNamespacedPod({
@@ -143,9 +143,9 @@ export class PodManager {
     }
   }
 
-  /** Pod 내 특정 경로가 존재하는지 확인 */
-  // K8s exec WebSocket은 exit code를 status channel로 전달하지만
-  // execInPod는 이를 캡처하지 않으므로, stdout 기반으로 검증
+  /** Check whether a specific path exists inside a Pod */
+  // K8s exec WebSocket delivers exit codes via the status channel,
+  // but execInPod does not capture them, so verification is done via stdout
   async checkPathExists(
     podName: string,
     namespace: string,
@@ -163,7 +163,7 @@ export class PodManager {
     }
   }
 
-  /** Pod의 현재 phase를 반환 (Pending, Running, Succeeded, Failed, Unknown) */
+  /** Return the current phase of a Pod (Pending, Running, Succeeded, Failed, Unknown) */
   async getPodStatus(podName: string, namespace: string): Promise<string> {
     try {
       const response = await k8sApi.readNamespacedPod({

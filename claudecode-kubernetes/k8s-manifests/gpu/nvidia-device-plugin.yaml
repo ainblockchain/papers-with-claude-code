@@ -1,6 +1,6 @@
 # NVIDIA GPU Device Plugin DaemonSet
-# GPU 노드가 추가되면 이 플러그인이 GPU를 Kubernetes 리소스로 노출시킴
-# 현재는 GPU 노드가 없으므로 적용하지 않음 - GPU 노드 추가 시 kubectl apply
+# When GPU nodes are added, this plugin exposes GPUs as Kubernetes resources
+# Not applied currently since there are no GPU nodes - Apply with kubectl when GPU nodes are added
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -19,7 +19,7 @@ spec:
       labels:
         name: nvidia-device-plugin-ds
     spec:
-      # GPU 노드에만 스케줄링 - nvidia.com/gpu 레이블이 있는 노드 대상
+      # Schedule only on GPU nodes - Targets nodes with the nvidia.com/gpu label
       tolerations:
         - key: nvidia.com/gpu
           operator: Exists

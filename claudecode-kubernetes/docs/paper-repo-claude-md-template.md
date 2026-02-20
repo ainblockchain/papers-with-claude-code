@@ -1,41 +1,41 @@
-# 논문 레포 CLAUDE.md 작성 가이드
+# Paper Repo CLAUDE.md Authoring Guide
 
-논문 레포에 이 파일을 추가하면 Papers with Claude Code 플랫폼에서 던전 방식의 학습 코스로 사용할 수 있습니다.
+Adding this file to a paper repo enables it to be used as a dungeon-style learning course on the Papers with Claude Code platform.
 
-## 파일 구조
+## File Structure
 
-CLAUDE.md는 두 부분으로 구성됩니다:
-1. **JSON 메타데이터 블록** (플랫폼이 자동 파싱)
-2. **마크다운 학습 가이드** (Claude Code가 행동 지침으로 사용)
+CLAUDE.md consists of two parts:
+1. **JSON metadata block** (automatically parsed by the platform)
+2. **Markdown learning guide** (used by Claude Code as behavioral instructions)
 
-## 스테이지 JSON 스키마
+## Stage JSON Schema
 
-각 스테이지는 프론트엔드의 StageConfig 타입과 동일한 구조를 따릅니다:
+Each stage follows the same structure as the frontend's StageConfig type:
 
 ```typescript
 interface StageConfig {
   id: string;
-  stageNumber: number;           // 1부터 시작
+  stageNumber: number;           // starts from 1
   title: string;
   concepts: {
     id: string;
     title: string;
-    content: string;             // 개념 설명 (100~300자 권장)
-    position: { x: number; y: number }; // 던전 캔버스 내 위치 (0-19, 0-14)
+    content: string;             // concept description (100~300 characters recommended)
+    position: { x: number; y: number }; // position within dungeon canvas (0-19, 0-14)
   }[];
   quiz: {
     id: string;
     question: string;
     type: 'multiple-choice' | 'free-response' | 'code-challenge';
-    options?: string[];          // multiple-choice만 필요
+    options?: string[];          // only needed for multiple-choice
     correctAnswer?: string;
   };
-  roomWidth: number;             // 20 권장
-  roomHeight: number;            // 15 권장
+  roomWidth: number;             // 20 recommended
+  roomHeight: number;            // 15 recommended
 }
 ```
 
-## 예시 (BitDance 논문, 5스테이지)
+## Example (BitDance Paper, 5 Stages)
 
 ```json
 {
@@ -209,78 +209,78 @@ interface StageConfig {
 }
 ```
 
-## 학습 가이드 섹션 (Claude Code용)
+## Learning Guide Section (For Claude Code)
 
-JSON 블록 아래에 각 스테이지별 학습 지침을 작성합니다:
+Write learning instructions for each stage below the JSON block:
 
 ---
 
 ## Stage 1: Autoregressive Image Generation Basics
 
-학생에게 설명할 핵심 내용:
-- 이미지 생성에서 autoregressive 접근법이 왜 강력한지
-- VQ-VAE가 픽셀을 어떻게 discrete token으로 변환하는지
+Key content to explain to students:
+- Why the autoregressive approach is powerful in image generation
+- How VQ-VAE converts pixels into discrete tokens
 
-참조할 파일: `README.md`, `model/tokenizer.py` (존재하는 경우)
+Reference files: `README.md`, `model/tokenizer.py` (if present)
 
-퀴즈 출제 후 정답 시:
+After quiz is given and answered correctly:
 ```
 [STAGE_COMPLETE:1]
 ```
 
 ## Stage 2: Binary Tokenization Strategy
 
-학생에게 설명할 핵심 내용:
-- 기존 codebook 방식과 binary tokenization의 차이점
-- Binary representation의 장점 (vocabulary 축소, 효율적인 연산)
+Key content to explain to students:
+- Differences between traditional codebook approach and binary tokenization
+- Advantages of binary representation (vocabulary reduction, efficient computation)
 
-참조할 파일: `model/binary_tokenizer.py`, `model/vqvae.py` (존재하는 경우)
+Reference files: `model/binary_tokenizer.py`, `model/vqvae.py` (if present)
 
-퀴즈 출제 후 정답 시:
+After quiz is given and answered correctly:
 ```
 [STAGE_COMPLETE:2]
 ```
 
 ## Stage 3: Diffusion-Based Binary Prediction
 
-학생에게 설명할 핵심 내용:
-- Absorbing diffusion이 binary token에 어떻게 적용되는지
-- Autoregressive + diffusion 하이브리드 구조의 장점
+Key content to explain to students:
+- How absorbing diffusion is applied to binary tokens
+- Advantages of the autoregressive + diffusion hybrid architecture
 
-참조할 파일: `model/diffusion.py`, `model/transformer.py` (존재하는 경우)
+Reference files: `model/diffusion.py`, `model/transformer.py` (if present)
 
-퀴즈 출제 후 정답 시:
+After quiz is given and answered correctly:
 ```
 [STAGE_COMPLETE:3]
 ```
 
 ## Stage 4: Scaling and Efficiency
 
-학생에게 설명할 핵심 내용:
-- Binary prediction이 왜 연산 효율적인지
-- Scaling law에서 BitDance가 보이는 특성
+Key content to explain to students:
+- Why binary prediction is computationally efficient
+- Characteristics that BitDance exhibits in scaling laws
 
-참조할 파일: `configs/`, `train.py` (존재하는 경우)
+Reference files: `configs/`, `train.py` (if present)
 
-퀴즈 출제 후 정답 시:
+After quiz is given and answered correctly:
 ```
 [STAGE_COMPLETE:4]
 ```
 
 ## Stage 5: Results and Future Directions
 
-학생에게 설명할 핵심 내용:
-- ImageNet 벤치마크에서의 성능 (FID, IS)
-- Binary token 기반 모델의 미래 가능성
+Key content to explain to students:
+- Performance on ImageNet benchmarks (FID, IS)
+- Future potential of binary token-based models
 
-참조할 파일: `eval/`, `results/` (존재하는 경우)
+Reference files: `eval/`, `results/` (if present)
 
-퀴즈 출제 후 정답 시:
+After quiz is given and answered correctly:
 ```
 [STAGE_COMPLETE:5]
 ```
 
-## 전체 완료 시
+## When Fully Completed
 ```
 [DUNGEON_COMPLETE]
 ```

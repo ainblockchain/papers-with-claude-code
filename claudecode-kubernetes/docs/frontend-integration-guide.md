@@ -1,29 +1,29 @@
-# 프론트엔드 통합 가이드
+# Frontend Integration Guide
 
-## 개요
-Papers with Claude Code 플랫폼의 웹 터미널 백엔드와 연동하기 위한 API 명세서입니다.
+## Overview
+This is the API specification for integrating with the Papers with Claude Code platform's web terminal backend.
 
-## 베이스 URL
+## Base URL
 
-현재 데모 서버 (포트포워딩 활성):
+Current demo server (port forwarding active):
 ```
 NEXT_PUBLIC_TERMINAL_API_URL=http://<PUBLIC_IP>:31000
 ```
 
-> **참고**: 공개 배포 시 도메인/Cloudflare 터널 등으로 교체 필요.
-> HTTPS 환경이라면 WebSocket 연결도 `wss://`를 사용해야 합니다 (아래 WS 연결 예시 참고).
+> **Note**: For public deployment, needs to be replaced with a domain/Cloudflare tunnel, etc.
+> In an HTTPS environment, WebSocket connections must also use `wss://` (see WS connection examples below).
 
 ## REST API
 
-### 세션 생성
+### Create Session
 POST /api/sessions
 
 Request body:
 ```json
 {
   "claudeMdUrl": "https://raw.githubusercontent.com/.../attention-is-all-you-need/beginner/CLAUDE.md",
-  "userId": "0xABC...",       // optional: Kite AA 지갑 주소 권장
-  "resumeStage": 3            // optional: 이전 진행 스테이지부터 재개
+  "userId": "0xABC...",       // optional: Kite AA wallet address recommended
+  "resumeStage": 3            // optional: resume from previous progress stage
 }
 ```
 
@@ -40,35 +40,35 @@ Response:
 }
 ```
 
-> **courseId**: `claudeMdUrl`에서 백엔드가 자동 파생합니다. 프론트엔드가 별도로 보낼 필요 없습니다.
-> GitHub raw URL의 경우 `{owner}/{repo}/{branch}/` 이후의 경로를 하이픈으로 연결합니다.
-> 진행도 조회 등에서 이 값을 사용합니다.
+> **courseId**: Automatically derived by the backend from `claudeMdUrl`. The frontend does not need to send it separately.
+> For GitHub raw URLs, the path after `{owner}/{repo}/{branch}/` is joined with hyphens.
+> This value is used for progress queries, etc.
 
-> **podReused**: `true`이면 기존 Pod을 재사용한 것이므로 응답이 즉시 옵니다.
-> `false`(첫 접속)일 때만 Pod 생성 + CLAUDE.md fetch에 **5~15초** 소요됩니다.
+> **podReused**: If `true`, an existing Pod was reused, so the response comes immediately.
+> Only when `false` (first connection) does Pod creation + CLAUDE.md fetch take **5-15 seconds**.
 
-### 세션 조회
+### Get Session
 GET /api/sessions/:id
 
-### 세션 삭제
+### Delete Session
 DELETE /api/sessions/:id  (204 No Content)
 
-> **중요**: 세션 삭제는 세션 레코드만 제거합니다. **Pod은 유지**됩니다.
-> 같은 유저가 다시 접속하면 기존 Pod을 재사용하여 즉시 연결됩니다.
-> 페이지 언마운트 시 호출 권장 (`useEffect` cleanup).
+> **Important**: Session deletion only removes the session record. **The Pod is retained**.
+> When the same user reconnects, the existing Pod is reused for immediate connection.
+> Recommended to call on page unmount (`useEffect` cleanup).
 
-### 스테이지 정의 조회
+### Get Stage Definitions
 GET /api/sessions/:id/stages
 
-레포의 CLAUDE.md에서 JSON 블록을 파싱하여 StageConfig[] 반환.
-claudeMdUrl 없이 생성된 세션은 빈 배열 반환.
+Parses the JSON block from the repo's CLAUDE.md and returns StageConfig[].
+Sessions created without claudeMdUrl return an empty array.
 
-Response: StageConfig[] (frontend/src/types/learning.ts의 타입과 동일)
+Response: StageConfig[] (same type as frontend/src/types/learning.ts)
 
-### 진행도 조회
+### Get Progress
 GET /api/progress/:userId/:courseId
 
-**courseId**: 세션 생성 응답의 `courseId` 값을 사용합니다 (claudeMdUrl에서 자동 추출됨).
+**courseId**: Use the `courseId` value from the session creation response (automatically extracted from claudeMdUrl).
 
 ```
 GET /api/progress/0xABC.../org-paper-repo
@@ -88,79 +88,79 @@ Response:
 }
 ```
 
-> **txHash**: 블록체인 기록이 완료된 스테이지는 트랜잭션 해시가 포함됩니다.
-> `null`인 경우 블록체인 기록이 대기 중이거나 비활성화(`KITE_ENABLED=false`)된 상태입니다.
+> **txHash**: Stages with completed blockchain recording include a transaction hash.
+> If `null`, the blockchain recording is pending or disabled (`KITE_ENABLED=false`).
 
-> **unlockedStages**: Kite 결제가 완료된 스테이지 목록입니다. 새로고침 시 이 데이터로 해금 상태를 복원합니다.
+> **unlockedStages**: List of stages where Kite payment has been completed. This data is used to restore unlock status on refresh.
 
 GET /api/progress/:userId
-모든 논문의 진행도 배열 반환
+Returns an array of progress for all papers
 
-## WebSocket 프로토콜
+## WebSocket Protocol
 
-연결:
-- HTTP 환경: `ws://[BASE_URL]/ws?sessionId=[SESSION_ID]`
-- HTTPS 환경: `wss://[BASE_URL]/ws?sessionId=[SESSION_ID]`
+Connection:
+- HTTP environment: `ws://[BASE_URL]/ws?sessionId=[SESSION_ID]`
+- HTTPS environment: `wss://[BASE_URL]/ws?sessionId=[SESSION_ID]`
 
-### 클라이언트 → 서버 메시지
+### Client → Server Messages
 ```typescript
-// 터미널 입력
+// Terminal input
 { type: 'input', data: string }
 
-// 터미널 리사이즈
+// Terminal resize
 { type: 'resize', cols: number, rows: number }
 
-// 하트비트
+// Heartbeat
 { type: 'ping' }
 ```
 
-### 서버 → 클라이언트 메시지
+### Server → Client Messages
 ```typescript
-// 터미널 출력 (raw text, not JSON)
+// Terminal output (raw text, not JSON)
 "Claude Code output..."
 
-// 하트비트 응답
+// Heartbeat response
 { type: 'pong' }
 
-// 자율 학습 시작 알림 (claudeMdUrl 세션에서 자동 발생)
+// Autonomous learning start notification (automatically triggered in claudeMdUrl sessions)
 { type: 'auto_start' }
 
-// 스테이지 결제 확인 (자물쇠 해제)
+// Stage payment confirmation (lock release)
 { type: 'stage_unlocked', stageNumber: number, txHash: string }
 
-// 스테이지 완료 이벤트 (SQLite 저장 완료 즉시 전송)
+// Stage complete event (sent immediately after SQLite save)
 { type: 'stage_complete', stageNumber: number }
 
-// 코스(논문) 전체 완료 이벤트
+// Course (paper) full completion event
 { type: 'course_complete' }
 ```
 
-#### 2-Phase 이벤트 흐름
+#### 2-Phase Event Flow
 
-스테이지 진행 시 두 단계로 이벤트가 전송됩니다:
+Events are sent in two phases during stage progression:
 
-1. **`stage_unlocked`** — x402 결제 완료, 자물쇠 해제. Claude Code가 Kite Passport MCP를 통해 x402 결제를 수행하면 `[PAYMENT_CONFIRMED:N:txHash]` 마커를 감지하여 전송합니다. 프론트엔드는 이 이벤트로 스테이지를 활성화합니다. `txHash`로 Kite 블록 익스플로러 링크를 표시할 수 있습니다.
-2. **`stage_complete`** — 학습 완료. 백엔드가 `[STAGE_COMPLETE:N]` 마커를 감지하고 SQLite에 저장한 직후 발생합니다. 프론트엔드는 이 이벤트로 UI를 즉시 업데이트합니다 (던전 맵에서 스테이지 완료 표시 등).
+1. **`stage_unlocked`** — x402 payment complete, lock released. When Claude Code performs an x402 payment via Kite Passport MCP, the `[PAYMENT_CONFIRMED:N:txHash]` marker is detected and sent. The frontend activates the stage with this event. The `txHash` can be used to display a Kite block explorer link.
+2. **`stage_complete`** — Learning complete. Occurs immediately after the backend detects the `[STAGE_COMPLETE:N]` marker and saves it to SQLite. The frontend immediately updates the UI with this event (e.g., marking stage completion on the dungeon map).
 
-> **자율 학습 모드**: `claudeMdUrl`을 포함하여 세션을 생성하면, Claude가 자동으로 논문 탐구를 시작합니다.
-> 유저가 2분간 입력이 없으면 Claude가 자율적으로 다음 내용을 탐구합니다.
-> 프론트엔드에서 `auto_start` 이벤트를 수신하면 로딩 UI를 닫고 "AI가 탐구 중" 상태로 전환할 수 있습니다.
+> **Autonomous Learning Mode**: When a session is created with `claudeMdUrl`, Claude automatically starts exploring the paper.
+> If the user has no input for 2 minutes, Claude autonomously explores the next content.
+> When the frontend receives the `auto_start` event, it can close the loading UI and switch to an "AI is exploring" state.
 
-메시지 파싱 전략: JSON.parse() 시도 → 성공하면 이벤트 처리, 실패하면 터미널 출력
+Message parsing strategy: Try JSON.parse() → if successful, handle as event; if failed, treat as terminal output
 
-## xterm.js 연동 예시
+## xterm.js Integration Example
 
-> Next.js에서 사용 시 `'use client'` 디렉티브가 필요합니다.
+> When using in Next.js, the `'use client'` directive is required.
 
 ```typescript
 'use client';
 
-import 'xterm/css/xterm.css'; // xterm.js CSS 필수 import
+import 'xterm/css/xterm.css'; // xterm.js CSS required import
 
-// session.ts adapter 예시
+// session.ts adapter example
 const baseUrl = process.env.NEXT_PUBLIC_TERMINAL_API_URL || 'http://localhost:31000';
 
-// 1. 세션 생성
+// 1. Create session
 const res = await fetch(`${baseUrl}/api/sessions`, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
@@ -168,14 +168,14 @@ const res = await fetch(`${baseUrl}/api/sessions`, {
 });
 const { sessionId, podReused } = await res.json();
 
-// podReused에 따라 로딩 UX 분기 가능
-// podReused === true  → 기존 Pod 재사용, 즉시 연결
-// podReused === false → 새 Pod 생성 + CLAUDE.md fetch, 5~15초 대기
+// Loading UX can branch based on podReused
+// podReused === true  → Existing Pod reused, immediate connection
+// podReused === false → New Pod creation + CLAUDE.md fetch, 5-15 second wait
 
-// 2. 스테이지 조회
+// 2. Fetch stages
 const stages = await fetch(`${baseUrl}/api/sessions/${sessionId}/stages`).then(r => r.json());
 
-// 3. xterm.js + WebSocket 연결 (XtermTerminal 컴포넌트 예시)
+// 3. xterm.js + WebSocket connection (XtermTerminal component example)
 const { Terminal } = await import('xterm');
 const { FitAddon } = await import('@xterm/addon-fit');
 
@@ -185,88 +185,88 @@ term.loadAddon(fitAddon);
 term.open(containerElement);
 fitAddon.fit();
 
-// http → ws, https → wss 자동 변환
+// Auto-convert http → ws, https → wss
 const wsUrl = baseUrl.replace(/^https/, 'wss').replace(/^http/, 'ws');
 const ws = new WebSocket(`${wsUrl}/ws?sessionId=${sessionId}`);
 
-// 터미널 출력 + 이벤트 처리
+// Terminal output + event handling
 ws.onmessage = (event) => {
   const data = event.data;
   try {
     const msg = JSON.parse(data);
     if (msg.type === 'auto_start') {
-      // → 로딩 UI 닫기 + "AI가 논문을 탐구하고 있습니다..." 표시
-      // → Claude가 자동으로 파일을 읽고 분석하기 시작함
+      // → Close loading UI + display "AI is exploring the paper..."
+      // → Claude automatically starts reading and analyzing files
     }
     if (msg.type === 'stage_unlocked') {
-      // → 자물쇠 해제 애니메이션
-      // → msg.txHash로 Kite 블록 익스플로러 링크 표시
+      // → Lock release animation
+      // → Display Kite block explorer link with msg.txHash
       //   e.g., `https://testnet.kitescan.ai/tx/${msg.txHash}`
-      // → msg.stageNumber 스테이지 활성화
+      // → Activate stage msg.stageNumber
     }
     if (msg.type === 'stage_complete') {
-      // → 즉시 UI 업데이트 (던전 맵에서 스테이지 완료 표시)
+      // → Immediate UI update (mark stage complete on dungeon map)
     }
     if (msg.type === 'course_complete') {
-      // → 축하 화면 표시 (모든 스테이지의 txHash 수집하여 증명서 생성 가능)
+      // → Display congratulations screen (can collect txHash from all stages to generate certificate)
     }
-    // pong은 무시
+    // Ignore pong
   } catch {
-    term.write(data); // raw 터미널 출력
+    term.write(data); // raw terminal output
   }
 };
 
-// 터미널 입력 → 서버
+// Terminal input → server
 term.onData((data) => {
   ws.send(JSON.stringify({ type: 'input', data }));
 });
 
-// 리사이즈
+// Resize
 window.addEventListener('resize', () => {
   fitAddon.fit();
   ws.send(JSON.stringify({ type: 'resize', cols: term.cols, rows: term.rows }));
 });
 ```
 
-## 세션 라이프사이클
+## Session Lifecycle
 
 ```
-1. 페이지 진입 → POST /api/sessions { claudeMdUrl, userId }
-   - 첫 접속: Pod 생성 + CLAUDE.md fetch ≈ 5-15초 (podReused: false)
-   - 재접속: 기존 Pod 재사용 ≈ 1-2초 (podReused: true)
-2. sessionId, courseId 받으면 → GET /api/sessions/:id/stages
-3. GET /api/progress/:userId/:courseId → unlockedStages로 기존 결제 상태 복원
-4. WebSocket 연결
-5. stage_unlocked 이벤트 수신 → 스테이지 자물쇠 해제 (x402 결제 완료, txHash 포함)
-6. 사용자 학습 (Claude Code와 대화)
-7. stage_complete 이벤트 수신 → UI 즉시 업데이트 (학습 완료 표시)
-8. course_complete 이벤트 수신 → 클리어 처리
-10. 페이지 이탈 → DELETE /api/sessions/:id (세션 정리, Pod은 유지)
-11. 다른 논문 입장 → 1번부터 반복 (같은 Pod, 다른 claudeMdUrl + courseId)
+1. Page entry → POST /api/sessions { claudeMdUrl, userId }
+   - First connection: Pod creation + CLAUDE.md fetch ≈ 5-15 seconds (podReused: false)
+   - Reconnection: Reuse existing Pod ≈ 1-2 seconds (podReused: true)
+2. After receiving sessionId, courseId → GET /api/sessions/:id/stages
+3. GET /api/progress/:userId/:courseId → Restore previous payment status with unlockedStages
+4. WebSocket connection
+5. Receive stage_unlocked event → Stage lock release (x402 payment complete, includes txHash)
+6. User learning (conversation with Claude Code)
+7. Receive stage_complete event → Immediate UI update (display learning complete)
+8. Receive course_complete event → Clear handling
+10. Page exit → DELETE /api/sessions/:id (session cleanup, Pod retained)
+11. Enter another paper → Repeat from step 1 (same Pod, different claudeMdUrl + courseId)
 ```
 
-## 진행도 저장
+## Progress Storage
 
-백엔드가 Claude 출력에서 마커를 감지하면 자동으로 다음을 수행합니다:
+When the backend detects markers in Claude's output, it automatically performs the following:
 
-- `[PAYMENT_CONFIRMED:N:txHash]` → SQLite `stage_payments`에 결제 기록 → `stage_unlocked` 이벤트 전송
-- `[STAGE_COMPLETE:N]` → SQLite `stage_completions`에 학습 완료 기록 → `stage_complete` 이벤트 전송
-- `[DUNGEON_COMPLETE]` → SQLite `course_completions`에 코스 완료 기록 → `course_complete` 이벤트 전송
+- `[PAYMENT_CONFIRMED:N:txHash]` → Record payment in SQLite `stage_payments` → Send `stage_unlocked` event
+- `[STAGE_COMPLETE:N]` → Record learning completion in SQLite `stage_completions` → Send `stage_complete` event
+- `[DUNGEON_COMPLETE]` → Record course completion in SQLite `course_completions` → Send `course_complete` event
 
-**프론트엔드는 결제/블록체인을 직접 호출하지 않습니다.** Claude Code가 Kite Passport MCP를 통해 x402 결제를 자율 수행하고, 백엔드가 마커를 감지하여 상태를 관리합니다.
+**The frontend does not directly call payment/blockchain.** Claude Code autonomously performs x402 payments via Kite Passport MCP, and the backend detects markers to manage state.
 
-권장 userId: Kite AA 지갑 주소 (0xABC...)
-- userId로 지갑 주소를 사용하면 결제 기록과 진행도가 동일한 키로 조회 가능
+Recommended userId: Kite AA wallet address (0xABC...)
+- Using a wallet address as userId allows querying payment records and progress with the same key
 
-이전 진행 복원:
+Restoring previous progress:
 ```typescript
-// 진행도 API로 이전 상태 로드 후 새 세션 생성 시 resumeStage 전달
+// Load previous state via progress API, then pass resumeStage when creating new session
 const progress = await fetch(`${baseUrl}/api/progress/${userId}/${courseId}`).then(r => r.json());
 const lastStage = progress.completedStages.at(-1)?.stageNumber ?? 0;
 const { sessionId, courseId } = await createSession({ claudeMdUrl, userId, resumeStage: lastStage });
 ```
 
-## 진행도 API 상세
+## Progress API Details
 
 ```
 GET /api/progress/:userId/:courseId
@@ -287,52 +287,52 @@ Response:
 }
 ```
 
-- `completedStages`: 학습이 완료된 스테이지 목록. `txHash`는 x402 결제 시 facilitator가 반환한 온체인 트랜잭션.
-- `unlockedStages`: x402 결제로 해금된 스테이지 목록. 새로고침 시 자물쇠 해제 상태 복원에 사용.
-- 블록 익스플로러: `https://testnet.kitescan.ai/tx/${txHash}`
+- `completedStages`: List of stages where learning is complete. `txHash` is the on-chain transaction returned by the facilitator during x402 payment.
+- `unlockedStages`: List of stages unlocked via x402 payment. Used to restore lock release status on refresh.
+- Block explorer: `https://testnet.kitescan.ai/tx/${txHash}`
 
-## x402 결제 흐름
+## x402 Payment Flow
 
-Claude Code가 Kite Passport MCP를 통해 x402 프로토콜로 자율 결제를 수행합니다. **프론트엔드는 결제를 직접 처리하지 않습니다.**
+Claude Code performs autonomous payments via the x402 protocol through Kite Passport MCP. **The frontend does not handle payments directly.**
 
 ```
-Claude Code (Pod 내부)
-  → curl로 백엔드 /api/x402/unlock-stage 호출
-  → HTTP 402 응답 수신 (결제 요구사항 포함)
+Claude Code (inside Pod)
+  → Call backend /api/x402/unlock-stage via curl
+  → Receive HTTP 402 response (including payment requirements)
   → Kite Passport MCP: get_payer_addr → approve_payment
-  → X-PAYMENT 헤더와 함께 재요청
-  → 백엔드: facilitator verify/settle → 온체인 정산
-  → 백엔드: stage_payments DB에 기록 → txHash 반환
-  → Claude Code: stdout에 [PAYMENT_CONFIRMED:N:txHash] 마커 출력
-  → terminal-bridge: 마커 감지 → stage_unlocked 이벤트 전송
-  → 프론트엔드: UI 업데이트 (자물쇠 해제)
+  → Re-request with X-PAYMENT header
+  → Backend: facilitator verify/settle → on-chain settlement
+  → Backend: Record in stage_payments DB → return txHash
+  → Claude Code: Output [PAYMENT_CONFIRMED:N:txHash] marker to stdout
+  → terminal-bridge: Detect marker → send stage_unlocked event
+  → Frontend: UI update (lock release)
 ```
 
-- 결제 수단: Kite 테스트넷 Test USDT (AA 지갑, Privy 기반)
-- 프론트엔드는 `stage_unlocked` 이벤트를 수신하여 UI만 업데이트합니다.
-- 새로고침 시 `GET /api/progress/:userId/:courseId`의 `unlockedStages`로 해금 상태를 복원합니다.
-- 결제 txHash는 `https://testnet.kitescan.ai/tx/${txHash}`에서 검증 가능합니다.
+- Payment method: Kite testnet Test USDT (AA wallet, Privy-based)
+- The frontend only updates the UI upon receiving `stage_unlocked` events.
+- On refresh, unlock status is restored using `unlockedStages` from `GET /api/progress/:userId/:courseId`.
+- Payment txHash can be verified at `https://testnet.kitescan.ai/tx/${txHash}`.
 
-## 백엔드 환경변수 참고
+## Backend Environment Variables Reference
 
-프론트엔드에서 직접 사용하지 않지만, 배포/디버깅 시 참고할 백엔드 환경변수:
+Not used directly by the frontend, but useful backend environment variables for deployment/debugging:
 
-| 변수 | 기본값 | 설명 |
-|------|--------|------|
-| `PORT` | `3000` | 백엔드 서비스 포트 |
-| `SESSION_TIMEOUT_SECONDS` | `7200` | 세션 타임아웃 (초) |
-| `MAX_SESSIONS` | `4` | 동시 세션 최대 수 |
-| `DB_PATH` | `/data/progress.db` | SQLite 진행도 DB 경로 |
-| `SANDBOX_IMAGE` | `claudecode-sandbox:latest` | 샌드박스 컨테이너 이미지 |
-| `SANDBOX_NAMESPACE` | `claudecode-terminal` | K8s 네임스페이스 |
-| `POD_CPU_REQUEST` / `POD_CPU_LIMIT` | `250m` / `2` | Pod CPU 리소스 |
-| `POD_MEMORY_REQUEST` / `POD_MEMORY_LIMIT` | `512Mi` / `4Gi` | Pod 메모리 리소스 |
-| `X402_MERCHANT_WALLET` | - | 결제 수신 지갑 주소 (미설정 시 x402 비활성) |
-| `X402_STAGE_PRICE` | `100000` | 스테이지당 가격 (Test USDT, 6 decimals) |
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PORT` | `3000` | Backend service port |
+| `SESSION_TIMEOUT_SECONDS` | `7200` | Session timeout (seconds) |
+| `MAX_SESSIONS` | `4` | Maximum concurrent sessions |
+| `DB_PATH` | `/data/progress.db` | SQLite progress DB path |
+| `SANDBOX_IMAGE` | `claudecode-sandbox:latest` | Sandbox container image |
+| `SANDBOX_NAMESPACE` | `claudecode-terminal` | K8s namespace |
+| `POD_CPU_REQUEST` / `POD_CPU_LIMIT` | `250m` / `2` | Pod CPU resources |
+| `POD_MEMORY_REQUEST` / `POD_MEMORY_LIMIT` | `512Mi` / `4Gi` | Pod memory resources |
+| `X402_MERCHANT_WALLET` | - | Payment receiving wallet address (x402 disabled if unset) |
+| `X402_STAGE_PRICE` | `100000` | Price per stage (Test USDT, 6 decimals) |
 | `X402_FACILITATOR_URL` | `https://facilitator.pieverse.io` | x402 facilitator URL |
-| `KITE_MERCHANT_WALLET` | - | Pod 환경변수: Claude Code가 결제할 머천트 주소 |
+| `KITE_MERCHANT_WALLET` | - | Pod env var: merchant address for Claude Code payments |
 
-## 필요한 npm 패키지 (프론트엔드)
+## Required npm Packages (Frontend)
 ```bash
 npm install xterm @xterm/addon-fit @xterm/addon-web-links
 ```

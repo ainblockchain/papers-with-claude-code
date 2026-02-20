@@ -1,85 +1,85 @@
 # Universal Repository Analyzer
 
-범용 Git 레포지토리 분석기. 모든 종류의 레포지토리를 분석하여 코드 구조, 커밋 히스토리, 문서 등을 추출합니다.
+A universal Git repository analyzer. Analyzes all types of repositories to extract code structure, commit history, documentation, and more.
 
-## 특징
+## Features
 
-- 🔍 **자동 타입 감지**: HuggingFace, Python, JavaScript 등 자동 인식
-- 📊 **포괄적 분석**: 코드 컴포넌트, 커밋 히스토리, 문서, 의존성
-- 🚀 **확장 가능**: 새로운 레포지토리 타입 추가 가능
-- 💾 **JSON 출력**: 구조화된 분석 결과
+- **Automatic Type Detection**: Automatically recognizes HuggingFace, Python, JavaScript, and more
+- **Comprehensive Analysis**: Code components, commit history, documentation, dependencies
+- **Extensible**: New repository types can be added
+- **JSON Output**: Structured analysis results
 
-## 지원하는 레포지토리 타입
+## Supported Repository Types
 
-| 타입 | 설명 | 자동 감지 |
-|------|------|-----------|
+| Type | Description | Auto-Detection |
+|------|-------------|----------------|
 | `huggingface` | HuggingFace Transformers | ✅ |
-| `python_lib` | 일반 Python 라이브러리 | 🚧 (구현 예정) |
-| `javascript` | JavaScript/TypeScript 프로젝트 | 🚧 (구현 예정) |
-| `generic` | 기타 모든 레포지토리 | ✅ (fallback) |
+| `python_lib` | General Python libraries | (Coming soon) |
+| `javascript` | JavaScript/TypeScript projects | (Coming soon) |
+| `generic` | All other repositories | ✅ (fallback) |
 
-## 사용 방법
+## Usage
 
-### 기본 사용법
+### Basic Usage
 
 ```bash
-# 현재 레포지토리 분석
+# Analyze the current repository
 python analyze_repo.py .
 
-# 특정 레포지토리 분석
+# Analyze a specific repository
 python analyze_repo.py /path/to/repository
 
-# GitHub URL로 분석
+# Analyze via GitHub URL
 python analyze_repo.py https://github.com/user/repo
 ```
 
-### 옵션
+### Options
 
 ```bash
 python analyze_repo.py <repo_path> [OPTIONS]
 ```
 
-| 옵션 | 설명 | 기본값 |
-|------|------|--------|
-| `--type`, `-t` | 레포지토리 타입 명시 | 자동 감지 |
-| `--output-dir`, `-o` | 결과 저장 경로 | `analyzer/results` |
-| `--max-commits` | 스캔할 최대 커밋 수 | 무제한 |
-| `--fast-mode` | 빠른 테스트 모드 (제한된 커밋 스캔) | - |
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--type`, `-t` | Specify repository type | Auto-detection |
+| `--output-dir`, `-o` | Output directory path | `analyzer/results` |
+| `--max-commits` | Maximum number of commits to scan | Unlimited |
+| `--fast-mode` | Fast test mode (limited commit scanning) | - |
 
-### 사용 예시
+### Usage Examples
 
-#### 1. 기본 분석 (무제한 커밋)
+#### 1. Basic Analysis (Unlimited Commits)
 ```bash
 python analyze_repo.py https://github.com/huggingface/transformers
 ```
 
-**결과**: `analyzer/results/transformers_YYYYMMDD_HHMMSS.json`
+**Result**: `analyzer/results/transformers_YYYYMMDD_HHMMSS.json`
 
-#### 2. 빠른 테스트 모드
+#### 2. Fast Test Mode
 ```bash
 python analyze_repo.py https://github.com/huggingface/transformers --fast-mode
 ```
 
-커밋 스캔 제한:
-- HuggingFace: 5,000개
-- Generic: 1,000개
+Commit scan limits:
+- HuggingFace: 5,000
+- Generic: 1,000
 
-#### 3. 타입 명시
+#### 3. Specifying Type
 ```bash
 python analyze_repo.py /path/to/repo --type huggingface
 ```
 
-#### 4. 커스텀 커밋 수
+#### 4. Custom Commit Count
 ```bash
 python analyze_repo.py /path/to/repo --max-commits 500
 ```
 
-#### 5. 커스텀 출력 경로
+#### 5. Custom Output Path
 ```bash
 python analyze_repo.py /path/to/repo --output-dir ./my_results
 ```
 
-#### 6. 모든 옵션 조합
+#### 6. Combining All Options
 ```bash
 python analyze_repo.py https://github.com/django/django \
   --type python_lib \
@@ -87,9 +87,9 @@ python analyze_repo.py https://github.com/django/django \
   --max-commits 2000
 ```
 
-## 출력 형식
+## Output Format
 
-분석 결과는 JSON 파일로 저장됩니다:
+Analysis results are saved as a JSON file:
 
 ```json
 {
@@ -119,42 +119,42 @@ python analyze_repo.py https://github.com/django/django \
 }
 ```
 
-### 주요 필드
+### Key Fields
 
-- **repo_type**: 감지된 레포지토리 타입
-- **components**: 코드 컴포넌트 (클래스, 함수, 모듈)
-- **commits**: 중요 커밋 히스토리
-- **documentation**: 문서 요약
-- **structure**: 디렉토리 구조
-- **dependencies**: 의존성 정보
-- **extensions**: 타입별 확장 데이터 (예: HF의 models)
+- **repo_type**: Detected repository type
+- **components**: Code components (classes, functions, modules)
+- **commits**: Important commit history
+- **documentation**: Documentation summaries
+- **structure**: Directory structure
+- **dependencies**: Dependency information
+- **extensions**: Type-specific extension data (e.g., HF models)
 
-## 성능 고려사항
+## Performance Considerations
 
-### 커밋 스캔 수
+### Commit Scan Count
 
-| 모드 | 커밋 수 | 속도 | 용도 |
-|------|---------|------|------|
-| 기본 | 무제한 | 느림 | 완전한 분석 |
-| `--fast-mode` | 제한 (5000/1000) | 빠름 | 개발/테스트 |
-| `--max-commits N` | 지정 | 가변 | 커스텀 |
+| Mode | Commits | Speed | Use Case |
+|------|---------|-------|----------|
+| Default | Unlimited | Slow | Full analysis |
+| `--fast-mode` | Limited (5000/1000) | Fast | Development/Testing |
+| `--max-commits N` | Specified | Variable | Custom |
 
-**참고**: LLM에는 항상 최대 40개 커밋만 전달되므로, 무제한 스캔해도 inference 비용은 동일합니다.
+**Note**: Only a maximum of 40 commits are ever passed to the LLM, so even with unlimited scanning, inference cost remains the same.
 
-### 메모리 사용
+### Memory Usage
 
-- 작은 레포 (< 1000 commits): 문제 없음
-- 중간 레포 (< 10000 commits): 괜찮음
-- 대형 레포 (> 50000 commits): `--fast-mode` 권장
+- Small repos (< 1000 commits): No issues
+- Medium repos (< 10000 commits): Fine
+- Large repos (> 50000 commits): `--fast-mode` recommended
 
-## 프로그래매틱 사용
+## Programmatic Usage
 
-Python 코드에서 직접 사용:
+Use directly from Python code:
 
 ```python
 from analyzer import RepoAnalyzer
 
-# 자동 감지
+# Auto-detection
 analyzer = RepoAnalyzer("/path/to/repo")
 analysis = analyzer.analyze()
 
@@ -162,7 +162,7 @@ print(f"Type: {analyzer.repo_type}")
 print(f"Components: {len(analysis.components)}")
 print(f"Commits: {len(analysis.commits)}")
 
-# 타입 명시
+# Specifying type
 analyzer = RepoAnalyzer(
     repo_path="/path/to/repo",
     repo_type="huggingface",
@@ -170,17 +170,17 @@ analyzer = RepoAnalyzer(
 )
 analysis = analyzer.analyze()
 
-# 결과 저장
+# Save results
 import json
 with open("result.json", "w") as f:
     json.dump(analysis.to_dict(), f, indent=2)
 ```
 
-## 새로운 Analyzer 추가
+## Adding a New Analyzer
 
-새로운 레포지토리 타입을 지원하려면:
+To support a new repository type:
 
-### 1. Analyzer 클래스 생성
+### 1. Create an Analyzer Class
 
 ```python
 # analyzer/analyzers/my_analyzer.py
@@ -197,18 +197,18 @@ class MyAnalyzer(BaseRepoAnalyzer):
 
     @classmethod
     def can_handle(cls, repo_path: Path) -> tuple[bool, float]:
-        # 감지 로직 (confidence: 0.0-1.0)
+        # Detection logic (confidence: 0.0-1.0)
         confidence = 0.0
         if (repo_path / "my_indicator_file").exists():
             confidence += 0.8
         return (confidence > 0.5, confidence)
 
     def analyze(self) -> UniversalRepoAnalysis:
-        # 분석 로직
+        # Analysis logic
         return UniversalRepoAnalysis(...)
 ```
 
-### 2. RepoType에 추가
+### 2. Add to RepoType
 
 ```python
 # analyzer/models.py
@@ -218,7 +218,7 @@ class RepoType(str, Enum):
     MY_TYPE = "my_type"
 ```
 
-### 3. Import 추가
+### 3. Add Import
 
 ```python
 # analyzer/analyzers/__init__.py
@@ -226,43 +226,43 @@ class RepoType(str, Enum):
 from analyzer.analyzers import my_analyzer
 ```
 
-## 아키텍처
+## Architecture
 
 ```
 analyzer/
-├── __init__.py              # 공개 API
-├── analyzer.py              # RepoAnalyzer (메인 인터페이스)
-├── base.py                  # BaseRepoAnalyzer (추상 클래스)
-├── detector.py              # RepoTypeDetector (타입 감지)
-├── registry.py              # AnalyzerRegistry (등록 시스템)
-├── models.py                # 데이터 모델
-├── analyzers/               # 타입별 analyzer
+├── __init__.py              # Public API
+├── analyzer.py              # RepoAnalyzer (main interface)
+├── base.py                  # BaseRepoAnalyzer (abstract class)
+├── detector.py              # RepoTypeDetector (type detection)
+├── registry.py              # AnalyzerRegistry (registration system)
+├── models.py                # Data models
+├── analyzers/               # Type-specific analyzers
 │   ├── huggingface.py
 │   ├── generic.py
 │   └── ...
-└── results/                 # 분석 결과 (JSON)
+└── results/                 # Analysis results (JSON)
 ```
 
-## 문제 해결
+## Troubleshooting
 
-### Git 레포지토리가 아닙니다
+### Not a Git Repository
 ```
 ValueError: /path is not a valid git repository
 ```
-→ `.git` 폴더가 있는 레포지토리 루트를 지정하세요.
+-> Specify the repository root that contains a `.git` folder.
 
-### 메모리 부족
+### Out of Memory
 ```
 MemoryError: ...
 ```
-→ `--fast-mode` 또는 `--max-commits 1000` 사용
+-> Use `--fast-mode` or `--max-commits 1000`
 
-### 타입 감지 실패
+### Type Detection Failed
 ```
 Detected type: generic
 ```
-→ `--type` 옵션으로 명시적 지정
+-> Explicitly specify the type with the `--type` option
 
-## 라이선스
+## License
 
-이 프로젝트의 라이선스는 상위 프로젝트를 따릅니다.
+This project follows the license of the parent project.

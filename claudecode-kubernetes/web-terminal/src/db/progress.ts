@@ -1,4 +1,4 @@
-// SQLite 기반 진행도 저장소 — 해커톤 데모용 폴백 DB (최종 목표: 블록체인)
+// SQLite-based progress store — fallback DB for hackathon demo (ultimate goal: blockchain)
 
 import Database from 'better-sqlite3';
 
@@ -40,11 +40,11 @@ export class ProgressStore {
         UNIQUE(userId, courseId, stageNumber)
       );
     `);
-    // 기존 DB에 txHash 컬럼이 없을 경우를 위한 마이그레이션
+    // Migration for cases where the txHash column does not exist in the existing DB
     try {
       this.db.exec(`ALTER TABLE stage_completions ADD COLUMN txHash TEXT`);
     } catch {
-      // 이미 컬럼이 존재하면 무시
+      // Ignore if the column already exists
     }
   }
 
@@ -77,14 +77,14 @@ export class ProgressStore {
     };
   }
 
-  /** 블록체인 트랜잭션 해시를 스테이지 완료 기록에 연결 */
+  /** Link a blockchain transaction hash to a stage completion record */
   updateTxHash(userId: string, courseId: string, stageNumber: number, txHash: string): void {
     this.db.prepare(`
       UPDATE stage_completions SET txHash = ? WHERE userId = ? AND courseId = ? AND stageNumber = ?
     `).run(txHash, userId, courseId, stageNumber);
   }
 
-  /** 스테이지 결제 기록 저장 */
+  /** Save stage payment record */
   saveStagePayment(userId: string, courseId: string, stageNumber: number, txHash: string, sessionId: string): void {
     this.db.prepare(`
       INSERT OR IGNORE INTO stage_payments (userId, courseId, stageNumber, txHash, paidAt, sessionId)
@@ -92,7 +92,7 @@ export class ProgressStore {
     `).run(userId, courseId, stageNumber, txHash, new Date().toISOString(), sessionId);
   }
 
-  /** 스테이지 결제 여부 확인 */
+  /** Check whether a stage has been paid for */
   isStageUnlocked(userId: string, courseId: string, stageNumber: number): boolean {
     const row = this.db.prepare(
       'SELECT id FROM stage_payments WHERE userId = ? AND courseId = ? AND stageNumber = ?'
@@ -100,7 +100,7 @@ export class ProgressStore {
     return !!row;
   }
 
-  /** 유저의 논문별 결제된 스테이지 목록 */
+  /** List of paid stages per paper for a user */
   getPayments(userId: string, courseId: string): { stageNumber: number; txHash: string; paidAt: string }[] {
     return this.db.prepare(
       'SELECT stageNumber, txHash, paidAt FROM stage_payments WHERE userId = ? AND courseId = ? ORDER BY stageNumber'

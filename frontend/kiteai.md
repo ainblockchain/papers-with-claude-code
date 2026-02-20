@@ -1,141 +1,141 @@
-# Kite AI Bounty — 개발 요구사항 명세서
+# Kite AI Bounty — Development Requirements Specification
 
-> **프로젝트:** Papers LMS × Kite AI Integration
-> **바운티:** "Build an agent-native application on Kite AI using x402 payments and verifiable agent identity"
-> **상금:** $10,000 (1위 $5,000 / 2위 $1,500×2 / 3위 $1,000×2)
-> **작성일:** 2026-02-19
-> **문서 버전:** 1.0
+> **Project:** Papers LMS x Kite AI Integration
+> **Bounty:** "Build an agent-native application on Kite AI using x402 payments and verifiable agent identity"
+> **Prize:** $10,000 (1st place $5,000 / 2nd place $1,500x2 / 3rd place $1,000x2)
+> **Date Written:** 2026-02-19
+> **Document Version:** 1.0
 
 ---
 
-## 목차
+## Table of Contents
 
-1. [프로젝트 개요](#1-프로젝트-개요)
-2. [바운티 요구사항 분석](#2-바운티-요구사항-분석)
-3. [기존 코드베이스 현황](#3-기존-코드베이스-현황)
-4. [Kite AI 체인 기술 사양](#4-kite-ai-체인-기술-사양)
-5. [x402 결제 프로토콜 명세](#5-x402-결제-프로토콜-명세)
-6. [에이전트 아이덴티티 시스템](#6-에이전트-아이덴티티-시스템)
+1. [Project Overview](#1-project-overview)
+2. [Bounty Requirements Analysis](#2-bounty-requirements-analysis)
+3. [Existing Codebase Status](#3-existing-codebase-status)
+4. [Kite AI Chain Technical Specifications](#4-kite-ai-chain-technical-specifications)
+5. [x402 Payment Protocol Specification](#5-x402-payment-protocol-specification)
+6. [Agent Identity System](#6-agent-identity-system)
 7. [Account Abstraction (ERC-4337)](#7-account-abstraction-erc-4337)
-8. [시스템 아키텍처](#8-시스템-아키텍처)
-9. [Phase 1: 스마트 컨트랙트 개발](#9-phase-1-스마트-컨트랙트-개발)
-10. [Phase 2: 에이전트 월렛 & 아이덴티티](#10-phase-2-에이전트-월렛--아이덴티티)
-11. [Phase 3: x402 API 라우트](#11-phase-3-x402-api-라우트)
-12. [Phase 4: 어댑터 교체 (Mock → Real)](#12-phase-4-어댑터-교체-mock--real)
-13. [Phase 5: 에이전트 대시보드](#13-phase-5-에이전트-대시보드)
-14. [Phase 6: Claude 터미널 자율 결제](#14-phase-6-claude-터미널-자율-결제)
-15. [Phase 7: 배포 & 데모](#15-phase-7-배포--데모)
-16. [환경 변수 & 설정](#16-환경-변수--설정)
-17. [심사 기준 대응 전략](#17-심사-기준-대응-전략)
-18. [일정 & 마일스톤](#18-일정--마일스톤)
-19. [참고 자료](#19-참고-자료)
+8. [System Architecture](#8-system-architecture)
+9. [Phase 1: Smart Contract Development](#9-phase-1-smart-contract-development)
+10. [Phase 2: Agent Wallet & Identity](#10-phase-2-agent-wallet--identity)
+11. [Phase 3: x402 API Routes](#11-phase-3-x402-api-routes)
+12. [Phase 4: Adapter Replacement (Mock to Real)](#12-phase-4-adapter-replacement-mock-to-real)
+13. [Phase 5: Agent Dashboard](#13-phase-5-agent-dashboard)
+14. [Phase 6: Claude Terminal Autonomous Payment](#14-phase-6-claude-terminal-autonomous-payment)
+15. [Phase 7: Deployment & Demo](#15-phase-7-deployment--demo)
+16. [Environment Variables & Configuration](#16-environment-variables--configuration)
+17. [Evaluation Criteria Response Strategy](#17-evaluation-criteria-response-strategy)
+18. [Schedule & Milestones](#18-schedule--milestones)
+19. [References](#19-references)
 
 ---
 
-## 1. 프로젝트 개요
+## 1. Project Overview
 
-### 1.1 컨셉: "AI Tutor Agent with Economic Autonomy"
+### 1.1 Concept: "AI Tutor Agent with Economic Autonomy"
 
-Papers LMS는 논문 기반의 게임화된 학습 플랫폼이다. 학습자가 마을(Village)을 탐험하며 논문별 코스(Course)에 진입하고, 스테이지를 클리어하면서 학습을 진행한다. 각 스테이지의 잠금 해제에는 마이크로페이먼트가 필요하다.
+Papers LMS is a gamified learning platform based on academic papers. Learners explore a village, enter courses for each paper, and progress through learning by clearing stages. Unlocking each stage requires a micropayment.
 
-**핵심 차별점:** Claude AI 튜터 에이전트가 학습자를 대신하여 **자율적으로** 코스 스테이지 잠금 해제 비용을 결제하고, 학습 진행 상황을 **온체인에 기록**한다. 사용자의 수동 지갑 조작이 필요 없으며, Session Key 기반의 위임된 권한으로 작동한다.
+**Key Differentiator:** The Claude AI tutor agent **autonomously** pays the stage unlock fees on behalf of the learner and **records learning progress on-chain**. No manual wallet interaction is required from the user; it operates via delegated authority based on Session Keys.
 
-### 1.2 핵심 플로우
+### 1.2 Core Flow
 
 ```
-학습자 퀴즈 통과 → Claude 에이전트 결제 트리거 →
-HTTP 402 Payment Required → 에이전트 x402 서명 →
-Kite Chain 온체인 결제 → 스테이지 잠금 해제 →
-LearningLedger 컨트랙트에 진행 기록 → KiteScan 확인 가능
+Learner passes quiz -> Claude agent triggers payment ->
+HTTP 402 Payment Required -> Agent x402 signature ->
+Kite Chain on-chain payment -> Stage unlocked ->
+Progress recorded in LearningLedger contract -> Verifiable on KiteScan
 ```
 
-### 1.3 기술 스택
+### 1.3 Tech Stack
 
-| 레이어 | 기술 |
-|--------|------|
+| Layer | Technology |
+|-------|------------|
 | Frontend | Next.js 16.1.6, TypeScript, Tailwind CSS v4, Zustand 5 |
-| Rendering | HTML5 Canvas 2D (타일 기반) |
+| Rendering | HTML5 Canvas 2D (tile-based) |
 | UI Components | shadcn/ui, Radix UI, Lucide Icons |
 | Code Editor | Monaco Editor |
 | Blockchain | Kite AI Testnet (Chain ID: 2368), Solidity, Hardhat |
 | Payment | x402 Protocol (Coinbase SDK) |
 | Identity | BIP-32 DID, KitePass, ERC-4337 AA Wallet |
-| AI | Claude API (기존 claude-terminal 어댑터) |
+| AI | Claude API (existing claude-terminal adapter) |
 
 ---
 
-## 2. 바운티 요구사항 분석
+## 2. Bounty Requirements Analysis
 
-### 2.1 필수 요구사항 (Must Have)
+### 2.1 Must-Have Requirements
 
-| # | 요구사항 | 구현 방법 |
-|---|----------|-----------|
-| R1 | Kite AI Testnet/Mainnet에서 빌드 | LearningLedger.sol을 Chain ID 2368에 배포 |
-| R2 | x402 결제 플로우 사용 | `@x402/express` 미들웨어로 API 라우트 게이팅 |
-| R3 | 검증 가능한 에이전트 아이덴티티 | BIP-32 DID + KitePass + Standing Intent |
-| R4 | 자율 실행 (수동 지갑 클릭 없음) | Session Key + AA Wallet으로 자동 결제 |
-| R5 | 코어 컴포넌트 오픈소스 (MIT/Apache) | MIT 라이선스로 GitHub 공개 |
+| # | Requirement | Implementation |
+|---|-------------|----------------|
+| R1 | Build on Kite AI Testnet/Mainnet | Deploy LearningLedger.sol to Chain ID 2368 |
+| R2 | Use x402 payment flow | API route gating with `@x402/express` middleware |
+| R3 | Verifiable agent identity | BIP-32 DID + KitePass + Standing Intent |
+| R4 | Autonomous execution (no manual wallet clicks) | Automatic payment with Session Key + AA Wallet |
+| R5 | Open-source core components (MIT/Apache) | Publish on GitHub with MIT license |
 
-### 2.2 성공 프로젝트 기준
+### 2.2 Success Criteria
 
-| # | 기준 | 구현 |
-|---|------|------|
-| S1 | AI 에이전트가 스스로 인증 | DID 기반 에이전트 아이덴티티 + KitePass |
-| S2 | 유료 액션 실행 | 스테이지 잠금 해제 = 온체인 마이크로페이먼트 |
-| S3 | 온체인 정산/증명 | LearningLedger에 enrollment + stage completion 기록 |
-| S4 | 프로덕션 라이브 데모 | Vercel 배포, 공개 URL |
+| # | Criterion | Implementation |
+|---|-----------|----------------|
+| S1 | AI agent self-authenticates | DID-based agent identity + KitePass |
+| S2 | Execute paid actions | Stage unlock = on-chain micropayment |
+| S3 | On-chain settlement/proof | Enrollment + stage completion recorded in LearningLedger |
+| S4 | Production live demo | Vercel deployment, public URL |
 
-### 2.3 보너스 포인트
+### 2.3 Bonus Points
 
-| # | 항목 | 구현 |
-|---|------|------|
-| B1 | 멀티 에이전트 협력 | Claude 튜터 + 퀴즈 검증 에이전트 분리 |
-| B2 | Gasless 트랜잭션 | AA SDK Paymaster로 가스비 스폰서링 |
-| B3 | 스코프 기반 접근 제어 | Standing Intent (일일 한도, 화이트리스트 컨트랙트) |
+| # | Item | Implementation |
+|---|------|----------------|
+| B1 | Multi-agent cooperation | Separate Claude tutor + quiz verification agent |
+| B2 | Gasless transactions | Gas fee sponsoring via AA SDK Paymaster |
+| B3 | Scope-based access control | Standing Intent (daily limits, whitelisted contracts) |
 
-### 2.4 심사 기준 (가중치)
+### 2.4 Evaluation Criteria (Weights)
 
-1. **Agent Autonomy** — 인간 개입 최소화
-2. **Correct x402 Usage** — 결제가 액션과 명확히 매핑, 잔액 부족 시 우아한 실패 처리
-3. **Security & Safety** — 키 관리, 스코프, 한도
-4. **Developer Experience** — 문서, 사용성, 어댑터 패턴
-5. **Real-world Applicability** — 교육 플랫폼이라는 실제 유스케이스
+1. **Agent Autonomy** — Minimize human involvement
+2. **Correct x402 Usage** — Clear mapping between payments and actions, graceful failure handling on insufficient balance
+3. **Security & Safety** — Key management, scopes, limits
+4. **Developer Experience** — Documentation, usability, adapter pattern
+5. **Real-world Applicability** — An educational platform as a real-world use case
 
 ---
 
-## 3. 기존 코드베이스 현황
+## 3. Existing Codebase Status
 
-### 3.1 디렉토리 구조
+### 3.1 Directory Structure
 
 ```
 frontend/
 ├── src/
 │   ├── app/                    # Next.js App Router
 │   │   ├── layout.tsx
-│   │   ├── page.tsx            # 홈 / Explore
-│   │   ├── village/page.tsx    # 마을 맵
-│   │   ├── learn/[paperId]/page.tsx  # 코스 학습
-│   │   └── api/                # API Routes (추가 예정)
+│   │   ├── page.tsx            # Home / Explore
+│   │   ├── village/page.tsx    # Village map
+│   │   ├── learn/[paperId]/page.tsx  # Course learning
+│   │   └── api/                # API Routes (to be added)
 │   ├── components/
 │   │   ├── village/
-│   │   │   ├── VillageCanvas.tsx    # 마을 타일맵 렌더링
-│   │   │   └── VillageSidebar.tsx   # 친구 목록, 리더보드
+│   │   │   ├── VillageCanvas.tsx    # Village tilemap rendering
+│   │   │   └── VillageSidebar.tsx   # Friends list, leaderboard
 │   │   ├── learn/
-│   │   │   ├── CourseCanvas.tsx      # 코스 타일맵 렌더링
-│   │   │   ├── PaymentModal.tsx      # x402 결제 모달
-│   │   │   ├── QuizPanel.tsx         # 퀴즈 패널
-│   │   │   └── ClaudeTerminal.tsx    # AI 터미널
-│   │   └── ui/                 # shadcn/ui 컴포넌트
+│   │   │   ├── CourseCanvas.tsx      # Course tilemap rendering
+│   │   │   ├── PaymentModal.tsx      # x402 payment modal
+│   │   │   ├── QuizPanel.tsx         # Quiz panel
+│   │   │   └── ClaudeTerminal.tsx    # AI terminal
+│   │   └── ui/                 # shadcn/ui components
 │   ├── lib/
-│   │   └── adapters/           # 어댑터 패턴 (Mock 구현)
-│   │       ├── x402.ts         # ⭐ 결제 어댑터 (교체 대상)
-│   │       ├── papers.ts       # 논문 데이터
-│   │       ├── progress.ts     # 학습 진행도
-│   │       ├── claude-terminal.ts  # Claude AI 채팅
-│   │       ├── friends.ts      # 친구 프레즌스
-│   │       └── gemini-map.ts   # 맵 생성
-│   ├── stores/                 # Zustand 상태관리
-│   │   ├── useLearningStore.ts # ⭐ 결제/잠금 상태 포함
+│   │   └── adapters/           # Adapter pattern (Mock implementation)
+│   │       ├── x402.ts         # Payment adapter (replacement target)
+│   │       ├── papers.ts       # Paper data
+│   │       ├── progress.ts     # Learning progress
+│   │       ├── claude-terminal.ts  # Claude AI chat
+│   │       ├── friends.ts      # Friend presence
+│   │       └── gemini-map.ts   # Map generation
+│   ├── stores/                 # Zustand state management
+│   │   ├── useLearningStore.ts # Includes payment/lock state
 │   │   ├── useVillageStore.ts
 │   │   ├── useExploreStore.ts
 │   │   ├── useAuthStore.ts
@@ -153,11 +153,11 @@ frontend/
 └── tsconfig.json
 ```
 
-### 3.2 현재 어댑터 패턴
+### 3.2 Current Adapter Pattern
 
-모든 외부 의존성은 어댑터 패턴으로 추상화되어 있다. Mock 구현과 Real 구현을 환경 변수로 전환할 수 있다.
+All external dependencies are abstracted through the adapter pattern. Mock and real implementations can be switched via environment variables.
 
-**현재 x402 어댑터 (`src/lib/adapters/x402.ts`):**
+**Current x402 Adapter (`src/lib/adapters/x402.ts`):**
 
 ```typescript
 export interface PaymentResult {
@@ -176,37 +176,37 @@ export interface X402PaymentAdapter {
   verifyPayment(receiptId: string): Promise<boolean>;
 }
 
-// 현재: 1초 딜레이 후 자동 승인하는 Mock
+// Current: Mock that auto-approves after a 1-second delay
 class MockX402Adapter implements X402PaymentAdapter { ... }
 export const x402Adapter: X402PaymentAdapter = new MockX402Adapter();
 ```
 
-**교체 목표:** `MockX402Adapter` → `KiteX402Adapter` (실제 Kite Chain 온체인 결제)
+**Replacement Goal:** `MockX402Adapter` -> `KiteX402Adapter` (real Kite Chain on-chain payment)
 
-### 3.3 현재 결제 모달 (`src/components/learn/PaymentModal.tsx`)
+### 3.3 Current Payment Modal (`src/components/learn/PaymentModal.tsx`)
 
-- 0.001 ETH 하드코딩 → **0.001 KITE**로 변경 필요
-- `x402Adapter.requestPayment()` 호출 → 결제 성공 시 `setDoorUnlocked(true)`
-- 지갑 주소, 트랜잭션 해시, KiteScan 링크 표시 추가 필요
+- 0.001 ETH hardcoded -> needs to be changed to **0.001 KITE**
+- Calls `x402Adapter.requestPayment()` -> sets `setDoorUnlocked(true)` on payment success
+- Needs to add wallet address, transaction hash, and KiteScan link display
 
-### 3.4 현재 학습 스토어 (`src/stores/useLearningStore.ts`)
+### 3.4 Current Learning Store (`src/stores/useLearningStore.ts`)
 
-결제 관련 상태:
-- `isPaymentModalOpen: boolean` — 결제 모달 표시 여부
-- `isDoorUnlocked: boolean` — 스테이지 잠금 해제 여부
-- `setPaymentModalOpen(open: boolean)` — 모달 토글
-- `setDoorUnlocked(unlocked: boolean)` — 잠금 해제 토글
+Payment-related state:
+- `isPaymentModalOpen: boolean` — Whether the payment modal is shown
+- `isDoorUnlocked: boolean` — Whether the stage is unlocked
+- `setPaymentModalOpen(open: boolean)` — Modal toggle
+- `setDoorUnlocked(unlocked: boolean)` — Unlock toggle
 
-**추가 필요 상태:** `txHash`, `walletAddress`, `agentDID`, 결제 히스토리
+**Additional state needed:** `txHash`, `walletAddress`, `agentDID`, payment history
 
 ---
 
-## 4. Kite AI 체인 기술 사양
+## 4. Kite AI Chain Technical Specifications
 
-### 4.1 체인 정보
+### 4.1 Chain Information
 
-| 파라미터 | Testnet | Mainnet |
-|----------|---------|---------|
+| Parameter | Testnet | Mainnet |
+|-----------|---------|---------|
 | Chain Name | KiteAI Testnet | KiteAI Mainnet |
 | Chain ID | **2368** | **2366** |
 | Native Token | KITE | KITE |
@@ -215,27 +215,27 @@ export const x402Adapter: X402PaymentAdapter = new MockX402Adapter();
 | ChainList | `https://chainlist.org/chain/2368` | `https://chainlist.org/chain/2366` |
 | Faucet | `https://faucet.gokite.ai` | N/A |
 
-### 4.2 특성
+### 4.2 Characteristics
 
-- **기반:** Avalanche Subnet (AvalancheGo)
-- **합의:** Proof of Attributed Intelligence (PoAI)
+- **Based on:** Avalanche Subnet (AvalancheGo)
+- **Consensus:** Proof of Attributed Intelligence (PoAI)
 - **Block Gas Limit:** 400,000,000
-- **거래 수수료:** Sub-cent ($0.01 이하)
-- **Finality:** Instant (서브초 컨펌)
-- **마이크로페이먼트 채널:** Sub-100ms 레이턴시
-- **State Channel:** ~$0.01/채널 페어, ~$0.000001/트랜잭션 (스케일)
-- **Stablecoin 네이티브:** USDC, pyUSD 지원
+- **Transaction fees:** Sub-cent (under $0.01)
+- **Finality:** Instant (sub-second confirmation)
+- **Micropayment channels:** Sub-100ms latency
+- **State Channel:** ~$0.01/channel pair, ~$0.000001/transaction (at scale)
+- **Native Stablecoin support:** USDC, pyUSD
 
-### 4.3 개발 도구
+### 4.3 Development Tools
 
-| 도구 | 용도 |
-|------|------|
-| Hardhat | 스마트 컨트랙트 개발, 테스트, 배포 |
-| MetaMask | 테스트넷 지갑 연결 (수동 테스트 시) |
-| KiteScan | 블록 익스플로러, 트랜잭션 검증 |
-| Kite Faucet | 테스트넷 KITE 토큰 수령 |
+| Tool | Purpose |
+|------|---------|
+| Hardhat | Smart contract development, testing, deployment |
+| MetaMask | Testnet wallet connection (for manual testing) |
+| KiteScan | Block explorer, transaction verification |
+| Kite Faucet | Receive testnet KITE tokens |
 
-### 4.4 MetaMask 네트워크 설정 (테스트용)
+### 4.4 MetaMask Network Configuration (for testing)
 
 ```
 Network Name: KiteAI Testnet
@@ -247,13 +247,13 @@ Block Explorer: https://testnet.kitescan.ai/
 
 ---
 
-## 5. x402 결제 프로토콜 명세
+## 5. x402 Payment Protocol Specification
 
-### 5.1 개요
+### 5.1 Overview
 
-x402는 Coinbase가 만든 인터넷 네이티브 결제 오픈 표준이다. HTTP 402 (Payment Required) 상태 코드를 활용하여 API 호출에 마이크로페이먼트를 연결한다.
+x402 is an internet-native payment open standard created by Coinbase. It uses the HTTP 402 (Payment Required) status code to attach micropayments to API calls.
 
-### 5.2 HTTP 402 플로우 (12단계)
+### 5.2 HTTP 402 Flow (12 Steps)
 
 ```
 ┌──────────┐                    ┌──────────────┐                 ┌─────────────┐
@@ -297,37 +297,37 @@ x402는 Coinbase가 만든 인터넷 네이티브 결제 오픈 표준이다. HT
       │ ◄───────────────────────────── │                                │
 ```
 
-### 5.3 핵심 HTTP 헤더
+### 5.3 Key HTTP Headers
 
-| 헤더 | 방향 | 내용 |
-|------|------|------|
-| `PAYMENT-REQUIRED` | Server → Client | Base64 인코딩된 결제 요구사항 (금액, 수용 체인, 지갑 주소) |
-| `PAYMENT-SIGNATURE` | Client → Server | Base64 인코딩된 서명된 결제 페이로드 |
-| `PAYMENT-RESPONSE` | Server → Client | 정산 확인 응답 |
+| Header | Direction | Content |
+|--------|-----------|---------|
+| `PAYMENT-REQUIRED` | Server -> Client | Base64-encoded payment requirements (amount, accepted chains, wallet address) |
+| `PAYMENT-SIGNATURE` | Client -> Server | Base64-encoded signed payment payload |
+| `PAYMENT-RESPONSE` | Server -> Client | Settlement confirmation response |
 
-### 5.4 SDK 패키지
+### 5.4 SDK Packages
 
 ```bash
-# TypeScript (이 프로젝트에서 사용)
+# TypeScript (used in this project)
 npm install @x402/core @x402/evm @x402/fetch @x402/express
 
-# @x402/core    — 프로토콜 타입, 유틸리티
-# @x402/evm     — EVM 체인 결제 지원 (Kite AI 포함)
-# @x402/fetch   — x402 인식 fetch 클라이언트 (에이전트 측)
-# @x402/express — Express 미들웨어 (서버 측 결제 게이팅)
+# @x402/core    — Protocol types, utilities
+# @x402/evm     — EVM chain payment support (including Kite AI)
+# @x402/fetch   — x402-aware fetch client (agent side)
+# @x402/express — Express middleware (server-side payment gating)
 ```
 
-### 5.5 서버 측 미들웨어 설정 예시
+### 5.5 Server-Side Middleware Setup Example
 
 ```typescript
 import { paymentMiddleware } from '@x402/express';
 
-// Next.js API Route에서 사용
+// Used in Next.js API Route
 app.use(
   paymentMiddleware({
     "POST /api/x402/unlock-stage": {
-      price: "0.001",           // KITE 단위
-      network: "kite-testnet",  // CAIP-2 네트워크 ID
+      price: "0.001",           // KITE units
+      network: "kite-testnet",  // CAIP-2 network ID
       description: "Unlock learning stage",
       resource: "/api/x402/unlock-stage",
       accepts: [
@@ -345,7 +345,7 @@ app.use(
 );
 ```
 
-### 5.6 클라이언트 측 x402 fetch 예시
+### 5.6 Client-Side x402 Fetch Example
 
 ```typescript
 import { x402Fetch } from '@x402/fetch';
@@ -357,57 +357,57 @@ const response = await x402Fetch(
     body: JSON.stringify({ paperId, stageId }),
   },
   {
-    walletClient,  // AA Wallet의 Session Key로 서명
+    walletClient,  // Signs with Session Key from AA Wallet
     network: 'eip155:2368',
   }
 );
 
-// 내부적으로:
-// 1. 첫 요청 → 402 수신
-// 2. PAYMENT-REQUIRED 파싱
-// 3. PaymentPayload 구성 + Session Key 서명
-// 4. PAYMENT-SIGNATURE 헤더로 재요청
-// 5. 200 OK 수신
+// Internally:
+// 1. First request -> receives 402
+// 2. Parses PAYMENT-REQUIRED
+// 3. Constructs PaymentPayload + signs with Session Key
+// 4. Retries with PAYMENT-SIGNATURE header
+// 5. Receives 200 OK
 ```
 
 ---
 
-## 6. 에이전트 아이덴티티 시스템
+## 6. Agent Identity System
 
-### 6.1 3-Tier 계층적 아이덴티티 모델
+### 6.1 3-Tier Hierarchical Identity Model
 
 ```
 Tier 1: User Identity (Root Authority)
-  └── 개인키: HSM / Secure Enclave 저장
-  └── EOA 지갑: 모든 권한의 루트
-  └── 에이전트에 절대 노출하지 않음
+  └── Private key: stored in HSM / Secure Enclave
+  └── EOA wallet: root of all permissions
+  └── Never exposed to agents
 
 Tier 2: Agent Identity (Delegated Authority)
-  └── BIP-32 계층적 키 파생으로 결정론적 주소 생성
+  └── Deterministic address generation via BIP-32 hierarchical key derivation
   └── DID: did:kite:alice.eth/chatgpt/portfolio-manager-v1
-  └── KitePass: 유저→에이전트→액션 신뢰 체인
-  └── Verifiable Credentials: 능력/자격 증명
+  └── KitePass: User -> Agent -> Action trust chain
+  └── Verifiable Credentials: capability/qualification proofs
 
 Tier 3: Session Identity (Ephemeral Authority)
-  └── 완전 랜덤, 일회용 키
-  └── 자동 만료
-  └── Perfect Forward Secrecy 보장
+  └── Fully random, single-use key
+  └── Auto-expiring
+  └── Guarantees Perfect Forward Secrecy
 ```
 
-### 6.2 DID 포맷
+### 6.2 DID Format
 
 ```
 did:kite:{user-identifier}/{agent-type}/{agent-instance}
 ```
 
-**이 프로젝트 예시:**
+**Example for this project:**
 ```
 did:kite:learner.eth/claude-tutor/session-20260219
 ```
 
-### 6.3 암호학적 인가 체인
+### 6.3 Cryptographic Authorization Chain
 
-#### Standing Intent (SI) — 사용자가 서명하는 불변 선언
+#### Standing Intent (SI) — Immutable declaration signed by user
 
 ```typescript
 interface StandingIntent {
@@ -417,56 +417,56 @@ interface StandingIntent {
   allowedContracts: string[]; // [LEARNING_LEDGER_ADDRESS]
   allowedFunctions: string[]; // ["enrollCourse", "completeStage"]
   expiresAt: number;          // Unix timestamp
-  userSignature: string;      // EOA 서명
+  userSignature: string;      // EOA signature
 }
 ```
 
-#### Delegation Token (DT) — 에이전트가 세션용으로 서명
+#### Delegation Token (DT) — Signed by the agent for session use
 
 ```typescript
 interface DelegationToken {
-  standingIntentHash: string;   // SI의 keccak256 해시
-  sessionKeyAddress: string;    // 임시 세션 키 주소
+  standingIntentHash: string;   // keccak256 hash of SI
+  sessionKeyAddress: string;    // Temporary session key address
   validFrom: number;            // Unix timestamp
-  validUntil: number;           // 약 60초 유효
-  agentSignature: string;       // 에이전트 키 서명
+  validUntil: number;           // Valid for approximately 60 seconds
+  agentSignature: string;       // Agent key signature
 }
 ```
 
-#### Session Signature (SS) — 트랜잭션 실행 증명
+#### Session Signature (SS) — Transaction execution proof
 
 ```typescript
 interface SessionSignature {
   delegationTokenHash: string;
-  transactionData: string;      // 실행할 트랜잭션 데이터
-  nonce: number;                // 리플레이 방지
-  challenge: string;            // 서버 챌린지
-  sessionSignature: string;     // 세션 키 서명
+  transactionData: string;      // Transaction data to execute
+  nonce: number;                // Replay prevention
+  challenge: string;            // Server challenge
+  sessionSignature: string;     // Session key signature
 }
 ```
 
 ### 6.4 KitePass
 
-에이전트의 크립토그래픽 아이덴티티 크리덴셜. 유저→에이전트→액션의 완전한 신뢰 체인을 생성한다.
+A cryptographic identity credential for agents. Creates a complete trust chain from User -> Agent -> Action.
 
-- 에이전트 생성 시 발급
-- Standing Intent에 바인딩
-- 온체인 검증 가능
-- 폐기(Revocation) 가능
+- Issued when the agent is created
+- Bound to Standing Intent
+- On-chain verifiable
+- Revocable
 
-### 6.5 보안 보장 ("Bounded Loss Theorem")
+### 6.5 Security Guarantee ("Bounded Loss Theorem")
 
-> 에이전트가 완전히 침해(compromise)되더라도, 추출 가능한 최대 가치는 Standing Intent 한도와 동일하다.
+> Even if an agent is fully compromised, the maximum extractable value equals the Standing Intent limit.
 
 ---
 
 ## 7. Account Abstraction (ERC-4337)
 
-### 7.1 개요
+### 7.1 Overview
 
-Kite AI의 AA SDK는 ERC-4337 Account Abstraction을 에이전트 전용 확장으로 구현한다. 핵심은 스마트 컨트랙트 지갑이 프로그래밍 가능한 지출 규칙을 갖는다는 것이다.
+Kite AI's AA SDK implements ERC-4337 Account Abstraction with agent-specific extensions. The key concept is that smart contract wallets have programmable spending rules.
 
-### 7.2 아키텍처
+### 7.2 Architecture
 
 ```
 ┌─────────────────────────────────────────────┐
@@ -487,47 +487,47 @@ Kite AI의 AA SDK는 ERC-4337 Account Abstraction을 에이전트 전용 확장�
 └─────────────────────────────────────────────┘
 ```
 
-### 7.3 Session Key 규칙 (온체인 강제)
+### 7.3 Session Key Rules (On-chain Enforcement)
 
 ```solidity
-// Kite AA SDK의 Session Key 규칙 추가
+// Adding Session Key rules via Kite AA SDK
 addSessionKeyRule(
-  address sessionKeyAddress,    // 세션 키 주소
-  bytes32 agentId,              // 에이전트 DID 해시
-  bytes4 functionSelector,      // 허용 함수 셀렉터
-  uint256 valueLimit            // 트랜잭션당 한도 (wei)
+  address sessionKeyAddress,    // Session key address
+  bytes32 agentId,              // Agent DID hash
+  bytes4 functionSelector,      // Allowed function selector
+  uint256 valueLimit            // Per-transaction limit (wei)
 )
 ```
 
-### 7.4 지출 규칙
+### 7.4 Spending Rules
 
-**온체인 강제 (스마트 컨트랙트):**
-- 트랜잭션당 한도
-- 일일 총합 한도
-- 롤링 타임 윈도우
-- 화이트리스트/블랙리스트 컨트랙트
-- 외부 시그널 기반 조건부 로직
+**On-chain enforcement (smart contract):**
+- Per-transaction limit
+- Daily aggregate limit
+- Rolling time window
+- Whitelisted/blacklisted contracts
+- Conditional logic based on external signals
 
-**오프체인 정책 (TEE 또는 로컬):**
-- 세션 TTL
-- 카테고리 제한
-- 수신자 허용/거부 목록
+**Off-chain policy (TEE or local):**
+- Session TTL
+- Category restrictions
+- Recipient allow/deny list
 
-### 7.5 계층적 한도 캐스케이드
+### 7.5 Hierarchical Limit Cascade
 
-자식 에이전트의 한도는 항상 부모 한도 이내로 바운딩된다. 사용자의 Standing Intent가 천장이다.
+Child agent limits are always bounded within parent limits. The user's Standing Intent is the ceiling.
 
-### 7.6 Gasless 트랜잭션
+### 7.6 Gasless Transactions
 
-AA SDK의 Paymaster를 사용하면 제3자(예: 플랫폼)가 가스비를 대신 지불할 수 있다. 학습자는 KITE 토큰만으로 스테이지 비용을 지불하며, 가스비를 별도로 신경 쓸 필요가 없다.
+Using the AA SDK's Paymaster, a third party (e.g., the platform) can pay gas fees on behalf of the user. Learners only pay stage costs in KITE tokens and don't need to worry about gas fees separately.
 
-**참고:** `https://docs.gokite.ai/kite-chain/5-advanced/account-abstraction-sdk`
+**Reference:** `https://docs.gokite.ai/kite-chain/5-advanced/account-abstraction-sdk`
 
 ---
 
-## 8. 시스템 아키텍처
+## 8. System Architecture
 
-### 8.1 전체 아키텍처 다이어그램
+### 8.1 Overall Architecture Diagram
 
 ```
 ┌──────────────────────────────────────────────────────────┐
@@ -564,46 +564,46 @@ AA SDK의 Paymaster를 사용하면 제3자(예: 플랫폼)가 가스비를 대�
                           Chain ID: 2368
 ```
 
-### 8.2 새로 생성할 파일 목록
+### 8.2 New Files to Create
 
-| # | 파일 경로 | 목적 |
-|---|-----------|------|
-| 1 | `contracts/LearningLedger.sol` | 스마트 컨트랙트: 등록, 스테이지 완료, 진행 조회 |
-| 2 | `contracts/scripts/deploy.ts` | Kite Testnet 배포 스크립트 |
-| 3 | `contracts/hardhat.config.ts` | Hardhat 설정 (Chain ID: 2368) |
-| 4 | `src/lib/kite/wallet.ts` | AA Wallet 생성/관리 |
-| 5 | `src/lib/kite/identity.ts` | DID 기반 에이전트 아이덴티티 |
-| 6 | `src/lib/kite/session-key.ts` | Standing Intent + Session Key 관리 |
-| 7 | `src/lib/kite/contracts.ts` | ABI + 컨트랙트 주소 상수 |
-| 8 | `src/app/api/x402/status/route.ts` | 월렛 잔액 + 에이전트 ID 조회 |
-| 9 | `src/app/api/x402/enroll/route.ts` | 코스 등록 결제 (402 게이팅) |
-| 10 | `src/app/api/x402/unlock-stage/route.ts` | 스테이지 잠금 해제 결제 (402 게이팅) |
-| 11 | `src/app/api/x402/receipt/[txHash]/route.ts` | 트랜잭션 영수증 검증 |
-| 12 | `src/app/agent-dashboard/page.tsx` | 에이전트 대시보드 페이지 |
-| 13 | `src/components/agent/AgentWalletCard.tsx` | 월렛 정보 컴포넌트 |
-| 14 | `src/components/agent/PaymentHistory.tsx` | 결제 히스토리 테이블 |
-| 15 | `src/components/agent/StandingIntentConfig.tsx` | SI 설정 UI |
-| 16 | `src/stores/useAgentStore.ts` | 에이전트 상태관리 (Zustand) |
+| # | File Path | Purpose |
+|---|-----------|---------|
+| 1 | `contracts/LearningLedger.sol` | Smart contract: enrollment, stage completion, progress queries |
+| 2 | `contracts/scripts/deploy.ts` | Kite Testnet deployment script |
+| 3 | `contracts/hardhat.config.ts` | Hardhat configuration (Chain ID: 2368) |
+| 4 | `src/lib/kite/wallet.ts` | AA Wallet creation/management |
+| 5 | `src/lib/kite/identity.ts` | DID-based agent identity |
+| 6 | `src/lib/kite/session-key.ts` | Standing Intent + Session Key management |
+| 7 | `src/lib/kite/contracts.ts` | ABI + contract address constants |
+| 8 | `src/app/api/x402/status/route.ts` | Wallet balance + agent ID query |
+| 9 | `src/app/api/x402/enroll/route.ts` | Course enrollment payment (402 gating) |
+| 10 | `src/app/api/x402/unlock-stage/route.ts` | Stage unlock payment (402 gating) |
+| 11 | `src/app/api/x402/receipt/[txHash]/route.ts` | Transaction receipt verification |
+| 12 | `src/app/agent-dashboard/page.tsx` | Agent dashboard page |
+| 13 | `src/components/agent/AgentWalletCard.tsx` | Wallet info component |
+| 14 | `src/components/agent/PaymentHistory.tsx` | Payment history table |
+| 15 | `src/components/agent/StandingIntentConfig.tsx` | SI configuration UI |
+| 16 | `src/stores/useAgentStore.ts` | Agent state management (Zustand) |
 
-### 8.3 수정할 기존 파일 목록
+### 8.3 Existing Files to Modify
 
-| # | 파일 경로 | 변경 내용 |
-|---|-----------|-----------|
-| 1 | `src/lib/adapters/x402.ts` | `KiteX402Adapter` 추가, 환경변수 기반 전환 |
-| 2 | `src/components/learn/PaymentModal.tsx` | KITE 단위, 지갑 주소, txHash, KiteScan 링크 |
-| 3 | `src/stores/useLearningStore.ts` | txHash, walletAddress, agentDID 상태 추가 |
-| 4 | `src/components/learn/ClaudeTerminal.tsx` | 자율 결제 트리거 로직 |
-| 5 | `package.json` | x402 SDK, ethers, hardhat 의존성 추가 |
-| 6 | `.env.example` | Kite AI 환경변수 템플릿 |
+| # | File Path | Changes |
+|---|-----------|---------|
+| 1 | `src/lib/adapters/x402.ts` | Add `KiteX402Adapter`, environment variable-based switching |
+| 2 | `src/components/learn/PaymentModal.tsx` | KITE units, wallet address, txHash, KiteScan link |
+| 3 | `src/stores/useLearningStore.ts` | Add txHash, walletAddress, agentDID state |
+| 4 | `src/components/learn/ClaudeTerminal.tsx` | Autonomous payment trigger logic |
+| 5 | `package.json` | Add x402 SDK, ethers, hardhat dependencies |
+| 6 | `.env.example` | Kite AI environment variable template |
 
 ---
 
-## 9. Phase 1: 스마트 컨트랙트 개발
+## 9. Phase 1: Smart Contract Development
 
-**예상 소요:** 1-2일
-**산출물:** 배포된 LearningLedger 컨트랙트 + 검증된 ABI
+**Estimated Duration:** 1-2 days
+**Deliverables:** Deployed LearningLedger contract + verified ABI
 
-### 9.1 디렉토리 구조
+### 9.1 Directory Structure
 
 ```
 contracts/
@@ -616,7 +616,7 @@ contracts/
 └── package.json
 ```
 
-### 9.2 LearningLedger.sol 명세
+### 9.2 LearningLedger.sol Specification
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -624,17 +624,17 @@ pragma solidity ^0.8.20;
 
 contract LearningLedger {
     struct Enrollment {
-        uint256 enrolledAt;       // 등록 타임스탬프
-        uint256 currentStage;     // 현재 진행 스테이지
-        uint256 totalPaid;        // 총 결제 금액 (wei)
-        bool isActive;            // 활성 상태
+        uint256 enrolledAt;       // Enrollment timestamp
+        uint256 currentStage;     // Current progress stage
+        uint256 totalPaid;        // Total paid amount (wei)
+        bool isActive;            // Active status
     }
 
     struct StageCompletion {
-        uint256 completedAt;      // 완료 타임스탬프
-        uint256 score;            // 퀴즈 점수 (0-100)
-        uint256 amountPaid;       // 스테이지 해금 비용
-        bytes32 attestationHash;  // 완료 증명 해시
+        uint256 completedAt;      // Completion timestamp
+        uint256 score;            // Quiz score (0-100)
+        uint256 amountPaid;       // Stage unlock cost
+        bytes32 attestationHash;  // Completion proof hash
     }
 
     // paperId => agent address => Enrollment
@@ -648,8 +648,8 @@ contract LearningLedger {
     event StageCompleted(address indexed agent, string paperId, uint256 stageNum, uint256 score);
     event PaymentReceived(address indexed from, string paperId, uint256 amount);
 
-    /// @notice 코스 등록 (결제 포함)
-    /// @param paperId 논문/코스 ID
+    /// @notice Enroll in a course (with payment)
+    /// @param paperId Paper/course ID
     function enrollCourse(string calldata paperId) external payable {
         require(msg.value > 0, "Payment required");
         require(!enrollments[paperId][msg.sender].isActive, "Already enrolled");
@@ -665,10 +665,10 @@ contract LearningLedger {
         emit PaymentReceived(msg.sender, paperId, msg.value);
     }
 
-    /// @notice 스테이지 완료 기록 (결제 포함)
-    /// @param paperId 논문/코스 ID
-    /// @param stageNum 완료한 스테이지 번호
-    /// @param score 퀴즈 점수 (0-100)
+    /// @notice Record stage completion (with payment)
+    /// @param paperId Paper/course ID
+    /// @param stageNum Completed stage number
+    /// @param score Quiz score (0-100)
     function completeStage(
         string calldata paperId,
         uint256 stageNum,
@@ -699,9 +699,9 @@ contract LearningLedger {
         }
     }
 
-    /// @notice 학습 진행도 조회
-    /// @param agent 에이전트 주소
-    /// @param paperId 논문/코스 ID
+    /// @notice Query learning progress
+    /// @param agent Agent address
+    /// @param paperId Paper/course ID
     function getProgress(
         address agent,
         string calldata paperId
@@ -715,10 +715,10 @@ contract LearningLedger {
         return (e.isActive, e.currentStage, e.totalPaid, e.enrolledAt);
     }
 
-    /// @notice 스테이지 완료 정보 조회
-    /// @param agent 에이전트 주소
-    /// @param paperId 논문/코스 ID
-    /// @param stageNum 스테이지 번호
+    /// @notice Query stage completion info
+    /// @param agent Agent address
+    /// @param paperId Paper/course ID
+    /// @param stageNum Stage number
     function getStageCompletion(
         address agent,
         string calldata paperId,
@@ -734,7 +734,7 @@ contract LearningLedger {
 }
 ```
 
-### 9.3 Hardhat 설정
+### 9.3 Hardhat Configuration
 
 ```typescript
 // contracts/hardhat.config.ts
@@ -762,7 +762,7 @@ const config: HardhatUserConfig = {
 export default config;
 ```
 
-### 9.4 배포 스크립트
+### 9.4 Deployment Script
 
 ```typescript
 // contracts/scripts/deploy.ts
@@ -777,63 +777,63 @@ async function main() {
   console.log(`LearningLedger deployed to: ${address}`);
   console.log(`Verify on KiteScan: https://testnet.kitescan.ai/address/${address}`);
 
-  // ABI를 프론트엔드로 복사
-  // → src/lib/kite/contracts.ts에 반영
+  // Copy ABI to frontend
+  // -> Reflect in src/lib/kite/contracts.ts
 }
 
 main().catch(console.error);
 ```
 
-### 9.5 테스트 항목
+### 9.5 Test Cases
 
-- [ ] `enrollCourse`: 결제와 함께 등록 성공
-- [ ] `enrollCourse`: 이미 등록된 경우 revert
-- [ ] `enrollCourse`: 결제 없이(msg.value=0) revert
-- [ ] `completeStage`: 등록된 에이전트만 호출 가능
-- [ ] `completeStage`: 동일 스테이지 중복 완료 불가
-- [ ] `completeStage`: score > 100 revert
-- [ ] `getProgress`: 정확한 진행도 반환
-- [ ] `getStageCompletion`: attestationHash 검증
+- [ ] `enrollCourse`: Successful enrollment with payment
+- [ ] `enrollCourse`: Revert if already enrolled
+- [ ] `enrollCourse`: Revert without payment (msg.value=0)
+- [ ] `completeStage`: Only callable by enrolled agents
+- [ ] `completeStage`: Cannot complete the same stage twice
+- [ ] `completeStage`: Revert if score > 100
+- [ ] `getProgress`: Returns accurate progress
+- [ ] `getStageCompletion`: Verify attestationHash
 
 ---
 
-## 10. Phase 2: 에이전트 월렛 & 아이덴티티
+## 10. Phase 2: Agent Wallet & Identity
 
-**예상 소요:** 1-2일
-**산출물:** `src/lib/kite/` 디렉토리의 4개 모듈
+**Estimated Duration:** 1-2 days
+**Deliverables:** 4 modules in the `src/lib/kite/` directory
 
-### 10.1 wallet.ts — AA Wallet 관리
+### 10.1 wallet.ts — AA Wallet Management
 
 ```typescript
 // src/lib/kite/wallet.ts
 
 export interface AgentWallet {
-  address: string;          // AA Wallet 주소
-  sessionKeyAddress: string; // 현재 세션 키
-  balance: string;          // KITE 잔액 (wei)
+  address: string;          // AA Wallet address
+  sessionKeyAddress: string; // Current session key
+  balance: string;          // KITE balance (wei)
   chainId: number;          // 2368 (testnet) or 2366 (mainnet)
 }
 
 export interface WalletConfig {
   rpcUrl: string;
   chainId: number;
-  userPrivateKey: string;   // 서버 사이드에서만 사용
+  userPrivateKey: string;   // Server-side only
 }
 
 export class KiteWalletManager {
-  /// AA Wallet 생성 또는 기존 월렛 로드
+  /// Create or load existing AA Wallet
   async getOrCreateWallet(config: WalletConfig): Promise<AgentWallet>;
 
-  /// 잔액 조회
+  /// Query balance
   async getBalance(address: string): Promise<string>;
 
-  /// 세션 키 생성 (TTL 기반)
+  /// Create session key (TTL-based)
   async createSessionKey(
     walletAddress: string,
     rules: SessionKeyRules
   ): Promise<{ address: string; privateKey: string; expiresAt: number }>;
 
-  /// 세션 키로 트랜잭션 서명
+  /// Sign transaction with session key
   async signWithSessionKey(
     sessionKeyPrivateKey: string,
     transaction: TransactionRequest
@@ -843,46 +843,46 @@ export class KiteWalletManager {
 export interface SessionKeyRules {
   maxTransactionValue: string;   // wei
   dailyCap: string;              // wei
-  allowedContracts: string[];    // 컨트랙트 주소 목록
-  allowedFunctions: string[];    // 함수 셀렉터 목록
-  ttlSeconds: number;            // 유효 기간 (초)
+  allowedContracts: string[];    // Contract address list
+  allowedFunctions: string[];    // Function selector list
+  ttlSeconds: number;            // Validity period (seconds)
 }
 ```
 
-### 10.2 identity.ts — DID 기반 에이전트 아이덴티티
+### 10.2 identity.ts — DID-Based Agent Identity
 
 ```typescript
 // src/lib/kite/identity.ts
 
 export interface AgentIdentity {
   did: string;                    // "did:kite:learner.eth/claude-tutor/v1"
-  walletAddress: string;          // 파생된 에이전트 주소
-  kitePassHash: string;           // KitePass 해시
-  createdAt: number;              // 생성 타임스탬프
+  walletAddress: string;          // Derived agent address
+  kitePassHash: string;           // KitePass hash
+  createdAt: number;              // Creation timestamp
 }
 
 export class KiteIdentityManager {
-  /// BIP-32 계층적 키 파생으로 에이전트 주소 생성
+  /// Generate agent address via BIP-32 hierarchical key derivation
   /// derivation path: m/44'/2368'/0'/0/{agentIndex}
   deriveAgentAddress(
     userMnemonic: string,
     agentIndex: number
   ): { address: string; privateKey: string };
 
-  /// DID 생성
+  /// Create DID
   createDID(
     userIdentifier: string,    // "learner.eth"
     agentType: string,         // "claude-tutor"
     agentVersion: string       // "v1"
   ): string;
 
-  /// KitePass 생성 (Standing Intent에 바인딩)
+  /// Create KitePass (bound to Standing Intent)
   async createKitePass(
     agentIdentity: AgentIdentity,
     standingIntent: StandingIntent
-  ): Promise<string>;  // KitePass 해시
+  ): Promise<string>;  // KitePass hash
 
-  /// KitePass 검증
+  /// Verify KitePass
   async verifyKitePass(
     kitePassHash: string,
     agentAddress: string
@@ -914,27 +914,27 @@ export interface DelegationToken {
 }
 
 export class SessionKeyManager {
-  /// Standing Intent 생성 및 사용자 서명
+  /// Create Standing Intent and get user signature
   async createStandingIntent(
     params: Omit<StandingIntent, 'userSignature'>,
     userSigner: ethers.Signer
   ): Promise<StandingIntent>;
 
-  /// Delegation Token 발급 (에이전트가 세션용으로 생성)
+  /// Issue Delegation Token (created by agent for session use)
   async issueDelegationToken(
     standingIntent: StandingIntent,
     sessionKeyAddress: string,
     agentSigner: ethers.Signer,
-    ttlSeconds?: number          // 기본 60초
+    ttlSeconds?: number          // Default 60 seconds
   ): Promise<DelegationToken>;
 
-  /// Standing Intent 유효성 검증
+  /// Validate Standing Intent
   validateStandingIntent(si: StandingIntent): boolean;
 
-  /// 일일 사용량 추적
+  /// Track daily usage
   async getDailyUsage(agentAddress: string): Promise<string>;
 
-  /// 한도 체크 (트랜잭션 전)
+  /// Check spending limits (before transaction)
   async canSpend(
     agentAddress: string,
     amount: string,
@@ -943,12 +943,12 @@ export class SessionKeyManager {
 }
 ```
 
-### 10.4 contracts.ts — ABI & 주소 상수
+### 10.4 contracts.ts — ABI & Address Constants
 
 ```typescript
 // src/lib/kite/contracts.ts
 
-// 배포 후 실제 주소로 교체
+// Replace with actual address after deployment
 export const LEARNING_LEDGER_ADDRESS = process.env.NEXT_PUBLIC_LEARNING_LEDGER_ADDRESS || '';
 
 export const KITE_CHAIN_CONFIG = {
@@ -966,7 +966,7 @@ export const KITE_CHAIN_CONFIG = {
 } as const;
 
 export const LEARNING_LEDGER_ABI = [
-  // 배포 후 Hardhat artifact에서 복사
+  // Copy from Hardhat artifact after deployment
   "function enrollCourse(string paperId) payable",
   "function completeStage(string paperId, uint256 stageNum, uint256 score) payable",
   "function getProgress(address agent, string paperId) view returns (bool, uint256, uint256, uint256)",
@@ -979,22 +979,22 @@ export const LEARNING_LEDGER_ABI = [
 
 ---
 
-## 11. Phase 3: x402 API 라우트
+## 11. Phase 3: x402 API Routes
 
-**예상 소요:** 1일
-**산출물:** 4개 API Route (`src/app/api/x402/`)
+**Estimated Duration:** 1 day
+**Deliverables:** 4 API Routes (`src/app/api/x402/`)
 
-### 11.1 GET /api/x402/status — 에이전트 상태 조회
+### 11.1 GET /api/x402/status — Agent Status Query
 
-**요청:** 없음 (서버 사이드에서 환경변수의 에이전트 키 사용)
+**Request:** None (uses agent key from environment variables on the server side)
 
-**응답:**
+**Response:**
 ```typescript
 {
   agentDID: string;           // "did:kite:learner.eth/claude-tutor/v1"
-  walletAddress: string;      // AA Wallet 주소
-  balance: string;            // KITE 잔액 (KITE 단위, 소수점)
-  balanceWei: string;         // KITE 잔액 (wei)
+  walletAddress: string;      // AA Wallet address
+  balance: string;            // KITE balance (KITE units, decimal)
+  balanceWei: string;         // KITE balance (wei)
   chainId: number;            // 2368
   explorerUrl: string;        // "https://testnet.kitescan.ai/address/0x..."
   standingIntent: {
@@ -1006,31 +1006,31 @@ export const LEARNING_LEDGER_ABI = [
 }
 ```
 
-### 11.2 POST /api/x402/enroll — 코스 등록
+### 11.2 POST /api/x402/enroll — Course Enrollment
 
-**x402 게이팅:** 이 엔드포인트는 `@x402/express` 미들웨어로 보호된다. 결제 없이 접근 시 `402 Payment Required`를 반환한다.
+**x402 gating:** This endpoint is protected by `@x402/express` middleware. Access without payment returns `402 Payment Required`.
 
-**요청:**
+**Request:**
 ```typescript
 {
   paperId: string;    // "bitdance-2602"
 }
 ```
 
-**플로우:**
-1. 클라이언트가 POST 요청
-2. 미들웨어가 402 + `PAYMENT-REQUIRED` 헤더 반환
-3. 클라이언트(에이전트)가 결제 서명 후 `PAYMENT-SIGNATURE` 헤더와 함께 재요청
-4. 미들웨어가 결제 검증 + 정산
-5. 핸들러가 `LearningLedger.enrollCourse(paperId)` 호출
-6. 200 OK + 트랜잭션 해시 반환
+**Flow:**
+1. Client sends POST request
+2. Middleware returns 402 + `PAYMENT-REQUIRED` header
+3. Client (agent) re-requests with signed `PAYMENT-SIGNATURE` header
+4. Middleware verifies payment + settles
+5. Handler calls `LearningLedger.enrollCourse(paperId)`
+6. Returns 200 OK + transaction hash
 
-**응답 (200):**
+**Response (200):**
 ```typescript
 {
   success: true;
-  txHash: string;           // 온체인 트랜잭션 해시
-  explorerUrl: string;      // KiteScan 트랜잭션 링크
+  txHash: string;           // On-chain transaction hash
+  explorerUrl: string;      // KiteScan transaction link
   enrollment: {
     paperId: string;
     enrolledAt: string;     // ISO 8601
@@ -1038,21 +1038,21 @@ export const LEARNING_LEDGER_ABI = [
 }
 ```
 
-### 11.3 POST /api/x402/unlock-stage — 스테이지 잠금 해제
+### 11.3 POST /api/x402/unlock-stage — Stage Unlock
 
-**x402 게이팅:** 402 미들웨어 보호
+**x402 gating:** Protected by 402 middleware
 
-**요청:**
+**Request:**
 ```typescript
 {
   paperId: string;    // "bitdance-2602"
   stageId: string;    // "stage-3"
   stageNum: number;   // 3
-  score: number;      // 퀴즈 점수 (0-100)
+  score: number;      // Quiz score (0-100)
 }
 ```
 
-**응답 (200):**
+**Response (200):**
 ```typescript
 {
   success: true;
@@ -1062,13 +1062,13 @@ export const LEARNING_LEDGER_ABI = [
     paperId: string;
     stageNum: number;
     score: number;
-    attestationHash: string;  // 온체인 증명 해시
+    attestationHash: string;  // On-chain proof hash
     completedAt: string;
   };
 }
 ```
 
-**에러 응답 (402 — 잔액 부족 등):**
+**Error Response (402 — Insufficient balance, etc.):**
 ```typescript
 {
   error: "insufficient_funds";
@@ -1078,66 +1078,66 @@ export const LEARNING_LEDGER_ABI = [
 }
 ```
 
-### 11.4 GET /api/x402/receipt/[txHash] — 영수증 검증
+### 11.4 GET /api/x402/receipt/[txHash] — Receipt Verification
 
-**요청:** URL 파라미터로 `txHash`
+**Request:** `txHash` as URL parameter
 
-**응답:**
+**Response:**
 ```typescript
 {
   verified: boolean;
   txHash: string;
   blockNumber: number;
   blockTimestamp: string;
-  from: string;             // 에이전트 지갑 주소
-  to: string;               // LearningLedger 주소
-  value: string;            // 결제 금액 (KITE)
+  from: string;             // Agent wallet address
+  to: string;               // LearningLedger address
+  value: string;            // Payment amount (KITE)
   method: string;           // "enrollCourse" | "completeStage"
   decodedArgs: {
     paperId: string;
     stageNum?: number;
     score?: number;
   };
-  explorerUrl: string;      // KiteScan 트랜잭션 링크
+  explorerUrl: string;      // KiteScan transaction link
   confirmations: number;
 }
 ```
 
-### 11.5 에러 핸들링 (공통)
+### 11.5 Error Handling (Common)
 
-모든 x402 API 라우트는 다음 에러를 일관되게 처리해야 한다:
+All x402 API routes must handle the following errors consistently:
 
-| HTTP Status | 코드 | 설명 |
-|-------------|------|------|
-| 402 | `payment_required` | x402 결제 필요 (정상 플로우) |
-| 400 | `invalid_params` | 요청 파라미터 유효성 검증 실패 |
-| 402 | `insufficient_funds` | 잔액 부족 (faucet URL 제공) |
-| 403 | `spending_limit_exceeded` | Standing Intent 한도 초과 |
-| 403 | `session_expired` | 세션 키 만료 |
-| 500 | `chain_error` | 온체인 트랜잭션 실패 |
-| 500 | `settlement_failed` | x402 정산 실패 |
+| HTTP Status | Code | Description |
+|-------------|------|-------------|
+| 402 | `payment_required` | x402 payment needed (normal flow) |
+| 400 | `invalid_params` | Request parameter validation failed |
+| 402 | `insufficient_funds` | Insufficient balance (faucet URL provided) |
+| 403 | `spending_limit_exceeded` | Standing Intent limit exceeded |
+| 403 | `session_expired` | Session key expired |
+| 500 | `chain_error` | On-chain transaction failed |
+| 500 | `settlement_failed` | x402 settlement failed |
 
-**중요 (심사 기준):** 잔액 부족, 한도 초과 등의 실패 시나리오를 명확하게 UI에 표시해야 한다. "Correct x402 Usage" 심사 기준에서 "insufficient funds handling"이 명시적으로 요구된다.
+**Important (evaluation criteria):** Failure scenarios such as insufficient balance and limit exceeded must be clearly displayed in the UI. The "Correct x402 Usage" evaluation criterion explicitly requires "insufficient funds handling."
 
 ---
 
-## 12. Phase 4: 어댑터 교체 (Mock → Real)
+## 12. Phase 4: Adapter Replacement (Mock to Real)
 
-**예상 소요:** 1일
-**산출물:** `KiteX402Adapter` 구현, `PaymentModal` 업데이트
+**Estimated Duration:** 1 day
+**Deliverables:** `KiteX402Adapter` implementation, `PaymentModal` update
 
-### 12.1 x402.ts 어댑터 교체
+### 12.1 x402.ts Adapter Replacement
 
 ```typescript
-// src/lib/adapters/x402.ts — 수정 후
+// src/lib/adapters/x402.ts — After modification
 
 export interface PaymentResult {
   success: boolean;
   receiptId?: string;
-  txHash?: string;           // 추가: 온체인 트랜잭션 해시
-  explorerUrl?: string;      // 추가: KiteScan 링크
+  txHash?: string;           // Added: on-chain transaction hash
+  explorerUrl?: string;      // Added: KiteScan link
   error?: string;
-  errorCode?: string;        // 추가: 에러 코드
+  errorCode?: string;        // Added: error code
 }
 
 export interface X402PaymentAdapter {
@@ -1146,11 +1146,11 @@ export interface X402PaymentAdapter {
     paperId: string;
     amount: number;
     currency: string;
-    stageNum?: number;       // 추가: 스테이지 번호
-    score?: number;          // 추가: 퀴즈 점수
+    stageNum?: number;       // Added: stage number
+    score?: number;          // Added: quiz score
   }): Promise<PaymentResult>;
   verifyPayment(receiptId: string): Promise<boolean>;
-  getWalletStatus?(): Promise<WalletStatus>;  // 추가: 선택적
+  getWalletStatus?(): Promise<WalletStatus>;  // Added: optional
 }
 
 interface WalletStatus {
@@ -1161,55 +1161,55 @@ interface WalletStatus {
   dailyCap: string;
 }
 
-// KiteX402Adapter — 실제 Kite Chain 결제
+// KiteX402Adapter — Real Kite Chain payment
 class KiteX402Adapter implements X402PaymentAdapter {
   async requestPayment(params): Promise<PaymentResult> {
-    // 1. /api/x402/unlock-stage에 POST
-    // 2. x402Fetch가 402 → 서명 → 재요청 자동 처리
-    // 3. 성공 시 txHash + explorerUrl 반환
-    // 4. 실패 시 errorCode + 사용자 친화적 메시지 반환
+    // 1. POST to /api/x402/unlock-stage
+    // 2. x402Fetch automatically handles 402 -> sign -> retry
+    // 3. On success, return txHash + explorerUrl
+    // 4. On failure, return errorCode + user-friendly message
   }
 
   async verifyPayment(txHash: string): Promise<boolean> {
-    // /api/x402/receipt/[txHash]로 검증
+    // Verify via /api/x402/receipt/[txHash]
   }
 
   async getWalletStatus(): Promise<WalletStatus> {
-    // /api/x402/status로 조회
+    // Query via /api/x402/status
   }
 }
 
-// 환경변수 기반 자동 전환
+// Automatic switching based on environment variable
 const USE_REAL_KITE = process.env.NEXT_PUBLIC_USE_KITE_CHAIN === 'true';
 export const x402Adapter: X402PaymentAdapter = USE_REAL_KITE
   ? new KiteX402Adapter()
   : new MockX402Adapter();
 ```
 
-### 12.2 PaymentModal.tsx 업데이트
+### 12.2 PaymentModal.tsx Update
 
-**변경 사항:**
-1. 통화 단위: `0.001 ETH` → `0.001 KITE`
-2. 결제 성공 시 표시 추가:
-   - 트랜잭션 해시 (축약 표시: `0x1234...abcd`)
-   - KiteScan 확인 링크 (외부 링크, 새 탭)
-   - 에이전트 지갑 주소
-3. 에러 상태 세분화:
-   - 잔액 부족: faucet 링크 제공
-   - 한도 초과: Standing Intent 설정 링크
-   - 세션 만료: 재인증 안내
-4. 결제 진행 중 상태:
-   - "Signing..." → "Submitting to Kite Chain..." → "Confirming..." → "Done"
+**Changes:**
+1. Currency unit: `0.001 ETH` -> `0.001 KITE`
+2. Add display on payment success:
+   - Transaction hash (abbreviated: `0x1234...abcd`)
+   - KiteScan confirmation link (external link, new tab)
+   - Agent wallet address
+3. Refined error states:
+   - Insufficient balance: provide faucet link
+   - Limit exceeded: provide Standing Intent settings link
+   - Session expired: guide to re-authenticate
+4. Payment in-progress states:
+   - "Signing..." -> "Submitting to Kite Chain..." -> "Confirming..." -> "Done"
 
-### 12.3 useLearningStore.ts 상태 추가
+### 12.3 useLearningStore.ts State Additions
 
 ```typescript
-// 추가 상태
+// Additional state
 txHash: string | null;
 walletAddress: string | null;
 explorerUrl: string | null;
 
-// 추가 액션
+// Additional actions
 setTxHash: (txHash: string | null) => void;
 setWalletAddress: (address: string | null) => void;
 setExplorerUrl: (url: string | null) => void;
@@ -1217,14 +1217,14 @@ setExplorerUrl: (url: string | null) => void;
 
 ---
 
-## 13. Phase 5: 에이전트 대시보드
+## 13. Phase 5: Agent Dashboard
 
-**예상 소요:** 1-2일
-**산출물:** `/agent-dashboard` 페이지 + 3개 컴포넌트
+**Estimated Duration:** 1-2 days
+**Deliverables:** `/agent-dashboard` page + 3 components
 
-### 13.1 에이전트 대시보드 페이지 (`src/app/agent-dashboard/page.tsx`)
+### 13.1 Agent Dashboard Page (`src/app/agent-dashboard/page.tsx`)
 
-**레이아웃:**
+**Layout:**
 
 ```
 ┌─────────────────────────────────────────────┐
@@ -1252,43 +1252,43 @@ setExplorerUrl: (url: string | null) => void;
 
 ### 13.2 AgentWalletCard.tsx
 
-표시 항목:
-- **Agent DID:** `did:kite:learner.eth/claude-tutor/v1` (전체 + 복사 버튼)
-- **Wallet Address:** `0x1234...abcd` (축약 + KiteScan 링크)
-- **Balance:** `0.847 KITE` (실시간 갱신)
-- **KitePass Status:** 검증 완료 아이콘 (✓) 또는 미발급 상태
+Display items:
+- **Agent DID:** `did:kite:learner.eth/claude-tutor/v1` (full + copy button)
+- **Wallet Address:** `0x1234...abcd` (abbreviated + KiteScan link)
+- **Balance:** `0.847 KITE` (real-time refresh)
+- **KitePass Status:** Verified icon or unissued status
 - **Network:** KiteAI Testnet (Chain ID: 2368)
 
 ### 13.3 PaymentHistory.tsx
 
-| 컬럼 | 설명 |
-|------|------|
-| # | 순번 |
-| Time | 결제 시간 (상대 시간: "2m ago") |
-| Course | 논문/코스 이름 |
-| Stage | 스테이지 번호 |
-| Amount | 결제 금액 (KITE) |
-| Tx Hash | 축약된 해시 + KiteScan 링크 |
+| Column | Description |
+|--------|-------------|
+| # | Sequence number |
+| Time | Payment time (relative: "2m ago") |
+| Course | Paper/course name |
+| Stage | Stage number |
+| Amount | Payment amount (KITE) |
+| Tx Hash | Abbreviated hash + KiteScan link |
 | Status | Confirmed / Pending / Failed |
 
-**데이터 소스:** KiteScan API (`https://kitescan.ai/api-docs`)에서 에이전트 주소의 트랜잭션 히스토리 조회
+**Data Source:** Query agent address transaction history from KiteScan API (`https://kitescan.ai/api-docs`)
 
 ### 13.4 StandingIntentConfig.tsx
 
-설정 가능한 항목:
-- **Max Transaction Amount:** 입력 필드 (KITE 단위, 기본값 0.01)
-- **Daily Spending Cap:** 입력 필드 (KITE 단위, 기본값 0.1)
-- **Allowed Contracts:** LearningLedger 주소 (고정, 체크박스)
-- **Allowed Functions:** `enrollCourse`, `completeStage` (체크박스)
-- **Expiry Duration:** 드롭다운 (1시간 / 6시간 / 24시간 / 7일)
-- **[Save & Sign]** 버튼 — 사용자 서명으로 SI 생성/갱신
+Configurable items:
+- **Max Transaction Amount:** Input field (KITE units, default 0.01)
+- **Daily Spending Cap:** Input field (KITE units, default 0.1)
+- **Allowed Contracts:** LearningLedger address (fixed, checkbox)
+- **Allowed Functions:** `enrollCourse`, `completeStage` (checkboxes)
+- **Expiry Duration:** Dropdown (1 hour / 6 hours / 24 hours / 7 days)
+- **[Save & Sign]** button — Creates/updates SI with user signature
 
-**시각적 요소:**
-- 일일 사용량 프로그레스 바 (dailyUsed / dailyCap)
-- 만료까지 남은 시간 카운트다운
-- 현재 SI 상태 뱃지 (Active / Expired / Not Set)
+**Visual Elements:**
+- Daily usage progress bar (dailyUsed / dailyCap)
+- Countdown to expiry
+- Current SI status badge (Active / Expired / Not Set)
 
-### 13.5 useAgentStore.ts — Zustand 스토어
+### 13.5 useAgentStore.ts — Zustand Store
 
 ```typescript
 // src/stores/useAgentStore.ts
@@ -1301,7 +1301,7 @@ interface AgentState {
   isKitePassVerified: boolean;
 
   // Wallet
-  balance: string;           // KITE 단위
+  balance: string;           // KITE units
   balanceWei: string;
   chainId: number;
 
@@ -1344,67 +1344,67 @@ interface LearningAttestation {
   score: number;
   attestationHash: string;
   completedAt: string;
-  explorerUrl: string;       // KiteScan 링크
+  explorerUrl: string;       // KiteScan link
 }
 ```
 
 ---
 
-## 14. Phase 6: Claude 터미널 자율 결제
+## 14. Phase 6: Claude Terminal Autonomous Payment
 
-**예상 소요:** 1일
-**산출물:** ClaudeTerminal 자율 결제 통합
+**Estimated Duration:** 1 day
+**Deliverables:** ClaudeTerminal autonomous payment integration
 
-### 14.1 자율 결제 플로우
+### 14.1 Autonomous Payment Flow
 
 ```
-학습자가 퀴즈 통과
+Learner passes quiz
   ↓
-ClaudeTerminal이 감지 (useLearningStore.isQuizPassed === true)
+ClaudeTerminal detects (useLearningStore.isQuizPassed === true)
   ↓
-Claude 에이전트가 터미널에 메시지 표시:
-  "Great job! You passed Stage 3 with a score of 85/100! 🎓
+Claude agent displays message in terminal:
+  "Great job! You passed Stage 3 with a score of 85/100!
    I'm unlocking Stage 4 for you now..."
   ↓
-에이전트가 Session Key로 /api/x402/unlock-stage 호출
+Agent calls /api/x402/unlock-stage with Session Key
   ↓
-x402 플로우 자동 실행 (402 → 서명 → 결제 → 200 OK)
+x402 flow executes automatically (402 -> sign -> pay -> 200 OK)
   ↓
-성공 시 터미널 메시지:
-  "✅ Stage 4 unlocked! Payment: 0.001 KITE
-   Tx: 0x1234...abcd (View on KiteScan ↗)
+On success, terminal message:
+  "Stage 4 unlocked! Payment: 0.001 KITE
+   Tx: 0x1234...abcd (View on KiteScan)
    Your progress has been recorded on-chain."
   ↓
-setDoorUnlocked(true) → 스테이지 문 열림
+setDoorUnlocked(true) -> Stage door opens
 ```
 
-### 14.2 실패 핸들링
+### 14.2 Failure Handling
 
 ```
-잔액 부족 시:
-  "⚠️ Insufficient KITE balance to unlock Stage 4.
+Insufficient balance:
+  "Insufficient KITE balance to unlock Stage 4.
    Current balance: 0.0005 KITE | Required: 0.001 KITE
    Get test tokens: https://faucet.gokite.ai"
 
-한도 초과 시:
-  "⚠️ Daily spending limit reached (0.1 KITE).
+Limit exceeded:
+  "Daily spending limit reached (0.1 KITE).
    Please update your Standing Intent in the Agent Dashboard."
 
-네트워크 오류 시:
-  "⚠️ Payment failed due to network error. Retrying in 5s..."
-  → 최대 3회 자동 재시도
+Network error:
+  "Payment failed due to network error. Retrying in 5s..."
+  -> Auto-retry up to 3 times
 ```
 
-### 14.3 Claude Terminal 어댑터 수정
+### 14.3 Claude Terminal Adapter Modification
 
-`src/lib/adapters/claude-terminal.ts`에 결제 트리거 메서드 추가:
+Add payment trigger method to `src/lib/adapters/claude-terminal.ts`:
 
 ```typescript
 export interface ClaudeTerminalAdapter {
-  // 기존 메서드들...
+  // Existing methods...
   sendMessage(message: string): Promise<string>;
 
-  // 추가: 자율 결제 관련
+  // Added: autonomous payment related
   onQuizPassed?(params: {
     paperId: string;
     stageNum: number;
@@ -1414,40 +1414,40 @@ export interface ClaudeTerminalAdapter {
 }
 ```
 
-### 14.4 핵심 요구사항
+### 14.4 Key Requirements
 
-- **수동 지갑 클릭 절대 없음:** Session Key가 자동으로 트랜잭션 서명
-- **결제 결과를 터미널에 실시간 표시:** 사용자가 에이전트의 경제적 행위를 직접 관찰
-- **모든 트랜잭션 추적 가능:** txHash, KiteScan 링크 제공
-- **바운티 심사 핵심:** "Agent Autonomy — minimal human involvement" 기준 직접 대응
+- **Absolutely no manual wallet clicks:** Session Key automatically signs transactions
+- **Real-time display of payment results in terminal:** User directly observes the agent's economic actions
+- **All transactions trackable:** txHash, KiteScan link provided
+- **Bounty evaluation core:** Directly addresses "Agent Autonomy — minimal human involvement" criterion
 
 ---
 
-## 15. Phase 7: 배포 & 데모
+## 15. Phase 7: Deployment & Demo
 
-**예상 소요:** 1일
-**산출물:** Vercel 배포, README, 데모 영상
+**Estimated Duration:** 1 day
+**Deliverables:** Vercel deployment, README, demo video
 
-### 15.1 배포 체크리스트
+### 15.1 Deployment Checklist
 
-- [ ] Vercel에 프로덕션 배포 (공개 URL)
-- [ ] 환경변수 설정 (Vercel Dashboard)
-- [ ] LearningLedger 컨트랙트 Kite Testnet 배포 + KiteScan 검증
-- [ ] Faucet에서 테스트 KITE 토큰 충분히 확보
-- [ ] 모든 x402 API 라우트 동작 확인
-- [ ] 에이전트 대시보드 접근 가능
-- [ ] 자율 결제 E2E 테스트 통과
+- [ ] Production deployment on Vercel (public URL)
+- [ ] Set environment variables (Vercel Dashboard)
+- [ ] Deploy LearningLedger contract to Kite Testnet + verify on KiteScan
+- [ ] Ensure sufficient test KITE tokens from Faucet
+- [ ] Verify all x402 API routes are working
+- [ ] Agent dashboard accessible
+- [ ] End-to-end autonomous payment test passed
 
-### 15.2 README 요구사항
+### 15.2 README Requirements
 
 ```markdown
 # Papers LMS — AI Tutor Agent with Economic Autonomy
 
 ## Overview
-[프로젝트 설명, 스크린샷]
+[Project description, screenshots]
 
 ## Architecture
-[시스템 아키텍처 다이어그램]
+[System architecture diagram]
 
 ## Quick Start
 1. Clone repo
@@ -1458,7 +1458,7 @@ export interface ClaudeTerminalAdapter {
 6. Run dev: `yarn dev`
 
 ## Live Demo
-[Vercel 배포 URL]
+[Vercel deployment URL]
 
 ## Key Features
 - AI agent autonomous payments (no manual wallet clicks)
@@ -1468,162 +1468,162 @@ export interface ClaudeTerminalAdapter {
 - Session Key scoped permissions
 
 ## Tech Stack
-[기술 스택 표]
+[Tech stack table]
 
 ## License
 MIT
 ```
 
-### 15.3 데모 시나리오 (심사용)
+### 15.3 Demo Scenario (for Judges)
 
-1. **에이전트 아이덴티티 시연:**
-   - Agent Dashboard 열기 → DID, 지갑 주소, KitePass 표시
-   - Standing Intent 설정 → 한도, 화이트리스트 확인
+1. **Agent Identity Demo:**
+   - Open Agent Dashboard -> Display DID, wallet address, KitePass
+   - Set Standing Intent -> Verify limits, whitelist
 
-2. **결제 플로우 시연:**
-   - 코스 입장 → 퀴즈 풀기 → 통과
-   - Claude 에이전트가 자동으로 결제 실행
-   - 터미널에서 txHash + KiteScan 링크 확인
-   - KiteScan에서 실제 온체인 트랜잭션 확인
+2. **Payment Flow Demo:**
+   - Enter course -> Take quiz -> Pass
+   - Claude agent automatically executes payment
+   - Verify txHash + KiteScan link in terminal
+   - Verify actual on-chain transaction on KiteScan
 
-3. **안전성 시연:**
-   - Standing Intent 한도 도달 → 에이전트 결제 거부 메시지
-   - 잔액 부족 → faucet 안내
-   - 세션 만료 → 재인증 안내
+3. **Safety Demo:**
+   - Standing Intent limit reached -> Agent payment rejection message
+   - Insufficient balance -> Faucet guidance
+   - Session expired -> Re-authentication guidance
 
-4. **온체인 증명 시연:**
-   - Agent Dashboard에서 Learning Attestations 확인
-   - attestationHash를 KiteScan에서 검증
+4. **On-chain Proof Demo:**
+   - Check Learning Attestations in Agent Dashboard
+   - Verify attestationHash on KiteScan
 
-### 15.4 데모 영상 (1-3분)
+### 15.4 Demo Video (1-3 minutes)
 
-- 전체 플로우를 화면 녹화
-- 내레이션 또는 자막으로 각 단계 설명
-- 특히 에이전트 자율 결제 순간을 강조
+- Screen recording of the full flow
+- Narration or subtitles explaining each step
+- Emphasize the moment of agent autonomous payment
 
 ---
 
-## 16. 환경 변수 & 설정
+## 16. Environment Variables & Configuration
 
 ### 16.1 .env.example
 
 ```bash
 # ===== Kite AI Chain =====
-NEXT_PUBLIC_USE_KITE_CHAIN=true           # true: 실제 체인 / false: Mock
+NEXT_PUBLIC_USE_KITE_CHAIN=true           # true: real chain / false: Mock
 NEXT_PUBLIC_KITE_CHAIN_ID=2368            # 2368: Testnet / 2366: Mainnet
 NEXT_PUBLIC_KITE_RPC_URL=https://rpc-testnet.gokite.ai/
 NEXT_PUBLIC_KITE_EXPLORER_URL=https://testnet.kitescan.ai/
-NEXT_PUBLIC_LEARNING_LEDGER_ADDRESS=      # 배포 후 입력
+NEXT_PUBLIC_LEARNING_LEDGER_ADDRESS=      # Enter after deployment
 
 # ===== Agent Wallet (Server Only — NEVER expose to client) =====
-KITE_AGENT_PRIVATE_KEY=                   # 에이전트 개인키
-KITE_USER_MNEMONIC=                       # BIP-32 키 파생용 니모닉
-KITE_MERCHANT_WALLET=                     # 결제 수신 지갑
+KITE_AGENT_PRIVATE_KEY=                   # Agent private key
+KITE_USER_MNEMONIC=                       # BIP-32 key derivation mnemonic
+KITE_MERCHANT_WALLET=                     # Payment recipient wallet
 
 # ===== x402 =====
-X402_FACILITATOR_URL=                     # x402 Facilitator 엔드포인트
+X402_FACILITATOR_URL=                     # x402 Facilitator endpoint
 
 # ===== Agent Identity =====
 NEXT_PUBLIC_AGENT_DID=did:kite:learner.eth/claude-tutor/v1
-KITE_AGENT_INDEX=0                        # BIP-32 파생 인덱스
+KITE_AGENT_INDEX=0                        # BIP-32 derivation index
 
 # ===== Standing Intent Defaults =====
 KITE_SI_MAX_TX=10000000000000000          # 0.01 KITE (wei)
 KITE_SI_DAILY_CAP=100000000000000000      # 0.1 KITE (wei)
-KITE_SI_TTL_HOURS=24                      # SI 유효 기간
+KITE_SI_TTL_HOURS=24                      # SI validity period
 
 # ===== Smart Contract Deployment (contracts/.env) =====
-DEPLOYER_PRIVATE_KEY=                     # 컨트랙트 배포용 키
+DEPLOYER_PRIVATE_KEY=                     # Contract deployment key
 ```
 
-### 16.2 보안 주의사항
+### 16.2 Security Notes
 
-| 변수 | 위치 | 노출 |
-|------|------|------|
-| `NEXT_PUBLIC_*` | 클라이언트 번들 | 공개 (민감하지 않은 정보만) |
-| `KITE_AGENT_PRIVATE_KEY` | 서버 사이드만 | **절대 클라이언트 노출 금지** |
-| `KITE_USER_MNEMONIC` | 서버 사이드만 | **절대 클라이언트 노출 금지** |
-| `DEPLOYER_PRIVATE_KEY` | CI/CD만 | 프로덕션 서버에 불필요 |
+| Variable | Location | Exposure |
+|----------|----------|----------|
+| `NEXT_PUBLIC_*` | Client bundle | Public (non-sensitive information only) |
+| `KITE_AGENT_PRIVATE_KEY` | Server-side only | **NEVER expose to client** |
+| `KITE_USER_MNEMONIC` | Server-side only | **NEVER expose to client** |
+| `DEPLOYER_PRIVATE_KEY` | CI/CD only | Not needed on production server |
 
 ---
 
-## 17. 심사 기준 대응 전략
+## 17. Evaluation Criteria Response Strategy
 
-### 17.1 Agent Autonomy (최우선)
+### 17.1 Agent Autonomy (Top Priority)
 
-| 시연 포인트 | 구현 |
-|------------|------|
-| 수동 지갑 조작 없음 | Session Key + AA Wallet 자동 서명 |
-| 결제 자동 트리거 | 퀴즈 통과 → Claude 에이전트가 즉시 결제 |
-| 진행도 자동 기록 | completeStage() 온체인 자동 호출 |
-| 실패 자동 처리 | 재시도, 잔액 부족 안내, 대체 경로 |
+| Demo Point | Implementation |
+|------------|----------------|
+| No manual wallet interaction | Automatic signing with Session Key + AA Wallet |
+| Automatic payment trigger | Quiz passed -> Claude agent pays immediately |
+| Automatic progress recording | Automatic on-chain call to completeStage() |
+| Automatic failure handling | Retry, insufficient balance guidance, alternative paths |
 
 ### 17.2 Correct x402 Usage
 
-| 시연 포인트 | 구현 |
-|------------|------|
-| 결제-액션 매핑 | 각 API 호출 = 1 x402 결제, 로그/UI에 명확히 표시 |
-| 402 → 서명 → 200 전체 플로우 | x402Fetch가 자동 처리, 터미널에서 실시간 표시 |
-| 잔액 부족 처리 | 에러 메시지 + faucet URL + 대시보드 링크 |
-| 한도 초과 처리 | SI 설정 안내 메시지 |
+| Demo Point | Implementation |
+|------------|----------------|
+| Payment-action mapping | Each API call = 1 x402 payment, clearly shown in logs/UI |
+| Full 402 -> sign -> 200 flow | Automatically handled by x402Fetch, displayed in real-time in terminal |
+| Insufficient balance handling | Error message + faucet URL + dashboard link |
+| Limit exceeded handling | SI configuration guidance message |
 
 ### 17.3 Security & Safety
 
-| 시연 포인트 | 구현 |
-|------------|------|
-| 키 분리 | User EOA → Agent BIP-32 → Session Ephemeral |
-| 스코프 제한 | SI: 특정 컨트랙트 + 특정 함수만 허용 |
-| 지출 한도 | 트랜잭션당 + 일일 한도 온체인 강제 |
-| 자동 만료 | Session Key TTL + SI 만료일 |
-| 감사 추적 | 모든 트랜잭션 KiteScan에서 검증 가능 |
+| Demo Point | Implementation |
+|------------|----------------|
+| Key separation | User EOA -> Agent BIP-32 -> Session Ephemeral |
+| Scope restriction | SI: only specific contracts + specific functions allowed |
+| Spending limits | Per-transaction + daily limit enforced on-chain |
+| Automatic expiry | Session Key TTL + SI expiration date |
+| Audit trail | All transactions verifiable on KiteScan |
 
 ### 17.4 Developer Experience
 
-| 시연 포인트 | 구현 |
-|------------|------|
-| 어댑터 패턴 | 환경변수 하나로 Mock ↔ Real 전환 |
-| 명확한 인터페이스 | TypeScript 타입 전체 정의 |
-| .env.example | 모든 설정값 문서화 |
-| README | 아키텍처, 퀵스타트, 스크린샷 |
+| Demo Point | Implementation |
+|------------|----------------|
+| Adapter pattern | Switch between Mock and Real with a single environment variable |
+| Clear interfaces | Full TypeScript type definitions |
+| .env.example | All configuration values documented |
+| README | Architecture, quick start, screenshots |
 
 ### 17.5 Real-world Applicability
 
-| 시연 포인트 | 구현 |
-|------------|------|
-| 교육 플랫폼 = 실제 시장 | 논문 기반 학습 LMS |
-| 마이크로페이먼트 | 0.001 KITE/스테이지, sub-cent 수수료 |
-| 학습 증명 | 온체인 attestation, Verifiable Credential |
-| 확장성 | 어댑터 패턴으로 다른 체인/결제 교체 가능 |
+| Demo Point | Implementation |
+|------------|----------------|
+| Educational platform = real market | Paper-based learning LMS |
+| Micropayments | 0.001 KITE/stage, sub-cent fees |
+| Learning proofs | On-chain attestation, Verifiable Credential |
+| Scalability | Adapter pattern enables other chain/payment replacements |
 
 ---
 
-## 18. 일정 & 마일스톤
+## 18. Schedule & Milestones
 
-| Phase | 작업 | 예상 소요 | 의존성 |
-|-------|------|-----------|--------|
-| **1** | 스마트 컨트랙트 개발 & 배포 | 1-2일 | 없음 |
-| **2** | 에이전트 월렛 & 아이덴티티 | 1-2일 | Phase 1 (ABI 필요) |
-| **3** | x402 API 라우트 | 1일 | Phase 1, 2 |
-| **4** | 어댑터 교체 (Mock → Real) | 1일 | Phase 3 |
-| **5** | 에이전트 대시보드 | 1-2일 | Phase 2, 3 |
-| **6** | Claude 터미널 자율 결제 | 1일 | Phase 4 |
-| **7** | 배포 & 데모 | 1일 | Phase 1-6 |
-| **총계** | | **7-10일** | |
+| Phase | Task | Estimated Duration | Dependencies |
+|-------|------|-------------------|--------------|
+| **1** | Smart contract development & deployment | 1-2 days | None |
+| **2** | Agent wallet & identity | 1-2 days | Phase 1 (ABI needed) |
+| **3** | x402 API routes | 1 day | Phase 1, 2 |
+| **4** | Adapter replacement (Mock to Real) | 1 day | Phase 3 |
+| **5** | Agent dashboard | 1-2 days | Phase 2, 3 |
+| **6** | Claude terminal autonomous payment | 1 day | Phase 4 |
+| **7** | Deployment & demo | 1 day | Phase 1-6 |
+| **Total** | | **7-10 days** | |
 
-**기존 코드베이스 활용률:** ~70% (어댑터 패턴, Zustand 스토어, UI 컴포넌트, Canvas 렌더링 등 재사용)
+**Existing codebase utilization rate:** ~70% (adapter pattern, Zustand stores, UI components, Canvas rendering, etc. reused)
 
 ---
 
-## 19. 참고 자료
+## 19. References
 
-### 공식 문서
+### Official Documentation
 - Kite AI Docs: https://docs.gokite.ai/
 - Kite Foundation Whitepaper: https://kite.foundation/whitepaper
 - x402 Protocol: https://www.x402.org/
 - x402 GitHub: https://github.com/coinbase/x402
 - Coinbase x402 Docs: https://docs.cdp.coinbase.com/x402/welcome
 
-### 체인 인프라
+### Chain Infrastructure
 - Testnet RPC: https://rpc-testnet.gokite.ai/ (Chain ID: 2368)
 - Mainnet RPC: https://rpc.gokite.ai/ (Chain ID: 2366)
 - Testnet Explorer: https://testnet.kitescan.ai/
@@ -1633,14 +1633,14 @@ DEPLOYER_PRIVATE_KEY=                     # 컨트랙트 배포용 키
 - ChainList (Testnet): https://chainlist.org/chain/2368
 - ChainList (Mainnet): https://chainlist.org/chain/2366
 
-### SDK & 개발 도구
+### SDK & Development Tools
 - Kite AI GitHub: https://github.com/gokite-ai
 - AA SDK Guide: https://docs.gokite.ai/kite-chain/5-advanced/account-abstraction-sdk
 - Multi-sig Guide: https://docs.gokite.ai/kite-chain/5-advanced/multisig-wallet
 - Stablecoin Gasless: https://docs.gokite.ai/kite-chain/stablecoin-gasless-transfer
 - Counter dApp Example: https://docs.gokite.ai/kite-chain/3-developing/counter-smart-contract-hardhat
 
-### NPM 패키지
+### NPM Packages
 ```bash
 # x402 SDK
 @x402/core @x402/evm @x402/fetch @x402/express

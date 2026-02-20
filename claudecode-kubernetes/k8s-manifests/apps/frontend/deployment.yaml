@@ -1,5 +1,5 @@
-# Papers with Claude Code 프론트엔드 Deployment
-# 현재는 nginx:alpine 플레이스홀더 - 실제 프론트엔드 이미지로 교체 예정
+# Papers with Claude Code Frontend Deployment
+# Currently an nginx:alpine placeholder - to be replaced with the actual frontend image
 apiVersion: apps/v1
 kind: Deployment
 metadata:

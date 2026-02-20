@@ -1,5 +1,5 @@
-// x402 서비스 프로바이더 — 스테이지 언락 결제 처리
-// HTTP 402 반환 → 결제 검증 → facilitator 정산 → txHash 반환
+// x402 service provider — stage unlock payment processing
+// Return HTTP 402 -> payment verification -> facilitator settlement -> return txHash
 
 import { Router, Request, Response } from 'express';
 import type { ProgressStore } from '../db/progress.js';
@@ -9,14 +9,14 @@ const KITE_TESTNET_USDT = '0x0fF5393387ad2f9f691FD6Fd28e07E3969e27e63';
 
 export function createX402Router(progressStore: ProgressStore, config: {
   merchantWallet: string;
-  stagePrice: string;  // wei 단위 (e.g., "1000000000000000000" = 1 USDT)
+  stagePrice: string;  // in wei units (e.g., "1000000000000000000" = 1 USDT)
   serviceName: string;
 }): Router {
   const router = Router();
 
   // POST /x402/unlock-stage
-  // X-PAYMENT 헤더 없으면 → 402 반환
-  // X-PAYMENT 헤더 있으면 → facilitator로 검증+정산 → 200 반환
+  // If no X-PAYMENT header -> return 402
+  // If X-PAYMENT header present -> verify+settle via facilitator -> return 200
   router.post('/x402/unlock-stage', async (req: Request, res: Response) => {
     const { courseId, stageNumber, userId } = req.body as {
       courseId?: string;
@@ -29,7 +29,7 @@ export function createX402Router(progressStore: ProgressStore, config: {
       return;
     }
 
-    // 이미 결제된 스테이지인지 확인
+    // Check if the stage has already been paid for
     if (userId && progressStore.isStageUnlocked(userId, courseId, stageNumber)) {
       res.json({ success: true, stageNumber, courseId, alreadyUnlocked: true });
       return;
@@ -38,7 +38,7 @@ export function createX402Router(progressStore: ProgressStore, config: {
     const xPayment = req.headers['x-payment'] as string | undefined;
 
     if (!xPayment) {
-      // 402 Payment Required 반환
+      // Return 402 Payment Required
       res.status(402).json({
         error: 'X-PAYMENT header is required',
         accepts: [{
@@ -78,9 +78,9 @@ export function createX402Router(progressStore: ProgressStore, config: {
       return;
     }
 
-    // X-PAYMENT 헤더가 있으면 → facilitator로 검증 + 정산
+    // If X-PAYMENT header is present -> verify + settle via facilitator
     try {
-      // X-PAYMENT은 base64 인코딩된 JSON
+      // X-PAYMENT is base64-encoded JSON
       const paymentData = JSON.parse(Buffer.from(xPayment, 'base64').toString());
 
       // 1) Verify
@@ -97,7 +97,7 @@ export function createX402Router(progressStore: ProgressStore, config: {
         return;
       }
 
-      // 2) Settle (온체인 정산)
+      // 2) Settle (on-chain settlement)
       const settleRes = await fetch(`${FACILITATOR_URL}/v2/settle`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -114,7 +114,7 @@ export function createX402Router(progressStore: ProgressStore, config: {
       const settleData = await settleRes.json() as { txHash?: string; transactionHash?: string };
       const txHash = settleData.txHash || settleData.transactionHash || '';
 
-      // 3) DB에 결제 기록
+      // 3) Record payment in DB
       if (userId) {
         progressStore.saveStagePayment(userId, courseId, stageNumber, txHash, '');
       }

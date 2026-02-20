@@ -1,5 +1,5 @@
-# claudecode-terminal 네임스페이스 정의
-# 웹 터미널 서비스와 사용자 샌드박스 Pod가 실행되는 격리된 네임스페이스
+# claudecode-terminal namespace definition
+# Isolated namespace where the web terminal service and user sandbox Pods run
 apiVersion: v1
 kind: Namespace
 metadata:

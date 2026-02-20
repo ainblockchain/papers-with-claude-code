@@ -1,4 +1,4 @@
-// 세션 및 설정 타입 정의
+// Session and configuration type definitions
 
 export interface Session {
   id: string;
@@ -21,7 +21,7 @@ export interface AppConfig {
   sessionTimeoutSeconds: number;
   maxSessions: number;
   port: number;
-  // x402 결제 설정 (facilitator 기반)
+  // x402 payment settings (facilitator-based)
   x402MerchantWallet: string;
   x402StagePrice: string;
   x402FacilitatorUrl: string;

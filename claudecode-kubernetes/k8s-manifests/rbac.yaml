@@ -1,5 +1,5 @@
-# RBAC 설정 - 웹 터미널 서비스가 K8s API를 통해 샌드박스 Pod를 관리하기 위한 권한 정의
-# ServiceAccount, Role, RoleBinding으로 구성
+# RBAC Configuration - Permission definitions for the web terminal service to manage sandbox Pods via K8s API
+# Composed of ServiceAccount, Role, and RoleBinding
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -17,21 +17,21 @@ metadata:
   labels:
     app.kubernetes.io/part-of: claudecode-web-terminal
 rules:
-  # 사용자 샌드박스 Pod의 생성, 조회, 삭제, 감시를 위한 권한
+  # Permissions for creating, viewing, deleting, and watching user sandbox Pods
   - apiGroups: [""]
     resources: ["pods"]
     verbs: ["get", "list", "create", "delete", "watch"]
-  # 샌드박스 Pod 내부에서 명령어를 실행하기 위한 exec 권한
-  # WebSocket 업그레이드가 GET으로 시작되므로 get + create 모두 필요
+  # Exec permissions for executing commands inside sandbox Pods
+  # Both get + create are required since WebSocket upgrade starts with GET
   - apiGroups: [""]
     resources: ["pods/exec"]
     verbs: ["get", "create"]
-  # 샌드박스 Pod의 로그를 조회하기 위한 권한
+  # Permissions for viewing sandbox Pod logs
   - apiGroups: [""]
     resources: ["pods/log"]
     verbs: ["get"]
-  # 참고: secrets 권한은 의도적으로 제거됨.
-  # API 키는 프록시 서비스가 자체 관리하며, 웹 터미널 서비스가 시크릿에 접근할 필요 없음.
+  # Note: secrets permissions are intentionally removed.
+  # API keys are managed by the proxy service itself, and the web terminal service does not need access to secrets.
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

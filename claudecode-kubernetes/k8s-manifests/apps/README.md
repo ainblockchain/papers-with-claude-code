@@ -1,20 +1,20 @@
 # apps/
 
-Papers with Claude Code 프로젝트의 개별 애플리케이션 배포 매니페스트.
+Individual application deployment manifests for the Papers with Claude Code project.
 
-## 디렉토리 구조
+## Directory Structure
 
 ```
 apps/
-├── frontend/                    # 프론트엔드 웹앱 (nginx:alpine 플레이스홀더)
-├── knowledge-graph-builder/     # Knowledge Graph Builder (향후 구성)
-└── ainblockchain-integration/   # AIN Blockchain 연동 (향후 구성)
+├── frontend/                    # Frontend web app (nginx:alpine placeholder)
+├── knowledge-graph-builder/     # Knowledge Graph Builder (to be configured)
+└── ainblockchain-integration/   # AIN Blockchain integration (to be configured)
 ```
 
-## 네임스페이스 매핑
+## Namespace Mapping
 
-| 앱 | 네임스페이스 |
-|-----|-------------|
+| App | Namespace |
+|-----|-----------|
 | frontend | papers-frontend |
 | knowledge-graph-builder | papers-backend |
 | ainblockchain-integration | papers-blockchain |

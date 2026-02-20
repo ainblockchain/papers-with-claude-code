@@ -1,46 +1,46 @@
 # API Proxy
 
-샌드박스 Pod의 Anthropic API 요청을 중계하는 역방향 프록시. Pod 내의 더미 API 키를 K8s Secret에서 로드한 진짜 키로 교체 후 `api.anthropic.com`으로 전달.
+A reverse proxy that relays Anthropic API requests from sandbox Pods. Replaces the dummy API key in the Pod with the real key loaded from a K8s Secret, then forwards to `api.anthropic.com`.
 
-## 구조
+## Structure
 
 ```
 api-proxy/
 ├── src/
-│   ├── server.ts        # Express 진입점, health check
-│   ├── proxy.ts         # 핵심 프록시 로직 (x-api-key 헤더 교체, SSE 스트리밍)
-│   └── rate-limiter.ts  # Pod IP 기반 분당 30회 요청 제한
-├── Dockerfile           # node:20-alpine 멀티스테이지 빌드
+│   ├── server.ts        # Express entry point, health check
+│   ├── proxy.ts         # Core proxy logic (x-api-key header replacement, SSE streaming)
+│   └── rate-limiter.ts  # Pod IP-based rate limiting at 30 requests per minute
+├── Dockerfile           # node:20-alpine multi-stage build
 ├── package.json
 └── tsconfig.json
 ```
 
-## 허용 경로
+## Allowed Paths
 
-프록시를 통해 접근 가능한 API 경로 (나머지는 403):
-- `POST /v1/messages` — 메시지 생성 (SSE 스트리밍 포함)
-- `POST /v1/messages/count_tokens` — 토큰 수 계산
+API paths accessible through the proxy (all others return 403):
+- `POST /v1/messages` — Message creation (including SSE streaming)
+- `POST /v1/messages/count_tokens` — Token count calculation
 
-## 환경변수
+## Environment Variables
 
-| 변수 | 필수 | 설명 |
-|------|------|------|
-| `ANTHROPIC_API_KEY` | Yes | 진짜 Anthropic API 키 (K8s Secret에서 주입) |
-| `PORT` | No | 리스닝 포트 (기본: 8080) |
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `ANTHROPIC_API_KEY` | Yes | Real Anthropic API key (injected from K8s Secret) |
+| `PORT` | No | Listening port (default: 8080) |
 
-## 빌드 & 배포
+## Build & Deploy
 
 ```bash
-# 로컬 빌드
+# Local build
 npm install && npm run build
 
-# Docker 이미지
+# Docker image
 docker build -t claudecode-api-proxy:latest .
 
-# k3s 임포트
+# k3s import
 docker save claudecode-api-proxy:latest | sudo k3s ctr images import -
 
-# K8s 배포
+# K8s deployment
 kubectl apply -f ../k8s-manifests/api-proxy-deployment.yaml
 kubectl apply -f ../k8s-manifests/api-proxy-service.yaml
 ```

@@ -167,7 +167,7 @@ class CourseBuilder:
         return best
 
     def _generate_lessons(self, kg: KnowledgeGraph, concept_ids: list[str]) -> list[Lesson]:
-        # 전처리: 순서 보존을 위해 (index, node, prereq_names) 수집
+        # Preprocessing: collect (index, node, prereq_names) to preserve order
         tasks: list[tuple[int, ConceptNode, list[str]]] = []
         for concept_id in concept_ids:
             node = kg.get_concept(concept_id)

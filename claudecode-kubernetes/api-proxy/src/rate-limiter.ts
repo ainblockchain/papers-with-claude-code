@@ -1,5 +1,5 @@
-// Pod IP 기반 요청 속도 제한
-// 슬라이딩 윈도우 방식으로 분당 요청 수를 제한하여 API 남용 방지
+// Pod IP-based request rate limiting
+// Limits requests per minute using a sliding window approach to prevent API abuse
 
 import { Request, Response, NextFunction } from 'express';
 
@@ -9,10 +9,10 @@ interface RateLimitEntry {
 
 const store = new Map<string, RateLimitEntry>();
 
-const WINDOW_MS = 60_000; // 1분
-const MAX_REQUESTS = 30;  // 분당 최대 요청 수
+const WINDOW_MS = 60_000; // 1 minute
+const MAX_REQUESTS = 30;  // Max requests per minute
 
-// 오래된 엔트리를 주기적으로 정리 (메모리 누수 방지)
+// Periodically clean up old entries (prevent memory leaks)
 setInterval(() => {
   const now = Date.now();
   for (const [key, entry] of store) {
@@ -24,7 +24,7 @@ setInterval(() => {
 }, WINDOW_MS);
 
 export function rateLimiter(req: Request, res: Response, next: NextFunction): void {
-  // X-Forwarded-For가 없으면 직접 연결 IP 사용 (클러스터 내부 통신)
+  // Use direct connection IP if X-Forwarded-For is not present (intra-cluster communication)
   const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
   const now = Date.now();
 
@@ -34,7 +34,7 @@ export function rateLimiter(req: Request, res: Response, next: NextFunction): vo
     store.set(clientIp, entry);
   }
 
-  // 윈도우 밖의 오래된 타임스탬프 제거
+  // Remove old timestamps outside the window
   entry.timestamps = entry.timestamps.filter((t) => now - t < WINDOW_MS);
 
   if (entry.timestamps.length >= MAX_REQUESTS) {

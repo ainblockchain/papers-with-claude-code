@@ -1,4 +1,4 @@
-# Environment variables — 실수로 시크릿이 커밋되는 것을 방지
+# Environment variables — Prevent secrets from being committed accidentally
 .env
 .env.local
 .env.*.local

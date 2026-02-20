@@ -1,5 +1,5 @@
-# 프로덕션(production) 환경 Kustomize 오버레이
-# 고가용성 - 2+ 레플리카, 충분한 리소스 할당
+# Production environment Kustomize overlay
+# High availability - 2+ replicas, sufficient resource allocation
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 

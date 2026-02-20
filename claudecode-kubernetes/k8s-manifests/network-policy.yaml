@@ -1,13 +1,13 @@
-# NetworkPolicy — 샌드박스 Pod의 네트워크 접근을 최소화
+# NetworkPolicy — Minimize network access for sandbox Pods
 #
-# ⚠️  주의: k3s 기본 CNI(Flannel)는 NetworkPolicy를 지원하지 않음.
-# 이 정책이 실제로 적용되려면 Calico 또는 Cilium CNI 설치 필요:
-#   k3s 재설치: curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--flannel-backend=none --disable-network-policy" sh -
-#   Calico 설치: kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.28.0/manifests/calico.yaml
+# ⚠️  Note: The default k3s CNI (Flannel) does not support NetworkPolicy.
+# To actually enforce these policies, Calico or Cilium CNI installation is required:
+#   Reinstall k3s: curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--flannel-backend=none --disable-network-policy" sh -
+#   Install Calico: kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.28.0/manifests/calico.yaml
 #
-# 적용해도 Flannel에서는 에러 없이 무시됨 (무해하지만 효과 없음).
+# Applying on Flannel will be silently ignored without errors (harmless but has no effect).
 
-# 1. 샌드박스 Pod → API Proxy + DNS만 허용 (외부 통신 차단)
+# 1. Sandbox Pod → Allow only API Proxy + DNS (block external communication)
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -20,7 +20,7 @@ spec:
   policyTypes:
     - Egress
   egress:
-    # API Proxy 서비스로의 통신 허용
+    # Allow communication to the API Proxy service
     - to:
         - podSelector:
             matchLabels:
@@ -28,7 +28,7 @@ spec:
       ports:
         - port: 8080
           protocol: TCP
-    # DNS 조회 허용 (kube-dns / CoreDNS)
+    # Allow DNS lookups (kube-dns / CoreDNS)
     - to:
         - namespaceSelector: {}
       ports:
@@ -39,8 +39,8 @@ spec:
 
 ---
 
-# 2. API Proxy → 외부 Anthropic API 통신 허용
-# API Proxy Pod은 외부 인터넷(api.anthropic.com)과 통신해야 하므로 egress 제한 없음
+# 2. API Proxy → Allow external Anthropic API communication
+# API Proxy Pod needs to communicate with the external internet (api.anthropic.com), so no egress restrictions
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -53,11 +53,11 @@ spec:
   policyTypes:
     - Egress
   egress:
-    - {}  # 모든 외부 통신 허용
+    - {}  # Allow all external communication
 
 ---
 
-# 3. API Proxy Ingress — 샌드박스 Pod에서 오는 요청만 허용
+# 3. API Proxy Ingress — Allow only requests coming from sandbox Pods
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:

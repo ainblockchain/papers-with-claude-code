@@ -1,5 +1,5 @@
-# 네임스페이스별 리소스 쿼터 - 전체 8 vCPU / 240GB RAM 중 애플리케이션 할당량
-# 나머지는 claudecode-terminal 네임스페이스와 시스템(kube-system)이 사용
+# Per-namespace resource quotas - Application allocation out of total 8 vCPU / 240GB RAM
+# The remainder is used by the claudecode-terminal namespace and system (kube-system)
 apiVersion: v1
 kind: ResourceQuota
 metadata:

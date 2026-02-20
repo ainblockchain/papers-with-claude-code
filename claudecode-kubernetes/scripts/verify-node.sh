@@ -1,6 +1,6 @@
 #!/bin/bash
-# k3s 노드 상태 검증 스크립트
-# Mac에서 실행하여 k8s-node의 상태를 확인합니다.
+# k3s node status verification script
+# Run on Mac to check the status of k8s-node.
 
 KUBECONFIG="${KUBECONFIG:-$HOME/.kube/config-k8s-node}"
 export KUBECONFIG

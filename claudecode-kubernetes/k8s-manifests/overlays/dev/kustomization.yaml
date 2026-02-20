@@ -1,5 +1,5 @@
-# 개발(dev) 환경 Kustomize 오버레이
-# 최소 리소스로 운영 - 단일 레플리카, 낮은 리소스 제한
+# Development (dev) environment Kustomize overlay
+# Operates with minimal resources - single replica, low resource limits
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 

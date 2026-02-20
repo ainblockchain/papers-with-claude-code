@@ -1,35 +1,35 @@
-# 트러블슈팅 가이드
+# Troubleshooting Guide
 
-실제 구축 과정에서 발생한 이슈와 해결 방법.
+Issues encountered during the actual setup process and their solutions.
 
 ---
 
 ## RBAC 403 on exec
 
-**증상**: 웹 터미널에서 Pod exec 시도 시 `403 Forbidden` 에러.
+**Symptom**: `403 Forbidden` error when attempting Pod exec from the web terminal.
 
-**원인**: `pods/exec` 리소스에 `create` 권한만 부여하면 안 됨. WebSocket 업그레이드가 HTTP GET으로 시작되기 때문에 `get` 권한도 필요하다.
+**Cause**: Granting only `create` permission to the `pods/exec` resource is insufficient. Since the WebSocket upgrade starts with an HTTP GET, `get` permission is also required.
 
-**해결**:
+**Solution**:
 
 ```yaml
 # rbac.yaml
 - apiGroups: [""]
   resources: ["pods/exec"]
-  verbs: ["get", "create"]  # get 누락하면 403 발생
+  verbs: ["get", "create"]  # Missing get causes 403
 ```
 
-**파일**: `k8s-manifests/rbac.yaml`
+**File**: `k8s-manifests/rbac.yaml`
 
 ---
 
-## K8s client-node exec 토큰 이슈
+## K8s client-node exec Token Issue
 
-**증상**: Pod 내부에서 실행되는 web-terminal-service가 `loadFromCluster()`로 K8s 클라이언트를 초기화하면, REST API는 정상 동작하지만 exec(WebSocket)에서 인증 실패.
+**Symptom**: When web-terminal-service running inside a Pod initializes the K8s client with `loadFromCluster()`, the REST API works normally but exec (WebSocket) fails authentication.
 
-**원인**: `@kubernetes/client-node` v1.x의 `loadFromCluster()`는 `authProvider: tokenFile` 방식을 사용하는데, 이 프로바이더가 WebSocket 연결 시 토큰을 헤더에 포함시키지 않는 버그가 있음.
+**Cause**: `loadFromCluster()` in `@kubernetes/client-node` v1.x uses the `authProvider: tokenFile` approach, which has a bug where the token is not included in the header during WebSocket connections.
 
-**해결**: `loadFromCluster()` 대신 서비스어카운트 토큰을 직접 읽어서 `loadFromOptions()`로 수동 구성.
+**Solution**: Instead of `loadFromCluster()`, read the ServiceAccount token directly and configure manually with `loadFromOptions()`.
 
 ```typescript
 // web-terminal/src/k8s/client.ts
@@ -42,15 +42,15 @@ kc.loadFromOptions({
 });
 ```
 
-**파일**: `web-terminal/src/k8s/client.ts`
+**File**: `web-terminal/src/k8s/client.ts`
 
 ---
 
-## Claude Code 온보딩 스킵
+## Claude Code Onboarding Skip
 
-**증상**: 샌드박스 Pod에서 Claude Code CLI 첫 실행 시 대화형 온보딩이 뜨면서 WebSocket 터미널에서 진행 불가.
+**Symptom**: When running Claude Code CLI for the first time in a sandbox Pod, an interactive onboarding screen appears and cannot be completed in the WebSocket terminal.
 
-**해결**: `~/.claude/.claude.json`에 온보딩 완료 플래그를 미리 설정.
+**Solution**: Pre-set the onboarding completion flag in `~/.claude/.claude.json`.
 
 ```json
 {
@@ -58,105 +58,105 @@ kc.loadFromOptions({
 }
 ```
 
-Docker 이미지 빌드 시 `start-claude.sh`에서 이 파일을 자동 생성하도록 구성.
+Configured to automatically generate this file in `start-claude.sh` during Docker image build.
 
-**파일**: `docker/claudecode-sandbox/start-claude.sh`
+**File**: `docker/claudecode-sandbox/start-claude.sh`
 
 ---
 
 ## Pod ImagePullBackOff
 
-**증상**: Pod가 `ImagePullBackOff` 상태에서 시작되지 않음.
+**Symptom**: Pod does not start and remains in `ImagePullBackOff` status.
 
-**원인**: 로컬에서 빌드한 이미지를 사용하는데 K8s가 기본적으로 레지스트리에서 pull 시도.
+**Cause**: Using locally built images, but K8s attempts to pull from a registry by default.
 
-**해결**: Deployment의 `imagePullPolicy`를 `Never`로 설정.
+**Solution**: Set `imagePullPolicy` to `Never` in the Deployment.
 
 ```yaml
 containers:
   - name: web-terminal
     image: web-terminal-service:latest
-    imagePullPolicy: Never  # 로컬 이미지 사용
+    imagePullPolicy: Never  # Use local images
 ```
 
-이미지를 k3s containerd에 직접 임포트해야 함:
+Images must be directly imported into k3s containerd:
 
 ```bash
 docker save web-terminal-service:latest | sudo k3s ctr images import -
 docker save claudecode-sandbox:latest | sudo k3s ctr images import -
 ```
 
-**파일**: `k8s-manifests/deployment.yaml`
+**File**: `k8s-manifests/deployment.yaml`
 
 ---
 
-## SSH 접속 불가
+## Cannot SSH
 
-**증상**: `ssh <K8S_NODE_IP>` 접속 시 permission denied 또는 연결 거부.
+**Symptom**: Permission denied or connection refused when attempting `ssh <K8S_NODE_IP>`.
 
-**확인 사항**:
+**Checklist**:
 
-1. 사용자명 확인: `<USERNAME>@<K8S_NODE_IP>` (root 아님)
-2. VPN 연결 상태 확인
-3. 라우팅 추가 확인: `sudo route add -net <SUBNET> -interface ppp0`
-4. SSH 키가 등록되어 있는지: `ssh-copy-id <USERNAME>@<K8S_NODE_IP>`
+1. Verify username: `<USERNAME>@<K8S_NODE_IP>` (not root)
+2. Check VPN connection status
+3. Verify routing is added: `sudo route add -net <SUBNET> -interface ppp0`
+4. Check if SSH key is registered: `ssh-copy-id <USERNAME>@<K8S_NODE_IP>`
 
 ---
 
-## Mac에서 kubectl 접속 안 됨
+## Cannot Connect kubectl from Mac
 
-**증상**: `kubectl get nodes` 실행 시 연결 타임아웃 또는 인증 실패.
+**Symptom**: Connection timeout or authentication failure when running `kubectl get nodes`.
 
-**확인 사항**:
+**Checklist**:
 
 ```bash
-# 1. KUBECONFIG 설정 확인
+# 1. Check KUBECONFIG setting
 echo $KUBECONFIG
-# 출력: ~/.kube/config-k8s-node 이어야 함
+# Output should be: ~/.kube/config-k8s-node
 
-# 2. kubeconfig의 서버 IP 확인
+# 2. Check server IP in kubeconfig
 grep server ~/.kube/config-k8s-node
-# 출력: server: https://<K8S_NODE_IP>:6443 이어야 함 (127.0.0.1 아님)
+# Output should be: server: https://<K8S_NODE_IP>:6443 (not 127.0.0.1)
 
-# 3. VPN + 라우팅 확인
+# 3. Check VPN + routing
 ping <K8S_NODE_IP>
 
-# 4. VM 방화벽 확인
+# 4. Check VM firewall
 ssh <USERNAME>@<K8S_NODE_IP> "sudo ufw status"
-# 출력: inactive 이어야 함
+# Output should be: inactive
 ```
 
 ---
 
-## Pod 로그 확인
+## Checking Pod Logs
 
-문제 발생 시 가장 먼저 확인할 것:
+First thing to check when issues occur:
 
 ```bash
-# web-terminal-service 로그
+# web-terminal-service logs
 kubectl logs -n claudecode-terminal deployment/web-terminal-service -f
 
-# 특정 샌드박스 Pod 로그
+# Specific sandbox Pod logs
 kubectl logs -n claudecode-terminal <pod-name>
 
-# Pod 상태 및 이벤트 확인
+# Check Pod status and events
 kubectl describe pod -n claudecode-terminal <pod-name>
 
-# 전체 이벤트 확인
+# Check all events
 kubectl get events -n claudecode-terminal --sort-by=.lastTimestamp
 ```
 
 ---
 
-## k3s 서비스 문제
+## k3s Service Issues
 
 ```bash
-# k3s 서비스 상태
+# k3s service status
 sudo systemctl status k3s
 
-# k3s 로그 (실시간)
+# k3s logs (real-time)
 sudo journalctl -u k3s -f
 
-# k3s 재시작
+# Restart k3s
 sudo systemctl restart k3s
 ```

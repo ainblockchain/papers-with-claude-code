@@ -1,14 +1,14 @@
 # apps/knowledge-graph-builder/
 
-Knowledge Graph Builder 서비스의 Kubernetes 배포를 위한 디렉토리.
+Directory for Kubernetes deployment of the Knowledge Graph Builder service.
 
-## 관련 코드
+## Related Code
 
-모노레포 내 `knowledge-graph-builder/` 디렉토리에 소스 코드가 있습니다. 해당 앱의 컨테이너화 및 K8s 매니페스트가 준비되면 이 디렉토리에 추가합니다.
+The source code is located in the `knowledge-graph-builder/` directory within the monorepo. Manifests will be added to this directory once the app is containerized and K8s manifests are ready.
 
-## 향후 작업
+## Future Work
 
-1. Dockerfile 작성 (`docker/knowledge-graph-builder/`)
-2. Deployment + Service 매니페스트 작성
-3. 필요한 ConfigMap / Secret 정의
-4. papers-backend 네임스페이스에 배포
+1. Write Dockerfile (`docker/knowledge-graph-builder/`)
+2. Write Deployment + Service manifests
+3. Define required ConfigMap / Secret
+4. Deploy to the papers-backend namespace

@@ -1,4 +1,4 @@
-// 유저별 논문 학습 진행도 조회 API
+// API for querying per-user paper learning progress
 
 import { Router, Request, Response } from 'express';
 import { ProgressStore } from '../db/progress.js';

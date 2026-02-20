@@ -9,55 +9,55 @@ export default function CoursePage() {
 
   const courseData: Record<string, any> = {
     '1': {
-      title: 'Python 기초',
-      description: '프로그래밍의 기초부터 시작하는 Python 강좌',
+      title: 'Python Basics',
+      description: 'A Python course starting from the fundamentals of programming',
       color: 'from-lms-blue-400 to-lms-blue-600',
       modules: [
         {
           id: 1,
-          title: '1주차: Python 시작하기',
+          title: 'Week 1: Getting Started with Python',
           lessons: [
-            { id: 1, title: 'Python 소개', completed: true },
-            { id: 2, title: '변수와 데이터 타입', completed: true },
-            { id: 3, title: '기본 연산', completed: false },
+            { id: 1, title: 'Introduction to Python', completed: true },
+            { id: 2, title: 'Variables and Data Types', completed: true },
+            { id: 3, title: 'Basic Operations', completed: false },
           ],
         },
         {
           id: 2,
-          title: '2주차: 제어문',
+          title: 'Week 2: Control Statements',
           lessons: [
-            { id: 4, title: '조건문 (if, else)', completed: false },
-            { id: 5, title: '반복문 (for, while)', completed: false },
+            { id: 4, title: 'Conditionals (if, else)', completed: false },
+            { id: 5, title: 'Loops (for, while)', completed: false },
           ],
         },
       ],
     },
     '2': {
-      title: '데이터 분석 입문',
-      description: '데이터를 다루는 기본 기술을 배웁니다',
+      title: 'Introduction to Data Analysis',
+      description: 'Learn the basic skills for handling data',
       color: 'from-purple-400 to-purple-600',
       modules: [
         {
           id: 1,
-          title: '1주차: 데이터 분석 개요',
+          title: 'Week 1: Overview of Data Analysis',
           lessons: [
-            { id: 1, title: '데이터 분석이란?', completed: true },
-            { id: 2, title: 'Pandas 기초', completed: false },
+            { id: 1, title: 'What is Data Analysis?', completed: true },
+            { id: 2, title: 'Pandas Basics', completed: false },
           ],
         },
       ],
     },
     '3': {
-      title: '웹 개발 기초',
-      description: 'HTML, CSS, JavaScript를 활용한 웹 개발',
+      title: 'Web Development Basics',
+      description: 'Web development using HTML, CSS, and JavaScript',
       color: 'from-green-400 to-green-600',
       modules: [
         {
           id: 1,
-          title: '1주차: HTML 기초',
+          title: 'Week 1: HTML Basics',
           lessons: [
-            { id: 1, title: 'HTML 태그', completed: true },
-            { id: 2, title: 'HTML 문서 구조', completed: false },
+            { id: 1, title: 'HTML Tags', completed: true },
+            { id: 2, title: 'HTML Document Structure', completed: false },
           ],
         },
       ],
@@ -76,13 +76,13 @@ export default function CoursePage() {
           </Link>
           <nav className="flex gap-6">
             <Link href="/" className="text-gray-700 hover:text-lms-blue-600">
-              대시보드
+              Dashboard
             </Link>
             <Link href="/courses" className="text-gray-700 hover:text-lms-blue-600">
-              과정
+              Courses
             </Link>
             <Link href="/editor" className="text-gray-700 hover:text-lms-blue-600">
-              에디터
+              Editor
             </Link>
           </nav>
         </div>
@@ -92,7 +92,7 @@ export default function CoursePage() {
       <div className={`bg-gradient-to-r ${course.color} py-12 text-white`}>
         <div className="container mx-auto px-4">
           <Link href="/" className="mb-4 inline-block text-white/80 hover:text-white">
-            ← 돌아가기
+            ← Go Back
           </Link>
           <h1 className="mb-2 text-4xl font-bold">{course.title}</h1>
           <p className="text-lg text-white/90">{course.description}</p>
@@ -134,7 +134,7 @@ export default function CoursePage() {
                         href="/editor"
                         className="rounded-md bg-lms-blue-500 px-4 py-2 text-sm text-white transition-colors hover:bg-lms-blue-600"
                       >
-                        학습하기
+                        Start Learning
                       </Link>
                     </div>
                   ))}
