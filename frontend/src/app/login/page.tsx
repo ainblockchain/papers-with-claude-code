@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
-import { Github, Fingerprint, Loader2, ShieldCheck, ArrowRight } from 'lucide-react';
+import { Github, Fingerprint, Loader2, ShieldCheck, ArrowRight, LogIn, KeyRound } from 'lucide-react';
 import { ClaudeMark } from '@/components/shared/ClaudeMark';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/useAuthStore';
@@ -16,7 +16,7 @@ import {
   type PasskeyInfo,
 } from '@/lib/ain/passkey';
 
-/** Step progress indicator (1. GitHub → 2. Passkey) */
+/** Step progress indicator (1. Sign In → 2. Passkey) */
 function StepIndicator({ currentStep }: { currentStep: 1 | 2 }) {
   return (
     <div className="flex items-center justify-center gap-2 mb-6">
@@ -27,8 +27,8 @@ function StepIndicator({ currentStep }: { currentStep: 1 | 2 }) {
             : 'bg-green-100 text-green-700'
         }`}
       >
-        {currentStep > 1 ? <ShieldCheck className="h-3 w-3" /> : <Github className="h-3 w-3" />}
-        1. GitHub
+        {currentStep > 1 ? <ShieldCheck className="h-3 w-3" /> : <LogIn className="h-3 w-3" />}
+        1. Sign In
       </div>
       <ArrowRight className="h-3 w-3 text-[#9CA3AF]" />
       <div
@@ -177,7 +177,16 @@ function LoginContent() {
     if (isRealAuth) {
       signIn('github', { redirectTo: '/login?from=oauth' });
     } else {
-      login({ id: 'mock-user', username: 'developer', avatarUrl: '', email: 'dev@example.com' });
+      login({ id: 'mock-user', username: 'developer', avatarUrl: '', email: 'dev@example.com', provider: 'github' });
+      setMockAuthActive(true);
+    }
+  };
+
+  const handleKiteLogin = () => {
+    if (isRealAuth) {
+      signIn('kite-passport', { redirectTo: '/login?from=oauth' });
+    } else {
+      login({ id: 'mock-kite-user', username: 'kite-agent', avatarUrl: '', email: '', provider: 'kite-passport' });
       setMockAuthActive(true);
     }
   };
@@ -253,7 +262,7 @@ function LoginContent() {
     );
   }
 
-  // ── Step 1: Not authenticated → GitHub sign-in ──
+  // ── Step 1: Not authenticated → choose sign-in provider ──
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50">
       <div className="w-full max-w-sm mx-4">
@@ -275,6 +284,22 @@ function LoginContent() {
             <Github className="h-5 w-5 mr-2" />
             Sign in with GitHub
           </Button>
+
+          <div className="flex items-center gap-3 my-4">
+            <div className="flex-1 h-px bg-[#E5E7EB]" />
+            <span className="text-xs text-[#9CA3AF]">or</span>
+            <div className="flex-1 h-px bg-[#E5E7EB]" />
+          </div>
+
+          <Button
+            onClick={handleKiteLogin}
+            variant="outline"
+            className="w-full h-11 border-[#E5E7EB] hover:bg-[#F9FAFB]"
+          >
+            <KeyRound className="h-5 w-5 mr-2 text-[#6B7280]" />
+            Sign in with Kite Passport
+          </Button>
+
           <p className="mt-4 text-xs text-center text-[#6B7280]">
             By signing in, you agree to our Terms of Service and Privacy Policy.
           </p>

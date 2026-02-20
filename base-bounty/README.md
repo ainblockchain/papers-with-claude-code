@@ -250,23 +250,10 @@ docker-compose up -d
 # Starts: vLLM (Qwen3-32B-AWQ) + Neo4j + AIN Node
 ```
 
-### 2. Register the agent
-```bash
-cd base-bounty/agent
-cp .env.example .env
-# Edit .env: set AIN_PRIVATE_KEY, BASE_PRIVATE_KEY
-npm install
-npm run register
-```
+### 2. Start the Cogito agent (AIN blockchain)
+The agent runs as a Cogito Node on the AIN blockchain. See `cogito/` for setup.
 
-### 3. Run the agent
-```bash
-npm start
-# Autonomous loop + x402 server on port 3402
-# Status: http://localhost:3402/status
-```
-
-### 4. View the dashboard
+### 3. View the dashboard
 ```bash
 cd base-bounty/web
 cp .env.example .env.local
@@ -344,29 +331,19 @@ npx jest test/unit/llm-engine.test.js     # LLM engine + think tag parsing
 
 ## Environment Variables
 
-### Agent (`agent/.env`)
+### Agent (cogito/)
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `AIN_PROVIDER_URL` | Yes | `http://localhost:8081` | AIN node JSON-RPC |
-| `AIN_WS_URL` | Yes | `ws://localhost:5100` | AIN node WebSocket |
-| `AIN_PRIVATE_KEY` | Yes | — | Agent's AIN private key |
-| `BASE_RPC_URL` | Yes | `https://mainnet.base.org` | Base chain RPC |
-| `BASE_PRIVATE_KEY` | Yes | — | Agent's Base private key |
-| `BUILDER_CODE` | No | `cogito_node` | ERC-8021 builder code |
-| `X402_FACILITATOR_URL` | No | `https://facilitator.x402.org` | x402 facilitator |
-| `AGENT_NAME` | No | `cogito-alpha` | Agent display name |
-| `THINK_INTERVAL_MS` | No | `60000` | Think cycle interval (ms) |
-| `X402_PORT` | No | `3402` | x402 server port |
+See `cogito/CLAUDE.md` for environment variables. The agent runs on AIN blockchain.
 
 ### Web (`web/.env`)
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `NEXT_PUBLIC_AGENT_URL` | No | `http://localhost:3402` | Agent status endpoint |
-| `NEXT_PUBLIC_AIN_PROVIDER_URL` | No | `http://localhost:8081` | AIN node JSON-RPC |
+| `NEXT_PUBLIC_AIN_PROVIDER_URL` | No | `https://devnet-api.ainetwork.ai` | AIN node JSON-RPC |
 | `NEXT_PUBLIC_BASE_RPC_URL` | No | `https://mainnet.base.org` | Base chain RPC |
-| `NEXT_PUBLIC_BASESCAN_API_KEY` | No | — | Basescan API key for tx history |
+| `GITHUB_ID` | Yes | — | GitHub OAuth client ID |
+| `GITHUB_SECRET` | Yes | — | GitHub OAuth client secret |
+| `NEXTAUTH_SECRET` | Yes | — | NextAuth encryption secret |
 
 ## Philosophy
 

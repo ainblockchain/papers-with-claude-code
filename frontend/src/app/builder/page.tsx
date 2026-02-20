@@ -10,6 +10,7 @@ import {
 } from '@/lib/adapters/terminal-session';
 
 const TERMINAL_API_URL = process.env.NEXT_PUBLIC_TERMINAL_API_URL;
+const API_PROXY = '/api/terminal';
 
 type BuilderPhase = 'idle' | 'creating' | 'running' | 'error';
 
@@ -36,12 +37,12 @@ export default function CourseBuilderPage() {
       const sid = sessionCleanupRef.current;
       if (sid && TERMINAL_API_URL) {
         const beaconSent = navigator.sendBeacon(
-          `${TERMINAL_API_URL}/api/sessions/${sid}/delete`,
+          `${API_PROXY}/sessions/${sid}/delete`,
           '',
         );
         if (!beaconSent) {
           try {
-            fetch(`${TERMINAL_API_URL}/api/sessions/${sid}`, {
+            fetch(`${API_PROXY}/sessions/${sid}`, {
               method: 'DELETE',
               keepalive: true,
             });

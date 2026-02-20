@@ -7,6 +7,8 @@ import {
   AGENT_ADDRESS, AGENT_ID, AGENT_URI, ERC_8004_REGISTRY,
   getAgentRegistration, getETHBalance, getUSDCBalance,
   getRecentTransactions, AgentRegistration, BaseTx,
+  getReputationSummary, ReputationSummary,
+  getA2AAgentCard, getAgentRegistrationFile, parseTokenURI,
 } from '@/lib/base-client';
 
 interface RequirementStatus {
@@ -25,6 +27,9 @@ export default function HomePage() {
   const [frontier, setFrontier] = useState<any[]>([]);
   const [explorations, setExplorations] = useState<any[]>([]);
   const [agentStatus, setAgentStatus] = useState<any>(null);
+  const [reputation, setReputation] = useState<ReputationSummary | null>(null);
+  const [a2aCard, setA2aCard] = useState<Record<string, unknown> | null>(null);
+  const [registrationFile, setRegistrationFile] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -38,6 +43,9 @@ export default function HomePage() {
         getAllFrontierEntries(),
         getRecentExplorations(10),
         getAgentStatus().catch(() => null),
+        getReputationSummary().catch(() => null),
+        getA2AAgentCard().catch(() => null),
+        getAgentRegistrationFile().catch(() => null),
       ]);
 
       if (results[0].status === 'fulfilled') setRegistration(results[0].value);
@@ -48,6 +56,9 @@ export default function HomePage() {
       if (results[5].status === 'fulfilled') setFrontier((results[5].value || []).filter((e: any) => e.stats?.explorer_count > 0));
       if (results[6].status === 'fulfilled') setExplorations(results[6].value || []);
       if (results[7].status === 'fulfilled') setAgentStatus(results[7].value);
+      if (results[8].status === 'fulfilled') setReputation(results[8].value);
+      if (results[9].status === 'fulfilled') setA2aCard(results[9].value);
+      if (results[10].status === 'fulfilled') setRegistrationFile(results[10].value);
 
       setLoading(false);
     }
@@ -161,23 +172,22 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Agent Identity Card */}
+      {/* Agent Identity Card — Full ERC-8004 */}
       <div>
-        <h2 className="text-xl font-bold mb-3">Agent Identity</h2>
-        <div className="bg-gray-800 rounded-lg p-5 border border-gray-700">
+        <h2 className="text-xl font-bold mb-3">Agent Identity (ERC-8004)</h2>
+        <div className="bg-gray-800 rounded-lg p-5 border border-gray-700 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <div className="text-xs text-gray-400 uppercase mb-1">ERC-8004 Identity</div>
+              <div className="text-xs text-gray-400 uppercase mb-1">Identity Registry</div>
               {registration?.isRegistered ? (
                 <div>
                   <a href={`https://basescan.org/token/${ERC_8004_REGISTRY}?a=${AGENT_ID}`} target="_blank" rel="noopener noreferrer"
                     className="text-lg font-bold text-green-400 hover:underline">
                     Agent #{AGENT_ID}
                   </a>
-                  <a href={AGENT_URI} target="_blank" rel="noopener noreferrer"
-                    className="text-xs text-cogito-blue hover:underline mt-1 block truncate">
-                    {AGENT_URI}
-                  </a>
+                  <div className="text-[10px] text-gray-500 font-mono mt-0.5">
+                    eip155:8453:{ERC_8004_REGISTRY}
+                  </div>
                 </div>
               ) : (
                 <div className="text-gray-500">Loading...</div>
@@ -194,6 +204,105 @@ export default function HomePage() {
                 <span>{usdcBalance !== null ? `$${usdcBalance.toFixed(2)} USDC` : '...'}</span>
               </div>
             </div>
+          </div>
+
+          {/* agentURI + Agent Wallet */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-gray-700 pt-4">
+            <div>
+              <div className="text-xs text-gray-400 uppercase mb-1">Agent URI (Registration File)</div>
+              <a href={AGENT_URI} target="_blank" rel="noopener noreferrer"
+                className="text-xs text-cogito-blue hover:underline break-all">
+                {AGENT_URI}
+              </a>
+            </div>
+            <div>
+              <div className="text-xs text-gray-400 uppercase mb-1">Agent Wallet</div>
+              {registration?.agentWallet ? (
+                <a href={`https://basescan.org/address/${registration.agentWallet}`} target="_blank" rel="noopener noreferrer"
+                  className="font-mono text-xs text-cogito-blue hover:underline break-all">
+                  {registration.agentWallet}
+                </a>
+              ) : (
+                <span className="text-xs text-gray-500">Same as owner ({AGENT_ADDRESS.slice(0, 10)}...)</span>
+              )}
+            </div>
+          </div>
+
+          {/* On-chain Metadata */}
+          {registration?.metadata && Object.keys(registration.metadata).length > 0 && (
+            <div className="border-t border-gray-700 pt-4">
+              <div className="text-xs text-gray-400 uppercase mb-2">On-Chain Metadata</div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {Object.entries(registration.metadata).map(([key, value]) => (
+                  <div key={key} className="bg-gray-900 rounded px-2 py-1.5">
+                    <div className="text-[10px] text-gray-500">{key}</div>
+                    <div className="text-xs text-gray-300 truncate">{value}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Reputation Registry */}
+          <div className="border-t border-gray-700 pt-4">
+            <div className="text-xs text-gray-400 uppercase mb-2">Reputation Registry</div>
+            {reputation && reputation.count > 0 ? (
+              <div className="flex gap-6">
+                <div>
+                  <div className="text-xl font-bold text-white">{reputation.count}</div>
+                  <div className="text-[10px] text-gray-500">Feedback entries</div>
+                </div>
+                <div>
+                  <div className="text-xl font-bold text-white">
+                    {(reputation.summaryValue / Math.pow(10, reputation.valueDecimals)).toFixed(1)}
+                  </div>
+                  <div className="text-[10px] text-gray-500">Summary score</div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-xs text-gray-500">No feedback yet — reputation builds as clients interact via x402</div>
+            )}
+          </div>
+
+          {/* A2A Agent Card + Services */}
+          <div className="border-t border-gray-700 pt-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-xs text-gray-400 uppercase">A2A Agent Card</div>
+              <a
+                href={`${process.env.NEXT_PUBLIC_AIN_PROVIDER_URL || 'https://devnet-api.ainetwork.ai'}/json?path=/apps/knowledge/a2a_agent_card`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[10px] text-cogito-blue hover:underline"
+              >
+                View on AIN devnet
+              </a>
+            </div>
+            {a2aCard ? (
+              <div className="space-y-2">
+                <div className="flex flex-wrap gap-2">
+                  {((a2aCard as any).skills || []).map((skill: any) => (
+                    <div key={skill.id} className="bg-gray-900 rounded-lg px-3 py-2 flex-1 min-w-[200px]">
+                      <div className="text-xs font-medium text-white">{skill.name}</div>
+                      <div className="text-[10px] text-gray-400 mt-0.5">{skill.description}</div>
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {(skill.tags || []).map((tag: string) => (
+                          <span key={tag} className="text-[10px] bg-cogito-blue/20 text-cogito-blue px-1.5 py-0.5 rounded">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-4 text-[10px] text-gray-500">
+                  <span>x402: {(a2aCard as any).erc8004?.agentId ? `Agent #${(a2aCard as any).erc8004.agentId}` : 'N/A'}</span>
+                  <span>Streaming: {(a2aCard as any).capabilities?.streaming ? 'Yes' : 'No'}</span>
+                  <span>Trust: {(registrationFile as any)?.supportedTrust?.join(', ') || 'N/A'}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="text-xs text-gray-500">A2A agent card not yet published to AIN state</div>
+            )}
           </div>
         </div>
       </div>

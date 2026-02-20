@@ -7,19 +7,18 @@ import { useAuthStore } from '@/stores/useAuthStore';
 import { friendPresenceAdapter } from '@/lib/adapters/friends';
 import { ainAdapter } from '@/lib/adapters/ain-blockchain';
 import { trackEvent } from '@/lib/ain/event-tracker';
-import { MOCK_PAPERS } from '@/constants/mock-papers';
+import type { Paper } from '@/types/paper';
 import type { CourseLocation } from '@/lib/ain/location-types';
 import { assignCoursesToGrid, generateCourseLocations } from '@/lib/tmj/village-generator';
 
 const HEARTBEAT_MS = 300_000; // 5 minutes
 const COURSE_COLORS = ['#8B4513', '#4A5568', '#2D3748', '#553C9A', '#2B6CB0', '#276749', '#9B2C2C'];
 
-/** Generate default course entrance positions using the plot grid system */
-function generateDefaultCourseLocations(): CourseLocation[] {
-  const papers = MOCK_PAPERS;
+/** Generate course entrance positions using the plot grid system */
+function generateCourseLocationsFromPapers(papers: Paper[]): CourseLocation[] {
   const coursesInput = papers.map((paper, i) => ({
     paperId: paper.id,
-    label: paper.title.split(':')[0].trim(),
+    label: paper.title.split(':')[0].split('(')[0].trim(),
     color: COURSE_COLORS[i % COURSE_COLORS.length],
   }));
   const { assignments } = assignCoursesToGrid(coursesInput);
@@ -30,10 +29,10 @@ function generateDefaultCourseLocations(): CourseLocation[] {
  * Orchestration hook for syncing player location, course positions,
  * and friend presence with the AIN blockchain.
  *
- * Location writes are event-driven (not continuous debounce).
- * Call once inside VillageCanvas (or the village page layout).
+ * @param courses - Course list from API (React Query). When provided,
+ *   these are used to generate default village map buildings instead of mock data.
  */
-export function useLocationSync() {
+export function useLocationSync(courses?: Paper[]) {
   const { setCourseLocations, setFriends, setPlayerPosition, setPlayerDirection, setPositionRestored, positionRestored } =
     useVillageStore();
   const { ainAddress, fetchCourseLocations, fetchAllLocations, setCourseLocation } =
@@ -42,6 +41,9 @@ export function useLocationSync() {
 
   // ── 1. Restore position & load course locations on mount ──
   useEffect(() => {
+    // Wait until courses are loaded from API
+    if (!courses || courses.length === 0) return;
+
     let cancelled = false;
 
     async function init() {
@@ -55,8 +57,8 @@ export function useLocationSync() {
         courseLocationsList = Object.values(stored);
         setCourseLocations(courseLocationsList);
       } else {
-        // Seed defaults (first-time migration)
-        const defaults = generateDefaultCourseLocations();
+        // Generate defaults from API courses
+        const defaults = generateCourseLocationsFromPapers(courses!);
         courseLocationsList = defaults;
         setCourseLocations(defaults);
         // Write defaults to AIN in background
@@ -110,7 +112,7 @@ export function useLocationSync() {
 
     init();
     return () => { cancelled = true; };
-  }, [ainAddress]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [ainAddress, courses]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── 2. Heartbeat (5-minute liveness) ──
   useEffect(() => {

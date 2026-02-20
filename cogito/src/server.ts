@@ -49,6 +49,15 @@ async function main() {
     console.log('[Cogito] Base chain: disabled (set BASE_RPC_URL + BASE_PRIVATE_KEY to enable)');
   }
 
+  // Write ERC-8004 registration + A2A agent card to AIN state
+  const baseAddress = baseChain?.getAddress() || '';
+  try {
+    await ain.writeAgentRegistration(baseAddress);
+    await ain.writeA2AAgentCard(baseAddress);
+  } catch (err: any) {
+    console.log(`[Cogito] Agent registration write skipped: ${err.message}`);
+  }
+
   // Start lesson watcher
   const watcher = new LessonWatcher(ain, baseChain);
   watcher.start();

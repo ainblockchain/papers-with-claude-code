@@ -1,113 +1,110 @@
 # Papers with Claude Code — Screenplay
 
-> **Runtime**: ~4.5 minutes
-> **Prerequisites**: Frontend at `http://localhost:3000`, HuggingFace Papers in browser, terminal pods running
+> **Runtime**: 2:52
+> **Prerequisites**: Frontend at paperswithclaudecode.com, paperswithcode.com in browser, terminal pods running
 > **Script text**: See [demo_script.md](demo_script.md) for copy-paste narration only.
 
 ---
 
-## Act 1: The Problem (30 sec)
+## Act 1: The Problem (0:00 — 0:20)
 
-**Screen**: Browser → `https://huggingface.co/papers`
+**Screen**: Browser → `https://paperswithcode.com`
 
 | # | Action |
 |---|--------|
-| 1 | Scroll through the trending papers list — point out the sheer volume |
+| 1 | Show paperswithcode.com — scroll through trending papers, point out the volume |
 | 2 | Click into one paper — show the dense PDF, the linked GitHub repo |
-| 3 | Come back to the list |
+| 3 | Come back to the list — emphasize the gap between published and understood |
 
 ---
 
-## Act 2: Publish a Course with Claude Code (1.5 min)
+## Act 2: Publish a Course with Claude Code (0:20 — 1:20)
 
-**Screen**: Browser → `http://localhost:3000/publish` (Course Builder)
+**Screen**: Browser → `https://paperswithclaudecode.com/builder`
 
-### 2a. Start the builder (10 sec)
+### 2a. Start the builder (0:20 — 0:30)
 
 | # | Action |
 |---|--------|
 | 1 | Show the Course Builder page with the "Start Building" button |
 | 2 | Click **"Start Building"** — terminal session spawns in generator mode |
 
-### 2b. Input paper and repo (15 sec)
+### 2b. Input paper and repo (0:30 — 0:40)
 
 | # | Action |
 |---|--------|
-| 1 | Paste an **arXiv URL** into the terminal prompt (e.g. `https://arxiv.org/abs/1706.03762`) |
-| 2 | Paste the **GitHub repo URL** (e.g. `https://github.com/tensorflow/tensor2tensor`) |
-| 3 | Enter a **course name** when prompted |
+| 1 | Paste the **arXiv URL**: `https://arxiv.org/abs/1706.03762` ("Attention Is All You Need") |
+| 2 | Paste the **GitHub repo URL** |
 
-### 2c. Claude Code generates the course (30 sec)
+### 2c. Claude Code generates the course (0:40 — 1:00)
 
 | # | Action |
 |---|--------|
 | 1 | Watch the terminal — Claude Code reads the paper, analyzes code |
-| 2 | Stage generation scrolls by: concepts, explanations, quizzes being created |
+| 2 | Stage generation scrolls by: concepts, explanations, quizzes structured on knowledge graph |
 | 3 | Course structure summary appears — show the stage list |
 
-### 2d. Course published (15 sec)
+### 2d. Course published with x402 (1:00 — 1:20)
 
 | # | Action |
 |---|--------|
 | 1 | Terminal shows publish confirmation with x402 pricing |
-| 2 | Navigate to `/explore` — show the newly published course in the list |
-| 3 | Point out: title, summary (free), stage count, price per stage |
+| 2 | Point out: title and summary free, each core concept costs a micropayment in USDC on Base chain |
+| 3 | Mention ERC-8021 builder codes — on-chain attribution and automatic royalty splits for paper authors |
 
 ---
 
-## Act 3: Pick a Paper and Learn (1.5 min)
+## Act 3: Pick a Paper and Learn (1:20 — 2:00)
 
-**Screen**: Browser → `/explore`
-
-| # | Action |
-|---|--------|
-| 1 | Show paper cards with Learn/Purchase buttons, star counts, arXiv links |
-| 2 | Click **"Learn"** on a paper (e.g. "Attention Is All You Need") |
-
-**Screen**: Browser → `/learn/attention-is-all-you-need`
+**Screen**: Browser → `https://paperswithclaudecode.com/explore`
 
 | # | Action |
 |---|--------|
-| 1 | **Move the player** with WASD — walk to a concept marker, press **E** |
-| 2 | **Concept overlay** appears: "Scaled Dot-Product Attention" with explanation |
-| 3 | Walk to the **door** → press **E** → **Quiz modal** appears |
-| 4 | Answer the quiz → correct → door unlocks |
-| 5 | **Payment modal**: "Unlock Stage 2 — 0.001 USDT" → click **Unlock** |
-| 6 | Payment confirms on Kite Chain with tx hash |
-| 7 | **Claude terminal** on the right — ask a question, get an explanation |
+| 1 | Show trending paper cards — each one is a playable, monetized course |
+| 2 | Click **"Learn"** on a paper |
+
+**Screen**: Browser → `/learn/:paperId`
+
+| # | Action |
+|---|--------|
+| 1 | Show the **left side**: interactive 2D dungeon room |
+| 2 | Show the **right side**: personalized Claude Code on Kubernetes — AI tutor |
+| 3 | Navigate through **concept markers** to learn |
+| 4 | Pass the **quiz** at end of module → unlock next level via **x402 micropayment** |
+| 5 | Point out: progress, verified skills, completed modules recorded on-chain — decentralized learning passport |
 
 ---
 
-## Act 4: The Knowledge Graph — Humans, Agents, and the World (1 min)
+## Act 4: The World Knowledge Graph for Humans and Agents (2:00 — 2:45)
 
-**Screen**: Browser → `/village`
+### 4a. Village and friends (2:00 — 2:20)
 
-### 4a. Village and friends (20 sec)
-
-| # | Action |
-|---|--------|
-| 1 | Show the village map — player avatar, friend avatars moving in real time |
-| 2 | Point out the **sidebar**: online friends list with course/stage they're in |
-| 3 | Show a **notification toast** pop up: "Alice cleared Stage 2 of BitDance Course!" |
-| 4 | Point out the **leaderboard** — ranked by progress |
-
-### 4b. Community knowledge graph (25 sec)
-
-**Screen**: Browser → `/community`
+**Screen**: Browser → `https://paperswithclaudecode.com/village`
 
 | # | Action |
 |---|--------|
-| 1 | Show the **knowledge graph** canvas — nodes colored by depth (green/blue/amber/red), edges connecting concepts |
-| 2 | Point out node count and edge count stats |
-| 3 | Show the **frontier map** — topics with explorer count, max depth, average depth bars |
-| 4 | Enter a learner's AIN address — show their personal progress: topics, entries, purchases |
+| 1 | Show the academic village — researchers, creators, learners, Cogito agents coexisting |
+| 2 | Point out **friends on the map** — which courses they're in, what stage they've reached |
+| 3 | Show a **notification**: someone clears a stage |
+| 4 | Show the **leaderboard** — who's learning the most, who's going deepest |
 
-### 4c. Closing (15 sec)
+### 4b. Community knowledge graph (2:20 — 2:45)
+
+**Screen**: Browser → `https://paperswithclaudecode.com/community`
+
+| # | Action |
+|---|--------|
+| 1 | Show the **knowledge graph** — nodes are concepts, edges are relationships |
+| 2 | Point out **color** showing depth of understanding |
+
+---
+
+## Closing (2:45 — 2:52)
 
 | # | Action |
 |---|--------|
 | 1 | Pause on the knowledge graph view |
-| 2 | Closing line |
+| 2 | Closing line: "Learn the knowledge with friends, and build the world knowledge, together." |
 
 ---
 
@@ -115,23 +112,22 @@
 
 | Time | Screen | Action |
 |------|--------|--------|
-| 0:00 | HuggingFace Papers | Scroll trending, show volume and complexity |
-| 0:30 | `/publish` | Course Builder — click "Start Building" |
-| 0:40 | `/publish` terminal | Paste arXiv URL + GitHub repo |
-| 0:55 | `/publish` terminal | Claude Code generates stages |
-| 1:25 | `/publish` → `/explore` | Publish confirmation, see course in explore list |
-| 1:40 | `/explore` | Browse paper cards, click "Learn" |
-| 2:00 | `/learn/...` | Move player, interact with concepts |
-| 2:30 | `/learn/...` | Quiz → pass → payment modal → unlock |
-| 3:00 | `/learn/...` | Claude terminal: ask a question |
-| 3:15 | `/village` | Village map, friends, leaderboard, notifications |
-| 3:35 | `/community` | Knowledge graph, frontier map, learner progress |
-| 4:00 | `/community` | Closing line |
+| 0:00 | paperswithcode.com | Scroll trending, show volume and complexity |
+| 0:20 | `/builder` | Course Builder — click "Start Building" |
+| 0:30 | `/builder` terminal | Paste arXiv URL + GitHub repo (Attention Is All You Need) |
+| 0:40 | `/builder` terminal | Claude Code generates stages on knowledge graph |
+| 1:00 | `/builder` | Publish with x402, ERC-8021 attribution |
+| 1:20 | `/explore` | Trending papers as playable courses |
+| 1:25 | `/learn/...` | 2D dungeon room + Claude Code tutor on K8s |
+| 1:40 | `/learn/...` | Navigate concepts, quiz, x402 unlock |
+| 2:00 | `/village` | Academic village — friends, notifications, leaderboard |
+| 2:20 | `/community` | Knowledge graph — nodes, edges, depth colors |
+| 2:45 | `/community` | Closing line |
 
 ## Pre-demo Checklist
 
-- [ ] Frontend running at `http://localhost:3000`
-- [ ] Terminal pod backend running (K8s or local)
-- [ ] Browser tabs ready: HuggingFace Papers, localhost:3000
-- [ ] arXiv URL and GitHub repo URL copied to clipboard
-- [ ] Test the `/publish` flow once before demo to ensure session creation works
+- [ ] Frontend live at paperswithclaudecode.com
+- [ ] Terminal pod backend running (K8s)
+- [ ] Browser tabs ready: paperswithcode.com, paperswithclaudecode.com
+- [ ] arXiv URL (`1706.03762`) and GitHub repo URL copied to clipboard
+- [ ] Test the `/builder` flow once before demo to ensure session creation works

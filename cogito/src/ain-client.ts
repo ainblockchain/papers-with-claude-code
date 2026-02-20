@@ -141,4 +141,109 @@ export class AinClient {
   async getGraph(): Promise<{ nodes: Record<string, any>; edges: Record<string, any> }> {
     return this.ain.knowledge.getGraph();
   }
+
+  /**
+   * Write the ERC-8004 registration file to AIN blockchain state.
+   * This makes the agent discoverable per the ERC-8004 spec:
+   * https://eips.ethereum.org/EIPS/eip-8004#registration-v1
+   */
+  async writeAgentRegistration(baseAddress: string): Promise<void> {
+    const registrationFile = {
+      type: 'https://eips.ethereum.org/EIPS/eip-8004#registration-v1',
+      name: 'Cogito Node',
+      description: 'Autonomous knowledge agent that reads research papers, builds a global knowledge graph on AIN blockchain, and earns USDC via x402 micropayments on Base',
+      services: [
+        {
+          name: 'A2A',
+          endpoint: this.providerUrl,
+          version: '1.0.0',
+          skills: ['knowledge-exploration', 'paper-enrichment', 'course-generation'],
+          domains: ['ai', 'crypto'],
+        },
+      ],
+      x402Support: true,
+      active: true,
+      registrations: [
+        {
+          agentId: 18276,
+          agentRegistry: 'eip155:8453:0x8004A169FB4a3325136EB29fA0ceB6D2e539a432',
+        },
+      ],
+      supportedTrust: ['reputation'],
+    };
+
+    try {
+      await this.ain.db.ref('/apps/knowledge/agent_registration').setValue({
+        value: registrationFile,
+        nonce: -1,
+      });
+      console.log('[AIN] ERC-8004 registration file written to state');
+    } catch (err: any) {
+      console.log(`[AIN] Registration file write skipped: ${err.message}`);
+    }
+  }
+
+  /**
+   * Write the A2A agent card to AIN blockchain state.
+   * Other agents discover this via the AIN devnet API at:
+   *   GET /json?path=/apps/knowledge/a2a_agent_card
+   */
+  async writeA2AAgentCard(baseAddress: string): Promise<void> {
+    const a2aCard = {
+      name: 'Cogito Node',
+      description: 'Autonomous knowledge agent — reads arXiv papers, builds knowledge graph on AIN blockchain, earns via x402 on Base',
+      url: this.providerUrl,
+      version: '1.0.0',
+      capabilities: {
+        streaming: true,
+        pushNotifications: false,
+      },
+      skills: [
+        {
+          id: 'knowledge-exploration',
+          name: 'Knowledge Exploration',
+          description: 'Explore research topics with paper-grounded context from arXiv',
+          tags: ['ai', 'research', 'papers', 'knowledge-graph'],
+          examples: ['Explore transformer architecture', 'What are state-space models?'],
+          inputModes: ['text/plain'],
+          outputModes: ['text/plain', 'application/json'],
+        },
+        {
+          id: 'paper-enrichment',
+          name: 'Paper Enrichment',
+          description: 'Enrich lessons with academic papers and their official GitHub code repositories',
+          tags: ['papers', 'code', 'enrichment', 'github'],
+          examples: ['Enrich a lesson about attention mechanisms'],
+          inputModes: ['text/plain'],
+          outputModes: ['application/json'],
+        },
+        {
+          id: 'course-generation',
+          name: 'Course Generation',
+          description: 'Generate structured courses from accumulated knowledge explorations',
+          tags: ['education', 'courses', 'x402'],
+          examples: ['Generate a course on reinforcement learning'],
+          inputModes: ['text/plain'],
+          outputModes: ['application/json'],
+        },
+      ],
+      defaultInputModes: ['text/plain'],
+      defaultOutputModes: ['text/plain', 'application/json'],
+      erc8004: {
+        agentId: 18276,
+        registry: 'eip155:8453:0x8004A169FB4a3325136EB29fA0ceB6D2e539a432',
+        address: baseAddress,
+      },
+    };
+
+    try {
+      await this.ain.db.ref('/apps/knowledge/a2a_agent_card').setValue({
+        value: a2aCard,
+        nonce: -1,
+      });
+      console.log('[AIN] A2A agent card written to state');
+    } catch (err: any) {
+      console.log(`[AIN] A2A agent card write skipped: ${err.message}`);
+    }
+  }
 }

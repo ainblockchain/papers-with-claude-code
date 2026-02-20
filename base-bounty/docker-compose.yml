@@ -2,7 +2,7 @@
 #
 # Usage:
 #   docker-compose up -d          # Start all services
-#   docker-compose logs -f agent  # Follow agent logs
+#   docker-compose logs -f web     # Follow web logs
 #   docker-compose down           # Stop all services
 #
 # Prerequisites:
@@ -11,7 +11,7 @@
 #   - Copy .env.example to .env and configure keys
 #
 # Architecture:
-#   vLLM (Qwen3-32B-AWQ) → AIN Node (JSON-RPC) → Agent (ain-js) → x402 Server
+#   vLLM (Qwen3-32B-AWQ) → AIN Node (JSON-RPC) → Cogito (ain-js) → x402 Server
 #                           Neo4j (graph index) ↗
 
 services:
@@ -84,30 +84,14 @@ services:
       - "8081:8080"
       - "5100:5100"
 
-  # Cogito Agent: Autonomous knowledge agent
-  agent:
-    build:
-      context: ./agent
-      dockerfile: Dockerfile
-    depends_on:
-      - ain-node
-    env_file:
-      - ./agent/.env
-    environment:
-      AIN_PROVIDER_URL: http://ain-node:8080
-      AIN_WS_URL: ws://ain-node:5100
-    ports:
-      - "3402:3402"
-
   # Web UI: Collective intelligence dashboard
   web:
     build:
       context: ./web
       dockerfile: Dockerfile
     depends_on:
-      - agent
+      - ain-node
     environment:
-      NEXT_PUBLIC_AGENT_URL: http://agent:3402
       NEXT_PUBLIC_AIN_PROVIDER_URL: http://ain-node:8080
       NEXT_PUBLIC_BASE_RPC_URL: ${BASE_RPC_URL:-https://mainnet.base.org}
     ports:

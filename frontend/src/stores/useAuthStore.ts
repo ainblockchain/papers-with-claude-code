@@ -6,6 +6,7 @@ interface User {
   username: string;
   avatarUrl: string;
   email: string;
+  provider?: 'github' | 'kite-passport';
 }
 
 interface AuthState {

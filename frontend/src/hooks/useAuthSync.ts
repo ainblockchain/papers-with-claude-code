@@ -44,6 +44,7 @@ export function AuthSyncEffect() {
         username: session.user.username || session.user.name || '',
         avatarUrl: session.user.avatarUrl || session.user.image || '',
         email: session.user.email || '',
+        provider: session.user.provider,
       });
     } else {
       logout();

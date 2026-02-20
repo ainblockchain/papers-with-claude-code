@@ -1,6 +1,11 @@
 // Terminal Session Adapter — connects to K8s web-terminal backend
-const BASE_URL =
-  process.env.NEXT_PUBLIC_TERMINAL_API_URL || 'http://<PUBLIC_IP>:31000';
+// HTTP API calls go through /api/terminal proxy to avoid mixed-content blocking.
+// WebSocket connects directly to the backend (WSS not affected by mixed-content).
+const BACKEND_URL =
+  process.env.NEXT_PUBLIC_TERMINAL_API_URL || 'http://localhost:31000';
+
+// REST calls go through the Next.js proxy (same origin → no CORS / mixed-content)
+const API_BASE = '/api/terminal';
 
 export type SessionMode = 'learner' | 'generator';
 
@@ -38,7 +43,7 @@ export interface TerminalSessionAdapter {
 
 class RealTerminalSessionAdapter implements TerminalSessionAdapter {
   async createSession(req: SessionCreateRequest): Promise<SessionInfo> {
-    const res = await fetch(`${BASE_URL}/api/sessions`, {
+    const res = await fetch(`${API_BASE}/sessions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(req),
@@ -58,7 +63,7 @@ class RealTerminalSessionAdapter implements TerminalSessionAdapter {
   }
 
   async getSession(sessionId: string): Promise<SessionInfo> {
-    const res = await fetch(`${BASE_URL}/api/sessions/${sessionId}`);
+    const res = await fetch(`${API_BASE}/sessions/${sessionId}`);
     if (!res.ok) {
       throw new Error(`Session not found: ${sessionId}`);
     }
@@ -67,7 +72,7 @@ class RealTerminalSessionAdapter implements TerminalSessionAdapter {
 
   async deleteSession(sessionId: string): Promise<void> {
     try {
-      await fetch(`${BASE_URL}/api/sessions/${sessionId}`, { method: 'DELETE' });
+      await fetch(`${API_BASE}/sessions/${sessionId}`, { method: 'DELETE' });
     } catch {
       // Best-effort cleanup — don't throw on unmount
     }
@@ -76,9 +81,8 @@ class RealTerminalSessionAdapter implements TerminalSessionAdapter {
   /** List all sessions, delete any that are terminated or stuck creating. Returns count deleted. */
   async cleanupStaleSessions(): Promise<number> {
     try {
-      const res = await fetch(`${BASE_URL}/api/sessions`);
+      const res = await fetch(`${API_BASE}/sessions`);
       if (!res.ok) return 0;
-      // API list returns { id, ... } while create returns { sessionId, ... }
       const sessions: Array<{ id?: string; sessionId?: string; status: string }> =
         await res.json();
       const stale = sessions.filter(
@@ -94,20 +98,21 @@ class RealTerminalSessionAdapter implements TerminalSessionAdapter {
   }
 
   async getStages(sessionId: string): Promise<unknown[]> {
-    const res = await fetch(`${BASE_URL}/api/sessions/${sessionId}/stages`);
+    const res = await fetch(`${API_BASE}/sessions/${sessionId}/stages`);
     if (!res.ok) return [];
     return res.json();
   }
 
   async getProgress(userId: string, paperId: string): Promise<BackendProgress> {
     const encoded = encodeURIComponent(paperId);
-    const res = await fetch(`${BASE_URL}/api/progress/${userId}/${encoded}`);
+    const res = await fetch(`${API_BASE}/progress/${userId}/${encoded}`);
     if (!res.ok) return { completedStages: [], isCourseComplete: false };
     return res.json();
   }
 
   getWebSocketUrl(sessionId: string): string {
-    const wsUrl = BASE_URL.replace(/^https/, 'wss').replace(/^http/, 'ws');
+    // WebSocket connects directly to the backend (not proxied)
+    const wsUrl = BACKEND_URL.replace(/^https/, 'wss').replace(/^http/, 'ws');
     return `${wsUrl}/ws?sessionId=${sessionId}`;
   }
 }

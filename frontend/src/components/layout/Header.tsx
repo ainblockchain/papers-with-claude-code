@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { signOut as nextAuthSignOut } from 'next-auth/react';
-import { Compass, LayoutDashboard, Map, Hammer, Github, Menu, X, LogOut, Fingerprint } from 'lucide-react';
+import { Compass, LayoutDashboard, Map, Hammer, LogIn, Menu, X, LogOut, Fingerprint } from 'lucide-react';
 import { ClaudeMark } from '@/components/shared/ClaudeMark';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/useAuthStore';
@@ -35,7 +35,7 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full border-b border-border bg-white">
       <div className="mx-auto flex h-14 max-w-[1280px] items-center px-4">
         {/* Logo */}
-        <Link href="/explore" className="flex items-center gap-2 mr-8">
+        <Link href="/" className="flex items-center gap-2 mr-8">
           <ClaudeMark size={24} />
           <span className="font-bold text-lg hidden sm:inline">Papers with Claude Code</span>
         </Link>
@@ -91,8 +91,8 @@ export function Header() {
           ) : (
             <Link href="/login">
               <Button size="sm" className="bg-[#24292e] hover:bg-[#24292e]/90 text-white">
-                <Github className="h-4 w-4 mr-1.5" />
-                Sign in with GitHub
+                <LogIn className="h-4 w-4 mr-1.5" />
+                Sign in
               </Button>
             </Link>
           )}
@@ -131,8 +131,8 @@ export function Header() {
           {!isAuthenticated && (
             <Link href="/login" className="block mt-2">
               <Button size="sm" className="w-full bg-[#24292e] text-white">
-                <Github className="h-4 w-4 mr-1.5" />
-                Sign in with GitHub
+                <LogIn className="h-4 w-4 mr-1.5" />
+                Sign in
               </Button>
             </Link>
           )}

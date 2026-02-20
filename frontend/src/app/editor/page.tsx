@@ -43,8 +43,8 @@ hello_world()
             <Link href="/" className="text-gray-700 hover:text-lms-blue-600">
               Dashboard
             </Link>
-            <Link href="/courses" className="text-gray-700 hover:text-lms-blue-600">
-              Courses
+            <Link href="/explore" className="text-gray-700 hover:text-lms-blue-600">
+              Explore
             </Link>
             <Link href="/editor" className="text-gray-700 hover:text-lms-blue-600">
               Editor

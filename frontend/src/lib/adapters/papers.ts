@@ -1,7 +1,7 @@
 // Papers 어댑터 — GitHub 레포(awesome-papers-with-claude-code)에서 직접 논문/코스 데이터를 가져옴
 // paper.json이 있으면 해당 메타데이터 우선 사용, 없으면 README 파싱으로 fallback
 import { Paper } from '@/types/paper';
-import { MOCK_PAPERS } from '@/constants/mock-papers';
+
 
 const REPO_OWNER = 'ainblockchain';
 const REPO_NAME = 'awesome-papers-with-claude-code';
@@ -236,7 +236,7 @@ class GitHubPapersAdapter implements PapersAdapter {
       return await this.getPapers();
     } catch (error) {
       console.warn('GitHub papers fetch failed, falling back to mock:', error);
-      return MOCK_PAPERS;
+      return [];
     }
   }
 
@@ -251,11 +251,7 @@ class GitHubPapersAdapter implements PapersAdapter {
           p.authors.some((a) => a.name.toLowerCase().includes(q))
       );
     } catch {
-      return MOCK_PAPERS.filter(
-        (p) =>
-          p.title.toLowerCase().includes(query.toLowerCase()) ||
-          p.description.toLowerCase().includes(query.toLowerCase())
-      );
+      return [];
     }
   }
 
@@ -264,16 +260,12 @@ class GitHubPapersAdapter implements PapersAdapter {
       const papers = await this.getPapers();
       return papers.find((p) => p.id === id) ?? null;
     } catch {
-      return this.cachedPapers.find((p) => p.id === id)
-        ?? MOCK_PAPERS.find((p) => p.id === id)
-        ?? null;
+      return this.cachedPapers.find((p) => p.id === id) ?? null;
     }
   }
 
   getPaperByIdSync(id: string): Paper | null {
-    return this.cachedPapers.find((p) => p.id === id)
-      ?? MOCK_PAPERS.find((p) => p.id === id)
-      ?? null;
+    return this.cachedPapers.find((p) => p.id === id) ?? null;
   }
 }
 

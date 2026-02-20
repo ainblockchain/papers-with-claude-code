@@ -6,6 +6,7 @@ import { useVillageStore } from '@/stores/useVillageStore';
 import { TILE_SIZE, PLAYER_COLOR, FRIEND_COLORS } from '@/constants/game';
 import { useLocationSync } from '@/hooks/useLocationSync';
 import { useVillageMap } from '@/hooks/useVillageMap';
+import { useCourses } from '@/hooks/useCourses';
 import { trackEvent } from '@/lib/ain/event-tracker';
 import { renderTileLayer, type Viewport } from '@/lib/tmj/renderer';
 import { usePurchaseStore } from '@/stores/usePurchaseStore';
@@ -29,8 +30,9 @@ export function VillageCanvas() {
     useVillageStore();
   const { getAccessStatus, setPurchaseModal } = usePurchaseStore();
 
-  // Sync positions with AIN blockchain
-  useLocationSync();
+  // Fetch courses from API and sync positions with AIN blockchain
+  const { data: courses } = useCourses();
+  useLocationSync(courses);
 
   // Generate village TMJ from course locations using plot grid system
   const { mapData, mapDimensions } = useVillageMap(courseLocations);
@@ -129,15 +131,9 @@ export function VillageCanvas() {
               router.push(`/learn/${paperId}`);
             } else {
               // Not purchased — open purchase modal
-              const paper = papersAdapter.getPaperByIdSync?.(paperId);
-              if (paper) {
-                setPurchaseModal(paperId, paper);
-              } else {
-                // Fallback: fetch async
-                papersAdapter.getPaperById(paperId).then((p) => {
-                  if (p) setPurchaseModal(paperId, p);
-                });
-              }
+              papersAdapter.getPaperById(paperId).then((p) => {
+                if (p) setPurchaseModal(paperId, p);
+              });
             }
           }
           return;
