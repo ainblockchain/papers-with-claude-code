@@ -1,10 +1,10 @@
 # nginx-ingress/
 
-Ingress Controller related guide.
+Ingress Controller reference guide.
 
 ## k3s and Traefik
 
-k3s includes **Traefik** as its default Ingress Controller, so there is no need to install a separate NGINX Ingress.
+k3s includes **Traefik** as the default Ingress Controller, so a separate NGINX Ingress installation is not needed.
 
 ### Check Traefik Status
 
@@ -16,7 +16,7 @@ kubectl get pods -n kube-system -l app.kubernetes.io/name=traefik
 kubectl get svc -n kube-system traefik
 ```
 
-### Ingress Resource Usage
+### Using Ingress Resources
 
 Traefik supports standard Kubernetes Ingress resources:
 
@@ -41,11 +41,11 @@ spec:
 
 ### If NGINX Ingress Is Needed
 
-If you need NGINX Ingress for a specific reason, you must disable Traefik before installing it:
+If NGINX Ingress is required for a specific reason, disable Traefik first before installing it:
 
 ```bash
-# Disable Traefik during k3s installation (requires reinstallation)
+# Disable Traefik during k3s installation (requires reinstall)
 curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--disable=traefik" sh -
 ```
 
-For now, Traefik meets all requirements, so a separate installation is unnecessary.
+For now, Traefik meets all requirements, so no separate installation is needed.

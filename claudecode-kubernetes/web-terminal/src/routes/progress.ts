@@ -1,4 +1,4 @@
-// API for querying per-user paper learning progress
+// Per-user paper learning progress query API
 
 import { Router, Request, Response } from 'express';
 import { ProgressStore } from '../db/progress.js';

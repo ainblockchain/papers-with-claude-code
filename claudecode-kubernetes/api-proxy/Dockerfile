@@ -1,5 +1,5 @@
-# API Proxy — multi-stage build
-# Replaces the dummy API key from sandbox Pods with the real key and forwards to the Anthropic API
+# API Proxy — Multi-stage build
+# Replaces dummy API keys from sandbox Pods with real keys and forwards requests to the Anthropic API
 
 # Stage 1: Build
 FROM node:20-alpine AS builder
@@ -16,7 +16,7 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Security: use non-root user
+# Security: run as non-root user
 RUN addgroup -S proxy && adduser -S proxy -G proxy
 
 COPY --from=builder /app/package.json /app/package-lock.json* ./

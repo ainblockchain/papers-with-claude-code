@@ -1,5 +1,5 @@
 # Development (dev) environment Kustomize overlay
-# Operates with minimal resources - single replica, low resource limits
+# Minimal resources - single replica, low resource limits
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 

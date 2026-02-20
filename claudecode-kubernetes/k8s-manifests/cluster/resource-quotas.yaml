@@ -1,4 +1,4 @@
-# Per-namespace resource quotas - Application allocation out of total 8 vCPU / 240GB RAM
+# Per-namespace resource quotas - application allocation out of total 8 vCPU / 240GB RAM
 # The remainder is used by the claudecode-terminal namespace and system (kube-system)
 apiVersion: v1
 kind: ResourceQuota

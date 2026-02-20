@@ -1,4 +1,4 @@
-# Web terminal service Deployment - Backend service that receives user requests and dynamically creates/manages sandbox Pods
+# Web Terminal Service Deployment - backend service that dynamically creates/manages sandbox Pods on user request
 apiVersion: apps/v1
 kind: Deployment
 metadata:

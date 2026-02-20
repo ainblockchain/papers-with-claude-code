@@ -1,11 +1,11 @@
 // Kubernetes client initialization
-// Loading strategy: Load from the file if the KUBECONFIG environment variable is set,
-// otherwise manually configure with the in-cluster service account token,
-// and if that also fails, load from the default kubeconfig (~/.kube/config)
+// Loading strategy: use KUBECONFIG env var if set,
+// otherwise manually configure with in-cluster service account token,
+// and fall back to default kubeconfig (~/.kube/config) if that also fails.
 //
-// [Important] In in-cluster mode, loadFromCluster() uses the authProvider: tokenFile approach,
-// but there is an issue in @kubernetes/client-node v1.x where this token is not passed in Exec (WebSocket).
-// Therefore, in in-cluster mode, we use loadFromOptions() to directly include the token in the configuration.
+// [Important] In-cluster mode: loadFromCluster() uses authProvider: tokenFile,
+// but @kubernetes/client-node v1.x Exec (WebSocket) fails to pass the token.
+// So in-cluster mode uses loadFromOptions() to embed the token directly.
 
 import * as k8s from '@kubernetes/client-node';
 import { readFileSync, existsSync } from 'fs';
@@ -19,8 +19,8 @@ if (process.env.KUBECONFIG) {
   kc.loadFromFile(process.env.KUBECONFIG);
   console.log(`[k8s-client] Loaded kubeconfig from file: ${process.env.KUBECONFIG}`);
 } else if (existsSync(SA_TOKEN_PATH)) {
-  // in-cluster: Configure by directly including the token via loadFromOptions()
-  // Used instead of loadFromCluster() to ensure the token is properly passed in Exec WebSocket
+  // in-cluster: configure with loadFromOptions() to embed token directly
+  // Used instead of loadFromCluster() so the token is properly passed in Exec WebSocket
   const token = readFileSync(SA_TOKEN_PATH, 'utf-8').trim();
   kc.loadFromOptions({
     clusters: [{

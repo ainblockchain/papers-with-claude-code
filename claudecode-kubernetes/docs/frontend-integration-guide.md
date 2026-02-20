@@ -1,17 +1,17 @@
 # Frontend Integration Guide
 
 ## Overview
-This is the API specification for integrating with the Papers with Claude Code platform's web terminal backend.
+API specification for integrating with the Papers with Claude Code platform's web terminal backend.
 
 ## Base URL
 
-Current demo server (port forwarding active):
+Current demo server (port forwarding enabled):
 ```
-NEXT_PUBLIC_TERMINAL_API_URL=http://<PUBLIC_IP>:31000
+NEXT_PUBLIC_TERMINAL_API_URL=http://101.202.37.120:31000
 ```
 
-> **Note**: For public deployment, needs to be replaced with a domain/Cloudflare tunnel, etc.
-> In an HTTPS environment, WebSocket connections must also use `wss://` (see WS connection examples below).
+> **Note**: For public deployment, replace with a domain/Cloudflare tunnel, etc.
+> In an HTTPS environment, WebSocket connections must also use `wss://` (see WS connection example below).
 
 ## REST API
 
@@ -23,7 +23,7 @@ Request body:
 {
   "claudeMdUrl": "https://raw.githubusercontent.com/.../attention-is-all-you-need/beginner/CLAUDE.md",
   "userId": "0xABC...",       // optional: Kite AA wallet address recommended
-  "resumeStage": 3            // optional: resume from previous progress stage
+  "resumeStage": 3            // optional: resume from a previous stage
 }
 ```
 
@@ -44,7 +44,7 @@ Response:
 > For GitHub raw URLs, the path after `{owner}/{repo}/{branch}/` is joined with hyphens.
 > This value is used for progress queries, etc.
 
-> **podReused**: If `true`, an existing Pod was reused, so the response comes immediately.
+> **podReused**: If `true`, an existing Pod was reused and the response is immediate.
 > Only when `false` (first connection) does Pod creation + CLAUDE.md fetch take **5-15 seconds**.
 
 ### Get Session
@@ -53,15 +53,15 @@ GET /api/sessions/:id
 ### Delete Session
 DELETE /api/sessions/:id  (204 No Content)
 
-> **Important**: Session deletion only removes the session record. **The Pod is retained**.
-> When the same user reconnects, the existing Pod is reused for immediate connection.
+> **Important**: Deleting a session only removes the session record. **The Pod is preserved.**
+> If the same user reconnects, the existing Pod is reused for instant connection.
 > Recommended to call on page unmount (`useEffect` cleanup).
 
 ### Get Stage Definitions
 GET /api/sessions/:id/stages
 
 Parses the JSON block from the repo's CLAUDE.md and returns StageConfig[].
-Sessions created without claudeMdUrl return an empty array.
+Sessions created without a claudeMdUrl return an empty array.
 
 Response: StageConfig[] (same type as frontend/src/types/learning.ts)
 
@@ -88,21 +88,21 @@ Response:
 }
 ```
 
-> **txHash**: Stages with completed blockchain recording include a transaction hash.
+> **txHash**: Stages with completed blockchain recording include the transaction hash.
 > If `null`, the blockchain recording is pending or disabled (`KITE_ENABLED=false`).
 
-> **unlockedStages**: List of stages where Kite payment has been completed. This data is used to restore unlock status on refresh.
+> **unlockedStages**: List of stages where Kite payment is complete. Used to restore unlock state on page refresh.
 
 GET /api/progress/:userId
-Returns an array of progress for all papers
+Returns an array of progress for all papers.
 
 ## WebSocket Protocol
 
 Connection:
-- HTTP environment: `ws://[BASE_URL]/ws?sessionId=[SESSION_ID]`
-- HTTPS environment: `wss://[BASE_URL]/ws?sessionId=[SESSION_ID]`
+- HTTP: `ws://[BASE_URL]/ws?sessionId=[SESSION_ID]`
+- HTTPS: `wss://[BASE_URL]/ws?sessionId=[SESSION_ID]`
 
-### Client → Server Messages
+### Client -> Server Messages
 ```typescript
 // Terminal input
 { type: 'input', data: string }
@@ -114,7 +114,7 @@ Connection:
 { type: 'ping' }
 ```
 
-### Server → Client Messages
+### Server -> Client Messages
 ```typescript
 // Terminal output (raw text, not JSON)
 "Claude Code output..."
@@ -122,13 +122,13 @@ Connection:
 // Heartbeat response
 { type: 'pong' }
 
-// Autonomous learning start notification (automatically triggered in claudeMdUrl sessions)
+// Autonomous learning start notification (automatically emitted in claudeMdUrl sessions)
 { type: 'auto_start' }
 
-// Stage payment confirmation (lock release)
+// Stage payment confirmation (lock released)
 { type: 'stage_unlocked', stageNumber: number, txHash: string }
 
-// Stage complete event (sent immediately after SQLite save)
+// Stage completion event (sent immediately after SQLite save)
 { type: 'stage_complete', stageNumber: number }
 
 // Course (paper) full completion event
@@ -139,14 +139,14 @@ Connection:
 
 Events are sent in two phases during stage progression:
 
-1. **`stage_unlocked`** — x402 payment complete, lock released. When Claude Code performs an x402 payment via Kite Passport MCP, the `[PAYMENT_CONFIRMED:N:txHash]` marker is detected and sent. The frontend activates the stage with this event. The `txHash` can be used to display a Kite block explorer link.
-2. **`stage_complete`** — Learning complete. Occurs immediately after the backend detects the `[STAGE_COMPLETE:N]` marker and saves it to SQLite. The frontend immediately updates the UI with this event (e.g., marking stage completion on the dungeon map).
+1. **`stage_unlocked`** — x402 payment complete, lock released. When Claude Code performs x402 payment via Kite Passport MCP, the `[PAYMENT_CONFIRMED:N:txHash]` marker is detected and this event is sent. The frontend activates the stage on this event. The `txHash` can be used to display a Kite block explorer link.
+2. **`stage_complete`** — Learning complete. Emitted immediately after the backend detects the `[STAGE_COMPLETE:N]` marker and saves it to SQLite. The frontend updates the UI immediately on this event (e.g., marking stage as complete on the dungeon map).
 
-> **Autonomous Learning Mode**: When a session is created with `claudeMdUrl`, Claude automatically starts exploring the paper.
+> **Autonomous learning mode**: When a session is created with `claudeMdUrl`, Claude automatically begins exploring the paper.
 > If the user has no input for 2 minutes, Claude autonomously explores the next content.
 > When the frontend receives the `auto_start` event, it can close the loading UI and switch to an "AI is exploring" state.
 
-Message parsing strategy: Try JSON.parse() → if successful, handle as event; if failed, treat as terminal output
+Message parsing strategy: Try JSON.parse() -> if successful, handle as event; if failed, treat as terminal output.
 
 ## xterm.js Integration Example
 
@@ -168,11 +168,11 @@ const res = await fetch(`${baseUrl}/api/sessions`, {
 });
 const { sessionId, podReused } = await res.json();
 
-// Loading UX can branch based on podReused
-// podReused === true  → Existing Pod reused, immediate connection
-// podReused === false → New Pod creation + CLAUDE.md fetch, 5-15 second wait
+// Branch loading UX based on podReused
+// podReused === true  -> Existing Pod reused, instant connection
+// podReused === false -> New Pod creation + CLAUDE.md fetch, 5-15 second wait
 
-// 2. Fetch stages
+// 2. Query stages
 const stages = await fetch(`${baseUrl}/api/sessions/${sessionId}/stages`).then(r => r.json());
 
 // 3. xterm.js + WebSocket connection (XtermTerminal component example)
@@ -185,7 +185,7 @@ term.loadAddon(fitAddon);
 term.open(containerElement);
 fitAddon.fit();
 
-// Auto-convert http → ws, https → wss
+// Auto-convert http -> ws, https -> wss
 const wsUrl = baseUrl.replace(/^https/, 'wss').replace(/^http/, 'ws');
 const ws = new WebSocket(`${wsUrl}/ws?sessionId=${sessionId}`);
 
@@ -195,28 +195,28 @@ ws.onmessage = (event) => {
   try {
     const msg = JSON.parse(data);
     if (msg.type === 'auto_start') {
-      // → Close loading UI + display "AI is exploring the paper..."
-      // → Claude automatically starts reading and analyzing files
+      // -> Close loading UI + show "AI is exploring the paper..."
+      // -> Claude automatically starts reading and analyzing files
     }
     if (msg.type === 'stage_unlocked') {
-      // → Lock release animation
-      // → Display Kite block explorer link with msg.txHash
+      // -> Lock release animation
+      // -> Display Kite block explorer link using msg.txHash
       //   e.g., `https://testnet.kitescan.ai/tx/${msg.txHash}`
-      // → Activate stage msg.stageNumber
+      // -> Activate stage msg.stageNumber
     }
     if (msg.type === 'stage_complete') {
-      // → Immediate UI update (mark stage complete on dungeon map)
+      // -> Immediately update UI (mark stage as complete on dungeon map)
     }
     if (msg.type === 'course_complete') {
-      // → Display congratulations screen (can collect txHash from all stages to generate certificate)
+      // -> Show congratulations screen (collect txHash from all stages to generate certificate)
     }
     // Ignore pong
   } catch {
-    term.write(data); // raw terminal output
+    term.write(data); // Raw terminal output
   }
 };
 
-// Terminal input → server
+// Terminal input -> server
 term.onData((data) => {
   ws.send(JSON.stringify({ type: 'input', data }));
 });
@@ -231,36 +231,36 @@ window.addEventListener('resize', () => {
 ## Session Lifecycle
 
 ```
-1. Page entry → POST /api/sessions { claudeMdUrl, userId }
-   - First connection: Pod creation + CLAUDE.md fetch ≈ 5-15 seconds (podReused: false)
-   - Reconnection: Reuse existing Pod ≈ 1-2 seconds (podReused: true)
-2. After receiving sessionId, courseId → GET /api/sessions/:id/stages
-3. GET /api/progress/:userId/:courseId → Restore previous payment status with unlockedStages
+1. Page entry -> POST /api/sessions { claudeMdUrl, userId }
+   - First visit: Pod creation + CLAUDE.md fetch ~ 5-15 sec (podReused: false)
+   - Reconnect: Existing Pod reused ~ 1-2 sec (podReused: true)
+2. Once sessionId, courseId received -> GET /api/sessions/:id/stages
+3. GET /api/progress/:userId/:courseId -> Restore previous payment state from unlockedStages
 4. WebSocket connection
-5. Receive stage_unlocked event → Stage lock release (x402 payment complete, includes txHash)
+5. Receive stage_unlocked event -> Release stage lock (x402 payment complete, includes txHash)
 6. User learning (conversation with Claude Code)
-7. Receive stage_complete event → Immediate UI update (display learning complete)
-8. Receive course_complete event → Clear handling
-10. Page exit → DELETE /api/sessions/:id (session cleanup, Pod retained)
-11. Enter another paper → Repeat from step 1 (same Pod, different claudeMdUrl + courseId)
+7. Receive stage_complete event -> Immediately update UI (mark learning complete)
+8. Receive course_complete event -> Handle course clear
+10. Page exit -> DELETE /api/sessions/:id (clean up session, Pod is preserved)
+11. Enter another paper -> Repeat from step 1 (same Pod, different claudeMdUrl + courseId)
 ```
 
-## Progress Storage
+## Progress Saving
 
-When the backend detects markers in Claude's output, it automatically performs the following:
+The backend automatically performs the following when it detects markers in Claude's output:
 
-- `[PAYMENT_CONFIRMED:N:txHash]` → Record payment in SQLite `stage_payments` → Send `stage_unlocked` event
-- `[STAGE_COMPLETE:N]` → Record learning completion in SQLite `stage_completions` → Send `stage_complete` event
-- `[DUNGEON_COMPLETE]` → Record course completion in SQLite `course_completions` → Send `course_complete` event
+- `[PAYMENT_CONFIRMED:N:txHash]` -> Records payment in SQLite `stage_payments` -> Sends `stage_unlocked` event
+- `[STAGE_COMPLETE:N]` -> Records learning completion in SQLite `stage_completions` -> Sends `stage_complete` event
+- `[DUNGEON_COMPLETE]` -> Records course completion in SQLite `course_completions` -> Sends `course_complete` event
 
-**The frontend does not directly call payment/blockchain.** Claude Code autonomously performs x402 payments via Kite Passport MCP, and the backend detects markers to manage state.
+**The frontend does not call payment/blockchain directly.** Claude Code autonomously performs x402 payments via Kite Passport MCP, and the backend detects markers to manage state.
 
 Recommended userId: Kite AA wallet address (0xABC...)
-- Using a wallet address as userId allows querying payment records and progress with the same key
+- Using a wallet address as userId allows payment records and progress to be queried with the same key.
 
 Restoring previous progress:
 ```typescript
-// Load previous state via progress API, then pass resumeStage when creating new session
+// Load previous state via progress API, then pass resumeStage when creating a new session
 const progress = await fetch(`${baseUrl}/api/progress/${userId}/${courseId}`).then(r => r.json());
 const lastStage = progress.completedStages.at(-1)?.stageNumber ?? 0;
 const { sessionId, courseId } = await createSession({ claudeMdUrl, userId, resumeStage: lastStage });
@@ -287,35 +287,35 @@ Response:
 }
 ```
 
-- `completedStages`: List of stages where learning is complete. `txHash` is the on-chain transaction returned by the facilitator during x402 payment.
-- `unlockedStages`: List of stages unlocked via x402 payment. Used to restore lock release status on refresh.
+- `completedStages`: List of stages where learning is complete. `txHash` is the on-chain transaction returned by the x402 facilitator.
+- `unlockedStages`: List of stages unlocked via x402 payment. Used to restore lock release state on page refresh.
 - Block explorer: `https://testnet.kitescan.ai/tx/${txHash}`
 
 ## x402 Payment Flow
 
-Claude Code performs autonomous payments via the x402 protocol through Kite Passport MCP. **The frontend does not handle payments directly.**
+Claude Code autonomously performs payments via the x402 protocol through Kite Passport MCP. **The frontend does not handle payments directly.**
 
 ```
 Claude Code (inside Pod)
-  → Call backend /api/x402/unlock-stage via curl
-  → Receive HTTP 402 response (including payment requirements)
-  → Kite Passport MCP: get_payer_addr → approve_payment
-  → Re-request with X-PAYMENT header
-  → Backend: facilitator verify/settle → on-chain settlement
-  → Backend: Record in stage_payments DB → return txHash
-  → Claude Code: Output [PAYMENT_CONFIRMED:N:txHash] marker to stdout
-  → terminal-bridge: Detect marker → send stage_unlocked event
-  → Frontend: UI update (lock release)
+  -> Calls backend /api/x402/unlock-stage via curl
+  -> Receives HTTP 402 response (with payment requirements)
+  -> Kite Passport MCP: get_payer_addr -> approve_payment
+  -> Retries request with X-PAYMENT header
+  -> Backend: facilitator verify/settle -> on-chain settlement
+  -> Backend: records in stage_payments DB -> returns txHash
+  -> Claude Code: outputs [PAYMENT_CONFIRMED:N:txHash] marker to stdout
+  -> terminal-bridge: detects marker -> sends stage_unlocked event
+  -> Frontend: UI update (lock released)
 ```
 
 - Payment method: Kite testnet Test USDT (AA wallet, Privy-based)
-- The frontend only updates the UI upon receiving `stage_unlocked` events.
-- On refresh, unlock status is restored using `unlockedStages` from `GET /api/progress/:userId/:courseId`.
+- The frontend only receives the `stage_unlocked` event to update the UI.
+- On page refresh, unlock state is restored from `GET /api/progress/:userId/:courseId` `unlockedStages`.
 - Payment txHash can be verified at `https://testnet.kitescan.ai/tx/${txHash}`.
 
 ## Backend Environment Variables Reference
 
-Not used directly by the frontend, but useful backend environment variables for deployment/debugging:
+Not used directly by the frontend, but useful for deployment/debugging:
 
 | Variable | Default | Description |
 |----------|---------|-------------|

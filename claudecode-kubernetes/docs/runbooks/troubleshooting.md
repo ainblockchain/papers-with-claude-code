@@ -8,7 +8,7 @@ Issues encountered during the actual setup process and their solutions.
 
 **Symptom**: `403 Forbidden` error when attempting Pod exec from the web terminal.
 
-**Cause**: Granting only `create` permission to the `pods/exec` resource is insufficient. Since the WebSocket upgrade starts with an HTTP GET, `get` permission is also required.
+**Cause**: Granting only `create` permission on the `pods/exec` resource is insufficient. Since the WebSocket upgrade starts as an HTTP GET, `get` permission is also required.
 
 **Solution**:
 
@@ -25,11 +25,11 @@ Issues encountered during the actual setup process and their solutions.
 
 ## K8s client-node exec Token Issue
 
-**Symptom**: When web-terminal-service running inside a Pod initializes the K8s client with `loadFromCluster()`, the REST API works normally but exec (WebSocket) fails authentication.
+**Symptom**: When web-terminal-service running inside a Pod initializes the K8s client with `loadFromCluster()`, REST API works fine but exec (WebSocket) fails authentication.
 
-**Cause**: `loadFromCluster()` in `@kubernetes/client-node` v1.x uses the `authProvider: tokenFile` approach, which has a bug where the token is not included in the header during WebSocket connections.
+**Cause**: `loadFromCluster()` in `@kubernetes/client-node` v1.x uses the `authProvider: tokenFile` approach, which has a bug where the token is not included in headers during WebSocket connections.
 
-**Solution**: Instead of `loadFromCluster()`, read the ServiceAccount token directly and configure manually with `loadFromOptions()`.
+**Solution**: Instead of `loadFromCluster()`, read the service account token directly and manually configure via `loadFromOptions()`.
 
 ```typescript
 // web-terminal/src/k8s/client.ts
@@ -48,7 +48,7 @@ kc.loadFromOptions({
 
 ## Claude Code Onboarding Skip
 
-**Symptom**: When running Claude Code CLI for the first time in a sandbox Pod, an interactive onboarding screen appears and cannot be completed in the WebSocket terminal.
+**Symptom**: When Claude Code CLI is first launched in the sandbox Pod, the interactive onboarding prompt appears and blocks the WebSocket terminal.
 
 **Solution**: Pre-set the onboarding completion flag in `~/.claude/.claude.json`.
 
@@ -58,7 +58,7 @@ kc.loadFromOptions({
 }
 ```
 
-Configured to automatically generate this file in `start-claude.sh` during Docker image build.
+Configured to auto-generate this file in `start-claude.sh` during Docker image build.
 
 **File**: `docker/claudecode-sandbox/start-claude.sh`
 
@@ -66,9 +66,9 @@ Configured to automatically generate this file in `start-claude.sh` during Docke
 
 ## Pod ImagePullBackOff
 
-**Symptom**: Pod does not start and remains in `ImagePullBackOff` status.
+**Symptom**: Pod stays in `ImagePullBackOff` state and does not start.
 
-**Cause**: Using locally built images, but K8s attempts to pull from a registry by default.
+**Cause**: Using a locally built image but K8s defaults to pulling from a registry.
 
 **Solution**: Set `imagePullPolicy` to `Never` in the Deployment.
 
@@ -76,10 +76,10 @@ Configured to automatically generate this file in `start-claude.sh` during Docke
 containers:
   - name: web-terminal
     image: web-terminal-service:latest
-    imagePullPolicy: Never  # Use local images
+    imagePullPolicy: Never  # Use local image
 ```
 
-Images must be directly imported into k3s containerd:
+Images must be imported directly into k3s containerd:
 
 ```bash
 docker save web-terminal-service:latest | sudo k3s ctr images import -
@@ -90,9 +90,9 @@ docker save claudecode-sandbox:latest | sudo k3s ctr images import -
 
 ---
 
-## Cannot SSH
+## SSH Connection Failed
 
-**Symptom**: Permission denied or connection refused when attempting `ssh <K8S_NODE_IP>`.
+**Symptom**: Permission denied or connection refused when running `ssh <K8S_NODE_IP>`.
 
 **Checklist**:
 
@@ -103,22 +103,22 @@ docker save claudecode-sandbox:latest | sudo k3s ctr images import -
 
 ---
 
-## Cannot Connect kubectl from Mac
+## kubectl Not Connecting from Mac
 
 **Symptom**: Connection timeout or authentication failure when running `kubectl get nodes`.
 
 **Checklist**:
 
 ```bash
-# 1. Check KUBECONFIG setting
+# 1. Verify KUBECONFIG setting
 echo $KUBECONFIG
 # Output should be: ~/.kube/config-k8s-node
 
-# 2. Check server IP in kubeconfig
+# 2. Verify server IP in kubeconfig
 grep server ~/.kube/config-k8s-node
 # Output should be: server: https://<K8S_NODE_IP>:6443 (not 127.0.0.1)
 
-# 3. Check VPN + routing
+# 3. Verify VPN + routing
 ping <K8S_NODE_IP>
 
 # 4. Check VM firewall
@@ -139,10 +139,10 @@ kubectl logs -n claudecode-terminal deployment/web-terminal-service -f
 # Specific sandbox Pod logs
 kubectl logs -n claudecode-terminal <pod-name>
 
-# Check Pod status and events
+# Pod status and events
 kubectl describe pod -n claudecode-terminal <pod-name>
 
-# Check all events
+# All events
 kubectl get events -n claudecode-terminal --sort-by=.lastTimestamp
 ```
 

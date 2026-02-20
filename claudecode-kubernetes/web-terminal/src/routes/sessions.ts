@@ -1,24 +1,24 @@
 // Session management REST API router
-// Provides session creation (POST), listing (GET), detail retrieval (GET :id), and deletion (DELETE :id).
+// Provides session creation (POST), list (GET), detail (GET :id), and deletion (DELETE :id).
 // Session data is stored in an in-memory Map (MVP).
 //
 // Pod reuse strategy:
-//   Maintain one Pod per user; multiple sessions can share the same Pod.
-//   On POST, reuse the existing Pod if available, otherwise create a new one.
-//   On DELETE, only remove the session record without deleting the Pod.
-//   Fetch the entire directory from the claudeMdUrl provided by the frontend
-//   and place it at /home/claude/papers/{courseId}/ (GitHub -> tarball, others -> CLAUDE.md only).
+//   Maintains one Pod per user; multiple sessions can share the same Pod.
+//   POST reuses an existing Pod if available, otherwise creates a new one.
+//   DELETE removes only the session record, keeping the Pod alive.
+//   Fetches the entire directory from the frontend-provided courseUrl
+//   into /home/claude/papers/{courseId}/ (GitHub -> tarball, others -> CLAUDE.md only).
 
 import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import { AppConfig, Session } from '../types.js';
+import { AppConfig, Session, SessionMode } from '../types.js';
 import { PodManager } from '../k8s/pod-manager.js';
 
 const sessions = new Map<string, Session>();
 const podManager = new PodManager();
 
-/** claudeMdUrl validation — only HTTPS URLs are allowed */
-function validateClaudeMdUrl(url: string): boolean {
+/** Validate courseUrl — only HTTPS URLs allowed */
+function validateCourseUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
     return parsed.protocol === 'https:';
@@ -27,35 +27,35 @@ function validateClaudeMdUrl(url: string): boolean {
   }
 }
 
-/** Derive courseId from claudeMdUrl
+/** Derive courseId from courseUrl
  *  GitHub raw URL: raw.githubusercontent.com/{owner}/{repo}/{branch}/{path}/CLAUDE.md
- *  -> Join the {path} portion with hyphens (e.g., "attention-is-all-you-need-bible")
- *  General URL: Use the last 2 path segments */
-function deriveCourseId(claudeMdUrl: string): string {
-  const url = new URL(claudeMdUrl);
+ *  -> joins {path} segments with hyphens (e.g., "attention-is-all-you-need-bible")
+ *  Other URLs: uses last 2 path segments */
+function deriveCourseId(courseUrl: string): string {
+  const url = new URL(courseUrl);
   const parts = url.pathname.split('/').filter(Boolean);
   parts.pop(); // Remove CLAUDE.md filename
 
-  // raw.githubusercontent.com: Skip owner/repo/branch (3 segments) and the rest is the course path
+  // raw.githubusercontent.com: skip owner/repo/branch (3 segments), rest is course path
   if (url.hostname === 'raw.githubusercontent.com' && parts.length > 3) {
     return parts.slice(3).join('-').toLowerCase();
   }
 
-  // General URL: Use the last meaningful segments
+  // Generic URL: use last meaningful segments
   const meaningful = parts.length > 2 ? parts.slice(-2) : parts;
   return (meaningful.join('-') || 'default').toLowerCase();
 }
 
-/** Parse repo info from a GitHub raw URL and return the information needed for tarball download.
- *  Only supports the format raw.githubusercontent.com/{owner}/{repo}/{branch}/{dirPath}/CLAUDE.md. */
-function parseGitHubRawUrl(claudeMdUrl: string): {
+/** Parse GitHub raw URL to extract repo info needed for tarball download.
+ *  Only supports raw.githubusercontent.com/{owner}/{repo}/{branch}/{dirPath}/CLAUDE.md format. */
+function parseGitHubRawUrl(courseUrl: string): {
   owner: string; repo: string; branch: string; dirPath: string;
 } | null {
   try {
-    const url = new URL(claudeMdUrl);
+    const url = new URL(courseUrl);
     if (url.hostname !== 'raw.githubusercontent.com') return null;
     const parts = url.pathname.split('/').filter(Boolean);
-    // owner/repo/branch/.../CLAUDE.md -> At least 4 segments required
+    // owner/repo/branch/.../CLAUDE.md -> requires at least 4 segments
     if (parts.length < 4) return null;
     const owner = parts[0];
     const repo = parts[1];
@@ -68,17 +68,17 @@ function parseGitHubRawUrl(claudeMdUrl: string): {
   }
 }
 
-/** Generate a podId for Pod labels from userId (same logic as pod-template.ts) */
+/** Generate podId for Pod labels from userId (same logic as pod-template.ts) */
 function toPodId(userId: string): string {
   return userId.replace(/[^a-zA-Z0-9]/g, '').slice(0, 16).toLowerCase();
 }
 
-/** Look up a session by session ID (also used by the WebSocket handler in server.ts) */
+/** Look up a session by ID (also used by WebSocket handler in server.ts) */
 export function getSession(sessionId: string): Session | undefined {
   return sessions.get(sessionId);
 }
 
-/** Return the current number of active sessions */
+/** Return the current active session count */
 export function getActiveSessionCount(): number {
   let count = 0;
   for (const session of sessions.values()) {
@@ -89,25 +89,27 @@ export function getActiveSessionCount(): number {
   return count;
 }
 
-/** Create the session management router */
+/** Create session management router */
 export function createSessionRouter(config: AppConfig): Router {
   const router = Router();
 
-  // POST /api/sessions — Create a new session (includes existing Pod reuse logic)
+  // POST /api/sessions — create a new session (includes Pod reuse logic)
   router.post('/sessions', async (req: Request, res: Response) => {
     try {
-      const { claudeMdUrl, userId, resumeStage } = req.body as {
-        claudeMdUrl?: string;
+      const { courseUrl, userId, resumeStage, mode: rawMode } = req.body as {
+        courseUrl?: string;
         userId?: string;
         resumeStage?: number;
+        mode?: string;
       };
+      const mode: SessionMode = rawMode === 'generator' ? 'generator' : 'learner';
 
-      if (claudeMdUrl && !validateClaudeMdUrl(claudeMdUrl)) {
-        res.status(400).json({ error: 'Invalid claudeMdUrl: only HTTPS URLs are allowed' });
+      if (courseUrl && !validateCourseUrl(courseUrl)) {
+        res.status(400).json({ error: 'Invalid courseUrl: only HTTPS URLs are allowed' });
         return;
       }
 
-      // resumeStage validation — must validate as integer since it's interpolated in bash -c (command injection prevention)
+      // Validate resumeStage — must be an integer since it's interpolated in bash -c (prevent command injection)
       let validatedStage: number | undefined;
       if (resumeStage != null) {
         validatedStage = Number(resumeStage);
@@ -128,51 +130,54 @@ export function createSessionRouter(config: AppConfig): Router {
       }
 
       const sessionId = uuidv4();
-      const courseId = claudeMdUrl ? deriveCourseId(claudeMdUrl) : undefined;
+      const courseId = courseUrl ? deriveCourseId(courseUrl) : undefined;
       const session: Session = {
         id: sessionId,
         podName: '',
         namespace: config.sandboxNamespace,
         status: 'creating',
         createdAt: new Date(),
-        claudeMdUrl,
+        courseUrl,
         userId,
         courseId,
+        mode,
       };
       sessions.set(sessionId, session);
 
-      console.log(`[sessions] Creating session: ${sessionId}${courseId ? ` (course: ${courseId})` : ''}`);
+      console.log(`[sessions] Creating ${mode} session: ${sessionId}${courseId ? ` (course: ${courseId})` : ''}`);
 
-      // Attempt to reuse an existing Pod
+      // Attempt to reuse existing Pod
       let podName: string | null = null;
       let podReused = false;
 
       if (userId) {
         const podId = toPodId(userId);
-        podName = await podManager.findUserPod(podId, config.sandboxNamespace);
+        // Generator Pods use 'claude-gen-' prefix and are managed separately (filtered by mode label)
+        podName = await podManager.findUserPod(podId, config.sandboxNamespace, mode);
         if (podName) {
           podReused = true;
-          console.log(`[sessions] Reusing existing pod: ${podName} for user: ${userId}`);
+          console.log(`[sessions] Reusing existing ${mode} pod: ${podName} for user: ${userId}`);
         }
       }
 
-      // Create a new Pod if no existing one is found
+      // Create a new Pod if none exists
       if (!podName) {
-        podName = await podManager.createPod(sessionId, config, userId);
+        podName = await podManager.createPod(sessionId, config, userId, mode);
         await podManager.waitForPodReady(podName, config.sandboxNamespace);
-        console.log(`[sessions] New pod created: ${podName}`);
+        console.log(`[sessions] New ${mode} pod created: ${podName}`);
       }
 
       session.podName = podName;
 
-      // If claudeMdUrl is provided, fetch the entire directory and place it in the paper directory
-      if (claudeMdUrl && courseId) {
+      // Learner mode: if courseUrl is present, fetch the entire directory into the paper directory
+      // Generator mode: repo clone is handled by start-claude.sh, so skip here
+      if (mode === 'learner' && courseUrl && courseId) {
         const paperPath = `/home/claude/papers/${courseId}`;
-        const ghInfo = parseGitHubRawUrl(claudeMdUrl);
+        const ghInfo = parseGitHubRawUrl(courseUrl);
 
         if (ghInfo) {
-          // GitHub raw URL -> Download the entire directory via tarball
-          // Internal tarball path: {repo}-{branch}/{dirPath}/
+          // GitHub raw URL -> download entire directory via tarball
+          // Tarball internal path: {repo}-{branch}/{dirPath}/
           const tarballUrl = `https://github.com/${ghInfo.owner}/${ghInfo.repo}/archive/refs/heads/${ghInfo.branch}.tar.gz`;
           const stripPrefix = `${ghInfo.repo}-${ghInfo.branch}/${ghInfo.dirPath}`;
 
@@ -181,7 +186,7 @@ export function createSessionRouter(config: AppConfig): Router {
           await podManager.execInPod(session.podName, config.sandboxNamespace, [
             'mkdir', '-p', paperPath,
           ]);
-          // Download tarball -> extract to /tmp -> copy only the needed directory -> cleanup
+          // Download tarball -> extract to /tmp -> copy needed directory -> clean up
           await podManager.execInPod(session.podName, config.sandboxNamespace, [
             'bash', '-c',
             `curl -fsSL "${tarballUrl}" | tar xz -C /tmp && ` +
@@ -190,18 +195,18 @@ export function createSessionRouter(config: AppConfig): Router {
           ]);
           console.log(`[sessions] Course directory fetched: ${ghInfo.dirPath} → ${paperPath}`);
         } else {
-          // Non-GitHub URL -> Download only CLAUDE.md as a single file (fallback)
-          console.log(`[sessions] Non-GitHub URL, fetching CLAUDE.md only: ${claudeMdUrl}`);
+          // Non-GitHub URL -> download only CLAUDE.md (fallback)
+          console.log(`[sessions] Non-GitHub URL, fetching CLAUDE.md only: ${courseUrl}`);
           await podManager.execInPod(session.podName, config.sandboxNamespace, [
             'mkdir', '-p', paperPath,
           ]);
           await podManager.execInPod(session.podName, config.sandboxNamespace, [
-            'curl', '-fsSL', '-o', `${paperPath}/CLAUDE.md`, claudeMdUrl,
+            'curl', '-fsSL', '-o', `${paperPath}/CLAUDE.md`, courseUrl,
           ]);
         }
       }
 
-      // If resumeStage is provided, inject the resume context into the Pod (validatedStage is a validated integer)
+      // If resumeStage is set, inject resume context into the Pod (validatedStage is already validated as integer)
       if (validatedStage != null) {
         console.log(`[sessions] Setting resume stage: ${validatedStage}`);
         await podManager.execInPod(session.podName, config.sandboxNamespace, [
@@ -217,9 +222,10 @@ export function createSessionRouter(config: AppConfig): Router {
         sessionId: session.id,
         podName: session.podName,
         status: session.status,
-        claudeMdUrl: session.claudeMdUrl,
+        courseUrl: session.courseUrl,
         userId: session.userId,
         courseId: session.courseId,
+        mode: session.mode,
         podReused,
       });
     } catch (err) {
@@ -228,13 +234,13 @@ export function createSessionRouter(config: AppConfig): Router {
     }
   });
 
-  // GET /api/sessions — List all sessions
+  // GET /api/sessions — list all sessions
   router.get('/sessions', async (_req: Request, res: Response) => {
     try {
       const result: Session[] = [];
 
       for (const session of sessions.values()) {
-        // Synchronize sessions in running state by checking actual Pod status
+        // Sync running sessions with actual Pod status
         if (session.status === 'running') {
           try {
             const phase = await podManager.getPodStatus(
@@ -258,7 +264,7 @@ export function createSessionRouter(config: AppConfig): Router {
     }
   });
 
-  // GET /api/sessions/:id — Get session details
+  // GET /api/sessions/:id — get session details
   router.get('/sessions/:id', async (req: Request, res: Response) => {
     const session = sessions.get(req.params.id as string);
     if (!session) {
@@ -266,7 +272,7 @@ export function createSessionRouter(config: AppConfig): Router {
       return;
     }
 
-    // Synchronize by checking actual Pod status
+    // Sync with actual Pod status
     if (session.status === 'running') {
       try {
         const phase = await podManager.getPodStatus(
@@ -284,7 +290,7 @@ export function createSessionRouter(config: AppConfig): Router {
     res.json(session);
   });
 
-  // DELETE /api/sessions/:id — Delete session (Pod is kept, only session record is removed)
+  // DELETE /api/sessions/:id — delete session (keep Pod alive, remove session record only)
   router.delete('/sessions/:id', async (req: Request, res: Response) => {
     const session = sessions.get(req.params.id as string);
     if (!session) {

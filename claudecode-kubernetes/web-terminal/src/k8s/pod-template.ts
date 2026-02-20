@@ -1,47 +1,51 @@
 // Sandbox Pod spec generation
-// Creates one Pod per user and persists conversation history and cloned repos via PV.
-// The Pod stays alive with sleep infinity, and claude is executed directly via exec.
+// Creates one Pod per user, persisting conversation history and cloned repos via PV.
+// Pod stays alive with sleep infinity; claude is executed directly via exec.
 //
 // Persistence strategy (hostPath + subPath):
-//   /data/claude-users/{userId}/dot-claude → /home/claude/.claude (session data)
-//   /data/claude-users/{userId}/papers     → /home/claude/papers  (CLAUDE.md + learning data)
-// Since subPath mounts are used, the image's .bashrc, CLAUDE.md, etc. are preserved.
+//   /data/claude-users/{userId}/dot-claude -> /home/claude/.claude (session data)
+//   /data/claude-users/{userId}/papers     -> /home/claude/papers  (CLAUDE.md + learning data)
+// subPath mounts preserve image files like .bashrc, CLAUDE.md, etc.
 //
-// Note 1: .claude/settings.json is baked into the image but
-//          gets hidden by the PV mount. Resolved with a restore command at container startup.
+// Note 1: .claude/settings.json is baked into the image but gets hidden by the PV mount.
+//          Restored via a startup command.
 //          Actual security enforcement is handled by /etc/claude-code/managed-settings.json.
 //
-// Note 2: There is a K8s issue where fsGroup is not applied to subPath mounts,
-//          so permissions are set directly with chown in an initContainer.
+// Note 2: fsGroup does not apply to subPath mounts (K8s limitation),
+//          so initContainer sets ownership via chown directly.
 //
-// Security: The real API key is not injected into the Pod.
-// Configured with a dummy key + ANTHROPIC_BASE_URL (proxy),
-// where the proxy replaces it with the real key before forwarding to the Anthropic API.
+// Security: Real API keys are never injected into the Pod.
+// A dummy key + ANTHROPIC_BASE_URL (proxy) is used;
+// the proxy swaps in the real key before forwarding to the Anthropic API.
 
 import { V1Pod } from '@kubernetes/client-node';
-import { AppConfig } from '../types.js';
+import { AppConfig, SessionMode } from '../types.js';
 
 // Dummy API key — harmless even if exposed inside the Pod
 const SANDBOX_DUMMY_API_KEY =
   'sk-ant-api01-SANDBOX-PLACEHOLDER-KEY-DO-NOT-USE-xxxxxxxxxxxxxxxxxxxx';
 
-// Internal cluster address of the API Proxy service
+// API Proxy service cluster-internal address
 const API_PROXY_URL =
   'http://api-proxy.claudecode-terminal.svc.cluster.local:8080';
 
-// Base path for user data hostPath
+// User data hostPath base path
 const USER_DATA_BASE_PATH = '/data/claude-users';
 
 export function buildSandboxPodSpec(
   sessionId: string,
   config: AppConfig,
   userId?: string,
+  mode: SessionMode = 'learner',
 ): V1Pod {
-  // Per-user Pod: based on userId if available, otherwise based on sessionId (fallback)
+  // Per-user Pod: uses userId if available, otherwise falls back to sessionId
+  // Generator mode uses a separate Pod (avoids managed-settings conflicts + allows concurrent usage)
   const podId = userId
     ? userId.replace(/[^a-zA-Z0-9]/g, '').slice(0, 16).toLowerCase()
     : sessionId.slice(0, 8);
-  const podName = userId ? `claude-user-${podId}` : `claude-session-${podId}`;
+  const podName = mode === 'generator'
+    ? `claude-gen-${podId}`
+    : userId ? `claude-user-${podId}` : `claude-session-${podId}`;
   const userDataPath = `${USER_DATA_BASE_PATH}/${podId}`;
 
   return {
@@ -52,6 +56,7 @@ export function buildSandboxPodSpec(
       namespace: config.sandboxNamespace,
       labels: {
         app: 'claudecode-sandbox',
+        mode,
         ...(userId ? { 'user-id': podId } : { 'session-id': sessionId }),
       },
       annotations: {
@@ -66,7 +71,7 @@ export function buildSandboxPodSpec(
       securityContext: {
         fsGroup: 1000,
       },
-      // initContainer: fsGroup is not applied to subPath mounts, so chown directly
+      // initContainer: fsGroup doesn't apply to subPath mounts, so chown directly
       initContainers: [
         {
           name: 'fix-permissions',
@@ -92,7 +97,11 @@ export function buildSandboxPodSpec(
             'test -f /home/claude/.claude/settings.json || cp /etc/claude-defaults/settings.json /home/claude/.claude/settings.json 2>/dev/null',
             'exec sleep infinity',
           ].join(' ; ')],
-          resources: {
+          resources: mode === 'generator' ? {
+            // Generator: higher resources for file writes + git operations
+            requests: { cpu: '500m', memory: '1Gi' },
+            limits: { cpu: '2', memory: '4Gi' },
+          } : {
             requests: {
               cpu: config.podCpuRequest,
               memory: config.podMemoryRequest,
@@ -115,6 +124,22 @@ export function buildSandboxPodSpec(
               name: 'ANTHROPIC_BASE_URL',
               value: API_PROXY_URL,
             },
+            // Generator mode: inject GITHUB_TOKEN from K8s Secret
+            ...(mode === 'generator' ? [
+              {
+                name: 'GITHUB_TOKEN',
+                valueFrom: {
+                  secretKeyRef: {
+                    name: 'generator-github-token',
+                    key: 'GITHUB_TOKEN',
+                  },
+                },
+              },
+              {
+                name: 'MODE',
+                value: 'generator',
+              },
+            ] : []),
           ],
           volumeMounts: [
             {

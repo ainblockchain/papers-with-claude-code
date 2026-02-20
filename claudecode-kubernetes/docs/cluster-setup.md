@@ -1,6 +1,6 @@
 # K8s Cluster Setup Guide
 
-A runbook documenting the entire process of building a k3s single-node cluster on the <SERVER2> server.
+Runbook documenting the entire process of setting up a k3s single-node cluster on the <SERVER2> server.
 Following this document, you can reproduce the same environment from scratch.
 
 ---
@@ -27,13 +27,13 @@ Following this document, you can reproduce the same environment from scratch.
 | vCPU | 8 (ESXi license limitation) |
 | RAM | 240 GB |
 | Disk | 1 TB (thin provisioned) |
-| K8s | k3s (single node, serving as both master + worker) |
+| K8s | k3s (single node, master + worker combined) |
 
 ### Network Access Requirements
 
 ```bash
-# 1. VPN connection (company VPN)
-# 2. Add routing
+# 1. Connect VPN (company VPN)
+# 2. Add route
 sudo route add -net <SUBNET> -interface ppp0
 ```
 
@@ -47,21 +47,21 @@ sudo route add -net <SUBNET> -interface ppp0
 ping <ESXI_SERVER_1_IP>   # <SERVER2> (ESXi)
 ping <ESXI_SERVER_3_IP>  # T640
 ping <ESXI_SERVER_4_IP>   # T550
-ping <ESXI_SERVER_2_IP>   # <SERVER1> (unavailable — 22 VMs, RAM 91%)
+ping <ESXI_SERVER_2_IP>   # <SERVER1> (unavailable -- 22 VMs, 91% RAM)
 ```
 
 ### ESXi Web UI Access
 
-Access `https://<ESXI_SERVER_1_IP>/ui` in the browser → log in as root
+Open `https://<ESXI_SERVER_1_IP>/ui` in browser -> root login
 
 ### Server Survey Results
 
 | Server | IP | VM Count | RAM Usage | Verdict |
-|--------|-----|----------|-----------|---------|
+|--------|----|----------|-----------|---------|
 | <SERVER1> | <ESXI_SERVER_2_IP> | 22 | 91% | Unavailable (company services) |
-| **<SERVER2>** | **<ESXI_SERVER_1_IP>** | **14** | **44%** | **For K8s — VM deletion approved** |
-| T640 | <ESXI_SERVER_3_IP> | 2 | Unconfirmed | Future Worker expansion (T4 GPU x 4) |
-| T550 | <ESXI_SERVER_4_IP> | 4 | Unconfirmed | Future Worker expansion (A2 GPU x 4) |
+| **<SERVER2>** | **<ESXI_SERVER_1_IP>** | **14** | **44%** | **For K8s -- VM deletion approved** |
+| T640 | <ESXI_SERVER_3_IP> | 2 | Unknown | Future Worker expansion (T4 GPU x 4) |
+| T550 | <ESXI_SERVER_4_IP> | 4 | Unknown | Future Worker expansion (A2 GPU x 4) |
 
 ---
 
@@ -69,11 +69,11 @@ Access `https://<ESXI_SERVER_1_IP>/ui` in the browser → log in as root
 
 ### 1-1. Delete Existing VMs
 
-ESXi Web UI → Virtual Machines → Power off each VM → Delete from disk
+ESXi Web UI -> Virtual Machines -> Power off each VM -> Delete from disk
 - Delete all 14 existing VMs on <SERVER2>
 - Confirm 0 virtual machines after deletion
 
-### 1-2. Verify Datastore
+### 1-2. Verify Datastores
 
 ```bash
 # SSH into ESXi
@@ -81,12 +81,12 @@ ssh root@<ESXI_SERVER_1_IP>
 
 # Check datastore capacity
 df -h /vmfs/volumes/datastore1 /vmfs/volumes/datastore2
-# datastore1: 765.5G (used 7.7G)
-# datastore2: 1.8T  (used 3.3G) ← VM creation location
+# datastore1: 765.5G (7.7G used)
+# datastore2: 1.8T  (3.3G used) <- VM creation location
 
-# Check ISO (reuse existing ISO)
+# Check for ISO (reuse existing ISO)
 ls /vmfs/volumes/datastore2/
-# ubuntu-22.04.2-live-server-amd64.iso (1.8G) ← already exists
+# ubuntu-22.04.2-live-server-amd64.iso (1.8G) <- already exists
 ```
 
 If ISO is not present:
@@ -97,13 +97,13 @@ wget https://releases.ubuntu.com/22.04/ubuntu-22.04.5-live-server-amd64.iso
 
 Clean up leftover folders:
 ```bash
-# Delete if empty folders remain
+# Delete any remaining empty folders
 rmdir /vmfs/volumes/datastore2/delcom2-vm5
 ```
 
 ### 1-3. Create VM
 
-ESXi Web UI → Virtual Machines → Create/Register VM → Create a new virtual machine
+ESXi Web UI -> Virtual Machines -> Create / Register VM -> Create a new virtual machine
 
 | Item | Value | Notes |
 |------|-------|-------|
@@ -111,36 +111,36 @@ ESXi Web UI → Virtual Machines → Create/Register VM → Create a new virtual
 | Guest OS | Linux / Ubuntu Linux (64-bit) | |
 | Storage | datastore2 | 1.82TB capacity |
 | CPU | 8 | ESXi license limitation (free edition 8 vCPU limit) |
-| Memory | 240 GB | 240GB out of host's 255GB |
-| Hard Disk | 1 TB | **Must use thin provisioning** |
-| CD/DVD | Datastore ISO → ubuntu-22.04.2 | **Check "Connect at power on"** |
+| Memory | 240 GB | 240GB out of 255GB host |
+| Hard Disk | 1 TB | **Must be thin provisioned** |
+| CD/DVD | Datastore ISO -> ubuntu-22.04.2 | **Check "Connect at power on"** |
 | Network | VM Network | VMXNET 3 |
 
-> **Warning**: Setting disk provisioning to "Thick" will immediately allocate 1TB.
-> Be sure to set it to "Thin".
+> **Warning**: Setting disk provisioning to "Thick" immediately allocates 1TB.
+> Make sure to set it to "Thin".
 
 ### 1-4. Install Ubuntu
 
-Power on VM → Open console → Proceed with Ubuntu installation
+Power on VM -> Open console -> Proceed with Ubuntu installation
 
 Key settings:
 - **Language/Keyboard**: English (default)
 - **Network**: Static IP <K8S_NODE_IP>/24, gateway <GATEWAY_IP>, DNS 8.8.8.8
-- **Storage**: Use LVM, **change ubuntu-lv size to maximum (~1020G)** (default 100G → manual expansion required)
+- **Storage**: Use LVM, **change ubuntu-lv size to maximum (~1020G)** (default 100G -> manual expansion required)
 - **Profile**: username `<USERNAME>`, hostname `k8s-node`
-- **SSH**: Install OpenSSH server **checked**
+- **SSH**: Check **Install OpenSSH server**
 - **Ubuntu Pro**: Skip
-- **Featured Snaps**: Do not select anything
+- **Featured Snaps**: Select nothing
 
-> **Warning**: During Ubuntu installation, the LVM root volume is allocated only 100GB by default.
-> Be sure to manually expand ubuntu-lv to full capacity.
+> **Warning**: Ubuntu installation allocates only 100GB for the LVM root volume by default.
+> You must manually expand ubuntu-lv to the full capacity.
 
-### 1-5. K8s Base Configuration
+### 1-5. Basic K8s Configuration
 
-After Ubuntu installation, connect via SSH and configure:
+After Ubuntu installation, SSH in and configure:
 
 ```bash
-# Disable swap (K8s mandatory requirement)
+# Disable swap (K8s requirement)
 sudo swapoff -a
 sudo sed -i '/ swap / s/^/#/' /etc/fstab
 
@@ -152,7 +152,7 @@ EOF
 sudo modprobe overlay
 sudo modprobe br_netfilter
 
-# sysctl network configuration
+# sysctl network settings
 cat <<EOF | sudo tee /etc/sysctl.d/k8s.conf
 net.bridge.bridge-nf-call-iptables  = 1
 net.bridge.bridge-nf-call-ip6tables = 1
@@ -166,23 +166,23 @@ sudo apt update && sudo apt upgrade -y
 
 Verification:
 ```bash
-free -h | grep Swap        # Confirm Swap: 0B
-lsmod | grep br_netfilter  # Confirm module loaded
-sysctl net.ipv4.ip_forward # Confirm = 1
+free -h | grep Swap        # Swap: 0B confirmed
+lsmod | grep br_netfilter  # Module loaded confirmed
+sysctl net.ipv4.ip_forward # = 1 confirmed
 ```
 
-### 1-6. SSH Key + sudo Configuration
+### 1-6. SSH Key + sudo Setup
 
 Run on Mac:
 ```bash
-# Generate SSH key if not present
+# Generate SSH key if none exists
 ssh-keygen -t ed25519
 
 # Copy public key to server
 ssh-copy-id <USERNAME>@<K8S_NODE_IP>
 ```
 
-Run on server (to enable passwordless sudo):
+Run on server (enable passwordless sudo):
 ```bash
 sudo visudo
 # Add at the bottom:
@@ -191,14 +191,14 @@ sudo visudo
 
 Verification:
 ```bash
-# Confirm passwordless SSH + sudo from Mac
+# Verify passwordless SSH + sudo from Mac
 ssh <USERNAME>@<K8S_NODE_IP> "sudo whoami"
 # Output: root
 ```
 
 ### 1-7. ESXi Snapshot
 
-ESXi Web UI → k8s-node → Snapshots → Take snapshot
+ESXi Web UI -> k8s-node -> Snapshots -> Take snapshot
 - Name: `clean-ubuntu-base`
 - Description: Ubuntu 22.04 + swap off + kernel modules + sysctl + SSH key
 
@@ -212,7 +212,7 @@ ESXi Web UI → k8s-node → Snapshots → Take snapshot
 ssh <USERNAME>@<K8S_NODE_IP> "curl -sfL https://get.k3s.io | sh -"
 ```
 
-### Installation Verification
+### Verify Installation
 
 ```bash
 # Check node status
@@ -228,7 +228,7 @@ ssh <USERNAME>@<K8S_NODE_IP> "sudo kubectl get pods -A"
 # kube-system   local-path-provisioner-...   Running
 ```
 
-### kubeconfig Setup (Using kubectl from Mac)
+### kubeconfig Setup (using kubectl from Mac)
 
 ```bash
 # Copy kubeconfig + modify IP
@@ -256,7 +256,7 @@ ssh <USERNAME>@<K8S_NODE_IP>
 # Install Docker
 curl -fsSL https://get.docker.com | sh
 sudo usermod -aG docker $USER
-# Reconnect to apply docker group membership
+# Reconnect to apply docker group
 exit
 ssh <USERNAME>@<K8S_NODE_IP>
 
@@ -266,10 +266,10 @@ docker --version
 
 ### 7-2. Transfer Source Code
 
-Transfer the project source to the k8s-node server.
+Transfer project source to the k8s-node server.
 
 ```bash
-# Run on Mac
+# Run from Mac
 scp -r claudecode-kubernetes/ <USERNAME>@<K8S_NODE_IP>:~/claudecode-kubernetes/
 ```
 
@@ -286,9 +286,9 @@ docker build -f docker/claudecode-sandbox/Dockerfile -t claudecode-sandbox:lates
 docker build -f docker/web-terminal/Dockerfile -t web-terminal-service:latest web-terminal/
 ```
 
-### 7-4. Import Images to k3s containerd
+### 7-4. Import Images into k3s containerd
 
-Since k3s uses containerd rather than Docker, built images must be imported into containerd.
+k3s uses containerd instead of Docker, so built images must be imported into containerd.
 
 ```bash
 docker save claudecode-sandbox:latest | sudo k3s ctr images import -
@@ -300,7 +300,7 @@ sudo k3s ctr images list | grep -E "claudecode-sandbox|web-terminal"
 
 ### 7-5. Deploy K8s Manifests
 
-Order matters: Namespace → RBAC → Secret → ConfigMap → Deployment → Service.
+Order matters: Namespace -> RBAC -> Secret -> ConfigMap -> Deployment -> Service.
 
 ```bash
 cd ~/claudecode-kubernetes
@@ -311,12 +311,12 @@ kubectl apply -f k8s-manifests/namespace.yaml
 # 2. RBAC (ServiceAccount + Role + RoleBinding)
 kubectl apply -f k8s-manifests/rbac.yaml
 
-# 3. Claude API key secret (create via CLI — do not put key in YAML)
+# 3. Claude API key secret (created via CLI -- do not put keys in YAML)
 kubectl create secret generic claude-api-key \
   -n claudecode-terminal \
   --from-literal=ANTHROPIC_API_KEY=<YOUR_ANTHROPIC_API_KEY>
 
-# 4. ConfigMap (sandbox Pod configuration)
+# 4. ConfigMap (sandbox Pod settings)
 kubectl apply -f k8s-manifests/configmap.yaml
 
 # 5. Deployment (web terminal service)
@@ -326,7 +326,7 @@ kubectl apply -f k8s-manifests/deployment.yaml
 kubectl apply -f k8s-manifests/service.yaml
 ```
 
-### 7-6. Deployment Verification
+### 7-6. Verify Deployment
 
 ```bash
 # Check Pod status (should be Running)
@@ -339,22 +339,22 @@ kubectl get svc -n claudecode-terminal
 # NAME                   TYPE       CLUSTER-IP    EXTERNAL-IP   PORT(S)
 # web-terminal-service   NodePort   10.x.x.x     <none>        80:31000/TCP
 
-# Check logs (ensure no errors)
+# Check logs (verify no errors)
 kubectl logs -n claudecode-terminal deployment/web-terminal-service
 
-# Web UI access test
+# Test web UI access
 curl -s http://<K8S_NODE_IP>:31000/health
 # {"status":"ok"} means success
 
-# Access from browser
+# Access in browser
 # http://<K8S_NODE_IP>:31000
 ```
 
 ### 7-7. If Issues Occur
 
-- `ImagePullBackOff`: Verify `imagePullPolicy: Never`, verify image import
+- `ImagePullBackOff`: Verify `imagePullPolicy: Never` and image import
 - `403 Forbidden` on exec: Verify RBAC `pods/exec` has `get` + `create`
-- If onboarding screen appears: Verify sandbox image includes `~/.claude/.claude.json`
+- Onboarding screen appears: Verify sandbox image includes `~/.claude/.claude.json`
 - Detailed troubleshooting: See `docs/runbooks/troubleshooting.md`
 
 ---
@@ -363,15 +363,15 @@ curl -s http://<K8S_NODE_IP>:31000/health
 
 | Phase | Description | Status |
 |-------|-------------|--------|
-| Phase 3 | Write cluster base manifests | ✅ Done |
-| Phase 4 | First deployment and verification | ✅ Done |
-| Phase 5 | GPU support (ESXi Passthrough + NVIDIA Device Plugin) | ⬜ |
-| Phase 6 | CI/CD pipeline (GitHub Actions / Bitbucket) | ⬜ |
-| Phase 7 | Claude Code web service (xterm.js + dynamic Pod creation) | ✅ Done |
+| Phase 3 | Write basic cluster manifests | Done |
+| Phase 4 | Initial deployment and verification | Done |
+| Phase 5 | GPU support (ESXi Passthrough + NVIDIA Device Plugin) | Not started |
+| Phase 6 | CI/CD pipeline (GitHub Actions / Bitbucket) | Not started |
+| Phase 7 | Claude Code web service (xterm.js + dynamic Pod creation) | Done |
 
 ### Future Node Expansion (Adding Workers)
 
-When adding Worker nodes, repeat VM creation + Ubuntu installation from Phase 1 above, then:
+When adding Worker nodes, repeat Phase 1 VM creation + Ubuntu installation, then:
 
 ```bash
 # Check token on Master node
@@ -381,29 +381,29 @@ ssh <USERNAME>@<K8S_NODE_IP> "sudo cat /var/lib/rancher/k3s/server/node-token"
 curl -sfL https://get.k3s.io | K3S_URL=https://<K8S_NODE_IP>:6443 K3S_TOKEN=<token> sh -
 ```
 
-Only the infrastructure needs to be expanded without any manifest (YAML) changes.
+No manifest (YAML) changes needed -- just scale the infrastructure.
 
 ---
 
 ## Troubleshooting
 
-### Cannot Access ESXi Web UI
-- Check VPN connection
+### ESXi Web UI Not Accessible
+- Verify VPN connection
 - Verify `sudo route add -net <SUBNET> -interface ppp0` was executed
 - Use `https://` (not http) in the browser
 
 ### VM Does Not Boot from ISO
-- VM Settings → CD/DVD → Verify "Connect at power on" is checked
+- Check VM settings -> CD/DVD -> "Connect at power on" is checked
 - Verify ISO path is specified in CD/DVD media
 
-### Ubuntu LVM Root Volume Only Allocated 100GB
-If manual expansion was not done during installation, it can be expanded after installation:
+### Ubuntu LVM Root Volume Only Allocates 100GB
+If manual expansion was missed during installation, it can be done after install:
 ```bash
 sudo lvextend -l +100%FREE /dev/ubuntu-vg/ubuntu-lv
 sudo resize2fs /dev/ubuntu-vg/ubuntu-lv
 ```
 
-### Node is NotReady After k3s Installation
+### k3s Node Shows NotReady After Installation
 ```bash
 # Check k3s service status
 sudo systemctl status k3s
@@ -412,7 +412,7 @@ sudo systemctl status k3s
 sudo journalctl -u k3s -f
 ```
 
-### Cannot Connect kubectl from Mac
-- Check VPN + route
+### kubectl Not Connecting from Mac
+- Verify VPN + route
 - Verify kubeconfig IP is <K8S_NODE_IP>: `cat ~/.kube/config-k8s-node | grep server`
 - Check firewall: `ssh <USERNAME>@<K8S_NODE_IP> "sudo ufw status"` (should be disabled)

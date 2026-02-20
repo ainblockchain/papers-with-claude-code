@@ -1,5 +1,5 @@
 # Papers with Claude Code Frontend Service
-# ClusterIP type - to be exposed externally via Ingress
+# ClusterIP type - to be externally exposed via Ingress
 apiVersion: v1
 kind: Service
 metadata:

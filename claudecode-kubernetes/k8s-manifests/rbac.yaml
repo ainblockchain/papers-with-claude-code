@@ -1,4 +1,4 @@
-# RBAC Configuration - Permission definitions for the web terminal service to manage sandbox Pods via K8s API
+# RBAC configuration - permissions for the web terminal service to manage sandbox Pods via K8s API
 # Composed of ServiceAccount, Role, and RoleBinding
 ---
 apiVersion: v1
@@ -17,21 +17,21 @@ metadata:
   labels:
     app.kubernetes.io/part-of: claudecode-web-terminal
 rules:
-  # Permissions for creating, viewing, deleting, and watching user sandbox Pods
+  # Permissions to create, get, delete, and watch user sandbox Pods
   - apiGroups: [""]
     resources: ["pods"]
     verbs: ["get", "list", "create", "delete", "watch"]
-  # Exec permissions for executing commands inside sandbox Pods
-  # Both get + create are required since WebSocket upgrade starts with GET
+  # Exec permission to run commands inside sandbox Pods
+  # Both get and create are required since WebSocket upgrade starts with GET
   - apiGroups: [""]
     resources: ["pods/exec"]
     verbs: ["get", "create"]
-  # Permissions for viewing sandbox Pod logs
+  # Permission to retrieve sandbox Pod logs
   - apiGroups: [""]
     resources: ["pods/log"]
     verbs: ["get"]
-  # Note: secrets permissions are intentionally removed.
-  # API keys are managed by the proxy service itself, and the web terminal service does not need access to secrets.
+  # Note: secrets permission is intentionally removed.
+  # The API key is managed by the proxy service itself; the web terminal service does not need access to secrets.
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

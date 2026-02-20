@@ -1,37 +1,44 @@
 #!/bin/bash
-# Claude Code execution wrapper — starts a paper learning session
-# When a user connects to the terminal, the lesson starts immediately.
+# Claude Code launcher wrapper — starts paper learning / course generation sessions.
+# Configured so that the lesson begins immediately when the user connects to the terminal.
 #
-# Usage: start-claude.sh [COURSE_ID] [MODEL]
+# Usage: start-claude.sh [COURSE_ID] [MODEL] [MODE]
 #   COURSE_ID: Paper identifier (e.g., dlgochan-papers-test-repo)
 #   MODEL:    Claude model (e.g., haiku, sonnet, opus). Default: haiku
+#   MODE:     learner (default) | generator
 #
 # Behavior:
-#   First visit → claude "initial message" (reads CLAUDE.md and starts the lesson immediately)
-#   Return visit → claude --continue (resumes the previous conversation)
+#   learner:
+#     First visit  → claude "initial message" (reads CLAUDE.md and starts lesson immediately)
+#     Return visit → claude --continue (resumes previous conversation)
+#   generator:
+#     Swaps managed-settings to generator config, sets up Git, clones repo
+#     Runs Claude Code in course generation mode
 #
 # Security:
-#   Skips trust/permission dialogs with --dangerously-skip-permissions.
+#   --dangerously-skip-permissions skips the trust/permission dialog.
 #   Actual tool restrictions are enforced by /etc/claude-code/managed-settings.json (user cannot override).
-#   Uses a dummy key instead of the real API key (the proxy replaces it with the real key).
+#   Uses a dummy API key instead of the real one (proxy replaces it with the real key).
 
 COURSE_ID="${1:-}"
 MODEL="${2:-haiku}"
+MODE="${3:-learner}"
 
-# ─── ANTHROPIC_BASE_URL validation ────────────────────
+# ─── Validate ANTHROPIC_BASE_URL ─────────────────
 if [ -z "$ANTHROPIC_BASE_URL" ]; then
   echo "Error: ANTHROPIC_BASE_URL environment variable is not set."
   exit 1
 fi
 
-# ─── Dummy API key setup ───────────────────────────
+# ─── Set dummy API key ───────────────────────────
 API_KEY="${ANTHROPIC_API_KEY:-sk-ant-api01-SANDBOX-PLACEHOLDER-KEY-DO-NOT-USE-xxxxxxxxxxxxxxxxxxxx}"
 KEY_SUFFIX="${API_KEY: -8}"
 
 mkdir -p ~/.claude
 
-# Restore permissions so the file can be overwritten if previously locked with chmod 444
-[ -f ~/.claude.json ] && chmod 644 ~/.claude.json
+# On re-run, delete the previously chmod 444-locked file and recreate it.
+# rm -f ensures removal since chmod can fail in some cases (e.g., CLI rewrites the file).
+rm -f ~/.claude.json 2>/dev/null; true
 
 cat > ~/.claude.json << EOF
 {
@@ -48,38 +55,73 @@ EOF
 chmod 444 ~/.claude.json
 unset ANTHROPIC_API_KEY
 
-# ─── Restore settings.json (if hidden by PV mount) ─
+# ─── Restore settings.json (if shadowed by PV mount) ─
 mkdir -p /home/claude/.claude
 if [ ! -f /home/claude/.claude/settings.json ]; then
   cp /etc/claude-defaults/settings.json /home/claude/.claude/settings.json 2>/dev/null
 fi
 
-# ─── Change working directory ─────────────────────────
-if [ -n "$COURSE_ID" ] && [ -d "/home/claude/papers/${COURSE_ID}" ]; then
-  cd "/home/claude/papers/${COURSE_ID}"
-elif [ -d "/home/claude/papers/current" ]; then
-  cd /home/claude/papers/current
-fi
-
-# ─── resumeStage context (optional) ────────────────
-RESUME_HINT=""
-if [ -f "/tmp/resume-context" ]; then
-  source /tmp/resume-context
-  RESUME_HINT=" The student is resuming learning from Stage ${RESUME_FROM_STAGE}."
-fi
-
-# ─── First visit vs return visit detection ─────────────────────
-# Use a marker file to check if a previous Claude Code session existed.
-# Persisted on PV, so it survives Pod restarts.
-MARKER="/home/claude/papers/${COURSE_ID}/.claude-session-started"
+# ─── Common flags ────────────────────────────────
 COMMON_FLAGS="--dangerously-skip-permissions --model ${MODEL}"
 
-if [ -n "$COURSE_ID" ] && [ -f "$MARKER" ]; then
-  # Return visit: resume the previous conversation
-  exec claude $COMMON_FLAGS --continue
-else
-  # First visit: create marker and start the lesson with an initial message
-  [ -n "$COURSE_ID" ] && touch "$MARKER" 2>/dev/null
-  INITIAL_MSG="Starting the learning course for this paper.${RESUME_HINT} Please read CLAUDE.md and begin exploring."
+# ─── Mode branching ──────────────────────────────
+if [ "$MODE" = "generator" ]; then
+  # ─── Generator mode ─────────────────────────────────
+  # Swap managed-settings to generator config (allows Write/Edit/Bash)
+  cp /etc/claude-code/generator-managed-settings.json /etc/claude-code/managed-settings.json 2>/dev/null || true
+
+  # Git config (needed for push after course generation)
+  git config --global user.email "generator@papers-with-claude.ai"
+  git config --global user.name "Course Generator Bot"
+  if [ -n "$GITHUB_TOKEN" ]; then
+    echo "https://x-access-token:${GITHUB_TOKEN}@github.com" > ~/.git-credentials
+    git config --global credential.helper store
+    chmod 600 ~/.git-credentials
+  fi
+
+  # Clone/pull awesome-papers repo
+  REPO_DIR="/home/claude/workspace"
+  mkdir -p "$REPO_DIR"
+  cd "$REPO_DIR"
+  if [ ! -d "awesome-papers-with-claude-code/.git" ]; then
+    git clone https://github.com/ainblockchain/awesome-papers-with-claude-code.git
+  else
+    cd awesome-papers-with-claude-code && git pull origin main && cd ..
+  fi
+
+  # Place generator CLAUDE.md
+  cp /home/claude/generator-CLAUDE.md "$REPO_DIR/CLAUDE.md"
+
+  INITIAL_MSG="Course generation mode. Please provide an arXiv, GitHub, or HuggingFace URL along with a CourseName."
   exec claude $COMMON_FLAGS "$INITIAL_MSG"
+else
+  # ─── Learner mode (default) ─────────────────────
+  # Change to working directory
+  if [ -n "$COURSE_ID" ] && [ -d "/home/claude/papers/${COURSE_ID}" ]; then
+    cd "/home/claude/papers/${COURSE_ID}"
+  elif [ -d "/home/claude/papers/current" ]; then
+    cd /home/claude/papers/current
+  fi
+
+  # resumeStage context (optional)
+  RESUME_HINT=""
+  if [ -f "/tmp/resume-context" ]; then
+    source /tmp/resume-context
+    RESUME_HINT=" The student is resuming learning from Stage ${RESUME_FROM_STAGE}."
+  fi
+
+  # Determine first visit vs return visit.
+  # A marker file checks whether a previous Claude Code session existed.
+  # Persisted on PV, so it survives Pod restarts.
+  MARKER="/home/claude/papers/${COURSE_ID}/.claude-session-started"
+
+  if [ -n "$COURSE_ID" ] && [ -f "$MARKER" ]; then
+    # Return visit: resume previous conversation
+    exec claude $COMMON_FLAGS --continue
+  else
+    # First visit: create marker, then start lesson with initial message
+    [ -n "$COURSE_ID" ] && touch "$MARKER" 2>/dev/null
+    INITIAL_MSG="Starting the learning course for this paper.${RESUME_HINT} Please read CLAUDE.md and begin exploring."
+    exec claude $COMMON_FLAGS "$INITIAL_MSG"
+  fi
 fi

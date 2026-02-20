@@ -1,13 +1,13 @@
-# NetworkPolicy — Minimize network access for sandbox Pods
+# NetworkPolicy -- minimize network access for sandbox Pods
 #
-# ⚠️  Note: The default k3s CNI (Flannel) does not support NetworkPolicy.
-# To actually enforce these policies, Calico or Cilium CNI installation is required:
+# WARNING: The default k3s CNI (Flannel) does not support NetworkPolicy.
+# To enforce these policies, install Calico or Cilium CNI:
 #   Reinstall k3s: curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--flannel-backend=none --disable-network-policy" sh -
 #   Install Calico: kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.28.0/manifests/calico.yaml
 #
-# Applying on Flannel will be silently ignored without errors (harmless but has no effect).
+# Applying on Flannel is silently ignored (harmless but has no effect).
 
-# 1. Sandbox Pod → Allow only API Proxy + DNS (block external communication)
+# 1. Sandbox Pod -> allow only API Proxy + DNS (block external traffic)
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -20,7 +20,7 @@ spec:
   policyTypes:
     - Egress
   egress:
-    # Allow communication to the API Proxy service
+    # Allow traffic to the API Proxy service
     - to:
         - podSelector:
             matchLabels:
@@ -39,8 +39,8 @@ spec:
 
 ---
 
-# 2. API Proxy → Allow external Anthropic API communication
-# API Proxy Pod needs to communicate with the external internet (api.anthropic.com), so no egress restrictions
+# 2. API Proxy -> allow external Anthropic API traffic
+# The API Proxy Pod needs to communicate with the external internet (api.anthropic.com), so no egress restriction
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -53,11 +53,11 @@ spec:
   policyTypes:
     - Egress
   egress:
-    - {}  # Allow all external communication
+    - {}  # Allow all outbound traffic
 
 ---
 
-# 3. API Proxy Ingress — Allow only requests coming from sandbox Pods
+# 3. API Proxy Ingress -- allow only requests from sandbox Pods
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:

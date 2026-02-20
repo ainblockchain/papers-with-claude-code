@@ -1,7 +1,7 @@
 {
   "name": "claudecode-api-proxy",
   "version": "1.0.0",
-  "description": "Anthropic API reverse proxy — replaces sandbox Pod dummy keys with real keys",
+  "description": "Anthropic API reverse proxy — replaces dummy keys from sandbox Pods with real keys",
   "type": "module",
   "main": "dist/server.js",
   "scripts": {

@@ -1,11 +1,11 @@
 // Core logic for the Anthropic API reverse proxy
-// Replaces the dummy API key from sandbox Pod requests with the real key,
-// then forwards to api.anthropic.com. Uses raw piping without body parser for SSE streaming.
+// Replaces dummy API keys in requests from sandbox Pods with real keys,
+// then forwards them to api.anthropic.com. Uses raw piping without body parser for SSE streaming.
 //
-// Note: Middleware must not be mounted on a path basis.
+// Note: Middleware must NOT be mounted on a path prefix.
 // Express's router.use('/v1/*', handler) strips req.path,
 // and router.use('/v1', proxy) removes the /v1 prefix when forwarding upstream.
-// Therefore, it must be mounted at root level to preserve the full path.
+// Therefore, mount at the root level to preserve the full request path.
 
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { Router, Request, Response, NextFunction } from 'express';
@@ -24,7 +24,7 @@ export function createProxyRouter(): Router {
     throw new Error('ANTHROPIC_API_KEY environment variable is not set.');
   }
 
-  // Path whitelist check — mounted at root level to prevent req.path stripping
+  // Path whitelist check — root-level mount prevents req.path stripping
   const pathCheck = (req: Request, res: Response, next: NextFunction): void => {
     const reqPath = req.path;
     const isAllowed = ALLOWED_PATHS.some(
@@ -45,13 +45,13 @@ export function createProxyRouter(): Router {
     next();
   };
 
-  // Proxy — mounted at root level to forward the full path (/v1/messages) to upstream as-is
+  // Proxy — root-level mount forwards the full path (/v1/messages) to upstream as-is
   const proxy = createProxyMiddleware({
     target: ANTHROPIC_API_URL,
     changeOrigin: true,
     on: {
       proxyReq: (proxyReq, req) => {
-        // Replace dummy key with the real key
+        // Replace the dummy key with the real key
         proxyReq.setHeader('x-api-key', apiKey);
         if (proxyReq.getHeader('authorization')) {
           proxyReq.setHeader('authorization', `Bearer ${apiKey}`);
@@ -78,7 +78,7 @@ export function createProxyRouter(): Router {
     },
   });
 
-  // Chain in order: pathCheck -> rateLimiter -> proxy (all mounted at root level)
+  // Chain in order: pathCheck → rateLimiter → proxy (all mounted at root level)
   router.use(pathCheck, rateLimiter, proxy);
 
   return router;

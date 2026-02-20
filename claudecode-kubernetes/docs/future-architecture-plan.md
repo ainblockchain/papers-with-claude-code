@@ -1,6 +1,6 @@
 # Future Architecture Plan: GitHub OAuth + Passkey + Blockchain
 
-> This document is the future architecture plan separated from the README.md merge conflict.
+> This document is a future architecture plan separated from a README.md merge conflict.
 > It describes the deployment structure based on GitHub OAuth authentication + P256 passkey blockchain wallets.
 
 ---

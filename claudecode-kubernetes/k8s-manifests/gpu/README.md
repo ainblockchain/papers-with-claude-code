@@ -4,7 +4,7 @@ Kubernetes manifests for NVIDIA GPU support.
 
 ## Current Status
 
-GPU nodes have not yet been added to the cluster, so these manifests are **prepared for future use**.
+GPU nodes have not been added to the cluster yet, so these manifests are **prepared for future use**.
 
 ## File Structure
 
@@ -14,11 +14,11 @@ gpu/
 └── gpu-test-pod.yaml           # nvidia-smi test Pod
 ```
 
-## Steps When Adding a GPU Node
+## Steps When Adding GPU Nodes
 
 1. Join a node with GPU drivers installed to the k3s cluster
 2. Install NVIDIA Container Toolkit
-3. Deploy the Device Plugin: `kubectl apply -f nvidia-device-plugin.yaml`
+3. Deploy Device Plugin: `kubectl apply -f nvidia-device-plugin.yaml`
 4. Test GPU: `kubectl apply -f gpu-test-pod.yaml && kubectl logs gpu-test -f`
 
 ## Prerequisites

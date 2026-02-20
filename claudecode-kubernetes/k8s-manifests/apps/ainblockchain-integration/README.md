@@ -1,10 +1,10 @@
 # apps/ainblockchain-integration/
 
-Directory for Kubernetes deployment of the AIN Blockchain integration service.
+Directory for the Kubernetes deployment of the AIN Blockchain integration service.
 
 ## Related Code
 
-The AIN blockchain integration code is located in the `ainblockchain-integration/` directory within the monorepo. Manifests will be added to this directory once the app is containerized and K8s manifests are ready.
+The AIN blockchain integration code is located in the `ainblockchain-integration/` directory within the monorepo. Manifests will be added here once the app is containerized and K8s manifests are ready.
 
 ## Future Work
 

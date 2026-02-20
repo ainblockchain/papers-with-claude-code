@@ -1,11 +1,11 @@
 // WebSocket <-> K8s exec bridge
-// Relays browser xterm.js WebSocket connections to K8s Pod Claude Code exec sessions.
-// Users are connected directly to a pre-configured Claude Code lesson, not a bash shell.
+// Relays browser xterm.js WebSocket connection to K8s Pod Claude Code exec session.
+// Users connect directly to a pre-configured Claude Code course, not a bash shell.
 //
-// Initial message: Handled by start-claude.sh as a CLI argument (first visit: initial prompt, return visit: --continue)
-// Stage detection: Detects [STAGE_COMPLETE:N] / [DUNGEON_COMPLETE] markers in stdout,
+// Initial message: handled by start-claude.sh via CLI args (first visit: initial prompt, revisit: --continue)
+// Stage detection: detects [STAGE_COMPLETE:N] / [DUNGEON_COMPLETE] markers in stdout,
 //   saves to DB + sends structured WebSocket events + strips markers.
-// Idle nudge: When the user is inactive for a period, Claude autonomously continues the lesson.
+// Idle nudge: if user is inactive for a period, Claude autonomously continues the lesson.
 
 import WebSocket from 'ws';
 import * as k8s from '@kubernetes/client-node';
@@ -17,17 +17,18 @@ const STAGE_COMPLETE_RE = /\[STAGE_COMPLETE:(\d+)\]/g;
 const PAYMENT_CONFIRMED_RE = /\[PAYMENT_CONFIRMED:(\d+):(0x[a-fA-F0-9]+)\]/g;
 const COURSE_COMPLETE_STR = '[DUNGEON_COMPLETE]';
 
-// Prompts injected into stdin so Claude autonomously continues the lesson when the user is idle
+// Prompts injected into stdin when user is idle, so Claude autonomously continues the lesson
 const IDLE_NUDGE_PROMPTS = [
   'Please continue exploring the next topic\n',
-  'Please find and explain more interesting parts\n',
-  'Shall we look at the next important concept\n',
+  'Find and explain a more interesting part\n',
+  'Shall we look at the next important concept?\n',
 ];
 
 export interface TerminalOptions {
   courseId?: string;     // Course ID (passed to start-claude.sh)
   model?: string;       // Claude model (haiku, sonnet, opus)
-  idleNudgeMs?: number; // 0 means disabled, positive value resumes autonomous exploration after that many ms
+  idleNudgeMs?: number; // 0 = disabled, positive = resume autonomous exploration after N ms
+  mode?: string;        // learner (default) | generator
 }
 
 export async function attachTerminal(
@@ -41,14 +42,14 @@ export async function attachTerminal(
   options?: TerminalOptions,
 ): Promise<void> {
   const exec = new k8s.Exec(kc);
-  const { model = 'haiku', idleNudgeMs = 0 } = options ?? {};
+  const { model = 'haiku', idleNudgeMs = 0, mode = 'learner' } = options ?? {};
 
   let isCleanedUp = false;
   let idleTimer: ReturnType<typeof setTimeout> | null = null;
   let nudgeIndex = 0;
   let k8sExecWs: WebSocket | null = null; // K8s exec WebSocket for resize support
 
-  // Idle heartbeat: Inject autonomous exploration prompt to Claude when user is inactive
+  // Idle heartbeat: inject autonomous exploration prompt when user is inactive
   function resetIdleTimer() {
     if (idleTimer) clearTimeout(idleTimer);
     if (idleNudgeMs <= 0 || isCleanedUp) return;
@@ -62,8 +63,8 @@ export async function attachTerminal(
     }, idleNudgeMs);
   }
 
-  // Writable stream that forwards Pod stdout/stderr to the browser WebSocket
-  // Detects [STAGE_COMPLETE:N] / [DUNGEON_COMPLETE] markers and sends events + strips markers
+  // Writable stream that forwards Pod stdout/stderr to browser WebSocket
+  // Detects [STAGE_COMPLETE:N] / [DUNGEON_COMPLETE] markers, sends events, and strips them
   const stdoutStream = new Writable({
     write(chunk: Buffer, _encoding, callback) {
       if (ws.readyState !== WebSocket.OPEN) {
@@ -87,7 +88,7 @@ export async function attachTerminal(
       }
       text = text.replace(PAYMENT_CONFIRMED_RE, '');
 
-      // Detect and process [STAGE_COMPLETE:N] marker
+      // Detect and process [STAGE_COMPLETE:N] markers
       let stageMatch: RegExpExecArray | null;
       STAGE_COMPLETE_RE.lastIndex = 0;
       while ((stageMatch = STAGE_COMPLETE_RE.exec(text)) !== null) {
@@ -108,7 +109,7 @@ export async function attachTerminal(
         text = text.replaceAll(COURSE_COMPLETE_STR, '');
       }
 
-      // Forward only the remaining text to the terminal after stripping markers
+      // Forward remaining text (after stripping markers) to the terminal
       if (text.length > 0) {
         ws.send(text, { binary: false }, (err) => {
           if (err) {
@@ -122,7 +123,7 @@ export async function attachTerminal(
     },
   });
 
-  // Readable stream that receives browser key input and forwards it to Pod stdin
+  // Readable stream that receives browser key input and forwards to Pod stdin
   const stdinStream = new Readable({
     read() {
       // Data is injected externally via push()
@@ -138,7 +139,7 @@ export async function attachTerminal(
     stdoutStream.destroy();
   }
 
-  // Forward each key input from the browser to stdin
+  // Forward each browser key input to stdin
   ws.on('message', (data: WebSocket.RawData) => {
     const message = data.toString();
 
@@ -170,7 +171,7 @@ export async function attachTerminal(
         return;
       }
     } catch {
-      // If not JSON, treat as raw text (fallback)
+      // Not JSON, treat as raw text (fallback)
     }
 
     stdinStream.push(message);
@@ -197,9 +198,9 @@ export async function attachTerminal(
 
   ws.on('close', () => clearInterval(pingInterval));
 
-  // Pass courseId and model as arguments to start-claude.sh
-  // start-claude.sh determines first visit/return visit on its own and runs Claude Code in the appropriate mode
-  const execCommand = ['/usr/local/bin/start-claude.sh', courseId || '', model];
+  // Pass courseId, model, mode as arguments to start-claude.sh
+  // start-claude.sh branches by mode (learner/generator); learner detects first visit vs revisit
+  const execCommand = ['/usr/local/bin/start-claude.sh', courseId || '', model, mode];
 
   try {
     k8sExecWs = await exec.exec(
@@ -214,8 +215,8 @@ export async function attachTerminal(
     ) as unknown as WebSocket;
     console.log(`[terminal-bridge] exec attached for pod ${podName} (model: ${model})`);
 
-    // Send auto_start event to frontend (for loading UI -> "lesson in progress" transition)
-    // No need for separate prompt injection since start-claude.sh sends the initial message as a CLI argument
+    // Send auto_start event to frontend (for loading UI -> "in session" transition)
+    // No separate prompt injection needed since start-claude.sh sends initial message via CLI args
     if (courseId) {
       ws.send(JSON.stringify({ type: 'auto_start' }));
       resetIdleTimer(); // Start idle timer

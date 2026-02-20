@@ -1,4 +1,4 @@
-// API that parses and returns stage definitions from the paper repo's CLAUDE.md
+// API that parses and returns stage definitions from CLAUDE.md in the paper repo
 
 import { Router, Request, Response } from 'express';
 import { AppConfig } from '../types.js';
@@ -33,7 +33,7 @@ export function createStagesRouter(_config: AppConfig): Router {
     }
 
     try {
-      // Use the paper path if courseId exists, otherwise use the legacy path
+      // Use paper path based on courseId, or legacy path if absent
       const paperDir = session.courseId
         ? `/home/claude/papers/${session.courseId}`
         : '/home/claude/papers/current';

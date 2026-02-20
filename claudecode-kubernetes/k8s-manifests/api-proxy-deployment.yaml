@@ -1,5 +1,5 @@
-# API Proxy Deployment — Relays Anthropic API requests from sandbox Pods
-# Loads the real API key from K8s Secret to replace the dummy key
+# API Proxy Deployment -- relays Anthropic API requests from sandbox Pods
+# Loads the real API key from K8s Secret and replaces the dummy key
 
 apiVersion: apps/v1
 kind: Deployment

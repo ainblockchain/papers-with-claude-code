@@ -1,4 +1,4 @@
-# Web terminal service configuration - Defines sandbox Pod specs and session management parameters
+# Web Terminal Service configuration - defines sandbox Pod specs and session management parameters
 apiVersion: v1
 kind: ConfigMap
 metadata:

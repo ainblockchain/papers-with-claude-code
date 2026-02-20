@@ -11,8 +11,8 @@ KUBECONFIG_PATH="$HOME/.kube/config-k8s-node"
 echo "[1/3] Copying kubeconfig from k8s-node..."
 scp "${K8S_NODE_USER}@${K8S_NODE_IP}:/etc/rancher/k3s/k3s.yaml" "$KUBECONFIG_PATH"
 
-echo "[2/3] Modifying server address to be accessible from local..."
-# Change 127.0.0.1 → actual node IP
+echo "[2/3] Updating server address to be locally accessible..."
+# Replace 127.0.0.1 → actual node IP
 if [[ "$OSTYPE" == "darwin"* ]]; then
   sed -i '' "s|https://127.0.0.1:6443|https://${K8S_NODE_IP}:6443|g" "$KUBECONFIG_PATH"
 else

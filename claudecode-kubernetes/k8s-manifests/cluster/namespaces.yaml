@@ -1,5 +1,5 @@
 # Application namespace definitions for the Papers with Claude Code project
-# Operate frontend, backend, and blockchain services in separate isolated namespaces
+# Frontend, backend, and blockchain services each run in isolated namespaces
 apiVersion: v1
 kind: Namespace
 metadata:

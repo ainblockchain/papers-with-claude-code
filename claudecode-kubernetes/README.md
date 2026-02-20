@@ -1,6 +1,6 @@
 # Kubernetes Infrastructure
 
-Builds a k3s-based Kubernetes cluster on on-premises GPU servers and provides a terminal service that allows using Claude Code from a web browser.
+Sets up k3s-based Kubernetes on an on-premise GPU server and provides a terminal service for using Claude Code from a web browser.
 
 ## Architecture
 
@@ -13,26 +13,26 @@ Web Terminal Service (Node.js + Express + ws)
     v
 K8s API → Pod (claudecode-sandbox)           API Proxy Service
            └── Claude Code CLI (Read-only)     (ClusterIP :8080)
-           └── Only holds dummy API key     ─→  Real key injection → api.anthropic.com
+           └── Only holds a dummy API key  ─→  Injects real key → api.anthropic.com
            └── ANTHROPIC_BASE_URL=proxy
 ```
 
 - When a user clicks "New Session", a K8s Pod is dynamically created
-- Browser terminal ↔ Pod exec connection via WebSocket
+- Browser terminal ↔ Pod exec connected via WebSocket
 - Pod is automatically deleted when the session ends
 
 ### Security Architecture
 
-- **API Key Protection**: Real API key exists only in the API Proxy Pod. Only a dummy key is injected into sandbox Pods.
-- **Tool Restrictions**: Bash, Edit, Write, etc. are blocked via `managed-settings.json`. Only Read/Glob/Grep are allowed.
-- **Network Isolation**: NetworkPolicy allows sandbox Pod communication only to API Proxy + DNS (requires CNI support).
+- **API Key Protection**: The real API key exists only in the API Proxy Pod. Only a dummy key is injected into sandbox Pods.
+- **Tool Restrictions**: `managed-settings.json` blocks Bash, Edit, Write, etc. Only Read/Glob/Grep are allowed.
+- **Network Isolation**: NetworkPolicy allows sandbox Pod → API Proxy + DNS communication only (requires CNI support).
 - **Least Privilege**: sudo removed, ServiceAccount token mount disabled.
 
 ## Directory Structure
 
 ```
 claudecode-kubernetes/
-├── api-proxy/                      # API reverse proxy (dummy key → real key replacement)
+├── api-proxy/                      # API reverse proxy (replaces dummy key → real key)
 │   ├── src/                        #   Express + http-proxy-middleware
 │   └── Dockerfile                  #   node:20-alpine multi-stage build
 ├── docker/                         # Container images
@@ -59,13 +59,13 @@ claudecode-kubernetes/
 │   ├── api-proxy-deployment.yaml   #   API Proxy deployment
 │   ├── api-proxy-service.yaml      #   API Proxy ClusterIP service
 │   ├── network-policy.yaml         #   Sandbox network isolation (requires CNI support)
-│   ├── cluster/                    #   Cluster common resources (namespaces, quotas)
+│   ├── cluster/                    #   Cluster common resources (namespace, quotas)
 │   ├── base/                       #   Common infrastructure (Ingress, monitoring)
 │   ├── apps/                       #   Per-app deployments (frontend, knowledge-graph, blockchain)
 │   ├── gpu/                        #   NVIDIA GPU support (future use)
-│   └── overlays/                   #   Kustomize per-environment overlays (dev, production)
+│   └── overlays/                   #   Kustomize environment overlays (dev, production)
 ├── scripts/                        # Utility scripts
-│   ├── setup-kubeconfig.sh         #   kubeconfig auto-setup (Mac → k3s)
+│   ├── setup-kubeconfig.sh         #   Automated kubeconfig setup (Mac → k3s)
 │   └── verify-node.sh              #   Node status verification
 └── docs/                           # Documentation
     ├── cluster-setup.md            #   k3s cluster setup guide (Phase 0~7)
@@ -103,7 +103,7 @@ docker build -f docker/web-terminal/Dockerfile -t web-terminal-service:latest we
 cd api-proxy && npm install && cd ..
 docker build -f api-proxy/Dockerfile -t claudecode-api-proxy:latest api-proxy/
 
-# 2. Import images to k3s containerd
+# 2. Import images into k3s containerd
 docker save claudecode-sandbox:latest | sudo k3s ctr images import -
 docker save web-terminal-service:latest | sudo k3s ctr images import -
 docker save claudecode-api-proxy:latest | sudo k3s ctr images import -
@@ -112,19 +112,19 @@ docker save claudecode-api-proxy:latest | sudo k3s ctr images import -
 kubectl apply -f k8s-manifests/namespace.yaml
 kubectl apply -f k8s-manifests/rbac.yaml
 kubectl apply -f k8s-manifests/configmap.yaml
-kubectl apply -f k8s-manifests/secret.yaml           # API key secret (must be pre-created)
+kubectl apply -f k8s-manifests/secret.yaml           # API key secret (must be created in advance)
 kubectl apply -f k8s-manifests/api-proxy-deployment.yaml
 kubectl apply -f k8s-manifests/api-proxy-service.yaml
 kubectl apply -f k8s-manifests/deployment.yaml
 kubectl apply -f k8s-manifests/service.yaml
-# (Optional) If the CNI supports NetworkPolicy:
+# (Optional) If CNI supports NetworkPolicy:
 # kubectl apply -f k8s-manifests/network-policy.yaml
 
 # 4. Verify access
 open http://<K8S_NODE_IP>:31000
 ```
 
-## Infrastructure Status
+## Infrastructure Overview
 
 | Item | Value |
 |------|-------|

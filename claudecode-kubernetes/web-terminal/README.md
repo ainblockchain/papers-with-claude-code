@@ -1,6 +1,6 @@
 # Web Terminal Backend
 
-An Express + WebSocket server that acts as a backend service bridging browser xterm.js clients with K8s sandbox Pods.
+Express + WebSocket server that acts as a backend service bridging browser xterm.js clients and K8s sandbox Pods.
 
 ## Structure
 
@@ -12,13 +12,13 @@ web-terminal/
     k8s/
       client.ts          # KubeConfig loading and K8s API client initialization
       pod-template.ts    # Sandbox Pod spec builder
-      pod-manager.ts     # Pod creation/deletion/status management
+      pod-manager.ts     # Pod create/delete/status management
     ws/
       terminal-bridge.ts # WebSocket <-> K8s exec bridge (core module)
     routes/
       sessions.ts        # REST API router (session CRUD)
   public/                # Static frontend files (xterm.js UI)
-  .env.example           # Environment variable examples
+  .env.example           # Environment variables example
 ```
 
 ## Dependencies
@@ -33,7 +33,7 @@ web-terminal/
 ```bash
 npm install
 npm run dev     # tsx watch mode
-npm run build   # TypeScript compilation
+npm run build   # TypeScript compile
 npm start       # Production run
 ```
 

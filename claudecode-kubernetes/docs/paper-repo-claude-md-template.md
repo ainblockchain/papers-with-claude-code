@@ -1,4 +1,4 @@
-# Paper Repo CLAUDE.md Authoring Guide
+# Paper Repo CLAUDE.md Writing Guide
 
 Adding this file to a paper repo enables it to be used as a dungeon-style learning course on the Papers with Claude Code platform.
 
@@ -15,19 +15,19 @@ Each stage follows the same structure as the frontend's StageConfig type:
 ```typescript
 interface StageConfig {
   id: string;
-  stageNumber: number;           // starts from 1
+  stageNumber: number;           // Starts from 1
   title: string;
   concepts: {
     id: string;
     title: string;
-    content: string;             // concept description (100~300 characters recommended)
-    position: { x: number; y: number }; // position within dungeon canvas (0-19, 0-14)
+    content: string;             // Concept description (100-300 characters recommended)
+    position: { x: number; y: number }; // Position on dungeon canvas (0-19, 0-14)
   }[];
   quiz: {
     id: string;
     question: string;
     type: 'multiple-choice' | 'free-response' | 'code-challenge';
-    options?: string[];          // only needed for multiple-choice
+    options?: string[];          // Required only for multiple-choice
     correctAnswer?: string;
   };
   roomWidth: number;             // 20 recommended
@@ -209,78 +209,78 @@ interface StageConfig {
 }
 ```
 
-## Learning Guide Section (For Claude Code)
+## Learning Guide Section (for Claude Code)
 
-Write learning instructions for each stage below the JSON block:
+Write per-stage learning instructions below the JSON block:
 
 ---
 
 ## Stage 1: Autoregressive Image Generation Basics
 
-Key content to explain to students:
-- Why the autoregressive approach is powerful in image generation
+Key content to explain to the student:
+- Why the autoregressive approach is powerful for image generation
 - How VQ-VAE converts pixels into discrete tokens
 
 Reference files: `README.md`, `model/tokenizer.py` (if present)
 
-After quiz is given and answered correctly:
+After quiz, on correct answer:
 ```
 [STAGE_COMPLETE:1]
 ```
 
 ## Stage 2: Binary Tokenization Strategy
 
-Key content to explain to students:
+Key content to explain to the student:
 - Differences between traditional codebook approach and binary tokenization
-- Advantages of binary representation (vocabulary reduction, efficient computation)
+- Benefits of binary representation (vocabulary reduction, efficient computation)
 
 Reference files: `model/binary_tokenizer.py`, `model/vqvae.py` (if present)
 
-After quiz is given and answered correctly:
+After quiz, on correct answer:
 ```
 [STAGE_COMPLETE:2]
 ```
 
 ## Stage 3: Diffusion-Based Binary Prediction
 
-Key content to explain to students:
-- How absorbing diffusion is applied to binary tokens
-- Advantages of the autoregressive + diffusion hybrid architecture
+Key content to explain to the student:
+- How absorbing diffusion applies to binary tokens
+- Advantages of the hybrid autoregressive + diffusion architecture
 
 Reference files: `model/diffusion.py`, `model/transformer.py` (if present)
 
-After quiz is given and answered correctly:
+After quiz, on correct answer:
 ```
 [STAGE_COMPLETE:3]
 ```
 
 ## Stage 4: Scaling and Efficiency
 
-Key content to explain to students:
+Key content to explain to the student:
 - Why binary prediction is computationally efficient
-- Characteristics that BitDance exhibits in scaling laws
+- Characteristics BitDance exhibits in scaling laws
 
 Reference files: `configs/`, `train.py` (if present)
 
-After quiz is given and answered correctly:
+After quiz, on correct answer:
 ```
 [STAGE_COMPLETE:4]
 ```
 
 ## Stage 5: Results and Future Directions
 
-Key content to explain to students:
+Key content to explain to the student:
 - Performance on ImageNet benchmarks (FID, IS)
-- Future potential of binary token-based models
+- Future possibilities of binary token-based models
 
 Reference files: `eval/`, `results/` (if present)
 
-After quiz is given and answered correctly:
+After quiz, on correct answer:
 ```
 [STAGE_COMPLETE:5]
 ```
 
-## When Fully Completed
+## On Full Completion
 ```
 [DUNGEON_COMPLETE]
 ```

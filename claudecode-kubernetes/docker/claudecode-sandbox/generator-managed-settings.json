@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "deny": [],
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Bash",
+      "Edit",
+      "Write",
+      "WebFetch",
+      "WebSearch",
+      "mcp__kite-passport__*"
+    ]
+  },
+  "allowManagedPermissionRulesOnly": true
+}

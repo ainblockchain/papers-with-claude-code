@@ -1,10 +1,10 @@
 # apps/knowledge-graph-builder/
 
-Directory for Kubernetes deployment of the Knowledge Graph Builder service.
+Directory for the Kubernetes deployment of the Knowledge Graph Builder service.
 
 ## Related Code
 
-The source code is located in the `knowledge-graph-builder/` directory within the monorepo. Manifests will be added to this directory once the app is containerized and K8s manifests are ready.
+The source code is located in the `knowledge-graph-builder/` directory within the monorepo. Manifests will be added here once the app is containerized and K8s manifests are ready.
 
 ## Future Work
 

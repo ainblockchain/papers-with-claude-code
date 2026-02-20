@@ -10,7 +10,7 @@ cluster/
 └── resource-quotas.yaml  # Per-namespace CPU/memory limits
 ```
 
-## Application Order
+## Apply Order
 
 ```bash
 kubectl apply -f namespaces.yaml

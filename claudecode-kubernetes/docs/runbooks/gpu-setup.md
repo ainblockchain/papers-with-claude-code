@@ -1,49 +1,49 @@
 # GPU Node Setup Guide
 
-A guide for adding T640 (T4 x4) and T550 (A2 x4) servers as K8s Worker nodes and configuring them for GPU usage.
+Guide for adding T640 (T4 x4) and T550 (A2 x4) servers as K8s Worker nodes and enabling GPU access.
 
-> Not yet implemented. Follow this document when adding GPU nodes.
+> Currently not implemented. Follow this document when adding GPU nodes.
 
 ---
 
 ## Prerequisites
 
-- k3s Master node on <SERVER2> is operating normally
-- ESXi is installed and accessible on the target servers (T640/T550)
-- VPN + routing configuration completed
+- <SERVER2>'s k3s Master node is running normally
+- Target servers (T640/T550) have ESXi installed and are accessible
+- VPN + routing setup is complete
 
 ## Step 1: ESXi GPU Passthrough
 
-GPU Passthrough must be enabled in both BIOS and ESXi.
+GPU passthrough must be enabled in BIOS and ESXi.
 
 ### 1-1. BIOS Settings
 
-Reboot server → Enter BIOS:
+Reboot the server -> Enter BIOS:
 
 1. **Enable VT-d (Intel Virtualization Technology for Directed I/O)**
-   - Advanced → Processor Settings → Intel VT for Directed I/O → **Enabled**
+   - Advanced -> Processor Settings -> Intel VT for Directed I/O -> **Enabled**
 2. Save and reboot
 
-### 1-2. ESXi DirectPath I/O Settings
+### 1-2. ESXi DirectPath I/O Configuration
 
-In ESXi Web UI:
+In the ESXi Web UI:
 
-1. Manage → Hardware → PCI Devices
-2. Select NVIDIA GPU device → Click **Toggle Passthrough**
-3. Reboot ESXi host (required)
+1. Manage -> Hardware -> PCI Devices
+2. Select the NVIDIA GPU device -> Click **Toggle Passthrough**
+3. Reboot the ESXi host (required)
 
 ### 1-3. Assign GPU to VM
 
-1. Edit VM settings → Add PCI device
-2. Select the NVIDIA GPU configured for Passthrough
-3. **Memory reservation**: Set full memory as reserved (GPU Passthrough mandatory requirement)
+1. Edit VM settings -> Add PCI device
+2. Select the passthrough-configured NVIDIA GPU
+3. **Memory reservation**: Set full memory as reserved (required for GPU Passthrough)
 
-## Step 2: Ubuntu VM Configuration
+## Step 2: Ubuntu VM Setup
 
-Create an Ubuntu 22.04 VM and proceed with K8s base configuration, same as Phase 1.
-See Phase 1 in `docs/cluster-setup.md`.
+Create an Ubuntu 22.04 VM and perform basic K8s setup, same as Phase 1.
+Refer to `docs/cluster-setup.md` Phase 1.
 
-### 2-1. Install NVIDIA Drivers
+### 2-1. NVIDIA Driver Installation
 
 ```bash
 # Disable nouveau driver
@@ -64,7 +64,7 @@ nvidia-smi
 # GPU list and driver version should be displayed
 ```
 
-### 2-2. Install NVIDIA Container Toolkit
+### 2-2. NVIDIA Container Toolkit Installation
 
 NVIDIA Container Toolkit is required to use GPUs inside containers.
 
@@ -93,7 +93,7 @@ ssh <USERNAME>@<K8S_NODE_IP> "sudo cat /var/lib/rancher/k3s/server/node-token"
 # Install k3s agent on Worker
 curl -sfL https://get.k3s.io | K3S_URL=https://<K8S_NODE_IP>:6443 K3S_TOKEN=<token> sh -
 
-# Verify nodes from Master
+# Verify nodes on Master
 kubectl get nodes
 # k8s-node    Ready    control-plane   ...
 # t640-node   Ready    <none>          ...
@@ -145,9 +145,9 @@ spec:
 ```bash
 kubectl apply -f gpu-test-pod.yaml
 kubectl logs gpu-test
-# nvidia-smi output should be displayed
+# nvidia-smi output should be visible
 
-# Clean up
+# Cleanup
 kubectl delete pod gpu-test
 ```
 

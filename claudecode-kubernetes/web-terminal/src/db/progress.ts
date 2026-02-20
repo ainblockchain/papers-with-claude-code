@@ -1,4 +1,4 @@
-// SQLite-based progress store — fallback DB for hackathon demo (ultimate goal: blockchain)
+// SQLite-based progress store — fallback DB for hackathon demo (end goal: blockchain)
 
 import Database from 'better-sqlite3';
 
@@ -40,11 +40,11 @@ export class ProgressStore {
         UNIQUE(userId, courseId, stageNumber)
       );
     `);
-    // Migration for cases where the txHash column does not exist in the existing DB
+    // Migration for existing DBs that lack the txHash column
     try {
       this.db.exec(`ALTER TABLE stage_completions ADD COLUMN txHash TEXT`);
     } catch {
-      // Ignore if the column already exists
+      // Ignore if column already exists
     }
   }
 
@@ -84,7 +84,7 @@ export class ProgressStore {
     `).run(txHash, userId, courseId, stageNumber);
   }
 
-  /** Save stage payment record */
+  /** Save a stage payment record */
   saveStagePayment(userId: string, courseId: string, stageNumber: number, txHash: string, sessionId: string): void {
     this.db.prepare(`
       INSERT OR IGNORE INTO stage_payments (userId, courseId, stageNumber, txHash, paidAt, sessionId)
@@ -92,7 +92,7 @@ export class ProgressStore {
     `).run(userId, courseId, stageNumber, txHash, new Date().toISOString(), sessionId);
   }
 
-  /** Check whether a stage has been paid for */
+  /** Check if a stage has been paid for */
   isStageUnlocked(userId: string, courseId: string, stageNumber: number): boolean {
     const row = this.db.prepare(
       'SELECT id FROM stage_payments WHERE userId = ? AND courseId = ? AND stageNumber = ?'

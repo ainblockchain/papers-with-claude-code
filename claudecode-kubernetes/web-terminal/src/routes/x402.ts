@@ -1,5 +1,5 @@
 // x402 service provider — stage unlock payment processing
-// Return HTTP 402 -> payment verification -> facilitator settlement -> return txHash
+// Returns HTTP 402 -> payment verification -> facilitator settlement -> txHash response
 
 import { Router, Request, Response } from 'express';
 import type { ProgressStore } from '../db/progress.js';
@@ -9,14 +9,14 @@ const KITE_TESTNET_USDT = '0x0fF5393387ad2f9f691FD6Fd28e07E3969e27e63';
 
 export function createX402Router(progressStore: ProgressStore, config: {
   merchantWallet: string;
-  stagePrice: string;  // in wei units (e.g., "1000000000000000000" = 1 USDT)
+  stagePrice: string;  // in wei (e.g., "1000000000000000000" = 1 USDT)
   serviceName: string;
 }): Router {
   const router = Router();
 
   // POST /x402/unlock-stage
-  // If no X-PAYMENT header -> return 402
-  // If X-PAYMENT header present -> verify+settle via facilitator -> return 200
+  // No X-PAYMENT header -> return 402
+  // With X-PAYMENT header -> verify+settle via facilitator -> return 200
   router.post('/x402/unlock-stage', async (req: Request, res: Response) => {
     const { courseId, stageNumber, userId } = req.body as {
       courseId?: string;
@@ -29,7 +29,7 @@ export function createX402Router(progressStore: ProgressStore, config: {
       return;
     }
 
-    // Check if the stage has already been paid for
+    // Check if stage is already paid for
     if (userId && progressStore.isStageUnlocked(userId, courseId, stageNumber)) {
       res.json({ success: true, stageNumber, courseId, alreadyUnlocked: true });
       return;
@@ -78,7 +78,7 @@ export function createX402Router(progressStore: ProgressStore, config: {
       return;
     }
 
-    // If X-PAYMENT header is present -> verify + settle via facilitator
+    // X-PAYMENT header present -> verify + settle via facilitator
     try {
       // X-PAYMENT is base64-encoded JSON
       const paymentData = JSON.parse(Buffer.from(xPayment, 'base64').toString());

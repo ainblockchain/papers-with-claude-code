@@ -1,11 +1,11 @@
 # base/
 
-Common cluster infrastructure components (Ingress, monitoring, etc.).
+Cluster-wide common infrastructure components (Ingress, monitoring, etc.).
 
 ## Directory Structure
 
 ```
 base/
-├── nginx-ingress/   # Ingress Controller guide (k3s comes with Traefik by default)
-└── monitoring/      # Prometheus/Grafana monitoring (to be configured in the future)
+├── nginx-ingress/   # Ingress Controller guide (k3s ships with Traefik by default)
+└── monitoring/      # Prometheus/Grafana monitoring (to be configured)
 ```

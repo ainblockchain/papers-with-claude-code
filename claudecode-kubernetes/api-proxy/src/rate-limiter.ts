@@ -1,5 +1,5 @@
 // Pod IP-based request rate limiting
-// Limits requests per minute using a sliding window approach to prevent API abuse
+// Uses a sliding window approach to limit requests per minute and prevent API abuse
 
 import { Request, Response, NextFunction } from 'express';
 
@@ -12,7 +12,7 @@ const store = new Map<string, RateLimitEntry>();
 const WINDOW_MS = 60_000; // 1 minute
 const MAX_REQUESTS = 30;  // Max requests per minute
 
-// Periodically clean up old entries (prevent memory leaks)
+// Periodically clean up stale entries (prevent memory leaks)
 setInterval(() => {
   const now = Date.now();
   for (const [key, entry] of store) {
@@ -24,7 +24,7 @@ setInterval(() => {
 }, WINDOW_MS);
 
 export function rateLimiter(req: Request, res: Response, next: NextFunction): void {
-  // Use direct connection IP if X-Forwarded-For is not present (intra-cluster communication)
+  // Fall back to direct connection IP if X-Forwarded-For is absent (intra-cluster communication)
   const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
   const now = Date.now();
 
@@ -34,7 +34,7 @@ export function rateLimiter(req: Request, res: Response, next: NextFunction): vo
     store.set(clientIp, entry);
   }
 
-  // Remove old timestamps outside the window
+  // Remove timestamps outside the sliding window
   entry.timestamps = entry.timestamps.filter((t) => now - t < WINDOW_MS);
 
   if (entry.timestamps.length >= MAX_REQUESTS) {

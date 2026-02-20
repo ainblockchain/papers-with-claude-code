@@ -1,14 +1,18 @@
 // Session and configuration type definitions
 
+export type SessionMode = 'learner' | 'generator';
+
 export interface Session {
   id: string;
   podName: string;
   namespace: string;
   status: 'creating' | 'running' | 'terminating' | 'terminated';
   createdAt: Date;
-  claudeMdUrl?: string;
+  /** Course source URL. If GitHub raw URL, downloads entire directory as tarball; otherwise fetches only CLAUDE.md */
+  courseUrl?: string;
   userId?: string;
   courseId?: string;
+  mode: SessionMode;
 }
 
 export interface AppConfig {

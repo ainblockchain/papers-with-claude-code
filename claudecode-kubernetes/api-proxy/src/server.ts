@@ -1,6 +1,6 @@
 // API Proxy service entry point
-// Relays Anthropic API requests coming from sandbox Pods,
-// replacing the dummy API key with the real key loaded from a K8s Secret
+// Relays Anthropic API requests from sandbox Pods,
+// replacing dummy API keys with real keys loaded from K8s Secrets
 
 import express from 'express';
 import { createProxyRouter } from './proxy.js';
@@ -14,7 +14,7 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', service: 'api-proxy' });
 });
 
-// Root path — for proxy status check
+// Root path — for proxy status checks
 app.get('/', (_req, res) => {
   res.json({
     service: 'claudecode-api-proxy',
@@ -24,7 +24,7 @@ app.get('/', (_req, res) => {
 });
 
 // Register proxy router
-// Body parser must not be used for SSE streaming to work correctly
+// Body parser must NOT be used so SSE streaming works correctly
 app.use(createProxyRouter());
 
 app.listen(PORT, '0.0.0.0', () => {

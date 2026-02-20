@@ -30,7 +30,7 @@ const config: AppConfig = {
 
 const app = express();
 
-// CORS — Allow cross-origin since the frontend may run locally (file://)
+// CORS — allow cross-origin since frontend may run locally (file://)
 app.use((_req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
@@ -51,7 +51,7 @@ app.use('/api', createSessionRouter(config));
 app.use('/api', createStagesRouter(config));
 app.use('/api', createProgressRouter(progressStore));
 
-// x402 payment endpoint (active only when merchantWallet is configured)
+// x402 payment endpoint (enabled only when merchantWallet is configured)
 if (config.x402MerchantWallet) {
   app.use('/api', createX402Router(progressStore, {
     merchantWallet: config.x402MerchantWallet,
@@ -103,7 +103,9 @@ wss.on('connection', async (ws: WebSocket, req) => {
       {
         courseId: session.courseId,
         model: 'haiku', // TODO: dynamically change based on x402 payment tier
-        idleNudgeMs: session.courseId ? 120_000 : 0,
+        // Generator mode: disable idle nudge (autonomous execution); learner: default behavior
+        idleNudgeMs: session.mode === 'generator' ? 0 : (session.courseId ? 120_000 : 0),
+        mode: session.mode,
       },
     );
   } catch (err) {

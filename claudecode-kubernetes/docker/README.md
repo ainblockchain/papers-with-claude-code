@@ -14,12 +14,12 @@ docker/
 
 Per-user sandbox environment. Each user session runs as a Pod with this image. The container runs `sleep infinity` and users connect interactively via `kubectl exec`. Includes Node.js 20, Claude Code CLI, and common development tools.
 
-**Security settings:**
+**Security configuration:**
 - `managed-settings.json` → `/etc/claude-code/managed-settings.json`: System-level tool restrictions (blocks Bash/Edit/Write, allows only Read/Glob/Grep). Cannot be overridden by user.
-- `settings.json` → `~/.claude/settings.json`: Defense-in-depth duplicate restrictions.
-- `CLAUDE.md` → `~/CLAUDE.md`: Learning assistant role instructions + API key exposure prevention.
+- `settings.json` → `~/.claude/settings.json`: Defense-in-depth redundant restrictions.
+- `CLAUDE.md` → `~/CLAUDE.md`: Learning tutor role instructions + API key exposure prevention.
 - sudo privileges removed (previous versions allowed NOPASSWD).
-- No real API key included — only a dummy key is used, replaced by the proxy.
+- No real API key included — uses only a dummy key, replaced by the proxy.
 
 ### web-terminal
 

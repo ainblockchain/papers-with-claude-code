@@ -1,16 +1,16 @@
 // K8s Pod lifecycle management
-// Handles creation, deletion, status checking, and ready-waiting for session Pods
+// Handles session Pod creation, deletion, status checks, and readiness waiting
 
 import * as k8s from '@kubernetes/client-node';
 import { Writable } from 'stream';
 import { kc, k8sApi } from './client.js';
 import { buildSandboxPodSpec } from './pod-template.js';
-import { AppConfig } from '../types.js';
+import { AppConfig, SessionMode } from '../types.js';
 
 export class PodManager {
-  /** Create a new sandbox Pod and return the Pod name */
-  async createPod(sessionId: string, config: AppConfig, userId?: string): Promise<string> {
-    const podSpec = buildSandboxPodSpec(sessionId, config, userId);
+  /** Create a new sandbox Pod and return its name */
+  async createPod(sessionId: string, config: AppConfig, userId?: string, mode: SessionMode = 'learner'): Promise<string> {
+    const podSpec = buildSandboxPodSpec(sessionId, config, userId, mode);
     const podName = podSpec.metadata!.name!;
 
     try {
@@ -20,7 +20,26 @@ export class PodManager {
       });
       console.log(`[pod-manager] Pod created: ${podName}`);
       return podName;
-    } catch (err) {
+    } catch (err: any) {
+      // 409 Conflict: Pod with same name exists (likely in Error/Failed state).
+      // Delete the stale Pod and retry creation once.
+      if (err?.code === 409) {
+        console.log(`[pod-manager] Pod ${podName} already exists (stale), deleting and retrying...`);
+        try {
+          await this.deletePod(podName, config.sandboxNamespace);
+          // Wait briefly for deletion to propagate
+          await new Promise((r) => setTimeout(r, 2000));
+          await k8sApi.createNamespacedPod({
+            namespace: config.sandboxNamespace,
+            body: podSpec,
+          });
+          console.log(`[pod-manager] Pod recreated: ${podName}`);
+          return podName;
+        } catch (retryErr) {
+          console.error(`[pod-manager] Failed to recreate pod ${podName}:`, retryErr);
+          throw retryErr;
+        }
+      }
       console.error(`[pod-manager] Failed to create pod ${podName}:`, err);
       throw err;
     }
@@ -41,7 +60,7 @@ export class PodManager {
     }
   }
 
-  /** Poll until the Pod reaches Running state (1-second interval) */
+  /** Poll until Pod reaches Running state (1-second interval) */
   async waitForPodReady(
     podName: string,
     namespace: string,
@@ -64,7 +83,7 @@ export class PodManager {
     throw new Error(`Pod ${podName} did not become ready within ${timeoutMs}ms`);
   }
 
-  /** Execute a one-shot command inside a Pod and return stdout as a string */
+  /** Execute a one-shot command in the Pod and return stdout as a string */
   async execInPod(
     podName: string,
     namespace: string,
@@ -126,26 +145,42 @@ export class PodManager {
     });
   }
 
-  /** Find a Running Pod for a specific user using K8s label selector */
-  async findUserPod(podId: string, namespace: string): Promise<string | null> {
+  /** Find a Running Pod for a given user via K8s label selector.
+   *  Uses mode filter to distinguish learner/generator Pods.
+   *  Automatically cleans up Failed/Succeeded Pods to prevent 409 conflicts. */
+  async findUserPod(podId: string, namespace: string, mode: SessionMode = 'learner'): Promise<string | null> {
     try {
       const response = await k8sApi.listNamespacedPod({
         namespace,
-        labelSelector: `user-id=${podId}`,
+        labelSelector: `user-id=${podId},mode=${mode}`,
       });
-      const runningPod = response.items.find(
-        (pod) => pod.status?.phase === 'Running'
-      );
-      return runningPod?.metadata?.name ?? null;
+
+      let runningPod: string | null = null;
+
+      for (const pod of response.items) {
+        const phase = pod.status?.phase;
+        const name = pod.metadata?.name;
+        if (!name) continue;
+
+        if (phase === 'Running') {
+          runningPod = name;
+        } else if (phase === 'Failed' || phase === 'Succeeded') {
+          // Clean up stale Pods that can't be reused
+          console.log(`[pod-manager] Cleaning up stale pod ${name} (phase: ${phase})`);
+          try { await this.deletePod(name, namespace); } catch { /* best-effort */ }
+        }
+      }
+
+      return runningPod;
     } catch (err) {
       console.error(`[pod-manager] Failed to find user pod for ${podId}:`, err);
       return null;
     }
   }
 
-  /** Check whether a specific path exists inside a Pod */
-  // K8s exec WebSocket delivers exit codes via the status channel,
-  // but execInPod does not capture them, so verification is done via stdout
+  /** Check if a path exists inside the Pod */
+  // K8s exec WebSocket sends exit code via status channel,
+  // but execInPod doesn't capture it, so we verify via stdout
   async checkPathExists(
     podName: string,
     namespace: string,
@@ -163,7 +198,7 @@ export class PodManager {
     }
   }
 
-  /** Return the current phase of a Pod (Pending, Running, Succeeded, Failed, Unknown) */
+  /** Return the current phase of the Pod (Pending, Running, Succeeded, Failed, Unknown) */
   async getPodStatus(podName: string, namespace: string): Promise<string> {
     try {
       const response = await k8sApi.readNamespacedPod({

@@ -1,4 +1,4 @@
-# Web terminal service external exposure - Accessible from outside the cluster via NodePort
+# Web Terminal Service external exposure - accessible from outside the cluster via NodePort
 # Access URL: http://<K8S_NODE_IP>:31000
 apiVersion: v1
 kind: Service
