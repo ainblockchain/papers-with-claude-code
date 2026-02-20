@@ -8,11 +8,13 @@
     "start": "next start"
   },
   "dependencies": {
-    "@ainblockchain/ain-js": "^1.14.0",
+    "@ainblockchain/ain-js": "^1.15.0",
     "ethers": "^6.13.0",
     "next": "^14.2.0",
+    "next-auth": "^4.24.0",
     "react": "^18.3.0",
-    "react-dom": "^18.3.0"
+    "react-dom": "^18.3.0",
+    "react-markdown": "^9.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

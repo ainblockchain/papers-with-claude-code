@@ -209,7 +209,12 @@ export default function HomePage() {
                 <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
                   ep.method === 'GET' ? 'bg-blue-500/20 text-blue-400' : 'bg-green-500/20 text-green-400'
                 }`}>{ep.method}</span>
-                <span className="font-mono text-xs text-white">{ep.path}</span>
+                <a
+                  href={`${process.env.NEXT_PUBLIC_AGENT_URL || 'http://localhost:3402'}${ep.path}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-mono text-xs text-cogito-blue hover:underline"
+                >{ep.path}</a>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-xs text-gray-400">{ep.desc}</span>

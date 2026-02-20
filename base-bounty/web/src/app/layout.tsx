@@ -1,6 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import './globals.css';
+import Providers from '@/components/Providers';
+import AuthButton from '@/components/AuthButton';
+import AgentChatBox from '@/components/AgentChatBox';
 
 export const metadata: Metadata = {
   title: 'Cogito Node — Self-Sustaining Knowledge Agent on Base',
@@ -13,45 +16,51 @@ const NAV_ITEMS = [
   { href: '/frontier', label: 'Frontier' },
   { href: '/economics', label: 'Sustainability' },
   { href: '/transactions', label: 'Base Txs' },
+  { href: '/content', label: 'Content' },
+  { href: '/recipes', label: 'Recipes' },
 ];
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body className="min-h-screen">
-        <nav className="border-b border-gray-800 px-6 py-3">
-          <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2">
-              <span className="text-xl font-bold text-cogito-blue">Cogito</span>
-              <span className="text-[10px] bg-gray-800 text-gray-400 px-1.5 py-0.5 rounded">Base Bounty</span>
-            </Link>
-            <div className="flex gap-6">
-              {NAV_ITEMS.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="text-sm text-gray-400 hover:text-white transition-colors"
-                >
-                  {item.label}
-                </Link>
-              ))}
+        <Providers>
+          <nav className="border-b border-gray-800 px-6 py-3">
+            <div className="max-w-7xl mx-auto flex items-center justify-between">
+              <Link href="/" className="flex items-center gap-2">
+                <span className="text-xl font-bold text-cogito-blue">Cogito</span>
+                <span className="text-[10px] bg-gray-800 text-gray-400 px-1.5 py-0.5 rounded">Base Bounty</span>
+              </Link>
+              <div className="flex items-center gap-6">
+                {NAV_ITEMS.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="text-sm text-gray-400 hover:text-white transition-colors"
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+                <AuthButton />
+              </div>
             </div>
-          </div>
-        </nav>
-        <main className="max-w-7xl mx-auto px-6 py-8">{children}</main>
-        <footer className="border-t border-gray-800 px-6 py-4 mt-8">
-          <div className="max-w-7xl mx-auto flex items-center justify-between text-xs text-gray-500">
-            <span>papers-with-claudecode / Cogito Node</span>
-            <div className="flex gap-4">
-              <a href="https://github.com/ainblockchain/papers-with-claudecode" target="_blank" rel="noopener noreferrer"
-                className="hover:text-gray-300">GitHub</a>
-              <a href="https://basescan.org/address/0xA7b9a0959451aeF731141a9e6FFcC619DeB563bF" target="_blank" rel="noopener noreferrer"
-                className="hover:text-gray-300">BaseScan</a>
-              <a href="https://devnet-api.ainetwork.ai" target="_blank" rel="noopener noreferrer"
-                className="hover:text-gray-300">AIN Devnet</a>
+          </nav>
+          <main className="max-w-7xl mx-auto px-6 py-8">{children}</main>
+          <footer className="border-t border-gray-800 px-6 py-4 mt-8">
+            <div className="max-w-7xl mx-auto flex items-center justify-between text-xs text-gray-500">
+              <span>papers-with-claudecode / Cogito Node</span>
+              <div className="flex gap-4">
+                <a href="https://github.com/ainblockchain/papers-with-claudecode" target="_blank" rel="noopener noreferrer"
+                  className="hover:text-gray-300">GitHub</a>
+                <a href="https://basescan.org/address/0xA7b9a0959451aeF731141a9e6FFcC619DeB563bF" target="_blank" rel="noopener noreferrer"
+                  className="hover:text-gray-300">BaseScan</a>
+                <a href="https://devnet-api.ainetwork.ai" target="_blank" rel="noopener noreferrer"
+                  className="hover:text-gray-300">AIN Devnet</a>
+              </div>
             </div>
-          </div>
-        </footer>
+          </footer>
+          <AgentChatBox />
+        </Providers>
       </body>
     </html>
   );

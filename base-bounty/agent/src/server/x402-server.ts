@@ -1,3 +1,4 @@
+import { EventEmitter } from 'events';
 import express from 'express';
 import { ethers } from 'ethers';
 import Ain, { AinInstance } from '../ain-import.js';
@@ -10,6 +11,8 @@ export interface X402ServerOptions {
   config: AgentConfig;
   baseAddress: string;
   getStatus: () => any;
+  getEmitter?: () => EventEmitter;
+  addChatMessage?: (msg: string) => number;
 }
 
 async function setupX402Middleware(app: express.Application, ain: AinInstance, config: AgentConfig, baseAddress: string): Promise<boolean> {
@@ -62,14 +65,12 @@ async function setupX402Middleware(app: express.Application, ain: AinInstance, c
   }
 }
 
-export async function createX402Server({ ain, config, baseAddress, getStatus }: X402ServerOptions): Promise<express.Application> {
+export async function createX402Server({ ain, config, baseAddress, getStatus, getEmitter, addChatMessage }: X402ServerOptions): Promise<express.Application> {
   const app = express();
   app.use(express.json());
 
-  const x402Enabled = await setupX402Middleware(app, ain, config, baseAddress);
-
   // -------------------------------------------------------------------------
-  // Unauthenticated endpoints
+  // Unauthenticated, free endpoints (before x402 middleware)
   // -------------------------------------------------------------------------
   app.get('/status', (_req, res) => {
     res.json(getStatus());
@@ -78,7 +79,6 @@ export async function createX402Server({ ain, config, baseAddress, getStatus }: 
   app.get('/health', async (_req, res) => {
     const checks: Record<string, boolean> = {
       server: true,
-      x402: x402Enabled,
     };
     try {
       await ain.knowledge.listTopics();
@@ -89,6 +89,67 @@ export async function createX402Server({ ain, config, baseAddress, getStatus }: 
     const healthy = checks.ainNode;
     res.status(healthy ? 200 : 503).json({ healthy, checks });
   });
+
+  // SSE stream endpoint — streams agent cycle events in real-time
+  app.get('/stream', (req, res) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.flushHeaders();
+
+    // Send current status
+    const status = getStatus();
+    res.write(`event: status\ndata: ${JSON.stringify(status)}\n\n`);
+
+    const emitter = getEmitter?.();
+    if (!emitter) {
+      res.write(`event: error\ndata: ${JSON.stringify({ message: 'Emitter not available' })}\n\n`);
+      return;
+    }
+
+    function onCycleStart(data: any) { res.write(`event: cycle_start\ndata: ${JSON.stringify(data)}\n\n`); }
+    function onThinking(data: any) { res.write(`event: thinking\ndata: ${JSON.stringify(data)}\n\n`); }
+    function onExploration(data: any) { res.write(`event: exploration\ndata: ${JSON.stringify(data)}\n\n`); }
+    function onCycleEnd(data: any) { res.write(`event: cycle_end\ndata: ${JSON.stringify(data)}\n\n`); }
+    function onUserMessageAck(data: any) { res.write(`event: user_message_ack\ndata: ${JSON.stringify(data)}\n\n`); }
+
+    emitter.on('cycle_start', onCycleStart);
+    emitter.on('thinking', onThinking);
+    emitter.on('exploration', onExploration);
+    emitter.on('cycle_end', onCycleEnd);
+    emitter.on('user_message_ack', onUserMessageAck);
+
+    // Heartbeat to keep connection alive
+    const heartbeat = setInterval(() => {
+      res.write(`:heartbeat\n\n`);
+    }, 30000);
+
+    req.on('close', () => {
+      clearInterval(heartbeat);
+      emitter.off('cycle_start', onCycleStart);
+      emitter.off('thinking', onThinking);
+      emitter.off('exploration', onExploration);
+      emitter.off('cycle_end', onCycleEnd);
+      emitter.off('user_message_ack', onUserMessageAck);
+    });
+  });
+
+  // User chat endpoint — queue messages for the agent's next think cycle
+  app.post('/chat', (req, res) => {
+    const { message } = req.body;
+    if (!message || typeof message !== 'string') {
+      return res.status(400).json({ error: 'message field is required' });
+    }
+
+    const position = addChatMessage?.(message) ?? 0;
+    res.json({ queued: true, position });
+  });
+
+  // -------------------------------------------------------------------------
+  // x402 payment middleware
+  // -------------------------------------------------------------------------
+  const x402Enabled = await setupX402Middleware(app, ain, config, baseAddress);
 
   // -------------------------------------------------------------------------
   // Knowledge routes (x402 gated when enabled)

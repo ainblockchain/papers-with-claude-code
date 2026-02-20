@@ -1,3 +1,4 @@
+import { EventEmitter } from 'events';
 import Ain, { AinInstance } from './ain-import.js';
 import { AgentConfig } from './config.js';
 import { ThinkResult, Strategy } from './types.js';
@@ -47,12 +48,17 @@ export class CogitoNode {
   // Track explored papers to avoid re-exploring the same ones
   private exploredPaperIds: Set<string> = new Set();
 
+  // Streaming events and user chat
+  private emitter = new EventEmitter();
+  private chatQueue: string[] = [];
+
   constructor(config: AgentConfig) {
     this.config = config;
     this.ain = config.ainWsUrl
       ? new Ain(config.ainProviderUrl, config.ainWsUrl)
       : new Ain(config.ainProviderUrl);
     this.revenue = new RevenueTracker();
+    this.emitter.setMaxListeners(50);
   }
 
   async start(): Promise<void> {
@@ -94,6 +100,8 @@ export class CogitoNode {
         config: this.config,
         baseAddress: this.baseWallet?.getAddress() || '',
         getStatus: () => this.getStatus(),
+        getEmitter: () => this.emitter,
+        addChatMessage: (msg: string) => this.addChatMessage(msg),
       });
     } catch (err: any) {
       console.error(`[Cogito] x402 server failed to start: ${err.message}`);
@@ -133,7 +141,9 @@ export class CogitoNode {
     if (!this.running) return;
 
     const strategy = this.pickStrategy();
-    console.log(`[Cogito] Cycle #${this.thinkCount + 1} — strategy: ${strategy}`);
+    const cycleNumber = this.thinkCount + 1;
+    console.log(`[Cogito] Cycle #${cycleNumber} — strategy: ${strategy}`);
+    this.emitter.emit('cycle_start', { strategy, cycleNumber });
 
     try {
       switch (strategy) {
@@ -153,8 +163,10 @@ export class CogitoNode {
       }
     } catch (err: any) {
       console.error(`[Cogito] Cycle error: ${err.message}`);
+      this.emitter.emit('thinking', { topic: 'error', message: `Cycle error: ${err.message}` });
     }
 
+    this.emitter.emit('cycle_end', { strategy, cycleNumber });
     this.thinkCount++;
   }
 
@@ -172,9 +184,13 @@ export class CogitoNode {
   // ---------------------------------------------------------------------------
 
   async think(): Promise<ThinkResult | null> {
+    // 0. Process any queued user chat messages
+    const userMessages = this.chatQueue.splice(0);
+
     // 1. Pick target topic
     const targetTopic = await this.pickTopic();
     console.log(`[Cogito] Target topic: ${targetTopic}`);
+    this.emitter.emit('thinking', { topic: targetTopic, message: `Picked topic: ${targetTopic}` });
 
     // 2. Fetch papers from arXiv for this topic
     let papers: Paper[] = [];
@@ -190,20 +206,32 @@ export class CogitoNode {
 
       if (papers.length > 0) {
         console.log(`[Cogito] Found ${papers.length} papers for "${targetTopic}":`);
+        this.emitter.emit('thinking', { topic: targetTopic, message: `Found ${papers.length} papers from arXiv` });
         for (const p of papers.slice(0, 3)) {
           console.log(`  - ${p.title} (${p.authors[0]} et al., ${p.published.slice(0, 4)})`);
         }
       } else {
         console.log(`[Cogito] No new papers found for "${targetTopic}", exploring with general context`);
+        this.emitter.emit('thinking', { topic: targetTopic, message: 'No new papers found, exploring with general context' });
       }
     } catch (err: any) {
       console.log(`[Cogito] arXiv fetch failed: ${err.message} — exploring without papers`);
+      this.emitter.emit('thinking', { topic: targetTopic, message: `arXiv fetch failed: ${err.message}` });
     }
 
-    // 3. Build rich context from papers
-    const context = papers.length > 0
+    // 3. Build rich context from papers + user messages
+    let context = papers.length > 0
       ? buildPaperContext(papers, targetTopic)
       : `Explore the topic "${targetTopic}" in depth. Identify key concepts, seminal papers, and open research questions. Structure your exploration as a knowledge contribution.`;
+
+    if (userMessages.length > 0) {
+      const userContext = userMessages.map(m => `User suggests: ${m}`).join('\n');
+      context = `${userContext}\n\n${context}`;
+      this.emitter.emit('thinking', { topic: targetTopic, message: `Incorporating ${userMessages.length} user suggestion(s)` });
+      for (const msg of userMessages) {
+        this.emitter.emit('user_message_ack', { message: msg, response: 'Incorporated into exploration context' });
+      }
+    }
 
     // 4. Determine subtopic if papers suggest a more specific area
     let exploreTopic = targetTopic;
@@ -234,6 +262,7 @@ export class CogitoNode {
 
     // 6. Call aiExplore with paper-grounded context
     console.log(`[Cogito] Exploring: ${exploreTopic}`);
+    this.emitter.emit('thinking', { topic: exploreTopic, message: `Exploring: ${exploreTopic}` });
     let result: { entryId: string };
     try {
       result = await this.ain.knowledge.aiExplore(exploreTopic, {
@@ -277,6 +306,12 @@ export class CogitoNode {
     };
 
     console.log(`[Cogito] Exploration written: ${result.entryId} — "${thinkResult.title}"`);
+    this.emitter.emit('exploration', {
+      topicPath: thinkResult.topicPath,
+      entryId: thinkResult.entryId,
+      title: thinkResult.title,
+      paperRef: thinkResult.paperRef,
+    });
 
     // Keep last 10 explorations for status endpoint
     this.recentExplorations.unshift(thinkResult);
@@ -365,6 +400,7 @@ export class CogitoNode {
 
   async align(): Promise<void> {
     console.log('[Cogito] Aligning with peer explorations...');
+    this.emitter.emit('thinking', { topic: 'alignment', message: 'Aligning with peer explorations...' });
 
     // Try peer discovery via ERC-8004 registry
     if (this.peerClient) {
@@ -409,6 +445,7 @@ export class CogitoNode {
           ]);
 
           console.log(`[Cogito] Alignment insight for ${topic}: ${analysis.substring(0, 100)}...`);
+          this.emitter.emit('thinking', { topic, message: `Alignment insight: ${analysis.substring(0, 150)}` });
         }
       }
     }
@@ -420,6 +457,7 @@ export class CogitoNode {
 
   async sustain(): Promise<void> {
     console.log('[Cogito] Checking sustainability...');
+    this.emitter.emit('thinking', { topic: 'sustainability', message: 'Checking financial sustainability...' });
 
     const topics = await this.ain.knowledge.listTopics();
     const revenueSnapshot = this.revenue.getSnapshot();
@@ -439,6 +477,10 @@ export class CogitoNode {
     console.log(`[Cogito] Status: ${topics.length} topics, ${this.thinkCount} cycles`);
     console.log(`[Cogito] Revenue: income=$${revenueSnapshot.incomeLast24h.toFixed(4)}, cost=$${revenueSnapshot.costLast24h.toFixed(4)}, ratio=${revenueSnapshot.sustainabilityRatio}`);
     console.log(`[Cogito] Base wallet: ${usdcBalance.toFixed(2)} USDC, ${ethBalance.toFixed(4)} ETH`);
+    this.emitter.emit('thinking', {
+      topic: 'sustainability',
+      message: `${topics.length} topics, ${usdcBalance.toFixed(2)} USDC, ratio: ${revenueSnapshot.sustainabilityRatio}`,
+    });
 
     // Prune old revenue events
     this.revenue.prune();
@@ -510,4 +552,10 @@ export class CogitoNode {
   getAin(): AinInstance { return this.ain; }
   getThinkCount(): number { return this.thinkCount; }
   getRevenue(): RevenueTracker { return this.revenue; }
+  getEmitter(): EventEmitter { return this.emitter; }
+
+  addChatMessage(msg: string): number {
+    this.chatQueue.push(msg);
+    return this.chatQueue.length;
+  }
 }
