@@ -1,13 +1,16 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 interface SimNode {
   id: string;
   title: string;
   topic_path: string;
   depth: number;
+  explorer: string;
+  entryId: string;
+  hasContent: boolean;
   x: number;
   y: number;
   vx: number;
@@ -19,6 +22,7 @@ interface InputNode {
   title: string;
   topic_path: string;
   depth: number;
+  explorer?: string;
 }
 
 interface InputEdge {
@@ -40,6 +44,7 @@ export default function KnowledgeGraphViz({ nodes, edges }: Props) {
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
   const [selectedNode, setSelectedNode] = useState<SimNode | null>(null);
   const graphNodesRef = useRef<SimNode[]>([]);
+  const router = useRouter();
 
   // Responsive sizing via ResizeObserver
   useEffect(() => {
@@ -64,7 +69,7 @@ export default function KnowledgeGraphViz({ nodes, edges }: Props) {
     const graphNodes = graphNodesRef.current;
     for (let i = graphNodes.length - 1; i >= 0; i--) {
       const node = graphNodes[i];
-      const radius = 4 + node.depth * 2;
+      const radius = node.hasContent ? 4 + node.depth * 2 : 3;
       const dx = canvasX - node.x;
       const dy = canvasY - node.y;
       if (dx * dx + dy * dy <= (radius + 4) * (radius + 4)) {
@@ -74,7 +79,7 @@ export default function KnowledgeGraphViz({ nodes, edges }: Props) {
     return null;
   }, []);
 
-  // Canvas click handler
+  // Canvas click handler — navigate to content if node has it
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -88,6 +93,16 @@ export default function KnowledgeGraphViz({ nodes, edges }: Props) {
       const scaledY = y * dpr;
       const hit = findNodeAt(scaledX, scaledY);
       setSelectedNode(hit);
+
+      // Navigate to content view if node has content
+      if (hit && hit.hasContent) {
+        const params = new URLSearchParams({
+          topic: hit.topic_path,
+          explorer: hit.explorer,
+          entry: hit.entryId,
+        });
+        router.push(`/content/view?${params.toString()}`);
+      }
     }
 
     function handleMouseMove(e: MouseEvent) {
@@ -107,7 +122,7 @@ export default function KnowledgeGraphViz({ nodes, edges }: Props) {
       canvas.removeEventListener('click', handleClick);
       canvas.removeEventListener('mousemove', handleMouseMove);
     };
-  }, [findNodeAt]);
+  }, [findNodeAt, router]);
 
   // Simulation and rendering
   useEffect(() => {
@@ -125,16 +140,27 @@ export default function KnowledgeGraphViz({ nodes, edges }: Props) {
     const w = dimensions.width;
     const h = dimensions.height;
 
-    const graphNodes: SimNode[] = nodes.map((data) => ({
-      id: data.id,
-      title: data.title || data.id,
-      topic_path: data.topic_path || '',
-      depth: data.depth || 1,
-      x: Math.random() * w,
-      y: Math.random() * h,
-      vx: 0,
-      vy: 0,
-    }));
+    const graphNodes: SimNode[] = nodes.map((data) => {
+      // Parse node id format: "address:topic_path:entryId"
+      const parts = data.id.split(':');
+      const explorer = data.explorer || parts[0] || '';
+      const entryId = parts.length >= 3 ? parts.slice(2).join(':') : '';
+      const hasContent = !!(data.title && data.title !== data.id && entryId);
+
+      return {
+        id: data.id,
+        title: data.title || data.id,
+        topic_path: data.topic_path || '',
+        depth: data.depth || 1,
+        explorer,
+        entryId,
+        hasContent,
+        x: Math.random() * w,
+        y: Math.random() * h,
+        vx: 0,
+        vy: 0,
+      };
+    });
 
     graphNodesRef.current = graphNodes;
     const nodeMap = new Map(graphNodes.map(n => [n.id, n]));
@@ -204,8 +230,19 @@ export default function KnowledgeGraphViz({ nodes, edges }: Props) {
 
       for (const node of graphNodes) {
         const color = DEPTH_COLORS[(node.depth - 1) % DEPTH_COLORS.length];
-        const radius = 4 + node.depth * 2;
         const isSelected = selectedNode?.id === node.id;
+
+        // Nodes without content are minimized (smaller, dimmer)
+        if (!node.hasContent) {
+          const radius = 3;
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
+          ctx.fillStyle = color + '60'; // 38% opacity
+          ctx.fill();
+          continue;
+        }
+
+        const radius = 4 + node.depth * 2;
 
         // Highlight ring for selected node
         if (isSelected) {
@@ -263,12 +300,21 @@ export default function KnowledgeGraphViz({ nodes, edges }: Props) {
               </p>
             </div>
             <div className="flex gap-2">
-              <Link
-                href={`/content/${selectedNode.topic_path}`}
-                className="text-xs text-cogito-blue hover:underline"
-              >
-                View content
-              </Link>
+              {selectedNode.hasContent && (
+                <button
+                  onClick={() => {
+                    const params = new URLSearchParams({
+                      topic: selectedNode.topic_path,
+                      explorer: selectedNode.explorer,
+                      entry: selectedNode.entryId,
+                    });
+                    router.push(`/content/view?${params.toString()}`);
+                  }}
+                  className="text-xs text-cogito-blue hover:underline"
+                >
+                  View content
+                </button>
+              )}
               <button
                 onClick={() => setSelectedNode(null)}
                 className="text-xs text-gray-500 hover:text-white"
@@ -287,6 +333,10 @@ export default function KnowledgeGraphViz({ nodes, edges }: Props) {
             Depth {i + 1}
           </span>
         ))}
+        <span className="flex items-center gap-1 ml-2">
+          <span className="w-2 h-2 rounded-full inline-block bg-gray-500 opacity-40" />
+          No content
+        </span>
       </div>
     </div>
   );

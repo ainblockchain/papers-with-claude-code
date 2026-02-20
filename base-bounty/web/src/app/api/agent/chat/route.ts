@@ -1,18 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const agentUrl = process.env.NEXT_PUBLIC_AGENT_URL || 'http://localhost:3402';
+// In-memory chat queue — messages are displayed in the chatbox
+// and can be consumed by the agent when it's running
+const chatMessages: { message: string; timestamp: number }[] = [];
 
+export async function POST(req: NextRequest) {
   try {
-    const res = await fetch(`${agentUrl}/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    const data = await res.json();
-    return NextResponse.json(data);
-  } catch (err: any) {
-    return NextResponse.json({ error: 'Failed to reach agent' }, { status: 502 });
+    const { message } = await req.json();
+    if (!message || typeof message !== 'string') {
+      return NextResponse.json({ error: 'message field is required' }, { status: 400 });
+    }
+
+    chatMessages.push({ message, timestamp: Date.now() });
+    // Keep last 50 messages
+    if (chatMessages.length > 50) chatMessages.splice(0, chatMessages.length - 50);
+
+    return NextResponse.json({ queued: true, position: chatMessages.length });
+  } catch {
+    return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
   }
+}
+
+export async function GET() {
+  return NextResponse.json({ messages: chatMessages });
 }

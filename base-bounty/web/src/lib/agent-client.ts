@@ -1,5 +1,3 @@
-const AGENT_URL = process.env.NEXT_PUBLIC_AGENT_URL || 'http://localhost:3402';
-
 async function api(action: string, params: Record<string, any> = {}): Promise<any> {
   const res = await fetch('/api/rpc', {
     method: 'POST',
@@ -14,8 +12,17 @@ async function api(action: string, params: Record<string, any> = {}): Promise<an
 }
 
 export async function getAgentStatus(): Promise<any> {
-  const res = await fetch(`${AGENT_URL}/status`);
-  return res.json();
+  // Build status from AIN blockchain data
+  const [graphStats, explorations] = await Promise.allSettled([
+    api('getGraphStats'),
+    api('getRecentExplorations', { limit: 10 }),
+  ]);
+
+  return {
+    running: true,
+    thinkCount: graphStats.status === 'fulfilled' ? graphStats.value?.node_count || 0 : 0,
+    recentExplorations: explorations.status === 'fulfilled' ? explorations.value || [] : [],
+  };
 }
 
 export async function getGraphStats(): Promise<any> {

@@ -14,6 +14,62 @@ interface ContentEntry {
   created_at?: number;
 }
 
+/** Render a tag — arxiv and github tags become clickable links */
+function TagChip({ tag }: { tag: string }) {
+  const trimmed = tag.trim();
+
+  if (trimmed.startsWith('arxiv:')) {
+    const arxivId = trimmed.replace('arxiv:', '');
+    return (
+      <a
+        href={`https://arxiv.org/abs/${arxivId}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-[10px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded hover:bg-red-500/30 transition-colors"
+        onClick={(e) => e.stopPropagation()}
+      >
+        arxiv:{arxivId}
+      </a>
+    );
+  }
+
+  if (trimmed.startsWith('doi:')) {
+    const doi = trimmed.replace('doi:', '');
+    return (
+      <a
+        href={`https://doi.org/${doi}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-[10px] bg-orange-500/20 text-orange-400 px-1.5 py-0.5 rounded hover:bg-orange-500/30 transition-colors"
+        onClick={(e) => e.stopPropagation()}
+      >
+        doi:{doi}
+      </a>
+    );
+  }
+
+  if (trimmed.startsWith('code:') || trimmed.startsWith('repo:')) {
+    const url = trimmed.replace(/^(code|repo):/, '');
+    return (
+      <a
+        href={url.startsWith('http') ? url : `https://${url}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-[10px] bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded hover:bg-green-500/30 transition-colors"
+        onClick={(e) => e.stopPropagation()}
+      >
+        code
+      </a>
+    );
+  }
+
+  return (
+    <span className="text-[10px] bg-gray-700 text-gray-300 px-1.5 py-0.5 rounded">
+      {trimmed}
+    </span>
+  );
+}
+
 export default function ContentPage() {
   const [entries, setEntries] = useState<ContentEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,6 +93,17 @@ export default function ContentPage() {
   const topics = Array.from(new Set(entries.map((e) => e.topic_path.split('/').slice(0, 2).join('/'))));
   const filtered = filter === 'all' ? entries : entries.filter((e) => e.topic_path.startsWith(filter));
 
+  // Split tags into categories for display
+  function splitTags(tags: string) {
+    const all = tags.split(',').map(t => t.trim()).filter(Boolean);
+    // Deduplicate tags
+    const unique = Array.from(new Set(all));
+    // Show paper/code refs first, then limit other tags
+    const refs = unique.filter(t => t.startsWith('arxiv:') || t.startsWith('doi:') || t.startsWith('code:') || t.startsWith('repo:'));
+    const other = unique.filter(t => !refs.includes(t) && t !== 'educational' && t !== 'x402_gated' && t !== 'enriched');
+    return { refs, other: other.slice(0, 4) };
+  }
+
   const DEPTH_COLORS: Record<number, string> = {
     1: 'bg-blue-500/20 text-blue-400',
     2: 'bg-purple-500/20 text-purple-400',
@@ -49,7 +116,7 @@ export default function ContentPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold mb-1">Content</h1>
-        <p className="text-gray-400">Enriched knowledge explorations from the Cogito agent</p>
+        <p className="text-gray-400">Enriched knowledge with academic papers and code references</p>
       </div>
 
       {/* Filter Tabs */}
@@ -85,11 +152,16 @@ export default function ContentPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((entry) => {
-            const slug = `${entry.topic_path}/${entry.explorer}/${entry.entryId}`;
+            const params = new URLSearchParams({
+              topic: entry.topic_path,
+              explorer: entry.explorer,
+              entry: entry.entryId,
+            });
+            const { refs, other } = entry.tags ? splitTags(entry.tags) : { refs: [], other: [] };
             return (
               <Link
                 key={`${entry.explorer}-${entry.topic_path}-${entry.entryId}`}
-                href={`/content/${slug}`}
+                href={`/content/view?${params.toString()}`}
                 className="bg-gray-800 rounded-lg p-4 border border-gray-700 hover:border-cogito-blue transition-colors block"
               >
                 <div className="font-semibold text-sm text-white line-clamp-2">
@@ -98,16 +170,22 @@ export default function ContentPage() {
                 {entry.summary && (
                   <p className="text-xs text-gray-400 mt-2 line-clamp-2">{entry.summary}</p>
                 )}
-                <div className="flex flex-wrap gap-1.5 mt-3">
-                  {entry.tags?.split(',').map((tag) => (
-                    <span
-                      key={tag}
-                      className="text-[10px] bg-gray-700 text-gray-300 px-1.5 py-0.5 rounded"
-                    >
-                      {tag.trim()}
-                    </span>
-                  ))}
-                </div>
+                {/* Paper & Code References */}
+                {refs.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-3">
+                    {refs.map((tag) => (
+                      <TagChip key={tag} tag={tag} />
+                    ))}
+                  </div>
+                )}
+                {/* Other Tags */}
+                {other.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {other.map((tag) => (
+                      <TagChip key={tag} tag={tag} />
+                    ))}
+                  </div>
+                )}
                 <div className="flex items-center gap-2 mt-3">
                   <span className="text-xs text-cogito-blue">{entry.topic_path}</span>
                   {entry.depth && (

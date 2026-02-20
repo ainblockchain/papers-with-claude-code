@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 
@@ -15,23 +15,28 @@ interface Exploration {
   created_at?: number;
 }
 
-export default function ContentDetailPage() {
-  const params = useParams();
-  const slug = (params.slug as string[]) || [];
+export default function ContentViewPage() {
+  return (
+    <Suspense fallback={<div className="text-gray-500 text-center py-16">Loading content...</div>}>
+      <ContentViewInner />
+    </Suspense>
+  );
+}
+
+function ContentViewInner() {
+  const searchParams = useSearchParams();
+  const topicPath = searchParams.get('topic') || '';
+  const explorerAddress = searchParams.get('explorer') || '';
+  const entryId = searchParams.get('entry') || '';
+
   const [entry, setEntry] = useState<Exploration | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // slug format: [...topicPath, explorerAddress, entryId]
-  // e.g. ai/transformers/0xabc.../entry_1
-  const entryId = slug[slug.length - 1];
-  const explorerAddress = slug[slug.length - 2];
-  const topicPath = slug.slice(0, -2).join('/');
-
   useEffect(() => {
     async function load() {
       if (!topicPath || !explorerAddress || !entryId) {
-        setError('Invalid content path');
+        setError('Missing required parameters: topic, explorer, entry');
         setLoading(false);
         return;
       }
@@ -128,12 +133,9 @@ export default function ContentDetailPage() {
             <div className="space-y-3">
               <div>
                 <div className="text-[10px] text-gray-500 uppercase">Topic</div>
-                <Link
-                  href={`/content?topic=${topicPath}`}
-                  className="text-sm text-cogito-blue hover:underline"
-                >
+                <span className="text-sm text-cogito-blue">
                   {entry.topic_path || topicPath}
-                </Link>
+                </span>
               </div>
 
               {entry.depth && (
@@ -158,14 +160,40 @@ export default function ContentDetailPage() {
                 <div>
                   <div className="text-[10px] text-gray-500 uppercase mb-1">Tags</div>
                   <div className="flex flex-wrap gap-1">
-                    {entry.tags.split(',').map((tag) => (
-                      <span
-                        key={tag}
-                        className="text-[10px] bg-gray-700 text-gray-300 px-1.5 py-0.5 rounded"
-                      >
-                        {tag.trim()}
-                      </span>
-                    ))}
+                    {Array.from(new Set(entry.tags.split(',').map(t => t.trim()).filter(Boolean))).map((tag) => {
+                      if (tag.startsWith('arxiv:')) {
+                        const id = tag.replace('arxiv:', '');
+                        return (
+                          <a key={tag} href={`https://arxiv.org/abs/${id}`} target="_blank" rel="noopener noreferrer"
+                            className="text-[10px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded hover:bg-red-500/30 transition-colors">
+                            arxiv:{id}
+                          </a>
+                        );
+                      }
+                      if (tag.startsWith('doi:')) {
+                        const id = tag.replace('doi:', '');
+                        return (
+                          <a key={tag} href={`https://doi.org/${id}`} target="_blank" rel="noopener noreferrer"
+                            className="text-[10px] bg-orange-500/20 text-orange-400 px-1.5 py-0.5 rounded hover:bg-orange-500/30 transition-colors">
+                            doi:{id}
+                          </a>
+                        );
+                      }
+                      if (tag.startsWith('code:') || tag.startsWith('repo:')) {
+                        const url = tag.replace(/^(code|repo):/, '');
+                        return (
+                          <a key={tag} href={url.startsWith('http') ? url : `https://${url}`} target="_blank" rel="noopener noreferrer"
+                            className="text-[10px] bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded hover:bg-green-500/30 transition-colors">
+                            code
+                          </a>
+                        );
+                      }
+                      return (
+                        <span key={tag} className="text-[10px] bg-gray-700 text-gray-300 px-1.5 py-0.5 rounded">
+                          {tag}
+                        </span>
+                      );
+                    })}
                   </div>
                 </div>
               )}

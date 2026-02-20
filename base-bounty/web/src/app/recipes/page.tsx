@@ -12,6 +12,25 @@ interface Recipe {
   description?: string;
 }
 
+const SAMPLE_RECIPES: Recipe[] = [
+  {
+    name: 'paper-enrichment',
+    version: '1',
+    watch_tags: ['lesson_learned'],
+    output_tags: ['x402_gated', 'enriched', 'educational'],
+    price: '0.005 USDC',
+    description: 'Enriches developer lessons with academic paper references, code examples, and theoretical foundations. Bridges practical engineering with research.',
+  },
+  {
+    name: 'lesson-to-course',
+    version: '1',
+    watch_tags: ['enriched', 'educational'],
+    output_tags: ['course_stage', 'x402_gated'],
+    price: '0.01 USDC',
+    description: 'Transforms enriched articles into structured course stages with learning objectives, guided exercises, and challenge problems.',
+  },
+];
+
 export default function RecipesPage() {
   const { data: session } = useSession();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
@@ -24,7 +43,11 @@ export default function RecipesPage() {
     try {
       const res = await fetch('/api/recipes');
       const data = await res.json();
-      setRecipes(data.recipes || []);
+      const loaded = data.recipes || [];
+      // Merge with samples — show samples if not already registered
+      const registeredNames = new Set(loaded.map((r: Recipe) => r.name));
+      const merged = [...loaded, ...SAMPLE_RECIPES.filter(s => !registeredNames.has(s.name))];
+      setRecipes(merged);
     } catch {
       setRecipes([]);
     } finally {

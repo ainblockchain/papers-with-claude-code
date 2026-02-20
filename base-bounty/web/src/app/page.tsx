@@ -198,29 +198,24 @@ export default function HomePage() {
         <p className="text-xs text-gray-500 mb-2">All knowledge access gated via x402 USDC micropayments on Base</p>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {[
-            { method: 'GET', path: '/knowledge/explore/*', price: '$0.005', desc: 'Access explorations' },
-            { method: 'GET', path: '/knowledge/frontier/*', price: '$0.002', desc: 'Frontier map stats' },
-            { method: 'GET', path: '/knowledge/graph', price: '$0.01', desc: 'Full knowledge graph' },
-            { method: 'POST', path: '/knowledge/curate', price: '$0.05', desc: 'LLM curated analysis' },
-            { method: 'POST', path: '/course/unlock-stage', price: '$0.001', desc: 'Course stage unlock' },
+            { method: 'GET', path: '/knowledge/explore/*', price: '$0.005', desc: 'Access explorations', href: '/content' },
+            { method: 'GET', path: '/knowledge/frontier/*', price: '$0.002', desc: 'Frontier map stats', href: '/frontier' },
+            { method: 'GET', path: '/knowledge/graph', price: '$0.01', desc: 'Full knowledge graph', href: '/graph' },
+            { method: 'POST', path: '/knowledge/curate', price: '$0.05', desc: 'LLM curated analysis', href: '/content' },
+            { method: 'POST', path: '/course/unlock-stage', price: '$0.001', desc: 'Course stage unlock', href: '/content' },
           ].map((ep) => (
-            <div key={ep.path} className="bg-gray-800 rounded-lg p-3 border border-gray-700">
+            <Link key={ep.path} href={ep.href} className="bg-gray-800 rounded-lg p-3 border border-gray-700 hover:border-cogito-blue transition-colors block">
               <div className="flex items-center gap-2 mb-1">
                 <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
                   ep.method === 'GET' ? 'bg-blue-500/20 text-blue-400' : 'bg-green-500/20 text-green-400'
                 }`}>{ep.method}</span>
-                <a
-                  href={`${process.env.NEXT_PUBLIC_AGENT_URL || 'http://localhost:3402'}${ep.path}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-mono text-xs text-cogito-blue hover:underline"
-                >{ep.path}</a>
+                <span className="font-mono text-xs text-cogito-blue">{ep.path}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-xs text-gray-400">{ep.desc}</span>
                 <span className="text-xs font-mono text-cogito-purple font-bold">{ep.price}</span>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </div>
