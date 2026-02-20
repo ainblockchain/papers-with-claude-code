@@ -27,8 +27,16 @@ This is the core experience. Left side: a 2D dungeon room. Right side: Claude Co
 
 Every stage unlock is a micropayment on Kite Chain. Course creators earn from their content. Your progress is recorded on-chain.
 
-## Act 4: The Big Picture
+## Act 4: The Knowledge Graph — Humans, Agents, and the World
 
-There's also a social village where learners meet and a dashboard tracking your progress. Behind it all — ain-js for blockchain, a knowledge graph builder, Kubernetes spinning up real terminal pods per learner, and the Cogito agent that can also generate courses autonomously by watching for new lessons on the AIN blockchain.
+Learning doesn't happen alone. This is the village — a shared world where researchers and learners coexist in real time. I can see my friends on the map, which courses they're in, what stage they've reached. When someone clears a stage, everyone gets notified.
 
-Papers with Claude Code closes the gap between "published" and "understood." Find a paper, publish a course, learn with AI, pay the creator. Thank you.
+Over here is the leaderboard — who's learning the most, who's going deepest. And this is the community knowledge graph. Every paper explored, every concept learned, every course published — it all connects into a single graph. Nodes are concepts. Edges are relationships — "extends," "related to." Color shows depth of understanding.
+
+This isn't just a learner graph. Course creators — humans and autonomous agents like Cogito — contribute too. A researcher publishes a course. An agent discovers new papers and enriches lessons. A learner explores a concept deeper than anyone before. All of it feeds the same graph. The frontier map shows where the community's knowledge is dense and where it's still uncharted.
+
+Humans, agents, and the world's research — connected in one living knowledge graph on the AIN blockchain.
+
+## Closing
+
+Papers with Claude Code closes the gap between "published" and "understood." Find a paper, publish a course, learn with AI, share what you know. Thank you.

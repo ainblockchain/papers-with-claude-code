@@ -1,6 +1,6 @@
 # Papers with Claude Code — Screenplay
 
-> **Runtime**: ~4 minutes
+> **Runtime**: ~4.5 minutes
 > **Prerequisites**: Frontend at `http://localhost:3000`, HuggingFace Papers in browser, terminal pods running
 > **Script text**: See [demo_script.md](demo_script.md) for copy-paste narration only.
 
@@ -78,15 +78,36 @@
 
 ---
 
-## Act 4: The Big Picture (30 sec)
+## Act 4: The Knowledge Graph — Humans, Agents, and the World (1 min)
 
-**Screen**: Browser → `/village` (5 sec flash) → Terminal
+**Screen**: Browser → `/village`
+
+### 4a. Village and friends (20 sec)
 
 | # | Action |
 |---|--------|
-| 1 | **Village**: 2D map with buildings for each course, learners walking, leaderboard sidebar |
-| 2 | Switch to **Terminal**: `tree -L 1 /home/comcom/git/papers-with-claudecode/` |
-| 3 | Closing line |
+| 1 | Show the village map — player avatar, friend avatars moving in real time |
+| 2 | Point out the **sidebar**: online friends list with course/stage they're in |
+| 3 | Show a **notification toast** pop up: "Alice cleared Stage 2 of BitDance Course!" |
+| 4 | Point out the **leaderboard** — ranked by progress |
+
+### 4b. Community knowledge graph (25 sec)
+
+**Screen**: Browser → `/community`
+
+| # | Action |
+|---|--------|
+| 1 | Show the **knowledge graph** canvas — nodes colored by depth (green/blue/amber/red), edges connecting concepts |
+| 2 | Point out node count and edge count stats |
+| 3 | Show the **frontier map** — topics with explorer count, max depth, average depth bars |
+| 4 | Enter a learner's AIN address — show their personal progress: topics, entries, purchases |
+
+### 4c. Closing (15 sec)
+
+| # | Action |
+|---|--------|
+| 1 | Pause on the knowledge graph view |
+| 2 | Closing line |
 
 ---
 
@@ -103,8 +124,9 @@
 | 2:00 | `/learn/...` | Move player, interact with concepts |
 | 2:30 | `/learn/...` | Quiz → pass → payment modal → unlock |
 | 3:00 | `/learn/...` | Claude terminal: ask a question |
-| 3:15 | `/village` + Terminal | Flash village, show project structure |
-| 3:45 | — | Closing line |
+| 3:15 | `/village` | Village map, friends, leaderboard, notifications |
+| 3:35 | `/community` | Knowledge graph, frontier map, learner progress |
+| 4:00 | `/community` | Closing line |
 
 ## Pre-demo Checklist
 
