@@ -8,6 +8,7 @@
 
 import { AinClient } from './ain-client.js';
 import { LessonWatcher } from './lesson-watcher.js';
+import { BaseChain } from './base-chain.js';
 import { createServer } from './x402-server.js';
 
 const AIN_PROVIDER_URL = process.env.AIN_PROVIDER_URL || 'http://localhost:8080';
@@ -37,8 +38,19 @@ async function main() {
     try { await ain.registerTopic(topic); } catch {}
   }
 
+  // Init Base chain (optional — for ERC-8021 builder code attribution)
+  let baseChain: BaseChain | undefined;
+  const baseRpcUrl = process.env.BASE_RPC_URL;
+  const basePrivateKey = process.env.BASE_PRIVATE_KEY;
+  if (baseRpcUrl && basePrivateKey) {
+    baseChain = new BaseChain(baseRpcUrl, basePrivateKey);
+    console.log(`[Cogito] Base chain: ${baseChain.getAddress()}`);
+  } else {
+    console.log('[Cogito] Base chain: disabled (set BASE_RPC_URL + BASE_PRIVATE_KEY to enable)');
+  }
+
   // Start lesson watcher
-  const watcher = new LessonWatcher(ain);
+  const watcher = new LessonWatcher(ain, baseChain);
   watcher.start();
 
   // Start x402 content server

@@ -7,6 +7,7 @@
 import { AinClient } from './ain-client.js';
 import { fetchPapersByKeywords, Paper } from './paper-discovery.js';
 import { generateContent, extractKeywords } from './content-generator.js';
+import { BaseChain } from './base-chain.js';
 import { LessonLearned } from './types.js';
 
 const POLL_INTERVAL_MS = parseInt(process.env.POLL_INTERVAL_MS || '30000');
@@ -16,7 +17,11 @@ export class LessonWatcher {
   private processedEntries = new Set<string>();
   private timer: ReturnType<typeof setInterval> | null = null;
 
-  constructor(private ain: AinClient) {}
+  private baseChain: BaseChain | null = null;
+
+  constructor(private ain: AinClient, baseChain?: BaseChain) {
+    this.baseChain = baseChain ?? null;
+  }
 
   /**
    * Start watching for new lessons.
@@ -119,6 +124,11 @@ export class LessonWatcher {
       const topicPath = topicKey.replace(/_/g, '/');
       await this.ain.writeEnrichedContent(topicPath, enriched, CONTENT_PRICE);
       console.log(`[Watcher] Published gated content for "${enriched.title}"`);
+
+      // 5. Record Base chain attribution with ERC-8021 builder codes
+      if (this.baseChain && allPapers.length > 0) {
+        await this.baseChain.recordAttribution(topicPath, allPapers);
+      }
 
     } catch (err: any) {
       console.error(`[Watcher] Failed to process lesson "${lesson.title}": ${err.message}`);

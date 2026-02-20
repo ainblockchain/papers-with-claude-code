@@ -11,11 +11,12 @@
   },
   "dependencies": {
     "@ainblockchain/ain-js": "^1.14.0",
-    "dotenv": "^16.4.0"
+    "dotenv": "^16.4.0",
+    "ethers": "^6.16.0"
   },
   "devDependencies": {
-    "typescript": "^5.4.0",
     "@types/node": "^22.0.0",
-    "tsx": "^4.7.0"
+    "tsx": "^4.7.0",
+    "typescript": "^5.4.0"
   }
 }

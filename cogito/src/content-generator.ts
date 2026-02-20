@@ -24,6 +24,50 @@ interface VllmResponse {
 }
 
 /**
+ * Extract JSON from an LLM response that may include think tags, code fences, or preamble.
+ */
+function extractJson<T = any>(raw: string): T {
+  // Strip <think>...</think> blocks
+  let text = raw.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+
+  // Try direct parse first
+  try { return JSON.parse(text); } catch {}
+
+  // Try extracting from markdown code fences (```json ... ``` or ``` ... ```)
+  const fenceMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/);
+  if (fenceMatch) {
+    try { return JSON.parse(fenceMatch[1].trim()); } catch {}
+  }
+
+  // Try finding JSON object/array boundaries
+  const firstBrace = text.indexOf('{');
+  const firstBracket = text.indexOf('[');
+  const start = firstBrace >= 0 && (firstBracket < 0 || firstBrace < firstBracket)
+    ? firstBrace : firstBracket;
+  if (start >= 0) {
+    const open = text[start];
+    const close = open === '{' ? '}' : ']';
+    // Find the matching close bracket
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+    for (let i = start; i < text.length; i++) {
+      const ch = text[i];
+      if (escaped) { escaped = false; continue; }
+      if (ch === '\\') { escaped = true; continue; }
+      if (ch === '"') { inString = !inString; continue; }
+      if (inString) continue;
+      if (ch === open) depth++;
+      if (ch === close) { depth--; if (depth === 0) {
+        try { return JSON.parse(text.slice(start, i + 1)); } catch { break; }
+      }}
+    }
+  }
+
+  throw new Error('No valid JSON found in LLM response');
+}
+
+/**
  * Call vLLM chat completion endpoint.
  */
 async function callLlm(messages: ChatMessage[], maxTokens = 4096): Promise<string> {
@@ -98,6 +142,14 @@ export async function generateContent(
     return lines.join('\n');
   }).join('\n');
 
+  // Truncate context if too large (vLLM 32k context - leave room for system prompt + output)
+  const MAX_CONTEXT_CHARS = 24000;
+  let truncatedPaperContext = paperContext;
+  if (truncatedPaperContext.length > MAX_CONTEXT_CHARS) {
+    truncatedPaperContext = truncatedPaperContext.slice(0, MAX_CONTEXT_CHARS) + '\n\n[... truncated for context window ...]';
+    console.log(`[ContentGen] Truncated paper context from ${paperContext.length} to ${MAX_CONTEXT_CHARS} chars`);
+  }
+
   const messages: ChatMessage[] = [
     {
       role: 'system',
@@ -132,7 +184,7 @@ export async function generateContent(
         '',
         '## Related Academic Papers',
         '',
-        paperContext || 'No related papers found.',
+        truncatedPaperContext || 'No related papers found.',
         '',
         '## Task',
         '',
@@ -151,17 +203,17 @@ export async function generateContent(
 
   const raw = await callLlm(messages, 4096);
 
-  // Parse JSON from LLM response (may be wrapped in markdown code blocks)
+  // Parse JSON from LLM response — handle think tags, code fences, partial JSON
   let parsed: { title: string; summary: string; content: string; tags: string[] };
   try {
-    const jsonStr = raw.replace(/^```json?\n?/, '').replace(/\n?```$/, '').trim();
-    parsed = JSON.parse(jsonStr);
+    parsed = extractJson(raw);
   } catch {
     // Fallback: use raw response as content
+    const cleaned = raw.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
     parsed = {
       title: `Deep Dive: ${lesson.title}`,
       summary: lesson.summary || lesson.content.slice(0, 200),
-      content: raw,
+      content: cleaned || raw,
       tags: lesson.tags.split(',').map(t => t.trim()),
     };
   }
@@ -239,8 +291,7 @@ export async function extractKeywords(lesson: LessonLearned): Promise<string[]> 
     ];
 
     const raw = await callLlm(messages, 256);
-    const jsonStr = raw.replace(/^```json?\n?/, '').replace(/\n?```$/, '').trim();
-    const keywords = JSON.parse(jsonStr);
+    const keywords = extractJson<string[]>(raw);
     if (Array.isArray(keywords)) return keywords.slice(0, 5);
   } catch {}
 
