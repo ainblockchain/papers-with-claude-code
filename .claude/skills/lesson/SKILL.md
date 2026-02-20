@@ -25,10 +25,20 @@ Analyze the conversation context and extract:
 
 ## How to record
 
-Run the record script to write to AIN blockchain:
+Find and run the record-lesson.js script. It exists in one of these locations:
 
 ```bash
-node /home/comcom/git/papers-with-claudecode/.claude/skills/lesson/scripts/record-lesson.js \
+# Check project-level first, then global
+SCRIPT="$(dirname "$(readlink -f "$0")")/scripts/record-lesson.js"
+if [ ! -f "$SCRIPT" ]; then
+  SCRIPT="$HOME/.claude/skills/lesson/scripts/record-lesson.js"
+fi
+```
+
+Run it:
+
+```bash
+node "$HOME/.claude/skills/lesson/scripts/record-lesson.js" \
   --title "Your title here" \
   --content "Full decision context..." \
   --summary "Brief summary" \
@@ -36,7 +46,9 @@ node /home/comcom/git/papers-with-claudecode/.claude/skills/lesson/scripts/recor
   --tags "tag1,tag2,tag3"
 ```
 
-If the script doesn't exist yet or fails, fall back to calling the Cogito container API:
+The script auto-installs ain-js on first run if needed. Requires `AIN_PRIVATE_KEY` env var.
+
+If the script fails, fall back to calling the Cogito container API:
 
 ```bash
 curl -X POST http://localhost:3402/lesson \
