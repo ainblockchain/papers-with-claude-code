@@ -126,6 +126,43 @@ export class PodManager {
     });
   }
 
+  /** 특정 유저의 Running 상태 Pod을 K8s 라벨 셀렉터로 검색 */
+  async findUserPod(podId: string, namespace: string): Promise<string | null> {
+    try {
+      const response = await k8sApi.listNamespacedPod({
+        namespace,
+        labelSelector: `user-id=${podId}`,
+      });
+      const runningPod = response.items.find(
+        (pod) => pod.status?.phase === 'Running'
+      );
+      return runningPod?.metadata?.name ?? null;
+    } catch (err) {
+      console.error(`[pod-manager] Failed to find user pod for ${podId}:`, err);
+      return null;
+    }
+  }
+
+  /** Pod 내 특정 경로가 존재하는지 확인 */
+  // K8s exec WebSocket은 exit code를 status channel로 전달하지만
+  // execInPod는 이를 캡처하지 않으므로, stdout 기반으로 검증
+  async checkPathExists(
+    podName: string,
+    namespace: string,
+    path: string
+  ): Promise<boolean> {
+    try {
+      const output = await this.execInPod(
+        podName, namespace,
+        ['sh', '-c', `test -d "${path}" && echo EXISTS`],
+        5000
+      );
+      return output.trim() === 'EXISTS';
+    } catch {
+      return false;
+    }
+  }
+
   /** Pod의 현재 phase를 반환 (Pending, Running, Succeeded, Failed, Unknown) */
   async getPodStatus(podName: string, namespace: string): Promise<string> {
     try {

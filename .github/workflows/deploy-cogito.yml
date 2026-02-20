@@ -1,0 +1,67 @@
+name: Build & Deploy Cogito
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'cogito/**'
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/cogito
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: cogito
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+
+      - name: Deploy to AIN node
+        run: |
+          cd cogito && npm ci
+          node -e "
+            const Ain = require('@ainblockchain/ain-js');
+            const ain = new Ain('${{ secrets.AIN_PROVIDER_URL }}');
+            ain.wallet.addAndSetDefaultAccount('${{ secrets.AIN_PRIVATE_KEY }}');
+
+            // Authorize this GitHub user's GHCR namespace
+            ain.deployment.authorize('${{ github.repository_owner }}')
+              .then(r => console.log('Authorized:', JSON.stringify(r)))
+              .catch(e => console.log('Auth skipped:', e.message));
+
+            // Deploy the container
+            ain.deployment.deploy({
+              image: '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}',
+              name: 'cogito',
+              envVars: {
+                AIN_PROVIDER_URL: 'http://ain-blockchain:8080',
+                AIN_PRIVATE_KEY: '${{ secrets.AIN_PRIVATE_KEY }}',
+                VLLM_URL: 'http://vllm:8000',
+                VLLM_MODEL: 'Qwen/Qwen3-32B-AWQ',
+                X402_PORT: '3402',
+              },
+              ports: { '3402': '3402' },
+            }).then(r => console.log('Deployed:', JSON.stringify(r)))
+              .catch(e => console.error('Deploy failed:', e.message));
+          "

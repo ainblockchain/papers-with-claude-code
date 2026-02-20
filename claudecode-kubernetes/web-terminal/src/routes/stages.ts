@@ -33,10 +33,14 @@ export function createStagesRouter(_config: AppConfig): Router {
     }
 
     try {
+      // courseId가 있으면 해당 논문 경로, 없으면 레거시 경로 사용
+      const paperDir = session.courseId
+        ? `/home/claude/papers/${session.courseId}`
+        : '/home/claude/papers/current';
       const content = await podManager.execInPod(
         session.podName,
         session.namespace,
-        ['cat', '/home/claude/papers/current/CLAUDE.md']
+        ['cat', `${paperDir}/CLAUDE.md`]
       );
       const stages = extractStagesJson(content);
       res.json(stages);

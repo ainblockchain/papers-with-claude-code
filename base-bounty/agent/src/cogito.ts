@@ -8,6 +8,7 @@ import { CourseBuilder } from './course-builder.js';
 import { PeerClient } from './peer-client.js';
 import { AgentIdentity } from './base-chain/identity.js';
 import { BaseWallet } from './base-chain/wallet.js';
+import { buildAuthorCodes } from './base-chain/builder-codes.js';
 import { fetchPapers, fetchRecentPapers, buildPaperContext, suggestSubtopic, Paper } from './paper-source.js';
 
 const SEED_TOPICS = [
@@ -226,19 +227,40 @@ export class CogitoNode {
       }
     }
 
-    // 5. Call aiExplore with paper-grounded context
-    console.log(`[Cogito] Exploring: ${exploreTopic}`);
-    const result = await this.ain.knowledge.aiExplore(exploreTopic, {
-      context,
-      depth: this.pickDepth(exploreTopic),
-    });
+    // 5. Record on Base with ERC-8021 builder codes (every few cycles)
+    if (this.baseWallet && papers.length > 0 && this.thinkCount % 3 === 0) {
+      await this.recordOnBase(papers, exploreTopic);
+    }
 
-    // 6. Mark papers as explored
+    // 6. Call aiExplore with paper-grounded context
+    console.log(`[Cogito] Exploring: ${exploreTopic}`);
+    let result: { entryId: string };
+    try {
+      result = await this.ain.knowledge.aiExplore(exploreTopic, {
+        context,
+        depth: this.pickDepth(exploreTopic),
+      });
+    } catch (err: any) {
+      console.log(`[Cogito] aiExplore failed: ${err.message} — recording paper discovery only`);
+      // Still track papers even if LLM exploration fails
+      for (const p of papers) this.exploredPaperIds.add(p.arxivId);
+      const count = (this.explorationCounts.get(exploreTopic) || 0) + 1;
+      this.explorationCounts.set(exploreTopic, count);
+      return {
+        topicPath: exploreTopic,
+        entryId: 'pending',
+        title: papers.length > 0 ? papers[0].title : `Exploration of ${exploreTopic}`,
+        depth: this.pickDepth(exploreTopic),
+        paperRef: papers.length > 0 ? `${papers[0].authors[0]} et al., ${papers[0].published.slice(0, 4)} — ${papers[0].title}` : undefined,
+      };
+    }
+
+    // 7. Mark papers as explored
     for (const p of papers) {
       this.exploredPaperIds.add(p.arxivId);
     }
 
-    // 7. Track for course auto-generation
+    // 8. Track for course auto-generation
     const count = (this.explorationCounts.get(exploreTopic) || 0) + 1;
     this.explorationCounts.set(exploreTopic, count);
 
@@ -261,6 +283,41 @@ export class CogitoNode {
     if (this.recentExplorations.length > 10) this.recentExplorations.pop();
 
     return thinkResult;
+  }
+
+  /**
+   * Record an exploration attestation on Base with ERC-8021 builder codes.
+   * Sends a 0-value self-transfer with builder code attribution in calldata.
+   */
+  private async recordOnBase(papers: Paper[], topicPath: string): Promise<void> {
+    if (!this.baseWallet) return;
+
+    try {
+      // Build author attributions from papers
+      const authors = papers.length > 0 ? buildAuthorCodes(papers[0]) : [];
+
+      // Encode topic as calldata prefix (0x + hex-encoded topic string)
+      const topicHex = Buffer.from(`cogito:explore:${topicPath}`).toString('hex');
+
+      const tx = await this.baseWallet.sendTransaction(
+        {
+          to: this.baseWallet.getAddress(), // self-transfer
+          value: 0,
+          data: '0x' + topicHex,
+        },
+        authors,
+      );
+
+      console.log(`[Cogito] Base tx recorded: ${tx.hash} (topic: ${topicPath}, codes: cogito_node${authors.length > 0 ? '+' + authors.length + ' authors' : ''})`);
+      this.revenue.recordTransaction({
+        txHash: tx.hash,
+        timestamp: Date.now(),
+        type: 'exploration',
+        builderCodes: ['cogito_node', ...authors.map(a => `${a.type}_${a.identifier}`)],
+      });
+    } catch (err: any) {
+      console.log(`[Cogito] Base tx failed: ${err.message}`);
+    }
   }
 
   /**
