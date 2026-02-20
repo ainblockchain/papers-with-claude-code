@@ -2,7 +2,6 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Star, FileText, Play, ShoppingCart, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -74,11 +73,9 @@ export function PaperCard({ paper }: PaperCardProps) {
 
       {/* Content — 타이틀 + 논문 설명 + 코스 정보 + 저자/날짜 */}
       <div className="flex-1 min-w-0 flex flex-col">
-        <Link href={`/learn/${paper.id}`} className="hover:underline">
-          <h3 className="font-bold text-[18px] text-[#111827] leading-tight line-clamp-2">
-            {paper.title}
-          </h3>
-        </Link>
+        <h3 className="font-bold text-[18px] text-[#111827] leading-tight line-clamp-2">
+          {paper.title}
+        </h3>
 
         {paper.description && (
           <p className="mt-1.5 text-sm text-[#6B7280] line-clamp-2">{paper.description}</p>
