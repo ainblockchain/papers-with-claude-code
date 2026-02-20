@@ -1,5 +1,7 @@
+// 논문 카드 — 썸네일(HF CDN) + 논문 설명 + 코스 정보 + 저자/날짜 + 액션 버튼
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Star, FileText, Play, ShoppingCart, BookOpen } from 'lucide-react';
@@ -19,6 +21,7 @@ export function PaperCard({ paper }: PaperCardProps) {
   const { isAuthenticated } = useAuthStore();
   const access = getAccessStatus(paper.id);
   const canLearn = access === 'owned' || access === 'purchased';
+  const [imgError, setImgError] = useState(false);
 
   const requireAuth = (action: () => void) => {
     if (!isAuthenticated) {
@@ -41,16 +44,24 @@ export function PaperCard({ paper }: PaperCardProps) {
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
   };
 
-  const hasAuthors = paper.authors.length > 0;
-  const formattedDate = formatDate(paper.publishedAt);
+  const showThumbnail = paper.thumbnailUrl && !imgError;
 
   return (
     <article className="flex gap-4 py-5 border-t border-[#E5E7EB] first:border-t-0">
-      {/* Thumbnail */}
+      {/* Thumbnail — HF CDN 이미지 또는 FileText 아이콘 placeholder */}
       <div className="relative flex-shrink-0 w-[160px] h-[200px] rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
-        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-b from-gray-50 to-gray-200">
-          <FileText className="h-12 w-12 text-gray-400" />
-        </div>
+        {showThumbnail ? (
+          <img
+            src={paper.thumbnailUrl}
+            alt={paper.title}
+            className="absolute inset-0 w-full h-full object-cover"
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-b from-gray-50 to-gray-200">
+            <FileText className="h-12 w-12 text-gray-400" />
+          </div>
+        )}
         {paper.organization && (
           <Badge
             variant="secondary"
@@ -59,59 +70,61 @@ export function PaperCard({ paper }: PaperCardProps) {
             {paper.organization.name}
           </Badge>
         )}
-        <div className="absolute bottom-0 left-0 right-0 bg-black/50 backdrop-blur-sm px-2 py-1.5">
-          <p className="text-[11px] text-white truncate">
-            Submitted by <span className="font-medium">@{paper.submittedBy}</span>
-          </p>
-        </div>
       </div>
 
-      {/* Content */}
+      {/* Content — 타이틀 + 논문 설명 + 코스 정보 + 저자/날짜 */}
       <div className="flex-1 min-w-0 flex flex-col">
-        <Link
-          href={`/learn/${paper.id}`}
-          className="hover:underline"
-        >
+        <Link href={`/learn/${paper.id}`} className="hover:underline">
           <h3 className="font-bold text-[18px] text-[#111827] leading-tight line-clamp-2">
             {paper.title}
           </h3>
         </Link>
-        <p className="mt-1.5 text-sm text-[#6B7280] line-clamp-2">{paper.description}</p>
+
+        {paper.description && (
+          <p className="mt-1.5 text-sm text-[#6B7280] line-clamp-2">{paper.description}</p>
+        )}
+
+        {paper.courseName && (
+          <p className="mt-1 flex items-center gap-1.5 text-sm text-[#6B7280]">
+            <BookOpen className="h-3.5 w-3.5 text-[#FF9D00] flex-shrink-0" />
+            <span className="font-medium text-[#374151]">{paper.courseName}</span>
+            <span>·</span>
+            <span>{paper.totalStages} stage{paper.totalStages !== 1 ? 's' : ''}</span>
+          </p>
+        )}
+
         <div className="mt-auto pt-3 flex items-center gap-2 text-sm text-[#6B7280]">
-          {hasAuthors && (
+          {paper.authors.length > 0 && (
+            <div className="flex items-center gap-1">
+              {paper.authors.slice(0, 3).map((author) => (
+                <div
+                  key={author.id}
+                  className="h-5 w-5 rounded-full bg-gray-300 flex items-center justify-center text-[9px] font-medium text-white"
+                  title={author.name}
+                >
+                  {author.name[0]}
+                </div>
+              ))}
+              {paper.authors.length > 3 && (
+                <span className="text-xs">+{paper.authors.length - 3}</span>
+              )}
+              <span className="ml-1 text-xs">
+                {paper.authors.length <= 2
+                  ? paper.authors.map((a) => a.name).join(', ')
+                  : `${paper.authors[0].name} et al.`}
+              </span>
+            </div>
+          )}
+          {paper.publishedAt && (
             <>
-              <div className="flex items-center gap-1">
-                {paper.authors.slice(0, 3).map((author) => (
-                  <div
-                    key={author.id}
-                    className="h-5 w-5 rounded-full bg-gray-300 flex items-center justify-center text-[9px] font-medium text-white"
-                    title={author.name}
-                  >
-                    {author.name[0]}
-                  </div>
-                ))}
-                {paper.authors.length > 3 && (
-                  <span className="text-xs">+{paper.authors.length - 3}</span>
-                )}
-                <span className="ml-1 text-xs">{paper.authors.length} authors</span>
-              </div>
-              <span className="text-xs">·</span>
+              {paper.authors.length > 0 && <span className="text-xs">·</span>}
+              <span className="text-xs">{formatDate(paper.publishedAt)}</span>
             </>
           )}
-          {formattedDate && (
-            <>
-              <span className="text-xs">Published on {formattedDate}</span>
-              <span className="text-xs">·</span>
-            </>
-          )}
-          <div className="flex items-center gap-1 text-xs">
-            <BookOpen className="h-3 w-3" />
-            {paper.totalStages} stages
-          </div>
         </div>
       </div>
 
-      {/* Action Buttons */}
+      {/* Action Buttons — Learn/Purchase + GitHub(원 논문 코드) + arXiv */}
       <div className="flex-shrink-0 flex flex-col gap-1.5 w-[140px]">
         {canLearn ? (
           <Button
@@ -147,7 +160,7 @@ export function PaperCard({ paper }: PaperCardProps) {
           <a href={paper.arxivUrl} target="_blank" rel="noopener noreferrer">
             <Button variant="outline" size="sm" className="w-full text-xs h-8">
               <FileText className="h-3 w-3 mr-1" />
-              arXiv Page
+              arXiv
             </Button>
           </a>
         )}

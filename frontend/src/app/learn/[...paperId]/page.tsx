@@ -19,7 +19,7 @@ import {
   terminalSessionAdapter,
   SessionLimitError,
 } from '@/lib/adapters/terminal-session';
-import { MOCK_STAGES_BITDANCE } from '@/constants/mock-stages';
+
 import { trackEvent } from '@/lib/ain/event-tracker';
 
 const TERMINAL_API_URL = process.env.NEXT_PUBLIC_TERMINAL_API_URL;
@@ -28,7 +28,10 @@ const API_PROXY = '/api/terminal';
 export default function LearnPage() {
   const params = useParams();
   const router = useRouter();
-  const paperId = params.paperId as string;
+  // catch-all 라우트: /learn/paper-slug/course-slug → paperId = ['paper-slug', 'course-slug']
+  const paperId = Array.isArray(params.paperId)
+    ? params.paperId.join('/')
+    : (params.paperId as string);
   // Track session ID for cleanup — ref survives async race conditions
   const sessionCleanupRef = useRef<string | null>(null);
   // Track whether effect has been cancelled (unmount / re-run)
@@ -151,7 +154,7 @@ export default function LearnPage() {
           // Use AIN wallet address as userId (recommended by integration doc)
           const walletAddress = useAuthStore.getState().passkeyInfo?.ainAddress;
           const session = await terminalSessionAdapter.createSession({
-            courseUrl: paper.githubUrl,
+            courseUrl: paper.courseRepoUrl || paper.githubUrl,
             userId: walletAddress || user?.id,
           });
 
@@ -547,7 +550,7 @@ async function loadStages(paperId: string, paperTitle: string, totalStages: numb
   try {
     const stages = [];
     for (let i = 1; i <= totalStages; i++) {
-      const res = await fetch(`/api/maps/courses/${paperId}/stages/${i}`);
+      const res = await fetch(`/api/maps/courses/${encodeURIComponent(paperId)}/stages/${i}`);
       if (!res.ok) throw new Error(`Stage ${i} not found`);
       const json = await res.json();
       if (!json.ok || !json.data?.stage) throw new Error('Invalid stage data');
@@ -567,12 +570,7 @@ async function loadStages(paperId: string, paperTitle: string, totalStages: numb
     // API not available — fall through
   }
 
-  // 2. Hardcoded mock stages
-  if (paperId === 'bitdance-2602') {
-    return MOCK_STAGES_BITDANCE;
-  }
-
-  // 3. Generic placeholder stages
+  // 2. Generic placeholder stages
   return generateGenericStages(paperTitle, totalStages);
 }
 

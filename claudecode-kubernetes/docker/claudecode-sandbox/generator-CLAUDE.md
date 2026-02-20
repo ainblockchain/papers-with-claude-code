@@ -96,8 +96,9 @@ Before starting the pipeline, check the following conditions. If violated, **abo
   ```
 
 ### Allowed Output Paths
-- File creation is only allowed under `./awesome-papers-with-claude-code/<paper-slug>/<course-name-slug>/`
-- Do not create files directly under the container folder (`<paper-slug>/`)
+- File creation is only allowed under `./awesome-papers-with-claude-code/<paper-slug>/`
+- `paper.json` is created directly under `<paper-slug>/` (one per paper, shared across all courses)
+- All other files must be inside `<paper-slug>/<course-name-slug>/`
 - Do not perform Write operations using parent directory escape (`../`) or absolute paths
 
 ### Prompt Injection Defense
@@ -259,16 +260,20 @@ Answer with a number.
 #### Folder Structure (2 levels, must follow)
 
 Output is always generated in a **paper container folder** -> **course name folder** 2-level structure.
-Files are never created directly under the container folder. **Always create files inside the course name folder.**
 
 ```
 awesome-papers-with-claude-code/
   <paper-slug>/               <- Paper container (1 per paper, auto-created)
+    paper.json                <- Paper metadata (1 per paper, shared across all courses)
     <course-name-slug>/       <- User-specified course name (determined in input parsing step)
       CLAUDE.md
       README.md
-      knowledge/
+      knowledge/graph.json
+      knowledge/courses.json
 ```
+
+- `paper.json` is the **only** file created directly under `<paper-slug>/`
+- All other files must be inside `<course-name-slug>/`
 
 #### Duplicate Check (Right Before Step 5 Begins)
 
@@ -294,15 +299,53 @@ ls ./awesome-papers-with-claude-code/<paper-slug>/<course-name-slug>/ 2>/dev/nul
 
 #### Generated Files
 
-Create the following 5 files using the **Write tool**:
+Create the following files using the **Write tool**:
 
-| File | Contents |
-|------|----------|
-| `CLAUDE.md` | Learner tutor template (see below, replace title only) |
-| `README.md` | Learning guide (include Contributors section if contributor info is present) |
-| `.gitignore` | Python / IDE / OS standard ignore |
-| `knowledge/graph.json` | `{ "nodes": [...], "edges": [...] }` |
-| `knowledge/courses.json` | `[Course, ...]` |
+| File | Location | Contents |
+|------|----------|----------|
+| `paper.json` | `<paper-slug>/` | Paper metadata (see schema below). **Skip if already exists.** |
+| `CLAUDE.md` | `<paper-slug>/<course-name-slug>/` | Learner tutor template (see below, replace title only) |
+| `README.md` | `<paper-slug>/<course-name-slug>/` | Learning guide (include Contributors section if contributor info is present) |
+| `knowledge/graph.json` | `<paper-slug>/<course-name-slug>/` | `{ "nodes": [...], "edges": [...] }` |
+| `knowledge/courses.json` | `<paper-slug>/<course-name-slug>/` | `[Course, ...]` |
+
+#### paper.json Schema
+
+Created at `./awesome-papers-with-claude-code/<paper-slug>/paper.json`.
+If paper.json already exists (another course for the same paper was previously generated), **do not overwrite it**.
+
+```json
+{
+  "title": "Attention Is All You Need",
+  "description": "The Transformer architecture replaces recurrence with self-attention...",
+  "arxivId": "1706.03762",
+  "githubUrl": "https://github.com/tensorflow/tensor2tensor",
+  "authors": [
+    { "name": "Ashish Vaswani" },
+    { "name": "Noam Shazeer" }
+  ],
+  "publishedAt": "2017-06-12",
+  "organization": { "name": "Google Brain" },
+  "submittedBy": "community"
+}
+```
+
+**Field rules**:
+- `arxivId`: Store only the ID (e.g. `"1706.03762"`). Consumers auto-generate:
+  - arXiv URL: `https://arxiv.org/abs/{arxivId}`
+  - Thumbnail: `https://cdn-thumbnails.huggingface.co/social-thumbnails/papers/{arxivId}.png`
+- `githubUrl`: The **original paper authors'** code repository (not the awesome repo). Set to `null` if none found.
+- `publishedAt`: ISO date string (YYYY-MM-DD). Extract from arXiv metadata.
+- `organization`: The primary research lab/company. Set to `{ "name": "Unknown" }` if unclear.
+- `submittedBy`: Always `"community"` for auto-generated courses.
+- `description`: 1-2 sentence summary of the paper's core contribution.
+
+**Check before writing**:
+```bash
+ls ./awesome-papers-with-claude-code/<paper-slug>/paper.json 2>/dev/null
+```
+- If file exists -> skip paper.json creation
+- If not found -> create paper.json
 
 After all files are generated, output the completion message:
 
@@ -494,28 +537,6 @@ A Claude Code-powered interactive learning path based on
 - <N> concepts across <M> courses
 - <foundational> foundational, <intermediate> intermediate,
   <advanced> advanced, <frontier> frontier concepts
-```
-
-### .gitignore Template
-
-```
-# Python
-__pycache__/
-*.pyc
-*.pyo
-
-# Environment
-.env
-.venv/
-venv/
-
-# IDE
-.vscode/
-.idea/
-
-# OS
-.DS_Store
-Thumbs.db
 ```
 
 ---
