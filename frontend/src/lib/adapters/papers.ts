@@ -125,7 +125,7 @@ function buildPaper(
     publishedAt: paperJson?.publishedAt || (readmeMeta.year ? `${readmeMeta.year}-01-01` : ''),
     thumbnailUrl,
     arxivUrl: arxivId ? `https://arxiv.org/abs/${arxivId}` : '',
-    githubUrl: paperJson?.githubUrl || courseRepoUrl,
+    githubUrl: paperJson?.githubUrl,
     courseRepoUrl,
     submittedBy: paperJson?.submittedBy || 'community',
     totalStages: readmeMeta.totalModules || 1,
