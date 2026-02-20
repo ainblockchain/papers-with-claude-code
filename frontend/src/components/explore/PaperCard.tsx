@@ -62,6 +62,20 @@ export function PaperCard({ paper }: PaperCardProps) {
           </h3>
         </Link>
         <p className="mt-1.5 text-sm text-[#6B7280] line-clamp-2">{paper.description}</p>
+        {paper.courses && paper.courses.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {paper.courses.map((course) => (
+              <Badge
+                key={course.slug}
+                variant="outline"
+                className="text-[11px] px-2 py-0.5 bg-blue-50 text-blue-700 border-blue-200"
+              >
+                {course.name}
+                <span className="ml-1 text-blue-400">{course.totalConcepts}c</span>
+              </Badge>
+            ))}
+          </div>
+        )}
         <div className="mt-auto pt-3 flex items-center gap-2 text-sm text-[#6B7280]">
           <div className="flex items-center gap-1">
             {paper.authors.slice(0, 3).map((author) => (

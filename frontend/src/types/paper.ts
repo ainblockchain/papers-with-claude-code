@@ -4,6 +4,13 @@ export interface Author {
   avatarUrl?: string;
 }
 
+export interface CourseInfo {
+  slug: string;
+  name: string;
+  totalConcepts: number;
+  totalLessons: number;
+}
+
 export interface Paper {
   id: string;
   title: string;
@@ -17,4 +24,5 @@ export interface Paper {
   organization?: { name: string; logoUrl: string };
   submittedBy: string;
   totalStages: number;
+  courses?: CourseInfo[];
 }
