@@ -170,11 +170,14 @@ export default function HomePage() {
               <div className="text-xs text-gray-400 uppercase mb-1">ERC-8004 Identity</div>
               {registration?.isRegistered ? (
                 <div>
-                  <a href={`https://basescan.org/nft/${ERC_8004_REGISTRY}/${AGENT_ID}`} target="_blank" rel="noopener noreferrer"
+                  <a href={`https://basescan.org/token/${ERC_8004_REGISTRY}?a=${AGENT_ID}`} target="_blank" rel="noopener noreferrer"
                     className="text-lg font-bold text-green-400 hover:underline">
                     Agent #{AGENT_ID}
                   </a>
-                  <div className="text-xs text-gray-400 mt-1">Token URI: {AGENT_URI}</div>
+                  <a href={AGENT_URI} target="_blank" rel="noopener noreferrer"
+                    className="text-xs text-cogito-blue hover:underline mt-1 block truncate">
+                    {AGENT_URI}
+                  </a>
                 </div>
               ) : (
                 <div className="text-gray-500">Loading...</div>

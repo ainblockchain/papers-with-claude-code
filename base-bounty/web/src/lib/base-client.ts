@@ -8,7 +8,7 @@ const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 export const AGENT_ADDRESS = '0xA7b9a0959451aeF731141a9e6FFcC619DeB563bF';
 export const AGENT_ID = 18276;
 export const AGENT_NAME = 'Cogito Node';
-export const AGENT_URI = 'https://cogito.papers-with-claudecode.ai';
+export const AGENT_URI = 'https://github.com/ainblockchain/papers-with-claude-code';
 
 // ERC-8004 is ERC-721 based — correct ABI
 const ERC_8004_ABI = [
