@@ -97,11 +97,76 @@ Each tileset entry must include:
 
 ---
 
+## Plot Grid System
+
+The village map is dynamically generated using a **plot grid system**. Instead of a fixed-size map, the map expands automatically as courses are added.
+
+### Plot Dimensions
+
+Each course occupies one "plot" — a fixed-size area approximately equal to one viewport.
+
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| `PLOT_INNER_WIDTH` | 16 tiles | Walkable area width (= viewport width) |
+| `PLOT_INNER_HEIGHT` | 12 tiles | Walkable area height (= viewport height) |
+| `PLOT_BORDER` | 1 tile | Path-tile border on each edge |
+| `PLOT_WIDTH` | 18 tiles | Total plot width including borders |
+| `PLOT_HEIGHT` | 14 tiles | Total plot height including borders |
+| `BUILDING_WIDTH` | 4 tiles | Course entrance building width |
+| `BUILDING_HEIGHT` | 3 tiles | Course entrance building height |
+
+Adjacent plots share borders, creating 2-tile-wide path roads between them.
+
+### Grid Calculation
+
+Given N courses:
+```
+cols = ceil(sqrt(N))
+rows = ceil(N / cols)
+mapWidth = cols * PLOT_WIDTH
+mapHeight = rows * PLOT_HEIGHT
+```
+
+Minimum grid: 1×1 (one empty plot for zero courses).
+
+Examples: 1→18×14, 4→36×28, 6→54×28, 9→54×42
+
+### TMJ Generation
+
+The village TMJ is generated at runtime by `generateVillageTmj()` in `src/lib/tmj/village-generator.ts`.
+The generated TMJ uses the same format as the static `village.tmj`:
+- **ground** layer: checkerboard grass with path borders at plot edges
+- **collision** layer: all zeros (collision handled in JavaScript)
+- **objects** layer: spawn point + `course_entrance` objects
+- **tileset**: same 3-tile village-tiles (grass-light `#5B8C5A`, grass-dark `#4A7C59`, path `#D2B48C`)
+
+### Course Placement Within Plot
+
+Course at index `i` in grid with `cols` columns:
+```
+plotCol = i % cols
+plotRow = floor(i / cols)
+buildingX = plotCol * PLOT_WIDTH + PLOT_BORDER + floor((PLOT_INNER_WIDTH - BUILDING_WIDTH) / 2)
+buildingY = plotRow * PLOT_HEIGHT + PLOT_BORDER + floor((PLOT_INNER_HEIGHT - BUILDING_HEIGHT) / 2) - 1
+```
+
+### Map Image Generation (Future)
+
+When image-based tiles replace color-based rendering, a two-phase pipeline is planned:
+
+1. **Outpainting for terrain expansion**: When the grid grows (e.g., 3×2 → 3×3), new plot areas are outpainted from existing map edges via the Gemini API to generate seamless terrain.
+
+2. **Inpainting for building placement**: Within each new plot, the course building is inpainted into the generated terrain. The mask defines the building footprint; the API fills it with a building matching the surrounding style.
+
+The `GeminiMapAdapter` interface supports both modes via the `mode: 'outpaint' | 'inpaint'` parameter.
+
+---
+
 ## API Endpoints
 
-### 1. Get Village Map
+### 1. Get Village Map (with Grid Layout)
 
-Fetch the current village map for rendering.
+Fetch the current village map with all registered courses and grid layout metadata.
 
 ```
 GET /api/maps/village
@@ -112,12 +177,21 @@ GET /api/maps/village
 {
   "ok": true,
   "data": {
-    "map": { /* TmjMap — full Tiled JSON */ },
+    "map": { /* TmjMap — full Tiled JSON, dimensions based on plot grid */ },
+    "grid": {
+      "cols": 3,           // number of plot columns
+      "rows": 2,           // number of plot rows
+      "plotWidth": 18,     // tiles per plot (width)
+      "plotHeight": 14,    // tiles per plot (height)
+      "mapWidth": 54,      // total map width in tiles (cols * plotWidth)
+      "mapHeight": 28      // total map height in tiles (rows * plotHeight)
+    },
     "courses": [
       {
         "paperId": "bitdance-2602",
         "label": "BitDance",
-        "entrance": { "x": 10, "y": 6, "width": 4, "height": 3 },
+        "entrance": { "x": 7, "y": 4, "width": 4, "height": 3 },
+        "plotPosition": { "col": 0, "row": 0 },
         "color": "#8B4513",
         "status": "ready"     // "ready" | "building" | "failed"
       }
@@ -127,8 +201,9 @@ GET /api/maps/village
 ```
 
 **Frontend Behavior**:
-- Calls this on village page load
+- Calls this on village page load (or uses local `generateVillageTmj()` when backend unavailable)
 - Parses the TMJ map via `parseTmjMap()` and renders it on canvas
+- Map dimensions are dynamic — NEVER assume a fixed width/height
 - Uses `courses[]` to render dungeon entrance buildings and enable player interaction
 
 ---
@@ -149,7 +224,7 @@ Content-Type: application/json
   "options": {
     "title": "BitDance",               // optional — override auto-detected title
     "maxStages": 7,                     // optional — limit stage count (default: 5-7)
-    "placement": { "x": 24, "y": 6 }   // optional — preferred entrance position on map
+    "plotPosition": { "col": 2, "row": 0 }  // optional — preferred plot grid position
   }
 }
 ```
@@ -195,9 +270,18 @@ GET /api/maps/courses/:courseId
     "progress": 100,                     // 0-100 build progress percentage
     "paperId": "bitdance-2602",
     "title": "BitDance: Scaling Autoregressive Generative Models",
+    "description": "BitDance is a scalable autoregressive image generator...",
     "totalStages": 5,
     "githubUrl": "https://github.com/shallowdream204/BitDance",
-    "entrance": { "x": 10, "y": 6, "width": 4, "height": 3 },
+    "entrance": { "x": 7, "y": 4, "width": 4, "height": 3 },
+    "plotPosition": { "col": 0, "row": 0 },
+    "stages": [
+      { "stageNumber": 1, "title": "Introduction & Motivation", "conceptCount": 2 },
+      { "stageNumber": 2, "title": "Binary Visual Tokens", "conceptCount": 3 },
+      { "stageNumber": 3, "title": "Architecture Deep Dive", "conceptCount": 2 },
+      { "stageNumber": 4, "title": "Training Pipeline", "conceptCount": 2 },
+      { "stageNumber": 5, "title": "Evaluation & Results", "conceptCount": 2 }
+    ],
     "map": { /* updated TmjMap including the new dungeon — only present when status=ready */ }
   }
 }
@@ -277,6 +361,230 @@ GET /api/maps/courses/:courseId/stages/:stageNumber
 
 ---
 
+### 6. Get Course Detail (Full Course Info)
+
+Fetch full course information including all stages summary. Used when entering a course or viewing course detail.
+
+```
+GET /api/maps/courses/:courseId/info
+```
+
+**Response** `200 OK`
+```jsonc
+{
+  "ok": true,
+  "data": {
+    "courseId": "bitdance-2602",
+    "paperId": "bitdance-2602",
+    "title": "BitDance: Scaling Autoregressive Generative Models with Binary Tokens",
+    "description": "BitDance is a scalable autoregressive image generator...",
+    "authors": [
+      { "id": "1", "name": "Xuefeng Hu", "avatarUrl": null }
+    ],
+    "publishedAt": "2026-02-15",
+    "arxivUrl": "https://arxiv.org/abs/2602.14041",
+    "githubUrl": "https://github.com/shallowdream204/BitDance",
+    "githubStars": 109,
+    "organization": { "name": "ByteDance", "logoUrl": "/orgs/bytedance.png" },
+    "totalStages": 5,
+    "plotPosition": { "col": 0, "row": 0 },
+    "entrance": { "x": 7, "y": 4, "width": 4, "height": 3 },
+    "color": "#8B4513",
+    "stages": [
+      {
+        "stageNumber": 1,
+        "title": "Introduction & Motivation",
+        "conceptCount": 2,
+        "hasQuiz": true,
+        "roomWidth": 20,
+        "roomHeight": 15
+      },
+      {
+        "stageNumber": 2,
+        "title": "Binary Visual Tokens",
+        "conceptCount": 3,
+        "hasQuiz": true,
+        "roomWidth": 20,
+        "roomHeight": 15
+      }
+      // ... remaining stages
+    ],
+    "progress": {                          // null if user not enrolled
+      "isEnrolled": true,
+      "currentStage": 2,
+      "completedStages": [1],
+      "totalPaid": "0.002",
+      "enrolledAt": "2026-02-18T10:30:00Z"
+    }
+  }
+}
+```
+
+**Error Responses**
+
+| Status | Condition |
+|--------|-----------|
+| `404` | Course not found |
+
+---
+
+### 7. Get Stage Detail (Dungeon Interior + Content)
+
+Fetch complete stage information including room map, concepts, and quiz. Called when the player enters a stage within a course.
+
+```
+GET /api/maps/courses/:courseId/stages/:stageNumber
+```
+
+**Response** `200 OK`
+```jsonc
+{
+  "ok": true,
+  "data": {
+    "map": { /* TmjMap for the stage room (typically 20x15 tiles) */ },
+    "stage": {
+      "stageNumber": 1,
+      "title": "Introduction & Motivation",
+      "roomWidth": 20,
+      "roomHeight": 15,
+      "concepts": [
+        {
+          "id": "concept-1",
+          "title": "Binary Visual Tokens",
+          "content": "Detailed explanation of the concept...",
+          "position": { "x": 5, "y": 3 },
+          "type": "text"                  // "text" | "code" | "diagram" | "interactive"
+        },
+        {
+          "id": "concept-2",
+          "title": "Autoregressive Generation",
+          "content": "How the model generates images token by token...",
+          "position": { "x": 12, "y": 8 },
+          "type": "text"
+        }
+      ],
+      "quiz": {
+        "id": "quiz-1",
+        "question": "What is the main advantage of binary tokens?",
+        "type": "multiple-choice",        // "multiple-choice" | "code-challenge" | "free-response"
+        "options": ["Speed", "Quality", "Both", "Neither"],
+        "correctAnswer": "Both",
+        "position": { "x": 18, "y": 7 }  // quiz gate position in stage room
+      },
+      "doorPosition": { "x": 18, "y": 7 },
+      "spawnPosition": { "x": 1, "y": 7 },
+      "nextStage": 2,                    // null if last stage
+      "previousStage": null              // null if first stage
+    },
+    "completion": {                       // null if stage not completed yet
+      "completedAt": "2026-02-18T11:15:00Z",
+      "score": 85,
+      "attestationHash": "0xabc...",
+      "txHash": "0xdef..."
+    }
+  }
+}
+```
+
+**Error Responses**
+
+| Status | Condition |
+|--------|-----------|
+| `404` | Course or stage not found |
+| `403` | Stage locked (previous stage not completed) |
+
+---
+
+### 8. List All Courses (Catalog)
+
+Fetch all published courses available on the village map. Used for the explore/catalog page.
+
+```
+GET /api/maps/courses?status=ready&limit=20&offset=0
+```
+
+**Query Parameters**
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| `status` | `ready` \| `building` \| `all` | `ready` | Filter by course status |
+| `limit` | number | `20` | Pagination limit |
+| `offset` | number | `0` | Pagination offset |
+
+**Response** `200 OK`
+```jsonc
+{
+  "ok": true,
+  "data": {
+    "courses": [
+      {
+        "courseId": "bitdance-2602",
+        "paperId": "bitdance-2602",
+        "title": "BitDance: Scaling Autoregressive Generative Models",
+        "description": "BitDance is a scalable autoregressive image generator...",
+        "totalStages": 5,
+        "plotPosition": { "col": 0, "row": 0 },
+        "entrance": { "x": 7, "y": 4, "width": 4, "height": 3 },
+        "color": "#8B4513",
+        "status": "ready",
+        "githubUrl": "https://github.com/shallowdream204/BitDance",
+        "createdAt": "2026-02-15T08:00:00Z"
+      }
+    ],
+    "grid": {
+      "cols": 3,
+      "rows": 2,
+      "plotWidth": 18,
+      "plotHeight": 14,
+      "mapWidth": 54,
+      "mapHeight": 28
+    },
+    "total": 6,
+    "hasMore": false
+  }
+}
+```
+
+---
+
+### 9. Get Course Progress (User-specific)
+
+Fetch the current user's progress across all enrolled courses.
+
+```
+GET /api/maps/courses/progress
+Authorization: Bearer <token>
+```
+
+**Response** `200 OK`
+```jsonc
+{
+  "ok": true,
+  "data": {
+    "enrollments": [
+      {
+        "courseId": "bitdance-2602",
+        "enrolledAt": "2026-02-18T10:30:00Z",
+        "currentStage": 2,
+        "totalStages": 5,
+        "completedStages": [
+          {
+            "stageNumber": 1,
+            "score": 85,
+            "completedAt": "2026-02-18T11:15:00Z",
+            "attestationHash": "0xabc...",
+            "txHash": "0xdef..."
+          }
+        ],
+        "totalPaid": "0.002 KITE"
+      }
+    ]
+  }
+}
+```
+
+---
+
 ## Frontend Architecture Reference
 
 For context on how the frontend consumes this API:
@@ -291,6 +599,21 @@ export interface MapLoaderAdapter {
 
 Currently uses `LocalMapLoader` (fetches from `/maps/*.tmj`). The backend integration will replace this with a `BackendMapLoader` that calls the API endpoints above.
 
+### Village Map Generator (`src/lib/tmj/village-generator.ts`)
+
+Generates village TMJ maps dynamically from the course list using the plot grid system. When the backend API is unavailable, the frontend uses this generator locally. Key exports:
+
+```typescript
+computeGridLayout(courseCount: number): GridLayout
+assignCoursesToGrid(courses: CourseInput[]): { layout, assignments }
+generateVillageTmj(layout, assignments): TmjMap
+generateCourseLocations(courses, assignments): CourseLocation[]
+```
+
+### useVillageMap Hook (`src/hooks/useVillageMap.ts`)
+
+React hook that generates `ParsedMap` from `courseLocations` using the village generator. Returns `{ mapData, mapDimensions, gridLayout }`. Memoized — only regenerates when courses change.
+
 ### TMJ Type Definitions (`src/types/tmj.ts`)
 
 Full TypeScript types for the raw TMJ format and parsed output. The backend's TMJ output MUST conform to the `TmjMap` interface.
@@ -299,13 +622,9 @@ Full TypeScript types for the raw TMJ format and parsed output. The backend's TM
 
 Color-based tile renderer. Reads `color` property from tileset tile definitions and fills rectangles. No image/sprite rendering yet.
 
-### useMapLoader Hook (`src/hooks/useMapLoader.ts`)
-
-React hook that loads and parses a map by ID. Returns `ParsedMap` with indexed layer access (`layersByName`, `objectsByType`).
-
 ### VillageCanvas (`src/components/village/VillageCanvas.tsx`)
 
-Main rendering component. Uses `useMapLoader('village')` for the TMJ map and reads `courseLocations` from `useVillageStore` for dungeon entrances. Supports both TMJ-based rendering and procedural fallback.
+Main rendering component. Uses `useVillageMap(courseLocations)` for dynamically generated TMJ map. Map dimensions are always dynamic (never hardcoded). Supports both TMJ-based rendering and procedural fallback.
 
 ---
 
@@ -560,7 +879,7 @@ interface Paper {
 
 ## Constraints & Assumptions
 
-1. **Map size**: Village map is currently 60x40 tiles. The backend MAY expand this when placing new dungeons, but should communicate the new dimensions in the TMJ `width`/`height` fields.
+1. **Map size**: Village map size is dynamic, computed as cols × 18 by rows × 14 tiles based on course count. The frontend generates the TMJ at runtime. The backend, when returning maps, MUST set TMJ width/height fields to match.
 
 2. **Tile size**: Fixed at 16x16 pixels in the TMJ. The frontend renders at a configurable display tile size (currently 40px).
 

@@ -3,14 +3,14 @@
 import { useEffect, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useVillageStore } from '@/stores/useVillageStore';
-import { TILE_SIZE, VILLAGE_MAP_WIDTH, VILLAGE_MAP_HEIGHT, PLAYER_COLOR, FRIEND_COLORS } from '@/constants/game';
-import { MOCK_PAPERS } from '@/constants/mock-papers';
+import { TILE_SIZE, PLAYER_COLOR, FRIEND_COLORS } from '@/constants/game';
 import { useLocationSync } from '@/hooks/useLocationSync';
-import { useMapLoader } from '@/hooks/useMapLoader';
+import { useVillageMap } from '@/hooks/useVillageMap';
 import { trackEvent } from '@/lib/ain/event-tracker';
 import { renderTileLayer, type Viewport } from '@/lib/tmj/renderer';
 import { usePurchaseStore } from '@/stores/usePurchaseStore';
 import { papersAdapter } from '@/lib/adapters/papers';
+import { PLOT_WIDTH, PLOT_HEIGHT } from '@/lib/tmj/village-generator';
 
 interface CourseEntrance {
   paperId: string;
@@ -22,53 +22,43 @@ interface CourseEntrance {
   color: string;
 }
 
-const COURSE_COLORS = ['#8B4513', '#4A5568', '#2D3748', '#553C9A', '#2B6CB0', '#276749'];
-
-/** Fallback course entrances when no blockchain data is available */
-function getDefaultEntrances(): CourseEntrance[] {
-  return MOCK_PAPERS.slice(0, 6).map((paper, i) => ({
-    paperId: paper.id,
-    label: paper.title.split(':')[0].trim(),
-    x: 8 + (i % 3) * 16,
-    y: 6 + Math.floor(i / 3) * 14,
-    width: 4,
-    height: 3,
-    color: COURSE_COLORS[i],
-  }));
-}
-
 export function VillageCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const router = useRouter();
-  const { playerPosition, playerDirection, setPlayerPosition, setPlayerDirection, friends, courseLocations } =
+  const { playerPosition, playerDirection, setPlayerPosition, setPlayerDirection, friends, courseLocations, setMapDimensions } =
     useVillageStore();
   const { getAccessStatus, setPurchaseModal } = usePurchaseStore();
 
   // Sync positions with AIN blockchain
   useLocationSync();
 
-  // Load TMJ map data (falls back to procedural rendering if unavailable)
-  const { mapData } = useMapLoader('village');
+  // Generate village TMJ from course locations using plot grid system
+  const { mapData, mapDimensions } = useVillageMap(courseLocations);
 
-  // Build course entrances from blockchain-backed store or fallback to defaults
+  // Update store with current map dimensions
+  useEffect(() => {
+    setMapDimensions(mapDimensions);
+  }, [mapDimensions, setMapDimensions]);
+
+  // Build course entrances from store
   const courseEntrances: CourseEntrance[] = useMemo(() => {
-    if (courseLocations.length > 0) {
-      return courseLocations.map((cl) => ({
-        paperId: cl.paperId,
-        label: cl.label,
-        x: cl.x,
-        y: cl.y,
-        width: cl.width,
-        height: cl.height,
-        color: cl.color,
-      }));
-    }
-    return getDefaultEntrances();
+    return courseLocations.map((cl) => ({
+      paperId: cl.paperId,
+      label: cl.label,
+      x: cl.x,
+      y: cl.y,
+      width: cl.width,
+      height: cl.height,
+      color: cl.color,
+    }));
   }, [courseLocations]);
+
+  const mapW = mapData?.width ?? PLOT_WIDTH;
+  const mapH = mapData?.height ?? PLOT_HEIGHT;
 
   const isWalkable = useCallback(
     (x: number, y: number) => {
-      if (x < 0 || y < 0 || x >= VILLAGE_MAP_WIDTH || y >= VILLAGE_MAP_HEIGHT) return false;
+      if (x < 0 || y < 0 || x >= mapW || y >= mapH) return false;
       for (const d of courseEntrances) {
         if (x >= d.x && x < d.x + d.width && y >= d.y && y < d.y + d.height) {
           const entranceX = d.x + Math.floor(d.width / 2);
@@ -79,7 +69,7 @@ export function VillageCanvas() {
       }
       return true;
     },
-    [courseEntrances]
+    [courseEntrances, mapW, mapH]
   );
 
   const checkCourseEntry = useCallback(
@@ -204,7 +194,7 @@ export function VillageCanvas() {
         for (let ty = 0; ty < tilesY; ty++) {
           const worldX = offsetX + tx;
           const worldY = offsetY + ty;
-          if (worldX < 0 || worldY < 0 || worldX >= VILLAGE_MAP_WIDTH || worldY >= VILLAGE_MAP_HEIGHT)
+          if (worldX < 0 || worldY < 0 || worldX >= mapW || worldY >= mapH)
             continue;
 
           const screenX = tx * TILE_SIZE;
@@ -309,7 +299,7 @@ export function VillageCanvas() {
         playerScreenY + TILE_SIZE * 1.2,
       );
     }
-  }, [playerPosition, playerDirection, friends, courseEntrances, checkCourseEntry, mapData]);
+  }, [playerPosition, playerDirection, friends, courseEntrances, checkCourseEntry, mapData, mapW, mapH]);
 
   return (
     <canvas

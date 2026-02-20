@@ -1,8 +1,17 @@
 export const TILE_SIZE = 40;
-export const VILLAGE_MAP_WIDTH = 60;
-export const VILLAGE_MAP_HEIGHT = 40;
 export const VIEWPORT_TILES_X = 16;
 export const VIEWPORT_TILES_Y = 12;
+
+// Plot grid constants (re-exported from village-generator for convenience)
+export {
+  PLOT_WIDTH,
+  PLOT_HEIGHT,
+  PLOT_INNER_WIDTH,
+  PLOT_INNER_HEIGHT,
+  PLOT_BORDER,
+  BUILDING_WIDTH,
+  BUILDING_HEIGHT,
+} from '@/lib/tmj/village-generator';
 export const PLAYER_SPEED = 1;
 export const MIN_MOVE_INTERVAL = 150;
 

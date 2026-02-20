@@ -9,22 +9,21 @@ import { ainAdapter } from '@/lib/adapters/ain-blockchain';
 import { trackEvent } from '@/lib/ain/event-tracker';
 import { MOCK_PAPERS } from '@/constants/mock-papers';
 import type { CourseLocation } from '@/lib/ain/location-types';
+import { assignCoursesToGrid, generateCourseLocations } from '@/lib/tmj/village-generator';
 
 const HEARTBEAT_MS = 300_000; // 5 minutes
 const COURSE_COLORS = ['#8B4513', '#4A5568', '#2D3748', '#553C9A', '#2B6CB0', '#276749'];
 
-/** Generate default course entrance positions (3-column grid) matching the old hardcoded layout */
+/** Generate default course entrance positions using the plot grid system */
 function generateDefaultCourseLocations(): CourseLocation[] {
-  return MOCK_PAPERS.slice(0, 6).map((paper, i) => ({
+  const papers = MOCK_PAPERS.slice(0, 6);
+  const coursesInput = papers.map((paper, i) => ({
     paperId: paper.id,
     label: paper.title.split(':')[0].trim(),
-    x: 8 + (i % 3) * 16,
-    y: 6 + Math.floor(i / 3) * 14,
-    width: 4,
-    height: 3,
     color: COURSE_COLORS[i],
-    registeredAt: Date.now(),
   }));
+  const { assignments } = assignCoursesToGrid(coursesInput);
+  return generateCourseLocations(coursesInput, assignments);
 }
 
 /**
