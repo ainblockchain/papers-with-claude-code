@@ -1,5 +1,7 @@
 # Frontend
 
+> **Live**: [paperswithclaudecode.com](http://paperswithclaudecode.com/)
+
 A Next.js-based web application for paper exploration and knowledge graph learning platform.
 
 ## Tech Stack

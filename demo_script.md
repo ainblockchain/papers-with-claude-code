@@ -1,5 +1,6 @@
 # Papers with Claude Code — Script (Pure Narration)
 
+> **Live**: [paperswithclaudecode.com](http://paperswithclaudecode.com/)
 > Copy-paste ready. No stage directions — just the words you say.
 > For screen actions and timing, see [demo_screenplay.md](demo_screenplay.md).
 
