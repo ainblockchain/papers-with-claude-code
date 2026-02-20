@@ -4,7 +4,7 @@
 //
 // 영속화 전략 (hostPath + subPath):
 //   /data/claude-users/{userId}/dot-claude → /home/claude/.claude (세션 데이터)
-//   /data/claude-users/{userId}/papers     → /home/claude/papers  (클론된 레포)
+//   /data/claude-users/{userId}/papers     → /home/claude/papers  (CLAUDE.md + 학습 데이터)
 // subPath 마운트라 이미지의 .bashrc, CLAUDE.md 등은 보존됨.
 //
 // 주의 1: .claude/settings.json이 이미지에 baked-in 되어 있으나
@@ -124,7 +124,7 @@ export function buildSandboxPodSpec(
               subPath: 'dot-claude',
             },
             {
-              // git clone된 레포 영속화
+              // CLAUDE.md + 학습 세션 데이터 영속화
               name: 'user-data',
               mountPath: '/home/claude/papers',
               subPath: 'papers',

@@ -3,468 +3,636 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Claude Code Terminal</title>
-
-  <!-- xterm.js CSS -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5/css/xterm.css" />
-
+  <title>Papers with Claude Code — Test Console</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css" />
   <style>
-    /* 전체 페이지 리셋 및 다크 테마 기본 스타일 */
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
-      background: #1a1a2e;
-      color: #e0e0e0;
+      background: #0d1117;
+      color: #c9d1d9;
       font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    /* 상단 바 스타일 */
-    .top-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 12px 20px;
-      background: #16213e;
-      border-bottom: 1px solid #0f3460;
-      flex-shrink: 0;
-    }
-
-    .top-bar-left {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-
-    .top-bar-title {
-      font-size: 18px;
-      font-weight: 600;
-      color: #e0e0e0;
-      letter-spacing: 0.5px;
-    }
-
-    /* 세션 상태 표시 영역 */
-    .session-status {
       font-size: 13px;
-      color: #8b949e;
-      padding: 4px 12px;
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 4px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 16px;
     }
 
-    .session-status.connected {
+    h1 {
+      font-size: 18px;
       color: #58a6ff;
-      border-color: rgba(88, 166, 255, 0.3);
-      background: rgba(88, 166, 255, 0.1);
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #21262d;
     }
 
-    .session-status.error {
-      color: #f85149;
-      border-color: rgba(248, 81, 73, 0.3);
-      background: rgba(248, 81, 73, 0.1);
+    h2 {
+      font-size: 14px;
+      color: #8b949e;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
     }
 
-    /* 세션 제어 버튼 영역 */
-    .top-bar-right {
-      display: flex;
-      align-items: center;
-      gap: 10px;
+    .layout {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 16px;
+      height: calc(100vh - 80px);
     }
+
+    .sidebar { display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+
+    .panel {
+      background: #161b22;
+      border: 1px solid #21262d;
+      border-radius: 6px;
+      padding: 12px;
+    }
+
+    label {
+      display: block;
+      font-size: 11px;
+      color: #8b949e;
+      margin-bottom: 4px;
+      margin-top: 8px;
+    }
+    label:first-child { margin-top: 0; }
+
+    input[type="text"], input[type="number"] {
+      width: 100%;
+      padding: 6px 8px;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 4px;
+      color: #c9d1d9;
+      font-family: inherit;
+      font-size: 13px;
+    }
+    input:focus { outline: none; border-color: #58a6ff; }
 
     button {
-      padding: 8px 16px;
+      padding: 6px 12px;
       border: none;
-      border-radius: 6px;
-      font-size: 13px;
+      border-radius: 4px;
+      font-size: 12px;
       font-weight: 500;
       cursor: pointer;
-      transition: all 0.2s ease;
       font-family: inherit;
+      transition: opacity 0.15s;
+    }
+    button:hover { opacity: 0.85; }
+    button:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    .btn-primary { background: #238636; color: #fff; }
+    .btn-danger { background: #da3633; color: #fff; }
+    .btn-info { background: #1f6feb; color: #fff; }
+    .btn-secondary { background: #30363d; color: #c9d1d9; }
+
+    .btn-row { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+
+    .session-info {
+      font-size: 11px;
+      color: #8b949e;
+      margin-top: 8px;
+      line-height: 1.6;
+      word-break: break-all;
+    }
+    .session-info strong { color: #c9d1d9; }
+
+    .note {
+      font-size: 11px;
+      color: #d29922;
+      margin-top: 6px;
+      padding: 4px 8px;
+      background: rgba(210, 153, 34, 0.1);
+      border-radius: 3px;
+      border-left: 2px solid #d29922;
     }
 
-    button:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
+    .main-area { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+
+    .terminal-panel { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+    .terminal-header {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;
     }
 
-    /* 새 세션 버튼 (초록색) */
-    .btn-new-session {
-      background: #238636;
-      color: #ffffff;
+    .ws-status {
+      font-size: 11px; padding: 2px 8px; border-radius: 3px;
+      background: #21262d; color: #8b949e;
     }
+    .ws-status.connected { background: rgba(35, 134, 54, 0.2); color: #3fb950; }
+    .ws-status.error { background: rgba(218, 54, 51, 0.2); color: #f85149; }
 
-    .btn-new-session:hover:not(:disabled) {
-      background: #2ea043;
-    }
-
-    /* 세션 종료 버튼 (빨간색) */
-    .btn-end-session {
-      background: #da3633;
-      color: #ffffff;
-    }
-
-    .btn-end-session:hover:not(:disabled) {
-      background: #f85149;
-    }
-
-    /* 터미널 컨테이너 — 남은 높이 전부 차지 */
-    .terminal-container {
-      flex: 1;
-      padding: 8px;
-      background: #0d1117;
-      overflow: hidden;
-    }
-
-    /* xterm.js 터미널이 컨테이너를 꽉 채우도록 */
     #terminal {
-      width: 100%;
-      height: 100%;
+      flex: 1; min-height: 200px;
+      border: 1px solid #21262d; border-radius: 4px; overflow: hidden;
     }
+    #terminal .xterm { height: 100%; }
+
+    .events-panel { height: 160px; display: flex; flex-direction: column; min-height: 0; }
+    #events {
+      flex: 1; background: #010409; border: 1px solid #21262d; border-radius: 4px;
+      padding: 8px; overflow-y: auto; font-size: 12px; line-height: 1.5; min-height: 0;
+    }
+
+    .event-item { padding: 2px 0; border-bottom: 1px solid #161b22; }
+    .event-time { color: #484f58; }
+    .event-type { font-weight: bold; }
+    .event-type.stage_complete { color: #3fb950; }
+    .event-type.stage_unlocked { color: #f0883e; }
+    .event-type.course_complete { color: #d2a8ff; }
+    .event-type.auto_start { color: #d29922; }
+    .event-type.pong { color: #484f58; }
+    .event-type.error { color: #f85149; }
+
+    #responseOutput {
+      background: #010409; border: 1px solid #21262d; border-radius: 4px;
+      padding: 8px; max-height: 200px; overflow-y: auto; font-size: 12px;
+      white-space: pre-wrap; word-break: break-all; margin-top: 8px; display: none;
+    }
+
+    /* ─── 코스 카탈로그 ─── */
+    .course-list { max-height: 280px; overflow-y: auto; }
+    .course-card {
+      padding: 8px 10px;
+      border: 1px solid #21262d;
+      border-radius: 4px;
+      margin-bottom: 6px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .course-card:hover { border-color: #58a6ff; background: rgba(88, 166, 255, 0.05); }
+    .course-card.selected { border-color: #3fb950; background: rgba(63, 185, 80, 0.08); }
+    .course-paper { font-size: 12px; color: #58a6ff; font-weight: 600; }
+    .course-variant { font-size: 11px; color: #8b949e; margin-top: 2px; }
+    .course-loading { font-size: 11px; color: #484f58; padding: 8px; text-align: center; }
   </style>
 </head>
 <body>
-  <!-- 상단 바: 타이틀 + 세션 상태 + 버튼 -->
-  <div class="top-bar">
-    <div class="top-bar-left">
-      <span class="top-bar-title">Claude Code Terminal</span>
-      <span id="sessionStatus" class="session-status">연결 대기 중</span>
+  <h1>Papers with Claude Code — Test Console</h1>
+
+  <div class="layout">
+    <div class="sidebar">
+
+      <!-- 코스 카탈로그 -->
+      <div class="panel">
+        <h2>Course Catalog</h2>
+        <div id="courseList" class="course-list">
+          <div class="course-loading">Loading courses from GitHub...</div>
+        </div>
+        <div class="note" style="margin-top:8px">
+          Source: <a href="https://github.com/ainblockchain/awesome-papers-with-claude-code" target="_blank" style="color:#58a6ff">ainblockchain/awesome-papers-with-claude-code</a>
+        </div>
+      </div>
+
+      <!-- 세션 생성 폼 -->
+      <div class="panel">
+        <h2>Create Session</h2>
+        <label for="userId">userId <span style="color:#f85149">*</span></label>
+        <input type="text" id="userId" placeholder="e.g. user-1 or 0xABC..." />
+
+        <label for="claudeMdUrl">claudeMdUrl</label>
+        <input type="text" id="claudeMdUrl" placeholder="Select a course above or paste URL" />
+
+        <label for="resumeStage">resumeStage</label>
+        <input type="number" id="resumeStage" min="1" placeholder="(optional)" />
+
+        <div class="btn-row">
+          <button id="btnCreate" class="btn-primary" onclick="createSession()">Create Session</button>
+        </div>
+      </div>
+
+      <!-- 세션 액션 -->
+      <div class="panel">
+        <h2>Session Actions</h2>
+        <div id="sessionInfo" class="session-info">No active session</div>
+        <div class="btn-row">
+          <button id="btnDelete" class="btn-danger" disabled onclick="deleteSession()">Delete Session</button>
+          <button id="btnStages" class="btn-info" disabled onclick="getStages()">Get Stages</button>
+          <button id="btnProgress" class="btn-info" disabled onclick="getProgress()">Get Progress</button>
+        </div>
+        <div class="note">Delete removes session only — Pod is kept alive for reuse.</div>
+        <div id="responseOutput"></div>
+      </div>
+
+      <!-- 상태 패널 -->
+      <div class="panel">
+        <h2>Status</h2>
+        <div class="btn-row">
+          <button class="btn-secondary" onclick="healthCheck()">Health Check</button>
+          <button class="btn-secondary" onclick="listSessions()">List Sessions</button>
+        </div>
+        <div id="statusOutput" class="session-info" style="margin-top:8px"></div>
+      </div>
     </div>
-    <div class="top-bar-right">
-      <button id="btnNewSession" class="btn-new-session">New Session</button>
-      <button id="btnEndSession" class="btn-end-session" disabled>End Session</button>
+
+    <div class="main-area">
+      <div class="terminal-panel panel">
+        <div class="terminal-header">
+          <h2 style="margin:0">Terminal</h2>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span id="wsStatus" class="ws-status">disconnected</span>
+            <button id="btnConnect" class="btn-primary" disabled onclick="connectWs()">Connect</button>
+            <button id="btnDisconnect" class="btn-danger" disabled onclick="disconnectWs()">Disconnect</button>
+          </div>
+        </div>
+        <div id="terminal"></div>
+      </div>
+
+      <div class="events-panel panel">
+        <div class="terminal-header">
+          <h2 style="margin:0">Events</h2>
+          <button class="btn-secondary" onclick="clearEvents()">Clear</button>
+        </div>
+        <div id="events"></div>
+      </div>
     </div>
   </div>
 
-  <!-- 터미널 출력 영역 -->
-  <div class="terminal-container">
-    <div id="terminal"></div>
-  </div>
-
-  <!-- xterm.js 및 애드온 CDN 로드 -->
-  <script src="https://cdn.jsdelivr.net/npm/xterm@5/lib/xterm.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10/lib/addon-fit.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-web-links@0.11/lib/addon-web-links.min.js"></script>
-
+  <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.min.js"></script>
   <script>
-    // ──────────────────────────────────────────────
-    // 백엔드 서버 주소 (k8s-node NodePort)
-    // file:// 에서 열어도 동작하도록 절대경로 사용
-    // ──────────────────────────────────────────────
-    const API_BASE = 'http://192.168.1.100:31000';
+    // ─── 설정 ─────────────────────────────────────
+    const BASE_URL = window.location.protocol === 'file:'
+      ? 'http://101.202.37.120:31000'
+      : window.location.origin;
 
-    // ──────────────────────────────────────────────
-    // DOM 요소 참조
-    // ──────────────────────────────────────────────
-    const btnNewSession = document.getElementById('btnNewSession');
-    const btnEndSession = document.getElementById('btnEndSession');
-    const sessionStatusEl = document.getElementById('sessionStatus');
+    const CATALOG_REPO = 'ainblockchain/awesome-papers-with-claude-code';
+    const CATALOG_BRANCH = 'main';
 
-    // ──────────────────────────────────────────────
-    // 세션 상태 관리용 변수
-    // ──────────────────────────────────────────────
-    let currentSessionId = null; // 현재 활성 세션 ID
-    let ws = null;               // WebSocket 인스턴스
-    let onDataDisposable = null; // xterm onData 리스너 해제용
+    // ─── 상태 ─────────────────────────────────────
+    let session = null;
+    let ws = null;
+    let heartbeatTimer = null;
+    let term = null;
+    let fitAddon = null;
+    let selectedCourse = null; // { paper, variant, claudeMdUrl }
 
-    // ──────────────────────────────────────────────
-    // xterm.js 터미널 초기화
-    // GitHub 다크 스타일 테마 적용
-    // ──────────────────────────────────────────────
-    const term = new Terminal({
-      theme: {
-        background: '#0d1117',
-        foreground: '#c9d1d9',
-        cursor: '#58a6ff',
-        cursorAccent: '#0d1117',
-        selectionBackground: '#264f78',
-        black: '#484f58',
-        red: '#ff7b72',
-        green: '#3fb950',
-        yellow: '#d29922',
-        blue: '#58a6ff',
-        magenta: '#bc8cff',
-        cyan: '#39c5cf',
-        white: '#b1bac4',
-        brightBlack: '#6e7681',
-        brightRed: '#ffa198',
-        brightGreen: '#56d364',
-        brightYellow: '#e3b341',
-        brightBlue: '#79c0ff',
-        brightMagenta: '#d2a8ff',
-        brightCyan: '#56d4dd',
-        brightWhite: '#f0f6fc',
-      },
-      fontFamily: 'Menlo, Monaco, Consolas, monospace',
-      fontSize: 14,
-      cursorBlink: true,
-      allowProposedApi: true,
-    });
+    const $ = (id) => document.getElementById(id);
 
-    // FitAddon: 터미널 크기를 컨테이너에 맞게 자동 조절
-    const fitAddon = new FitAddon.FitAddon();
-    term.loadAddon(fitAddon);
+    // ─── 코스 카탈로그 로드 ────────────────────────
+    async function loadCatalog() {
+      const listEl = $('courseList');
+      try {
+        const res = await fetch(`https://api.github.com/repos/${CATALOG_REPO}/git/trees/${CATALOG_BRANCH}?recursive=1`);
+        const data = await res.json();
 
-    // WebLinksAddon: 터미널 내 URL을 클릭 가능하게 처리
-    const webLinksAddon = new WebLinksAddon.WebLinksAddon();
-    term.loadAddon(webLinksAddon);
+        // CLAUDE.md가 있는 경로를 찾아 코스 목록 구성
+        const courses = data.tree
+          .filter(item => item.type === 'blob' && item.path.endsWith('/CLAUDE.md'))
+          .map(item => {
+            const parts = item.path.split('/');
+            parts.pop(); // CLAUDE.md 제거
+            const paper = parts[0] || '';
+            const variant = parts.slice(1).join('/') || '';
+            const rawUrl = `https://raw.githubusercontent.com/${CATALOG_REPO}/${CATALOG_BRANCH}/${item.path}`;
+            return { paper, variant, path: item.path, claudeMdUrl: rawUrl };
+          });
 
-    // 터미널을 DOM에 마운트
-    term.open(document.getElementById('terminal'));
-    fitAddon.fit();
+        if (courses.length === 0) {
+          listEl.innerHTML = '<div class="course-loading">No courses found</div>';
+          return;
+        }
 
-    // 초기 안내 메시지 출력
-    term.writeln('\x1b[1;34m╔══════════════════════════════════════════╗\x1b[0m');
-    term.writeln('\x1b[1;34m║\x1b[0m   \x1b[1;37mClaude Code Terminal\x1b[0m                  \x1b[1;34m║\x1b[0m');
-    term.writeln('\x1b[1;34m╚══════════════════════════════════════════╝\x1b[0m');
-    term.writeln('');
-    term.writeln('\x1b[90m"New Session" 버튼을 클릭하여 시작하세요.\x1b[0m');
-    term.writeln('');
+        // 논문별로 그룹화
+        const grouped = {};
+        for (const c of courses) {
+          if (!grouped[c.paper]) grouped[c.paper] = [];
+          grouped[c.paper].push(c);
+        }
 
-    // ──────────────────────────────────────────────
-    // 윈도우 리사이즈 시 터미널 크기 재조정
-    // ──────────────────────────────────────────────
-    window.addEventListener('resize', () => {
+        listEl.innerHTML = '';
+        for (const [paper, variants] of Object.entries(grouped)) {
+          for (const course of variants) {
+            const card = document.createElement('div');
+            card.className = 'course-card';
+            card.innerHTML = `
+              <div class="course-paper">${formatName(paper)}</div>
+              <div class="course-variant">${course.variant || 'default'}</div>
+            `;
+            card.onclick = () => selectCourse(course, card);
+            listEl.appendChild(card);
+          }
+        }
+      } catch (err) {
+        listEl.innerHTML = `<div class="course-loading" style="color:#f85149">Failed to load: ${err.message}</div>`;
+      }
+    }
+
+    /** 디렉토리명을 읽기 좋게 변환 */
+    function formatName(name) {
+      return name.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    }
+
+    /** 코스 선택 */
+    function selectCourse(course, cardEl) {
+      // 이전 선택 해제
+      document.querySelectorAll('.course-card.selected').forEach(el => el.classList.remove('selected'));
+      cardEl.classList.add('selected');
+      selectedCourse = course;
+      $('claudeMdUrl').value = course.claudeMdUrl;
+    }
+
+    // ─── xterm.js 초기화 ─────────────────────────
+    function initTerminal() {
+      if (term) return;
+      term = new Terminal({
+        cursorBlink: true,
+        fontFamily: "'Menlo', 'Monaco', 'Consolas', monospace",
+        fontSize: 14,
+        theme: {
+          background: '#010409',
+          foreground: '#c9d1d9',
+          cursor: '#58a6ff',
+          selectionBackground: '#264f78',
+        },
+      });
+      fitAddon = new FitAddon.FitAddon();
+      term.loadAddon(fitAddon);
+      term.open($('terminal'));
       fitAddon.fit();
 
-      // WebSocket이 열려 있으면 터미널 크기 변경을 서버에 전달
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        const dimensions = { cols: term.cols, rows: term.rows };
-        ws.send(JSON.stringify({ type: 'resize', ...dimensions }));
-      }
-    });
-
-    // ──────────────────────────────────────────────
-    // 세션 상태 표시 업데이트 함수
-    // ──────────────────────────────────────────────
-    function setStatus(text, type) {
-      sessionStatusEl.textContent = text;
-      sessionStatusEl.className = 'session-status';
-      if (type === 'connected') {
-        sessionStatusEl.classList.add('connected');
-      } else if (type === 'error') {
-        sessionStatusEl.classList.add('error');
-      }
-    }
-
-    // ──────────────────────────────────────────────
-    // 버튼 활성/비활성 상태 토글 함수
-    // ──────────────────────────────────────────────
-    function setSessionActive(active) {
-      btnNewSession.disabled = active;
-      btnEndSession.disabled = !active;
-    }
-
-    // ──────────────────────────────────────────────
-    // WebSocket URL 생성 헬퍼
-    // 현재 페이지의 호스트를 기반으로 ws:// 또는 wss:// 결정
-    // ──────────────────────────────────────────────
-    function getWebSocketUrl(sessionId) {
-      const wsBase = API_BASE.replace(/^http/, 'ws');
-      return `${wsBase}/ws?sessionId=${sessionId}`;
-    }
-
-    // ──────────────────────────────────────────────
-    // 새 세션 생성 및 WebSocket 연결
-    // ──────────────────────────────────────────────
-    async function createSession() {
-      try {
-        // 터미널 화면 초기화
-        term.clear();
-        setStatus('세션 생성 중...', 'default');
-        btnNewSession.disabled = true;
-
-        // 서버에 세션 생성 요청
-        const response = await fetch(`${API_BASE}/api/sessions`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-        });
-
-        if (!response.ok) {
-          throw new Error(`세션 생성 실패: ${response.status} ${response.statusText}`);
+      window.addEventListener('resize', () => {
+        if (fitAddon) fitAddon.fit();
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'resize', cols: term.cols, rows: term.rows }));
         }
+      });
 
-        const data = await response.json();
-        currentSessionId = data.sessionId;
-        const podName = data.podName || '(unknown)';
-
-        // 팟 생성 대기 상태 표시
-        setStatus(`Pod 생성 중... (${podName})`, 'default');
-        term.writeln(`\x1b[33m⏳ Pod를 생성하고 있습니다: ${podName}\x1b[0m`);
-        term.writeln('');
-
-        // WebSocket 연결 시작
-        connectWebSocket(currentSessionId);
-      } catch (err) {
-        // 세션 생성 실패 처리
-        setStatus('세션 생성 실패', 'error');
-        term.writeln(`\x1b[31m❌ 오류: ${err.message}\x1b[0m`);
-        term.writeln('\x1b[90m다시 시도하려면 "New Session" 버튼을 클릭하세요.\x1b[0m');
-        btnNewSession.disabled = false;
-      }
-    }
-
-    // ──────────────────────────────────────────────
-    // WebSocket 연결 및 터미널 I/O 브릿지
-    // ──────────────────────────────────────────────
-    function connectWebSocket(sessionId) {
-      // 이전 onData 리스너 해제 (핸들러 누적 방지)
-      if (onDataDisposable) {
-        onDataDisposable.dispose();
-        onDataDisposable = null;
-      }
-
-      const wsUrl = getWebSocketUrl(sessionId);
-      ws = new WebSocket(wsUrl);
-
-      // ping/pong 기반 heartbeat (30초 간격)
-      let heartbeatInterval = null;
-      let missedPongs = 0;
-      const MAX_MISSED_PONGS = 3;
-
-      function startHeartbeat() {
-        heartbeatInterval = setInterval(() => {
-          if (ws && ws.readyState === WebSocket.OPEN) {
-            // 브라우저 WebSocket은 ping을 직접 보낼 수 없으므로
-            // 앱 레벨 heartbeat 사용
-            ws.send(JSON.stringify({ type: 'ping' }));
-            missedPongs++;
-            if (missedPongs >= MAX_MISSED_PONGS) {
-              console.warn('[heartbeat] 서버 응답 없음, 연결 종료');
-              ws.close();
-            }
-          }
-        }, 30000);
-      }
-
-      function stopHeartbeat() {
-        if (heartbeatInterval) {
-          clearInterval(heartbeatInterval);
-          heartbeatInterval = null;
-        }
-      }
-
-      // WebSocket 연결 성공 시
-      ws.onopen = () => {
-        setStatus(`연결됨 (Session: ${sessionId.substring(0, 8)}...)`, 'connected');
-        setSessionActive(true);
-        startHeartbeat();
-
-        term.writeln('\x1b[32m✔ 연결 성공!\x1b[0m');
-        term.writeln('\x1b[90m──────────────────────────────────────────\x1b[0m');
-        term.writeln('');
-
-        // 연결 후 터미널 크기 정보를 서버에 전달
-        const dimensions = { cols: term.cols, rows: term.rows };
-        ws.send(JSON.stringify({ type: 'resize', ...dimensions }));
-      };
-
-      // 서버에서 데이터 수신 시 터미널에 출력
-      ws.onmessage = (event) => {
-        const data = event.data;
-
-        // pong 응답 처리
-        if (typeof data === 'string' && data.length < 50) {
-          try {
-            const msg = JSON.parse(data);
-            if (msg.type === 'pong') {
-              missedPongs = 0;
-              return;
-            }
-          } catch {}
-        }
-
-        term.write(data);
-      };
-
-      // WebSocket 연결 종료 시
-      ws.onclose = (event) => {
-        stopHeartbeat();
-        const reason = event.reason || '연결이 종료되었습니다';
-        setStatus('연결 끊김', 'error');
-        setSessionActive(false);
-        currentSessionId = null;
-
-        term.writeln('');
-        term.writeln(`\x1b[31m⚠ 연결 종료: ${reason}\x1b[0m`);
-        term.writeln('\x1b[90m새 세션을 시작하려면 "New Session" 버튼을 클릭하세요.\x1b[0m');
-      };
-
-      // WebSocket 오류 발생 시
-      ws.onerror = (error) => {
-        stopHeartbeat();
-        setStatus('연결 오류', 'error');
-        term.writeln('\x1b[31m❌ WebSocket 연결 오류가 발생했습니다.\x1b[0m');
-        console.error('WebSocket 오류:', error);
-      };
-
-      // 터미널 입력을 WebSocket으로 전송 (dispose 가능하게 저장)
-      onDataDisposable = term.onData((data) => {
+      term.onData((data) => {
         if (ws && ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify({ type: 'input', data }));
         }
       });
+
+      term.writeln('\x1b[90mReady. Select a course and create a session to begin.\x1b[0m');
     }
 
-    // ──────────────────────────────────────────────
-    // 세션 종료 처리
-    // WebSocket 닫고, 서버에 DELETE 요청, 터미널 초기화
-    // ──────────────────────────────────────────────
-    async function endSession() {
-      if (!currentSessionId) return;
+    // ─── 유틸리티 ─────────────────────────────────
+    function apiUrl(path) { return `${BASE_URL}${path}`; }
+    function wsUrl(sessionId) { return BASE_URL.replace(/^http/, 'ws') + `/ws?sessionId=${sessionId}`; }
+    function timeStr() { return new Date().toLocaleTimeString('ko-KR', { hour12: false }); }
 
-      const sessionId = currentSessionId;
+    function termLog(text) {
+      if (term) term.writeln(`\x1b[90m[${timeStr()}] ${text}\x1b[0m`);
+    }
 
-      try {
-        setStatus('세션 종료 중...', 'default');
-        btnEndSession.disabled = true;
+    function logEvent(type, detail) {
+      const el = $('events');
+      const item = document.createElement('div');
+      item.className = 'event-item';
+      item.innerHTML = `<span class="event-time">${timeStr()}</span> <span class="event-type ${type}">[${type}]</span> ${escapeHtml(detail || '')}`;
+      el.appendChild(item);
+      el.scrollTop = el.scrollHeight;
+    }
 
-        // onData 리스너 해제
-        if (onDataDisposable) {
-          onDataDisposable.dispose();
-          onDataDisposable = null;
-        }
+    function clearEvents() { $('events').innerHTML = ''; }
 
-        // WebSocket 연결 종료
-        if (ws) {
-          ws.close();
-          ws = null;
-        }
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
 
-        // 서버에 세션 삭제 요청
-        await fetch(`${API_BASE}/api/sessions/${sessionId}`, {
-          method: 'DELETE',
-        });
+    function showResponse(data) {
+      const el = $('responseOutput');
+      el.style.display = 'block';
+      el.textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+    }
 
-        // 상태 초기화
-        currentSessionId = null;
-        setStatus('세션 종료됨', 'default');
-        setSessionActive(false);
+    function showStatus(data) {
+      $('statusOutput').textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+    }
 
-        term.writeln('');
-        term.writeln('\x1b[33m세션이 종료되었습니다.\x1b[0m');
-        term.writeln('\x1b[90m새 세션을 시작하려면 "New Session" 버튼을 클릭하세요.\x1b[0m');
-      } catch (err) {
-        // 종료 요청 실패 시에도 로컬 상태는 정리
-        setStatus('세션 종료 실패', 'error');
-        term.writeln(`\x1b[31m❌ 세션 종료 오류: ${err.message}\x1b[0m`);
-        currentSessionId = null;
-        setSessionActive(false);
+    function updateUI() {
+      const hasSession = session !== null;
+      $('btnDelete').disabled = !hasSession;
+      $('btnStages').disabled = !hasSession;
+      $('btnProgress').disabled = !hasSession;
+      $('btnConnect').disabled = !hasSession || (ws && ws.readyState === WebSocket.OPEN);
+
+      if (hasSession) {
+        $('sessionInfo').innerHTML = [
+          `<strong>sessionId:</strong> ${session.sessionId}`,
+          `<strong>podName:</strong> ${session.podName || '—'}`,
+          `<strong>courseId:</strong> ${session.courseId || '—'}`,
+          `<strong>userId:</strong> ${session.userId || '—'}`,
+          `<strong>status:</strong> ${session.status || '—'}`,
+        ].join('<br>');
+      } else {
+        $('sessionInfo').textContent = 'No active session';
       }
     }
 
-    // ──────────────────────────────────────────────
-    // 버튼 이벤트 바인딩
-    // ──────────────────────────────────────────────
-    btnNewSession.addEventListener('click', createSession);
-    btnEndSession.addEventListener('click', endSession);
+    function setWsStatus(text, type) {
+      const el = $('wsStatus');
+      el.textContent = text;
+      el.className = 'ws-status' + (type ? ` ${type}` : '');
+    }
+
+    // ─── API 호출 ─────────────────────────────────
+
+    async function apiFetch(path, options = {}) {
+      const res = await fetch(apiUrl(path), {
+        headers: { 'Content-Type': 'application/json' },
+        ...options,
+      });
+      if (options.method === 'DELETE' && res.status === 204) return null;
+      const body = await res.json().catch(() => null);
+      if (!res.ok) {
+        const msg = (body && body.error) || `HTTP ${res.status}`;
+        throw new Error(msg);
+      }
+      return body;
+    }
+
+    async function createSession() {
+      const userId = $('userId').value.trim();
+      if (!userId) { alert('userId is required'); return; }
+
+      const payload = { userId };
+      const claudeMdUrl = $('claudeMdUrl').value.trim();
+      const resumeStage = $('resumeStage').value;
+      if (claudeMdUrl) payload.claudeMdUrl = claudeMdUrl;
+      if (resumeStage) payload.resumeStage = Number(resumeStage);
+
+      $('btnCreate').disabled = true;
+      try {
+        termLog(`Creating session for userId="${userId}"...`);
+        if (claudeMdUrl) termLog(`Course: ${claudeMdUrl}`);
+        const data = await apiFetch('/api/sessions', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+        session = {
+          sessionId: data.sessionId,
+          podName: data.podName,
+          courseId: data.courseId || null,
+          userId: data.userId || userId,
+          status: data.status,
+        };
+        termLog(`Session created: ${session.sessionId}`);
+        termLog(`Pod: ${session.podName} (reused: ${data.podReused})`);
+        if (session.courseId) termLog(`CourseId: ${session.courseId}`);
+        showResponse(data);
+        updateUI();
+      } catch (err) {
+        termLog(`ERROR: ${err.message}`);
+        showResponse(`Error: ${err.message}`);
+      } finally {
+        $('btnCreate').disabled = false;
+      }
+    }
+
+    async function deleteSession() {
+      if (!session) return;
+      try {
+        disconnectWs();
+        await apiFetch(`/api/sessions/${session.sessionId}`, { method: 'DELETE' });
+        termLog('Session deleted (Pod kept alive).');
+        showResponse('Session deleted successfully. Pod is still running.');
+        session = null;
+        updateUI();
+      } catch (err) {
+        termLog(`ERROR deleting session: ${err.message}`);
+        showResponse(`Error: ${err.message}`);
+      }
+    }
+
+    async function getStages() {
+      if (!session) return;
+      try {
+        const data = await apiFetch(`/api/sessions/${session.sessionId}/stages`);
+        showResponse(data);
+      } catch (err) {
+        showResponse(`Error: ${err.message}`);
+      }
+    }
+
+    async function getProgress() {
+      if (!session) return;
+      const userId = session.userId || $('userId').value.trim();
+      const courseId = session.courseId;
+      if (!userId) { showResponse('Error: userId required'); return; }
+      try {
+        const path = courseId
+          ? `/api/progress/${userId}/${courseId}`
+          : `/api/progress/${userId}`;
+        const data = await apiFetch(path);
+        showResponse(data);
+      } catch (err) {
+        showResponse(`Error: ${err.message}`);
+      }
+    }
+
+    async function healthCheck() {
+      try { showStatus(JSON.stringify(await apiFetch('/health'), null, 2)); }
+      catch (err) { showStatus(`Error: ${err.message}`); }
+    }
+
+    async function listSessions() {
+      try { showStatus(JSON.stringify(await apiFetch('/api/sessions'), null, 2)); }
+      catch (err) { showStatus(`Error: ${err.message}`); }
+    }
+
+    // ─── WebSocket ────────────────────────────────
+
+    function connectWs() {
+      if (!session) return;
+      if (ws && ws.readyState === WebSocket.OPEN) return;
+
+      const url = wsUrl(session.sessionId);
+      termLog(`Connecting: ${url}`);
+      setWsStatus('connecting...', '');
+
+      ws = new WebSocket(url);
+
+      ws.onopen = () => {
+        setWsStatus('connected', 'connected');
+        $('btnDisconnect').disabled = false;
+        $('btnConnect').disabled = true;
+        termLog('WebSocket connected.');
+        logEvent('connected', `sessionId=${session.sessionId}`);
+        startHeartbeat();
+        if (term) term.focus();
+        if (term) ws.send(JSON.stringify({ type: 'resize', cols: term.cols, rows: term.rows }));
+      };
+
+      ws.onmessage = (event) => {
+        const raw = event.data;
+        if (typeof raw === 'string') {
+          try {
+            const msg = JSON.parse(raw);
+            if (msg.type) { handleEvent(msg); return; }
+          } catch { /* not JSON */ }
+        }
+        if (term) term.write(raw);
+      };
+
+      ws.onclose = (event) => {
+        stopHeartbeat();
+        setWsStatus('disconnected', 'error');
+        $('btnDisconnect').disabled = true;
+        $('btnConnect').disabled = !session;
+        const reason = event.reason || `code=${event.code}`;
+        termLog(`WebSocket closed: ${reason}`);
+        logEvent('disconnected', reason);
+        ws = null;
+      };
+
+      ws.onerror = () => {
+        setWsStatus('error', 'error');
+        termLog('WebSocket error.');
+        logEvent('error', 'WebSocket connection error');
+      };
+    }
+
+    function disconnectWs() {
+      stopHeartbeat();
+      if (ws) { ws.close(); ws = null; }
+      setWsStatus('disconnected', '');
+      $('btnDisconnect').disabled = true;
+      $('btnConnect').disabled = !session;
+    }
+
+    function handleEvent(msg) {
+      switch (msg.type) {
+        case 'pong':
+          break;
+        case 'stage_unlocked':
+          logEvent('stage_unlocked', `Stage #${msg.stageNumber} unlocked (tx: ${msg.txHash?.slice(0, 10)}...)`);
+          if (term) term.writeln(`\r\n\x1b[1;33m>>> STAGE ${msg.stageNumber} UNLOCKED (paid) <<<\x1b[0m\r\n`);
+          break;
+        case 'stage_complete':
+          logEvent('stage_complete', `Stage #${msg.stageNumber} completed`);
+          if (term) term.writeln(`\r\n\x1b[1;32m>>> STAGE ${msg.stageNumber} COMPLETE <<<\x1b[0m\r\n`);
+          break;
+        case 'course_complete':
+          logEvent('course_complete', 'All stages completed!');
+          if (term) term.writeln(`\r\n\x1b[1;35m>>> COURSE COMPLETE <<<\x1b[0m\r\n`);
+          break;
+        case 'auto_start':
+          logEvent('auto_start', 'Auto-start triggered');
+          break;
+        default:
+          logEvent(msg.type || 'unknown', JSON.stringify(msg));
+      }
+    }
+
+    function startHeartbeat() {
+      stopHeartbeat();
+      heartbeatTimer = setInterval(() => {
+        if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'ping' }));
+      }, 30000);
+    }
+
+    function stopHeartbeat() {
+      if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
+    }
+
+    // ─── 초기화 ───────────────────────────────────
+    initTerminal();
+    updateUI();
+    loadCatalog();
   </script>
 </body>
 </html>
