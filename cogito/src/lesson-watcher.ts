@@ -16,6 +16,8 @@ const CONTENT_PRICE = process.env.CONTENT_PRICE || '0.005';
 export class LessonWatcher {
   private processedEntries = new Set<string>();
   private timer: ReturnType<typeof setInterval> | null = null;
+  private startedAt: number = Date.now();
+  private initialScanDone = false;
 
   private baseChain: BaseChain | null = null;
 
@@ -25,9 +27,12 @@ export class LessonWatcher {
 
   /**
    * Start watching for new lessons.
+   * On first poll, marks all existing entries as already processed.
+   * Only processes entries created after the watcher started.
    */
   start(): void {
     console.log(`[Watcher] Polling every ${POLL_INTERVAL_MS}ms for new lessons...`);
+    this.startedAt = Date.now();
 
     // Run immediately, then on interval
     this.poll().catch(err => console.error(`[Watcher] Poll error: ${err.message}`));
@@ -47,10 +52,11 @@ export class LessonWatcher {
    * Poll for new lesson_learned entries and process them.
    */
   private async poll(): Promise<void> {
-    // Get all explorations for our address tagged as lesson_learned
+    // Get all explorations for our address
     const explorations = await this.ain.getAllExplorations();
     if (!explorations) return;
 
+    let newCount = 0;
     for (const [topicKey, entries] of Object.entries(explorations)) {
       if (!entries || typeof entries !== 'object') continue;
 
@@ -60,18 +66,39 @@ export class LessonWatcher {
         // Skip already processed
         if (this.processedEntries.has(fullId)) continue;
 
-        // Only process lesson_learned entries
         const tags = (entry.tags || '').toLowerCase();
+
+        // Skip enriched/generated content (only process raw lessons)
+        if (tags.includes('x402_gated') || tags.includes('educational')) {
+          this.processedEntries.add(fullId);
+          continue;
+        }
+
+        // Only process lesson_learned entries
         if (!tags.includes('lesson_learned')) {
           this.processedEntries.add(fullId);
           continue;
         }
 
-        // Process this lesson
+        // On first scan, mark pre-existing entries as processed without enriching
+        if (!this.initialScanDone) {
+          this.processedEntries.add(fullId);
+          continue;
+        }
+
+        // Process this new lesson
+        newCount++;
         console.log(`[Watcher] New lesson found: "${entry.title}" (${fullId})`);
         await this.processLesson(topicKey, entryId, entry);
         this.processedEntries.add(fullId);
       }
+    }
+
+    if (!this.initialScanDone) {
+      this.initialScanDone = true;
+      console.log(`[Watcher] Initial scan complete — ${this.processedEntries.size} existing entries catalogued, watching for new lessons`);
+    } else if (newCount === 0) {
+      // Quiet poll, no new lessons
     }
   }
 
