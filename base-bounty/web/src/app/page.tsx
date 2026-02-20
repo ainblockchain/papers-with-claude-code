@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getGraphStats, getAllFrontierEntries, getRecentExplorations, getAgentStatus } from '@/lib/agent-client';
 import {
-  AGENT_ADDRESS, AGENT_ID, AGENT_URI,
+  AGENT_ADDRESS, AGENT_ID, AGENT_URI, ERC_8004_REGISTRY,
   getAgentRegistration, getETHBalance, getUSDCBalance,
   getRecentTransactions, AgentRegistration, BaseTx,
 } from '@/lib/base-client';
@@ -170,7 +170,10 @@ export default function HomePage() {
               <div className="text-xs text-gray-400 uppercase mb-1">ERC-8004 Identity</div>
               {registration?.isRegistered ? (
                 <div>
-                  <div className="text-lg font-bold text-green-400">Agent #{AGENT_ID}</div>
+                  <a href={`https://basescan.org/nft/${ERC_8004_REGISTRY}/${AGENT_ID}`} target="_blank" rel="noopener noreferrer"
+                    className="text-lg font-bold text-green-400 hover:underline">
+                    Agent #{AGENT_ID}
+                  </a>
                   <div className="text-xs text-gray-400 mt-1">Token URI: {AGENT_URI}</div>
                 </div>
               ) : (
