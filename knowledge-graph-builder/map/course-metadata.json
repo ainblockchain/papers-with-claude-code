@@ -1,0 +1,24 @@
+{
+  "courseId": "attention-is-all-you-need",
+  "paperId": "attention-is-all-you-need",
+  "title": "Attention Is All You Need",
+  "description": "The Transformer architecture by Vaswani et al. (2017) replaces recurrence entirely with self-attention, achieving state-of-the-art results on machine translation with full training parallelizability.",
+  "authors": [
+    { "id": "1", "name": "Ashish Vaswani",   "avatarUrl": null },
+    { "id": "2", "name": "Noam Shazeer",      "avatarUrl": null },
+    { "id": "3", "name": "Niki Parmar",       "avatarUrl": null },
+    { "id": "4", "name": "Jakob Uszkoreit",   "avatarUrl": null },
+    { "id": "5", "name": "Llion Jones",       "avatarUrl": null },
+    { "id": "6", "name": "Aidan N. Gomez",    "avatarUrl": null },
+    { "id": "7", "name": "Łukasz Kaiser",     "avatarUrl": null },
+    { "id": "8", "name": "Illia Polosukhin",  "avatarUrl": null }
+  ],
+  "publishedAt": "2017-06-12",
+  "arxivUrl": "https://arxiv.org/abs/1706.03762",
+  "githubUrl": null,
+  "githubStars": null,
+  "organization": { "name": "Google Brain", "logoUrl": null },
+  "color": "#4A90D9",
+  "plotPosition": { "col": 0, "row": 0 },
+  "entrance": { "x": 7, "y": 4, "width": 4, "height": 3 }
+}

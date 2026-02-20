@@ -47,6 +47,8 @@ Thumbs.db
 analysis.json/
 *.json
 *.json/
+!map/*.json
+!map/**/*.json
 !.env.example
 
 # Test results
