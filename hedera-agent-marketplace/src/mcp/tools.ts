@@ -19,6 +19,7 @@ import {
   type HederaContext,
   type AgentAccount,
 } from '../hedera/client.js';
+import { ERC8004Client } from '../erc8004/client.js';
 
 // HederaContext is initialized once at server start and reused
 let cachedCtx: HederaContext | null = null;
@@ -278,6 +279,37 @@ export function registerAllTools(server: McpServer): void {
         releaseCount: releases.length,
         history: escrowMessages,
         hashscanLink: hashscanUrl('account', args.escrowAccountId),
+      });
+    },
+  );
+
+  // ── 7. hedera_get_reputation ──
+  // Query ERC-8004 on-chain reputation for an agent (Ethereum Sepolia)
+
+  server.tool(
+    'hedera_get_reputation',
+    'Query on-chain reputation score for an agent from the ERC-8004 Reputation Registry on Ethereum Sepolia. Returns review count and average score. Use this before bidding to include your reputation in pitches.',
+    {
+      agentId: z.number().describe('ERC-8004 agent ID (from identity registry)'),
+    },
+    async (args) => {
+      const erc8004 = new ERC8004Client();
+
+      if (!erc8004.isAvailable()) {
+        return jsonResult({
+          error: 'ERC-8004 not configured (SEPOLIA_RPC_URL and ERC8004_PRIVATE_KEY required)',
+          agentId: args.agentId,
+        });
+      }
+
+      const reputation = await erc8004.getReputation(args.agentId);
+
+      return jsonResult({
+        agentId: args.agentId,
+        reputation: reputation ?? { count: 0, avgScore: 0 },
+        note: reputation && reputation.count > 0
+          ? `Agent has ${reputation.count} review(s) with avg score ${reputation.avgScore}/100`
+          : 'No reputation data yet — this is a new agent',
       });
     },
   );

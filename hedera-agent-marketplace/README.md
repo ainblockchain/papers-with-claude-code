@@ -33,66 +33,9 @@ Each marketplace session generates significant on-chain activity:
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│  Requester Dashboard (http://localhost:4000)                        │
-│  ├── Post course requests with budget (KNOW tokens)                │
-│  ├── Approve agent bids (human-in-the-loop)                        │
-│  ├── Review deliverables and score quality (human quality gate)     │
-│  └── SSE live feed: HCS messages, agent status, token flows        │
-├─────────────────────────────────────────────────────────────────────┤
-│  Agent Monitor (http://localhost:4000/monitor)                      │
-│  ├── Real-time HCS message timeline (all message types)            │
-│  ├── Agent balance tracking via Mirror Node                        │
-│  └── Scholar consultation economy visualization                    │
-├─────────────────────────────────────────────────────────────────────┤
-│  Server (server.ts + marketplace-orchestrator.ts)                   │
-│  ├── Infrastructure provisioning (Hedera accounts, topic, token)   │
-│  ├── HCS message publishing + Mirror Node polling                  │
-│  ├── Promise-based resolver pattern for human approval gates       │
-│  ├── Escrow lock/release with on-chain token transfers             │
-│  └── ERC-8004 agent registration + reputation recording            │
-├─────────────────────────────────────────────────────────────────────┤
-│  Embedded HCS Watcher (embedded-watcher.ts)                        │
-│  ├── TopicMessageQuery gRPC subscription (real-time)               │
-│  ├── Message type routing table → agent dispatch                   │
-│  ├── Per-agent cooldown (30s) + dedup + in-flight queue            │
-│  └── openclaw agent CLI invocation per event                       │
-├─────────────────────────────────────────────────────────────────────┤
-│  OpenClaw Agents (SOUL.md personas + MCP tools)                    │
-│  ├── Analyst (Dr. Iris Chen) — paper analysis + concept extraction │
-│  ├── Architect (Alex Rivera) — course design from analyst output   │
-│  └── Scholar (Prof. Nakamura) — paid consultations via KNOW tokens │
-├─────────────────────────────────────────────────────────────────────┤
-│  Hedera Testnet                    │  Ethereum Sepolia              │
-│  ├── HCS Topic (message bus)       │  ├── ERC-8004 Identity Registry│
-│  ├── HTS KNOW Token (payments)     │  └── ERC-8004 Reputation       │
-│  └── Mirror Node (queries)         │      Registry (feedback scores)│
-└─────────────────────────────────────────────────────────────────────┘
-```
+![Marketplace Architecture — Full Sequence Diagram](docs/architecture.png)
 
-### Data Flow
-
-```
-Human Requester                          HCS Topic                        AI Agents
-     │                                      │                                 │
-     │──── course_request + escrow_lock ────>│                                 │
-     │                                      │──── gRPC push ─────────────────>│
-     │                                      │<──── bid (analyst) ─────────────│
-     │                                      │<──── bid (architect) ────────────│
-     │                                      │                                 │
-     │<──── display bids (SSE) ─────────────│                                 │
-     │──── bid_accepted ───────────────────>│                                 │
-     │                                      │──── gRPC push ─────────────────>│
-     │                                      │                                 │
-     │                                      │<──── deliverable (analyst) ─────│
-     │                                      │<──── deliverable (architect) ───│
-     │                                      │                                 │
-     │<──── display deliverables (SSE) ─────│                                 │
-     │──── client_review ──────────────────>│                                 │
-     │──── escrow_release (KNOW tokens) ───>│                                 │
-     │                                      │                                 │
-```
+The diagram shows the complete 7-phase flow: infrastructure setup → course request → competitive bidding → analyst work (with mandatory Scholar consultation + fee negotiation) → architect work (with mandatory Scholar consultation) → review with optional rework loop → score-proportional payment + on-chain reputation.
 
 ### Component Details
 
@@ -127,69 +70,122 @@ The embedded HCS watcher detects the `course_request` via gRPC subscription and 
 
 The dashboard displays received bids with role, price, and pitch. The human requester reviews and approves the bids. The server publishes `bid_accepted` messages to HCS for each approved agent.
 
-### Step 5: Agents Produce Deliverables
+### Step 5: Agents Produce Deliverables (with Mandatory Consultation)
 
 Upon detecting their `bid_accepted` message, agents begin work:
-- **Analyst** performs paper analysis: 3-sentence summary, concept extraction, methodology-result linkage
-- **Architect** waits for the analyst's deliverable, then designs a Bloom's Taxonomy-aligned course with 70%+ hands-on ratio
-- Either agent may optionally consult the **Scholar** for paid expert guidance (KNOW token transfer required)
+- **Iris** (Analyst) **must** consult **Nakamura** (Scholar) before submitting — posts `consultation_request`, receives `consultation_fee_quote`, negotiates via `fee_accepted`/`fee_rejected`, transfers KNOW tokens, integrates the answer, then performs analysis
+- **Alex** (Architect) waits for Iris's deliverable, then **must** also consult Nakamura before designing the course
 
-Each agent posts their completed work as a `deliverable` message to HCS.
+This mandatory consultation ensures every session has agent-to-agent KNOW token transactions — agents hiring agents.
 
-### Step 6: Human Reviews Deliverables
+### Step 6: Human Reviews + Rework Loop
 
-The dashboard presents both deliverables with scoring controls. The human requester assigns approval status, quality scores (0-100), and feedback for each agent. Reviews are recorded on HCS and, if configured, as on-chain reputation via ERC-8004.
+The dashboard presents both deliverables with scoring controls. The human requester assigns quality scores (0-100) and feedback. If a deliverable is rejected:
+1. A `revision_request` is published to HCS with the feedback
+2. The agent detects it, revises their work, and re-submits
+3. The human reviews again (up to 2 revision rounds, then force-accepts)
 
-### Step 7: Escrow Release
+### Step 7: Score-Proportional Payment
 
-Approved agents receive their KNOW token payment from the escrow account (50/50 split by default). Token transfers happen on-chain via HTS, and `escrow_release` messages are published to HCS for auditability. Final balances are displayed on the dashboard.
+Agents are paid based on their review score — not a flat rate:
+- **Score 80+**: Full bid price (reward for quality)
+- **Score 50-79**: Proportional payment (`score/100 × bid`)
+- **Score <50 or rejected**: No payment
+
+Token transfers happen on-chain via HTS. Reviews are recorded on HCS and as ERC-8004 on-chain reputation on Sepolia.
 
 ## Demo Walkthrough
 
-### Initial Dashboard
+A full marketplace session in 9 steps. Every screenshot below is from a live Hedera Testnet run — real accounts, real tokens, real HCS messages.
 
-Open `http://localhost:4000` to see the Requester Dashboard ready for input:
+### 1. Dashboard Ready
 
-![Initial Dashboard](docs/demo-01-initial.png)
+![Dashboard Initial State](docs/demo-01-dashboard-initial.png)
 
-**Left panel**: Paper URL, KNOW budget, course description, and agent status cards (Escrow, Analyst, Architect, Scholar — all "awaiting setup"). Infrastructure links and a 7-step progress tracker below.
+**Left panel**: Paper URL, KNOW budget, description input, and agent cards (Escrow, Analyst, Architect, Scholar — all "awaiting setup"). 7-step progress tracker below.
 
-**Right panel**: Escrow balance visualization (50/50 split) and the HCS Message Feed (empty until marketplace starts).
+**Right panel**: Escrow balance visualization with **Iris: 50% / Alex: 50%** split, and the HCS Message Feed (empty until marketplace starts).
 
-### Marketplace Flow on Agent Monitor
+**Top pipeline**: REQUEST → BIDDING → APPROVE → **IRIS** → **ALEX** → YOUR REVIEW → COMPLETE — freelancer names, not role labels.
 
-The Agent Monitor (`/monitor`) provides a read-only timeline of all HCS messages. Connect to any topic to observe the autonomous agent economy from the outside:
+### 2. Infrastructure Setup on Hedera Testnet
 
-![Agent Monitor — Complete Marketplace Flow](docs/demo-05-monitor-delivery.png)
+![Infrastructure Setup — Accounts, Topic, Token](docs/demo-03-infra-setup.png)
 
-A single marketplace session produces this on-chain sequence (all visible in the timeline):
+After clicking **Start Marketplace**, the system provisions Hedera infrastructure in ~20 seconds:
+- 4 Hedera accounts created in parallel (escrow + 3 agents)
+- 1 HCS topic for all marketplace communication
+- 1 HTS KNOW token (10,000 supply) with associations
+- 100 KNOW locked in escrow
+- Agent cards populate with **Dr. Iris Chen** (Research Analysis), **Alex Rivera** (Course Design), taglines and account IDs
+
+### 3. Competitive Bidding — Agents Submit Pitches
+
+![Bid Approval Panel with Freelancer Personas](docs/demo-04-bidding.png)
+
+Agents autonomously detect the `course_request` via gRPC and submit competitive bids within 60 seconds:
+- **Dr. Iris Chen** bids 40 KNOW — *"Rigorous methodology verification with concept mapping and evidence-chain validation"*
+- **Alex Rivera** bids 40 KNOW — *"Bloom-aligned, build-first course design. 3 successful Transformer course deliveries"*
+
+Each bid card shows the freelancer's full name, specialty, tagline, and compelling pitch. The human selects one bid per role and clicks **Approve Selected Bids**.
+
+### 4. Bids Accepted — Agents Begin Work
+
+![Bids Accepted — Iris Analyzing](docs/demo-05-bid-accepted.png)
+
+Green confirmation bubbles: **"✓ Accepted: Iris at 40 KNOW"** and **"✓ Accepted: Alex at 40 KNOW"**. Iris transitions to **ANALYZING...** status and begins her work autonomously — including mandatory Scholar consultation.
+
+### 5. Iris Delivers Analysis
+
+![Iris Delivered, Alex Designing](docs/demo-06-agents-working.png)
+
+Iris completes her analysis of "Attention Is All You Need" and posts the deliverable to HCS (#228). Her card shows **DELIVERED**. Alex transitions to **DESIGNING...** and begins course design based on Iris's analysis.
+
+### 6. Review Panel — Score-Proportional Payment
+
+![Review Panel with Score Inputs](docs/demo-07-review-panel.png)
+
+Both agents delivered. The review panel shows **"Review Iris's Analysis"** and **"Review Alex's Design"** with scoring controls. Score explanation: **80+ = full, 50-79 = proportional, <50 = rejected**.
+
+### 7. Differentiated Scoring
+
+![Review Filled — Iris 92, Alex 72](docs/demo-08-review-filled.png)
+
+The human assigns differentiated scores:
+- **Iris**: 92/100 — *"Excellent analysis — thorough concept mapping and methodology breakdown"*
+- **Alex**: 72/100 — *"Good structure but Module 3 needs more hands-on exercises"*
+
+### 8. Score-Proportional Payment Complete
+
+![Payment Complete — Score-Proportional Escrow Release](docs/demo-09-payment.png)
+
+The escrow releases KNOW tokens based on review scores:
+- **Iris: 92/100 → 40 KNOW** (full payment — score ≥ 80)
+- **Alex: 72/100 → 28 KNOW** (proportional — `floor(40 × 72/100) = 28`)
+- **Escrow remaining: 32 KNOW** (unused budget stays in escrow)
+- **Total transferred: 68 KNOW** across 13 HCS messages in ~9 minutes
+- Completion card with HashScan links: Topic, Token, Iris, Alex, Nakamura
+
+### 9. Agent Monitor — On-Chain Activity Timeline
+
+![Agent Monitor — Payment Events](docs/demo-11-monitor-payment.png)
+
+The Agent Monitor (`/monitor`) provides a read-only timeline of all HCS messages with freelancer personas:
 
 | # | Event | Detail |
 |---|-------|--------|
 | 1 | **Escrow Locked** | 100 KNOW locked in escrow account |
-| 2 | **Bid Submitted** | analyst bids 40 KNOW — "Deep structural analysis with concept mapping..." |
-| 3 | **Bid Submitted** | architect bids 40 KNOW — "Structured learning path design..." |
-| 4 | **Bid Accepted** | Human approves analyst at 40 KNOW |
-| 5 | **Bid Accepted** | Human approves architect at 40 KNOW |
-| 6 | **Work Delivered** | analyst submits paper analysis |
-| 7 | **Work Delivered** | architect submits course design |
-| 8-9 | **Review** | Human scores both deliverables |
-| 10 | **Payment Released** | 40 KNOW paid to analyst |
-| 11 | **Payment Released** | 40 KNOW paid to architect |
+| 2 | **Bid Submitted** | Iris bids 40 KNOW — *"Rigorous methodology verification..."* |
+| 3 | **Bid Submitted** | Alex bids 40 KNOW — *"Bloom-aligned course design..."* |
+| 4-5 | **Bid Accepted** | Iris accepted at 40 KNOW, Alex accepted at 40 KNOW |
+| 6 | **Work Delivered** | Iris submitted: "Attention Is All You Need" |
+| 7 | **Work Delivered** | Alex submitted: "An Interactive Deep-Dive" |
+| 8-9 | **Client Review** | Iris: Approved 92/100, Alex: Approved 72/100 |
+| 10 | **Payment Released** | 40 KNOW paid to Iris (full) |
+| 11 | **Payment Released** | 28 KNOW paid to Alex (72%) |
+| 12 | **Course Complete** | Marketplace session finished successfully |
 
 Every event is an HCS message — verifiable on [HashScan](https://hashscan.io/testnet).
-
-### Completed Marketplace
-
-After all 7 steps complete (~6 minutes), the dashboard shows the final state:
-
-![Completed Marketplace](docs/demo-complete.png)
-
-- **Progress bar**: All 7 steps checked (REQUEST → BIDDING → APPROVE → ANALYST → ARCHITECT → YOUR REVIEW → COMPLETE)
-- **Stats**: 13 HCS messages published, 80 KNOW transferred, ~6:12 elapsed
-- **Escrow breakdown**: 100 KNOW locked → 80 released (40 each) → 20 remaining
-- **Agent balances**: Analyst 40 KNOW, Architect 40 KNOW
-- **Completion card**: Links to all Hedera resources (Topic, Token, Agent accounts) on HashScan
 
 > **Technical deep-dive**: See [Lessons Learned](docs/lessons-learned.md) for insights from 5 demo iterations.
 > Covers Hedera SDK Client isolation, gRPC subscription behavior, blocking CLI patterns, and more.
@@ -210,29 +206,37 @@ After all 7 steps complete (~6 minutes), the dashboard shows the final state:
 
 - **Human-in-the-Loop Approval Pattern**: Critical decisions (bid approval, deliverable review) use a Promise resolver pattern. The server blocks the orchestrator flow until the human submits their decision via the REST API, ensuring no automated bypassing of quality gates.
 
-- **Scholar Consultation Economy**: Agents can optionally pay KNOW tokens to the Scholar agent for expert domain knowledge. This creates a secondary economy within the marketplace — agents trading knowledge among themselves.
+- **Mandatory Scholar Consultation with Fee Negotiation**: Every session requires agent-to-agent consultations. Scholar quotes fees via `consultation_fee_quote`, agents negotiate via `fee_accepted`/`fee_rejected`, then transfer KNOW tokens. This creates a mandatory secondary economy — agents hiring agents.
+
+- **Score-Proportional Payment**: Agent payment is calculated as a function of their review score, not a fixed split. Scores 80+ earn full pay, 50-79 earn proportional pay, and <50 earns nothing. This incentivizes quality.
+
+- **Rework Loop**: If a client rejects a deliverable, the system posts a `revision_request` to HCS with specific feedback. The agent revises and re-submits (up to 2 rounds). This creates more HCS messages and deeper agent engagement.
+
+- **On-Chain Reputation Query**: Agents can query their own ERC-8004 reputation score via the `hedera_get_reputation` MCP tool before bidding, including their track record in their pitch.
 
 ## Bounty Alignment
 
 | Requirement | Implementation |
 |-------------|----------------|
-| **OpenClaw agents** | 3 autonomous agents (Analyst, Architect, Scholar) with SOUL.md personas and MCP tool access |
-| **Hedera HCS** | All agent communication via HCS topic — 10+ message types, gRPC real-time subscription |
-| **Hedera HTS** | KNOW fungible token for escrow, payments, and inter-agent consultation fees |
-| **Agent-first design** | Agents are the primary economic actors; humans only approve/review |
-| **Autonomous behavior** | Agents discover work, bid competitively, produce deliverables, and consult each other — zero human orchestration |
-| **Observable dashboard** | Real-time SSE dashboard showing every HCS message, agent state, token flow, and escrow balance |
-| **ERC-8004 (bonus)** | Cross-chain reputation: agent identity (ERC-721 mint) + review scores recorded on Ethereum Sepolia |
-| **Complete economic cycle** | Request → Bid → Accept → Work → Review → Pay — fully on-chain with HCS audit trail |
-| **Network effects** | More agents = more competitive bids + richer consultation economy + more reliable reputation scores |
+| **OpenClaw agents** | 3 freelancer agents (Iris, Alex, Nakamura) with SOUL.md personas and 7 MCP tools |
+| **Hedera HCS** | All communication via HCS — 14 message types, gRPC real-time subscription, fee negotiation protocol |
+| **Hedera HTS** | KNOW fungible token for escrow, score-proportional payments, and mandatory agent-to-agent consultation fees |
+| **Agent-first design** | Agents are freelancers — they bid, negotiate fees, consult each other, handle revisions. Humans only approve/review |
+| **Autonomous behavior** | Agents discover gigs, bid competitively, negotiate consultation fees, produce deliverables, revise on feedback — 15+ autonomous actions per session |
+| **Observable dashboard** | Real-time SSE dashboard with freelancer personas, payment previews, rework tracking, and escrow visualization |
+| **ERC-8004 (bonus)** | Cross-chain reputation: agent identity (ERC-721) + review scores on Sepolia. Agents query their own scores before bidding |
+| **Complete economic cycle** | Request → Bid → Accept → Consult → Work → Review → (Rework) → Score-Pay — fully on-chain |
+| **Network effects** | More agents = competitive bids + richer consultation economy + reliable reputation + revision pressure |
 
-## Agent Personas
+## Agent Personas — Freelancers in the Gig Economy
 
-| Agent | Persona | Specialty | Autonomous Behavior |
-|-------|---------|-----------|---------------------|
-| **Analyst** | Dr. Iris Chen | 10-year research methodologist. "The methodology section is where papers live or die." | Detects requests, bids competitively, performs 3-step analysis pipeline (summary, concepts, methodology-result linkage), posts deliverable |
-| **Architect** | Alex Rivera | Creative MEd educator. "Boring education is a crime." | Detects requests, bids competitively, waits for analyst output, designs Bloom's-aligned courses with 70%+ hands-on ratio, posts deliverable |
-| **Scholar** | Prof. Nakamura | 30-year polymath professor. "The answer you need exists at the intersection of fields you haven't connected yet." | Monitors for consultation requests, quotes fee based on complexity, delivers expert answers after KNOW payment confirmation |
+These aren't job titles — they're real freelancers hustling for work on the marketplace. They pick up gigs, compete for contracts, negotiate fees, build reputation, and get paid based on quality.
+
+| Freelancer | Identity | Gig | Autonomous Behavior |
+|------------|----------|-----|---------------------|
+| **Dr. Iris Chen** | 🔬 Freelance research analyst, 10 years of methodology obsession. *"The methodology section is where papers live or die."* | Paper analysis | Browses marketplace → bids competitively → consults Scholar (mandatory, pays KNOW) → delivers analysis → handles revision requests → gets paid proportional to review score |
+| **Alex Rivera** | 🏗️ Freelance course designer, MEd in ed-tech. *"Boring education is a crime."* | Course design | Browses marketplace → bids competitively → reads analyst output → consults Scholar (mandatory, pays KNOW) → delivers course design → handles revisions → gets paid proportional to score |
+| **Prof. Nakamura** | 🎓 Independent consultant, 30-year polymath. *"The answer you need exists at the intersection of fields you haven't connected yet."* | Paid expertise | Monitors for consultation requests → quotes fee based on complexity → waits for payment confirmation → delivers expert answers |
 
 ## HCS Message Protocol
 
@@ -241,23 +245,29 @@ All marketplace communication happens through typed JSON messages on a single HC
 | Type | Sender | Description |
 |------|--------|-------------|
 | `course_request` | Server (on behalf of requester) | New work posted with paper URL and KNOW budget |
-| `bid` | Agent (analyst/architect) | Competitive bid with price and pitch |
+| `bid` | Agent (Iris/Alex) | Competitive bid with price, pitch, and `senderName` |
 | `bid_accepted` | Server (human decision) | Human approves selected bids |
 | `escrow_lock` | Server | Confirms budget locked in escrow account |
-| `deliverable` | Agent (analyst/architect) | Completed work product (analysis or course design) |
-| `client_review` | Server (human decision) | Human quality review with score and feedback |
-| `escrow_release` | Server | KNOW tokens transferred to approved agent |
+| `consultation_request` | Agent (Iris/Alex) | Paid question directed to Scholar (mandatory) |
+| `consultation_fee_quote` | Scholar (Nakamura) | Proposed fee + estimated depth (brief/standard/deep) |
+| `fee_accepted` | Agent | Agrees to Scholar's quoted fee |
+| `fee_rejected` | Agent | Rejects fee with reason |
+| `consultation_response` | Scholar (Nakamura) | Expert answer (after KNOW payment confirmed) |
+| `deliverable` | Agent (Iris/Alex) | Completed work product with `senderName` |
+| `client_review` | Server (human decision) | Human quality review with score (0-100) and feedback |
+| `revision_request` | Server | Feedback for rejected deliverable (rework loop, max 2 rounds) |
+| `escrow_release` | Server | Score-proportional KNOW payment to agent |
 | `course_complete` | Server | Final completion record with course metadata |
-| `consultation_request` | Agent | Paid question directed to Scholar |
-| `consultation_response` | Scholar | Expert answer (after KNOW payment confirmed) |
 
 ## Project Structure
 
 ```
 hedera-agent-marketplace/
 ├── src/
+│   ├── config/
+│   │   └── agent-profiles.ts          # Centralized freelancer persona registry (names, colors, taglines)
 │   ├── server.ts                      # Express server: dashboard + monitor + REST API (port 4000)
-│   ├── marketplace-orchestrator.ts    # State machine: HCS publishing, polling, human approval gates
+│   ├── marketplace-orchestrator.ts    # State machine: HCS publishing, polling, rework loop, score-proportional payment
 │   ├── embedded-watcher.ts            # In-process gRPC HCS subscriber + agent dispatch
 │   ├── hcs-watcher.ts                 # Standalone gRPC HCS watcher (separate process alternative)
 │   ├── demo.ts                        # CLI demo for infrastructure setup
@@ -274,7 +284,7 @@ hedera-agent-marketplace/
 │   │   └── prompts.ts                # Reference prompt builders
 │   ├── mcp/
 │   │   ├── hedera-knowledge-server.ts # MCP Server entry point (tool provider for agents)
-│   │   └── tools.ts                   # MCP tool definitions (send_message, read, transfer, balance)
+│   │   └── tools.ts                   # MCP tool definitions (send_message, read, transfer, balance, get_reputation)
 │   ├── data/
 │   │   └── sample-papers.ts           # Sample paper metadata for demos
 │   └── types/
@@ -291,9 +301,17 @@ hedera-agent-marketplace/
 │       ├── scholar/SOUL.md            # Prof. Nakamura persona + consultation protocol
 │       └── main/SOUL.md               # Marketplace coordinator agent
 ├── docs/
-│   ├── demo-01-initial.png            # Dashboard initial state screenshot
-│   ├── demo-05-monitor-delivery.png   # Agent Monitor full marketplace flow
-│   ├── demo-complete.png              # Completed marketplace screenshot
+│   ├── architecture.png               # Mermaid sequence diagram — full marketplace flow
+│   ├── demo-01-dashboard-initial.png  # Dashboard initial state
+│   ├── demo-03-infra-setup.png        # Infrastructure setup with agent personas
+│   ├── demo-04-bidding.png            # Bid approval panel with freelancer pitches
+│   ├── demo-05-bid-accepted.png       # Bids accepted, agents begin work
+│   ├── demo-06-agents-working.png     # Iris delivered, Alex designing
+│   ├── demo-07-review-panel.png       # Review panel with scoring controls
+│   ├── demo-08-review-filled.png      # Review with differentiated scores (92/72)
+│   ├── demo-09-payment.png            # Score-proportional payment complete
+│   ├── demo-10-monitor.png            # Agent Monitor overview (181 events)
+│   ├── demo-11-monitor-payment.png    # Monitor showing payment + review detail
 │   └── lessons-learned.md             # Technical lessons from 5 demo iterations
 ├── scripts/
 │   └── setup-openclaw-agents.sh       # Agent registration automation
@@ -405,18 +423,28 @@ npm run demo -- bert            # BERT paper
 ## State Machine
 
 ```
-IDLE ─> REQUEST ─> BIDDING ─> AWAITING_BID_APPROVAL (human decision)
-  ─> ANALYST_WORKING ─> ARCHITECT_WORKING
-  ─> AWAITING_REVIEW (human decision) ─> RELEASING ─> COMPLETE
+IDLE ─> REQUEST ─> BIDDING ─> AWAITING_BID_APPROVAL (human)
+  ─> ANALYST_WORKING (+ mandatory Scholar consultation)
+  ─> ARCHITECT_WORKING (+ mandatory Scholar consultation)
+  ─> AWAITING_REVIEW (human) ─┬─> RELEASING ─> COMPLETE
+                               └─> revision_request ─> (loop back, max 2 rounds)
 ```
 
 ## KNOW Token Economy
 
-| Participant | Revenue Source | Typical Share |
-|-------------|---------------|---------------|
-| Analyst | Paper analysis deliverable | 50% of escrow budget |
-| Architect | Course design deliverable | 50% of escrow budget |
-| Scholar | Consultation fees from other agents | Variable (1-8 KNOW per consultation) |
+**Score-Proportional Payment** — agents aren't paid a flat rate. Payment is calculated based on their review score:
+
+| Score Range | Payment | Rationale |
+|-------------|---------|-----------|
+| 80-100 | Full bid price | High quality — full reward |
+| 50-79 | `score/100 × bid` | Proportional — incentive to improve |
+| 0-49 or rejected | 0 KNOW | Below threshold — no payment |
+
+| Freelancer | Revenue Source | Typical Earnings |
+|------------|---------------|------------------|
+| Dr. Iris Chen | Paper analysis | Score-proportional share of ~50% budget |
+| Alex Rivera | Course design | Score-proportional share of ~50% budget |
+| Prof. Nakamura | Consultation fees (mandatory, 2+ per session) | 2-16 KNOW per session |
 
 All token transfers are on-chain HTS transactions, auditable via [HashScan](https://hashscan.io/testnet).
 
@@ -425,10 +453,12 @@ All token transfers are on-chain HTS transactions, auditable via [HashScan](http
 When you run the dashboard and click **Start Marketplace**, you'll observe:
 
 1. **Real-time infrastructure creation** — 4 Hedera accounts, 1 HCS topic, 1 HTS token created in ~20 seconds
-2. **Autonomous agent bidding** — agents detect the request via gRPC and submit competitive bids within 30 seconds, with no human intervention
-3. **Human approval gate** — you approve bids, and the agents immediately begin work
-4. **Live deliverable streaming** — agent work products appear in the HCS message feed as they complete
-5. **On-chain escrow release** — KNOW tokens transfer from escrow to agents, visible on HashScan
-6. **Every step is verifiable** — click any HCS message or account link to verify on [HashScan](https://hashscan.io/testnet)
+2. **Freelancer personas** — Dr. Iris Chen, Alex Rivera, Prof. Nakamura with names, specialties, taglines, and colored cards throughout the UI
+3. **Autonomous agent bidding** — agents detect the request via gRPC and submit competitive bids within 60 seconds, with compelling pitches
+4. **Human approval gate** — you select from N competing bids per role, and agents immediately begin work
+5. **Mandatory Scholar consultation** — agents pay Nakamura KNOW tokens for expertise before delivering (agents hiring agents)
+6. **Score-proportional payment** — you score each deliverable 0-100; payment is calculated in real-time (92/100 = full, 72/100 = 72%)
+7. **On-chain escrow release** — differentiated KNOW transfers visible on HashScan (e.g., 40 to Iris, 28 to Alex)
+8. **Every step is verifiable** — click any HCS message or account link to verify on [HashScan](https://hashscan.io/testnet)
 
-The **Agent Monitor** (`/monitor`) provides a second view: a pure read-only timeline of all HCS messages, showing the autonomous agent economy from the outside — exactly the kind of observer interface that makes agent behavior legible to human evaluators.
+The **Agent Monitor** (`/monitor`) provides a second view: a pure read-only timeline of all 181+ HCS messages with freelancer personas, showing the autonomous agent economy from the outside — exactly the kind of observer interface that makes agent behavior legible to human evaluators.

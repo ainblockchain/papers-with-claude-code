@@ -28,6 +28,10 @@
   --color-consult: #f97316;
   --color-complete: #22c55e;
   --color-error: #ef4444;
+  --color-revision: #f59e0b;
+  --color-fee: #f97316;
+  --color-fee-accept: #22c55e;
+  --color-fee-reject: #ef4444;
 
   /* Text — improved contrast */
   --text-primary: #f1f5f9;
@@ -176,6 +180,10 @@ header {
 .evt.review { border-color: var(--color-review); background: rgba(236, 72, 153, 0.08); }
 .evt.money { border-color: var(--color-money); background: rgba(245, 158, 11, 0.08); }
 .evt.consult { border-color: var(--color-consult); background: rgba(249, 115, 22, 0.08); }
+.evt.revision { border-color: var(--color-revision); background: rgba(245, 158, 11, 0.1); }
+.evt.fee-quote { border-color: var(--color-fee); background: rgba(249, 115, 22, 0.08); }
+.evt.fee-accept { border-color: var(--color-fee-accept); background: rgba(34, 197, 94, 0.08); }
+.evt.fee-reject { border-color: var(--color-fee-reject); background: rgba(239, 68, 68, 0.08); }
 .evt.complete { border-color: var(--color-complete); background: rgba(34, 197, 94, 0.1); }
 .evt.raw { border-color: var(--border-default); opacity: 0.5; }
 
@@ -263,9 +271,9 @@ var $ = function(s) { return document.querySelector(s); };
 function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
 var AGENTS = {
-  analyst:   { icon: '\uD83D\uDD2C', name: 'Analyst',   persona: 'Dr. Iris Chen' },
-  architect: { icon: '\uD83C\uDFD7\uFE0F', name: 'Architect', persona: 'Alex Rivera' },
-  scholar:   { icon: '\uD83C\uDF93', name: 'Scholar',   persona: 'Prof. Nakamura' }
+  analyst:   { icon: '\uD83D\uDD2C', name: 'Iris',   persona: 'Dr. Iris Chen', specialty: 'Research Analysis' },
+  architect: { icon: '\uD83C\uDFD7\uFE0F', name: 'Alex', persona: 'Alex Rivera', specialty: 'Course Design' },
+  scholar:   { icon: '\uD83C\uDF93', name: 'Nakamura',   persona: 'Prof. Nakamura', specialty: 'Domain Expertise' }
 };
 
 function connect() {
@@ -349,32 +357,62 @@ function connect() {
 }
 
 /* Event type config with icons and color classes */
+/* Helper to resolve persona name from role */
+function personaName(role, senderName) {
+  if (senderName) return senderName;
+  var a = AGENTS[role]; return a ? a.name : (role||'unknown');
+}
+
 var EVT_CONFIG = {
   course_request: { icon: '\uD83D\uDCE8', cls: 'request', label: 'New Course Request', countKey: 'request',
     detail: function(d) { return 'Paper: <strong>' + esc(d.paperUrl||'') + '</strong> &mdash; Budget: ' + (d.budget||0) + ' KNOW'; } },
   bid: { icon: '\uD83C\uDFF7\uFE0F', cls: 'bid', label: 'Bid Submitted', countKey: 'bid',
-    detail: function(d) { return '<strong>' + esc(d.role||'') + '</strong> bids ' + (d.price||0) + ' KNOW &mdash; "' + esc((d.pitch||'').slice(0,100)) + '"'; } },
+    detail: function(d) { return '<strong>' + esc(personaName(d.role, d.senderName)) + '</strong> bids ' + (d.price||0) + ' KNOW &mdash; "' + esc((d.pitch||'').slice(0,100)) + '"'; } },
   bid_accepted: { icon: '\u2705', cls: 'accepted', label: 'Bid Accepted', countKey: 'bid',
-    detail: function(d) { return '<strong>' + esc(d.role||'') + '</strong> accepted at ' + (d.price||0) + ' KNOW'; } },
+    detail: function(d) { return '<strong>' + esc(personaName(d.role, d.senderName)) + '</strong> accepted at ' + (d.price||0) + ' KNOW'; } },
   escrow_lock: { icon: '\uD83D\uDD12', cls: 'money', label: 'Escrow Locked', countKey: 'money',
     detail: function(d) { return (d.amount||0) + ' KNOW locked in escrow'; } },
   escrow_release: { icon: '\uD83D\uDCB0', cls: 'money', label: 'Payment Released', countKey: 'money',
-    detail: function(d) { return (d.amount||0) + ' KNOW paid to <strong>' + esc(d.role||d.toAccountId||'') + '</strong>'; } },
+    detail: function(d) { return (d.amount||0) + ' KNOW paid to <strong>' + esc(personaName(d.role, d.senderName)||d.toAccountId||'') + '</strong>'; } },
   deliverable: { icon: '\uD83D\uDCE6', cls: 'work', label: 'Work Delivered', countKey: 'work',
     detail: function(d) {
       var c = d.content || {};
       var title = c.paperTitle || c.courseTitle || '';
-      return '<strong>' + esc(d.role||'') + '</strong> submitted' + (title ? ': "' + esc(title) + '"' : '');
+      return '<strong>' + esc(personaName(d.role, d.senderName)) + '</strong> submitted' + (title ? ': "' + esc(title) + '"' : '');
     } },
   client_review: { icon: '\u2B50', cls: 'review', label: 'Client Review', countKey: 'review',
     detail: function(d) {
       var status = d.approved ? '<span style="color:var(--color-complete);">Approved</span>' : '<span style="color:var(--color-error);">Rejected</span>';
-      return '<strong>' + esc(d.targetRole||'') + '</strong>: ' + status + ' &mdash; ' + (d.score||0) + '/100';
+      return '<strong>' + esc(personaName(d.targetRole, d.senderName)) + '</strong>: ' + status + ' &mdash; ' + (d.score||0) + '/100';
     } },
   consultation_request: { icon: '\uD83D\uDCAC', cls: 'consult', label: 'Consultation Request', countKey: 'request',
-    detail: function(d) { return esc(d.sender||'') + ' asks: "' + esc((d.question||'').slice(0,80)) + '" (offers ' + (d.offeredFee||0) + ' KNOW)'; } },
+    detail: function(d) { return esc(personaName(d.senderRole, d.senderName)||d.sender||'') + ' asks: "' + esc((d.question||'').slice(0,80)) + '" (offers ' + (d.offeredFee||0) + ' KNOW)'; } },
   consultation_response: { icon: '\uD83D\uDCA1', cls: 'consult', label: 'Consultation Answer', countKey: 'work',
-    detail: function(d) { return 'Scholar answers for ' + (d.fee||0) + ' KNOW: "' + esc((d.answer||'').slice(0,80)) + '"'; } },
+    detail: function(d) { return esc(personaName('scholar', d.senderName)) + ' answers for ' + (d.fee||0) + ' KNOW: "' + esc((d.answer||'').slice(0,80)) + '"'; } },
+  revision_request: { icon: '\uD83D\uDD04', cls: 'revision', label: 'Revision Request', countKey: 'review',
+    detail: function(d) {
+      var target = personaName(d.targetRole||d.role, d.senderName);
+      var round = d.round || 1;
+      return 'Revision requested for <strong>' + esc(target) + '</strong> (Round ' + round + ')' +
+        (d.feedback ? ' &mdash; "' + esc(d.feedback.slice(0,100)) + '"' : '');
+    } },
+  consultation_fee_quote: { icon: '\uD83C\uDF93', cls: 'fee-quote', label: 'Fee Quote', countKey: 'request',
+    detail: function(d) {
+      var quoter = personaName(d.role||'scholar', d.senderName);
+      return '<strong>' + esc(quoter) + '</strong> quoted ' + (d.fee||0) + ' KNOW' +
+        (d.depth ? ' (' + esc(d.depth) + ' depth)' : '');
+    } },
+  fee_accepted: { icon: '\u2705', cls: 'fee-accept', label: 'Fee Accepted', countKey: 'money',
+    detail: function(d) {
+      var accepter = personaName(d.role||d.acceptedBy, d.senderName);
+      return '<strong>' + esc(accepter) + '</strong> accepted ' + (d.fee||0) + ' KNOW fee';
+    } },
+  fee_rejected: { icon: '\u274C', cls: 'fee-reject', label: 'Fee Rejected', countKey: 'review',
+    detail: function(d) {
+      var rejecter = personaName(d.role||d.rejectedBy, d.senderName);
+      return '<strong>' + esc(rejecter) + '</strong> rejected fee' +
+        (d.reason ? ': ' + esc(d.reason) : '');
+    } },
   course_complete: { icon: '\uD83C\uDF89', cls: 'complete', label: 'Course Complete', countKey: 'work',
     detail: function(d) { return 'Marketplace session finished successfully'; } }
 };
@@ -455,6 +493,8 @@ var COUNT_META = {
   review: { icon: '\u2B50', cls: 'review' }
 };
 
+/* Also add CSS badge styles for new fee-related types */
+
 function renderEvtCounts() {
   var el = $('#evtCounts');
   var html = '';
@@ -484,7 +524,7 @@ function trackAgent(d) {
 }
 
 function guessRole(d) {
-  if (d.type === 'consultation_response') return 'scholar';
+  if (d.type === 'consultation_response' || d.type === 'consultation_fee_quote') return 'scholar';
   return d.role || 'unknown';
 }
 
@@ -492,7 +532,7 @@ function renderAgents() {
   var list = $('#agentList');
   list.innerHTML = '';
   Object.values(S.agents).forEach(function(a) {
-    var meta = AGENTS[a.role] || { icon: '\uD83E\uDD16', name: a.role, persona: '' };
+    var meta = AGENTS[a.role] || { icon: '\uD83E\uDD16', name: a.role, persona: '', specialty: '' };
     var card = document.createElement('div');
     card.className = 'a-card ' + (a.role || '');
 
@@ -501,8 +541,8 @@ function renderAgents() {
 
     card.innerHTML =
       '<div class="a-row"><span class="a-icon">' + meta.icon + '</span>' +
-        '<div><div class="a-name">' + esc(meta.name) + '</div>' +
-        (meta.persona ? '<div class="a-persona">' + esc(meta.persona) + '</div>' : '') + '</div></div>' +
+        '<div><div class="a-name">' + esc(meta.persona||meta.name) + '</div>' +
+        (meta.specialty ? '<div class="a-persona">' + esc(meta.specialty) + '</div>' : '') + '</div></div>' +
       '<div class="a-id">' + esc(a.accountId) + '</div>' +
       '<div class="a-stats">' +
         '<div class="a-stat">Actions: <strong>' + a.actions.length + '</strong></div>' +
@@ -513,9 +553,10 @@ function renderAgents() {
   });
 }
 
-/* Consultation tracking */
+/* Consultation tracking — includes fee negotiations */
 function trackConsultation(d) {
-  if (d.type !== 'consultation_request' && d.type !== 'consultation_response') return;
+  var consultTypes = ['consultation_request','consultation_response','consultation_fee_quote','fee_accepted','fee_rejected'];
+  if (consultTypes.indexOf(d.type) === -1) return;
   S.consultations.push(d);
   renderConsultations();
 }
@@ -527,16 +568,45 @@ function renderConsultations() {
     list.innerHTML = '<div style="font-size:0.72rem;color:var(--text-muted);padding:6px;">No consultations yet</div>';
     return;
   }
-  S.consultations.slice(-6).forEach(function(c) {
-    var isReq = c.type === 'consultation_request';
+  S.consultations.slice(-8).forEach(function(c) {
     var div = document.createElement('div');
     div.className = 'consult-item';
+    var iconLabel, fee, text;
+
+    if (c.type === 'consultation_request') {
+      iconLabel = '\uD83D\uDCAC Question';
+      fee = c.offeredFee || 0;
+      text = esc((c.question || '').slice(0, 60));
+    } else if (c.type === 'consultation_response') {
+      iconLabel = '\uD83D\uDCA1 Answer';
+      fee = c.fee || 0;
+      text = esc((c.answer || '').slice(0, 60));
+    } else if (c.type === 'consultation_fee_quote') {
+      iconLabel = '\uD83C\uDF93 Fee Quote';
+      fee = c.fee || 0;
+      text = esc(personaName(c.role||'scholar', c.senderName)) + ' quoted' + (c.depth ? ' (' + esc(c.depth) + ')' : '');
+    } else if (c.type === 'fee_accepted') {
+      iconLabel = '\u2705 Fee Accepted';
+      fee = c.fee || 0;
+      text = esc(personaName(c.role||c.acceptedBy, c.senderName)) + ' accepted';
+      div.style.borderColor = 'rgba(34,197,94,0.3)';
+      div.style.background = 'rgba(34,197,94,0.05)';
+    } else if (c.type === 'fee_rejected') {
+      iconLabel = '\u274C Fee Rejected';
+      fee = c.fee || 0;
+      text = esc(personaName(c.role||c.rejectedBy, c.senderName)) + (c.reason ? ': ' + esc(c.reason.slice(0,40)) : '');
+      div.style.borderColor = 'rgba(239,68,68,0.3)';
+      div.style.background = 'rgba(239,68,68,0.05)';
+    } else {
+      return;
+    }
+
     div.innerHTML =
       '<div class="consult-header">' +
-        '<span>' + (isReq ? '\uD83D\uDCAC Question' : '\uD83D\uDCA1 Answer') + '</span>' +
-        '<span class="consult-fee">' + (isReq ? c.offeredFee : c.fee) + ' KNOW</span>' +
+        '<span>' + iconLabel + '</span>' +
+        '<span class="consult-fee">' + fee + ' KNOW</span>' +
       '</div>' +
-      '<div class="consult-text">' + esc((isReq ? c.question : c.answer || '').slice(0, 60)) + '</div>';
+      '<div class="consult-text">' + text + '</div>';
     list.appendChild(div);
   });
 }

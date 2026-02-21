@@ -17,9 +17,9 @@ import type { MarketplaceMessageType } from './types/marketplace.js';
 // ── Message routing table ──
 
 const AGENT_ROUTING: Record<string, MarketplaceMessageType[]> = {
-  analyst:   ['course_request', 'bid_accepted', 'consultation_response'],
-  architect: ['course_request', 'bid_accepted', 'deliverable', 'consultation_response'],
-  scholar:   ['consultation_request'],
+  analyst:   ['course_request', 'bid_accepted', 'consultation_response', 'revision_request', 'consultation_fee_quote'],
+  architect: ['course_request', 'bid_accepted', 'deliverable', 'consultation_response', 'revision_request', 'consultation_fee_quote'],
+  scholar:   ['consultation_request', 'fee_accepted', 'fee_rejected'],
 };
 
 // Messages published by the server — agents do not need to react
@@ -40,6 +40,7 @@ export interface WatcherHandle {
 }
 
 type LogFn = (msg: string) => void;
+type AgentOutputFn = (agent: string, chunk: string) => void;
 
 /**
  * Starts an HCS gRPC subscription within the server process
@@ -52,6 +53,7 @@ export function startEmbeddedWatcher(
   ctx: HederaContext,
   topicId: string,
   onLog?: LogFn,
+  onAgentOutput?: AgentOutputFn,
 ): WatcherHandle {
   // Per-session isolated state
   const seenSequences = new Set<number>();
@@ -74,8 +76,11 @@ export function startEmbeddedWatcher(
 
     const queued = pendingQueue[agent];
     if (queued) {
-      log(`[WATCHER] ${agent} processing queue — seq:${queued.seq}`);
-      dispatchAgent(agent, queued.seq, queued.messageJson);
+      // Wait for session lock to be fully released before re-dispatching
+      delete pendingQueue[agent];
+      const delaySec = 5;
+      log(`[WATCHER] ${agent} queue pending — seq:${queued.seq}, dispatching in ${delaySec}s`);
+      setTimeout(() => dispatchAgent(agent, queued.seq, queued.messageJson), delaySec * 1000);
     }
   }
 
@@ -83,8 +88,7 @@ export function startEmbeddedWatcher(
 
   function dispatchAgent(agent: string, seq: number, messageJson: string): void {
     if (inFlight[agent]) {
-      pendingQueue[agent] = { seq, messageJson };
-      log(`[WATCHER] ${agent} queued — seq:${seq} (auto-dispatch after slot release)`);
+      log(`[WATCHER] ${agent} busy — seq:${seq} skipped`);
       return;
     }
 
@@ -105,8 +109,23 @@ export function startEmbeddedWatcher(
     log(`[WATCHER] ${agent} dispatched — seq:${seq}`);
 
     const child = spawn('openclaw', ['agent', '--agent', agent, '--message', prompt], {
-      stdio: 'ignore',
+      stdio: ['ignore', 'pipe', 'pipe'],
     });
+
+    // Capture agent stdout/stderr — enables debugging agent reasoning + bid decisions
+    let outputBuffer = '';
+    const handleChunk = (stream: 'stdout' | 'stderr') => (data: Buffer) => {
+      const text = data.toString();
+      outputBuffer += text;
+      // Forward to log + SSE so dashboard can show agent thinking
+      const lines = text.split('\n').filter((l: string) => l.trim());
+      for (const line of lines) {
+        log(`[AGENT:${agent}] ${line}`);
+        onAgentOutput?.(agent, line);
+      }
+    };
+    child.stdout?.on('data', handleChunk('stdout'));
+    child.stderr?.on('data', handleChunk('stderr'));
 
     // Timer-based slot release — process queue when agent has likely posted to HCS
     const timer = setTimeout(() => releaseSlot(agent, `seq:${seq} timer`), SLOT_RELEASE_MS);
@@ -114,6 +133,10 @@ export function startEmbeddedWatcher(
     // Release immediately on process exit (if it finishes before the timer)
     child.on('exit', (code) => {
       clearTimeout(timer);
+      if (code !== 0 && code !== null) {
+        log(`[WATCHER] ${agent} exited with code ${code}`);
+        if (outputBuffer.trim()) log(`[WATCHER] ${agent} last output: ${outputBuffer.slice(-500)}`);
+      }
       releaseSlot(agent, `seq:${seq} exit:${code}`);
     });
 
@@ -154,6 +177,12 @@ export function startEmbeddedWatcher(
 
       // deliverable → trigger architect only when the deliverable is from analyst
       if (msgType === 'deliverable' && agent === 'architect' && parsed.role !== 'analyst') continue;
+
+      // revision_request → trigger only the targeted role
+      if (msgType === 'revision_request') {
+        const targetRole = (parsed as { targetRole?: string }).targetRole;
+        if (targetRole && targetRole !== agent) continue;
+      }
 
       dispatchAgent(agent, seq, messageJson);
     }

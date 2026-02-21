@@ -6,6 +6,7 @@
 
 import 'dotenv/config';
 import express from 'express';
+import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import {
@@ -19,6 +20,19 @@ import {
 import { MarketplaceOrchestrator } from './marketplace-orchestrator.js';
 import { startEmbeddedWatcher } from './embedded-watcher.js';
 import type { BidApproval, ClientReview, MarketplaceInfra, MarketplaceMessage } from './types/marketplace.js';
+import { getProfile } from './config/agent-profiles.js';
+
+// Kill orphaned openclaw agent processes and remove session locks
+// Prevents session lock conflicts when restarting the server
+function cleanupAgentProcesses(): void {
+  try {
+    execSync("pkill -f 'openclaw agent' 2>/dev/null || true", { stdio: 'ignore' });
+  } catch { /* ignore */ }
+  try {
+    execSync("rm -f ~/.openclaw/agents/*/sessions/*/lock 2>/dev/null || true", { stdio: 'ignore' });
+  } catch { /* ignore */ }
+  console.log('[CLEANUP] Killed orphaned openclaw processes & removed session locks');
+}
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -63,6 +77,8 @@ app.post('/api/marketplace/trigger', async (req, res) => {
     currentInfra = null;
     pendingTrigger = null;
   }
+  // Always clean up orphaned agent processes before a new session
+  cleanupAgentProcesses();
 
   const { paperUrl, budget, description } = req.body;
 
@@ -166,27 +182,24 @@ app.get('/api/marketplace/feed', async (req, res) => {
     const infra = await setupMarketplaceInfra(ctx, trigger.budget, (msg) => send('log', { icon: '⏳', msg }));
     currentInfra = infra;
 
-    // Send agent card data
+    // Send agent card data with persona profiles
     send('agent', {
       role: 'escrow',
       accountId: infra.escrowAccount.accountId,
       url: hashscanUrl('account', infra.escrowAccount.accountId),
+      profile: { name: 'Escrow', fullName: 'Escrow Account', specialty: 'Fund Management', tagline: '', icon: '🔒', color: '#6366f1' },
     });
-    send('agent', {
-      role: 'analyst',
-      accountId: infra.analystAccount.accountId,
-      url: hashscanUrl('account', infra.analystAccount.accountId),
-    });
-    send('agent', {
-      role: 'architect',
-      accountId: infra.architectAccount.accountId,
-      url: hashscanUrl('account', infra.architectAccount.accountId),
-    });
-    send('agent', {
-      role: 'scholar',
-      accountId: infra.scholarAccount.accountId,
-      url: hashscanUrl('account', infra.scholarAccount.accountId),
-    });
+    for (const role of ['analyst', 'architect', 'scholar'] as const) {
+      const account = role === 'analyst' ? infra.analystAccount
+        : role === 'architect' ? infra.architectAccount
+        : infra.scholarAccount;
+      send('agent', {
+        role,
+        accountId: account.accountId,
+        url: hashscanUrl('account', account.accountId),
+        profile: getProfile(role),
+      });
+    }
 
     // Send infrastructure card data
     send('infra', {
@@ -208,6 +221,8 @@ app.get('/api/marketplace/feed', async (req, res) => {
     // ── Embedded watcher: start gRPC subscription right after topic creation ──
     const watcher = startEmbeddedWatcher(ctx, infra.topicId, (msg) => {
       send('log', { icon: '📡', msg });
+    }, (agent, chunk) => {
+      send('agent_output', { agent, text: chunk });
     });
     send('log', { icon: '📡', msg: `HCS watcher active — waiting for automatic agent triggers` });
 
@@ -335,6 +350,9 @@ app.get('/api/monitor/agents', async (req, res) => {
 
 // Prevent process from exiting immediately due to Hedera SDK gRPC channels unref'ing the event loop
 setInterval(() => {}, 1 << 30);
+
+// Clean slate on startup
+cleanupAgentProcesses();
 
 app.listen(PORT, () => {
   console.log(`\n  🏪 Course Generation Marketplace`);

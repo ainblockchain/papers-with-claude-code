@@ -20,6 +20,7 @@ export interface BidMessage {
   type: 'bid';
   requestId: string;
   sender: string;        // bidding agent account ID
+  senderName?: string;   // human-facing name ("Iris", "Alex")
   role: 'analyst' | 'architect';
   price: number;         // requested amount (KNOW)
   pitch: string;         // bid proposal description
@@ -51,6 +52,7 @@ export interface DeliverableMessage {
   type: 'deliverable';
   requestId: string;
   sender: string;        // Analyst or Architect account ID
+  senderName?: string;   // human-facing name ("Iris", "Alex")
   role: 'analyst' | 'architect';
   content: Record<string, unknown>;  // work deliverable (flexible structure)
   timestamp: string;
@@ -109,6 +111,45 @@ export interface ConsultationResponseMessage {
   timestamp: string;
 }
 
+/** Revision request — sent when client review rejects a deliverable (rework loop) */
+export interface RevisionRequestMessage {
+  type: 'revision_request';
+  requestId: string;
+  sender: string;        // server (on behalf of requester)
+  targetRole: 'analyst' | 'architect';
+  feedback: string;      // what needs fixing
+  revisionNumber: number; // 1-based revision count
+  timestamp: string;
+}
+
+/** Scholar fee quote — Scholar proposes a consultation fee before answering */
+export interface ConsultationFeeQuoteMessage {
+  type: 'consultation_fee_quote';
+  requestId: string;
+  sender: string;        // Scholar account ID
+  fee: number;           // proposed fee in KNOW tokens
+  estimatedDepth: 'brief' | 'standard' | 'deep';
+  timestamp: string;
+}
+
+/** Fee accepted — agent agrees to Scholar's proposed fee */
+export interface FeeAcceptedMessage {
+  type: 'fee_accepted';
+  requestId: string;
+  sender: string;        // requesting agent account ID
+  fee: number;           // accepted fee
+  timestamp: string;
+}
+
+/** Fee rejected — agent rejects Scholar's proposed fee */
+export interface FeeRejectedMessage {
+  type: 'fee_rejected';
+  requestId: string;
+  sender: string;        // requesting agent account ID
+  reason: string;
+  timestamp: string;
+}
+
 /** Union of all HCS message types */
 export type MarketplaceMessage =
   | CourseRequestMessage
@@ -120,7 +161,11 @@ export type MarketplaceMessage =
   | EscrowReleaseMessage
   | CourseCompleteMessage
   | ConsultationRequestMessage
-  | ConsultationResponseMessage;
+  | ConsultationResponseMessage
+  | RevisionRequestMessage
+  | ConsultationFeeQuoteMessage
+  | FeeAcceptedMessage
+  | FeeRejectedMessage;
 
 /** Literal union of the type field from HCS messages */
 export type MarketplaceMessageType = MarketplaceMessage['type'];
@@ -169,6 +214,8 @@ export interface BidApproval {
   analystPrice: number;
   architectAccountId: string;
   architectPrice: number;
+  /** N-bid generalization — when present, overrides the fixed analyst/architect fields */
+  selectedBids?: Array<{ accountId: string; role: string; price: number }>;
 }
 
 /** Data passed when the requester submits review results */
@@ -206,6 +253,11 @@ export interface CourseSession {
   // Client reviews
   clientReviews: ClientReviewMessage[];
 
+  // Rework loop
+  analystRevisionCount: number;
+  architectRevisionCount: number;
+  maxRevisions: number;          // default 2
+
   // Settlement
   releases: EscrowReleaseMessage[];
 }
@@ -224,3 +276,18 @@ export const DEFAULT_ESCROW_SPLIT = {
   analyst: 0.5,    // 50%
   architect: 0.5,  // 50%
 } as const;
+
+// ── Score-proportional payment calculation ──
+// Why not just bidPrice * score / 100? Because:
+//   - Below 50 = rejected quality → zero payment (penalty)
+//   - 80+ = high quality → full payment (reward)
+//   - 50-79 = proportional to score (incentive to do better)
+
+export function calculatePayment(bidPrice: number, score: number, approved: boolean): number {
+  if (!approved || score < 50) return 0;
+  if (score >= 80) return bidPrice;
+  return Math.floor(bidPrice * score / 100);
+}
+
+/** Default max revision rounds before force-accepting */
+export const MAX_REVISIONS = 2;

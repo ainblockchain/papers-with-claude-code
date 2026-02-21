@@ -27,9 +27,9 @@ if (!topicIdArg) {
 // ── Message routing table ──
 
 const AGENT_ROUTING: Record<string, MarketplaceMessageType[]> = {
-  analyst:   ['course_request', 'bid_accepted', 'consultation_response'],
-  architect: ['course_request', 'bid_accepted', 'deliverable', 'consultation_response'],
-  scholar:   ['consultation_request'],
+  analyst:   ['course_request', 'bid_accepted', 'consultation_response', 'revision_request', 'consultation_fee_quote'],
+  architect: ['course_request', 'bid_accepted', 'deliverable', 'consultation_response', 'revision_request', 'consultation_fee_quote'],
+  scholar:   ['consultation_request', 'fee_accepted', 'fee_rejected'],
 };
 
 // Messages published by the server — agents do not need to react
@@ -155,6 +155,12 @@ function routeMessage(seq: number, raw: Uint8Array): void {
     if (msgType === 'deliverable') {
       const role = (parsed as { role?: string }).role;
       if (agent === 'architect' && role !== 'analyst') continue;
+    }
+
+    // revision_request → trigger only the targeted role
+    if (msgType === 'revision_request') {
+      const targetRole = (parsed as { targetRole?: string }).targetRole;
+      if (targetRole && targetRole !== agent) continue;
     }
 
     dispatchAgent(agent, seq, messageJson);

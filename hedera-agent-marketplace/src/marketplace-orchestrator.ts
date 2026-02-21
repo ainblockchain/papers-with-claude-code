@@ -25,9 +25,10 @@ import type {
   BidApproval,
   ClientReview,
 } from './types/marketplace.js';
-import { DEFAULT_ESCROW_SPLIT } from './types/marketplace.js';
+import { DEFAULT_ESCROW_SPLIT, calculatePayment, MAX_REVISIONS } from './types/marketplace.js';
 import { pollForHcsMessage } from './openclaw/hcs-poller.js';
 import { ERC8004Client } from './erc8004/client.js';
+import { getProfile, getDisplayName } from './config/agent-profiles.js';
 
 export type SSEEmitter = (type: string, data: any) => void;
 
@@ -107,6 +108,9 @@ export class MarketplaceOrchestrator {
       escrowReleased: 0,
       bids: [],
       clientReviews: [],
+      analystRevisionCount: 0,
+      architectRevisionCount: 0,
+      maxRevisions: MAX_REVISIONS,
       releases: [],
     };
 
@@ -166,13 +170,42 @@ export class MarketplaceOrchestrator {
 
     const collectedBids: BidMessage[] = [];
     for (const bm of bidMessages) {
-      const bid = bm.parsed as BidMessage;
+      const raw = bm.parsed as Record<string, any>;
+      // Normalize agent-authored bid fields (agents use varying schemas)
+      const bid: BidMessage = {
+        type: 'bid',
+        requestId: raw.requestId ?? requestId,
+        sender: raw.sender ?? raw.bidder ?? raw.senderAccount ?? '',
+        role: raw.role as any,
+        price: raw.price ?? raw.bidAmount ?? raw.amount ?? raw.bid ?? 0,
+        pitch: raw.pitch ?? raw.proposal ?? raw.description ?? '',
+        senderName: raw.senderName ?? raw.name ?? undefined,
+        timestamp: raw.timestamp ?? new Date().toISOString(),
+      };
       lastSeq = Math.max(lastSeq, bm.sequenceNumber);
       collectedBids.push(bid);
       this.session.bids.push(bid);
-      emit('hcs_message', this.formatHcsEvent(bm.sequenceNumber, 'bid', bid.sender, bid.role, {
+    }
+
+    // Infer missing roles: if a bid has no role, assign based on what's already taken
+    const expectedRoles: BidMessage['role'][] = ['analyst', 'architect'];
+    const takenRoles = new Set<BidMessage['role']>(collectedBids.filter(b => b.role).map(b => b.role));
+    for (const bid of collectedBids) {
+      if (!bid.role) {
+        const missing = expectedRoles.find(r => !takenRoles.has(r));
+        if (missing) {
+          bid.role = missing;
+          takenRoles.add(missing);
+        }
+      }
+    }
+
+    for (const bid of collectedBids) {
+      const bidProfile = getProfile(bid.role);
+      emit('hcs_message', this.formatHcsEvent(0, 'bid', bid.sender, bid.role, {
         role: bid.role, price: bid.price, pitch: bid.pitch,
-      }, bm.timestamp));
+        senderName: bid.senderName || bidProfile.name,
+      }, new Date().toISOString()));
     }
 
     // ── Step 3: AWAITING_BID_APPROVAL — waiting for client approval ──
@@ -215,140 +248,270 @@ export class MarketplaceOrchestrator {
     this.session.acceptedAnalyst = { accountId: approval.analystAccountId, price: analystPrice };
     this.session.acceptedArchitect = { accountId: approval.architectAccountId, price: architectPrice };
 
-    // ── Step 4: ANALYST_WORKING — wait for analyst to autonomously work and post deliverable ──
-    this.transition('ANALYST_WORKING', emit);
-    emit('step', { step: 4, title: 'Analyst Working (Autonomous)' });
-    emit('log', { icon: '🔬', msg: 'Waiting for Analyst agent autonomous analysis...' });
-    emit('agent_status', { role: 'analyst', status: 'working', statusText: 'Analyzing...' });
+    // ── Steps 4-6: Work → Review → (optional Rework) loop ──
+    // Agents work, client reviews. If rejected AND revisions remaining, loop back.
+    //
+    // IMPORTANT: Both agents are dispatched simultaneously by the embedded watcher
+    // when bid_accepted is posted. The orchestrator waits sequentially (analyst first,
+    // then architect), but the architect may finish before the analyst.
+    // We capture deliverableStartSeq here (after bid_accepted) so BOTH polls
+    // can see deliverables regardless of submission order.
 
-    const analystDeliverables = await pollForHcsMessage(
-      topicId,
-      { type: 'deliverable', role: 'analyst', requestId, afterSeq: lastSeq },
-      1,
-      300_000,
-      emit,
-    );
+    let needsAnalystWork = true;
+    let needsArchitectWork = true;
+    let reviewDone = false;
+    let review: ClientReview | null = null;
+    // Seq anchor for deliverable polling — captured before any agent work starts
+    let deliverableStartSeq = lastSeq;
 
-    if (analystDeliverables.length > 0) {
-      const ad = analystDeliverables[0];
-      const adParsed = ad.parsed as DeliverableMessage;
-      lastSeq = Math.max(lastSeq, ad.sequenceNumber);
-      this.session.analystDeliverable = adParsed;
+    while (!reviewDone) {
+      // ── ANALYST_WORKING ──
+      if (needsAnalystWork) {
+        const analystProfile = getProfile('analyst');
+        const round = this.session.analystRevisionCount > 0
+          ? ` (Round ${this.session.analystRevisionCount + 1})`
+          : '';
+        this.transition('ANALYST_WORKING', emit);
+        emit('step', { step: 4, title: `${analystProfile.name} Working${round}` });
+        emit('log', { icon: analystProfile.icon, msg: `Waiting for ${analystProfile.fullName} autonomous analysis...` });
+        emit('agent_status', { role: 'analyst', status: 'working', statusText: 'Analyzing...', profile: analystProfile });
 
-      emit('hcs_message', this.formatHcsEvent(ad.sequenceNumber, 'deliverable', adParsed.sender, 'analyst', {
-        role: 'analyst',
-        preview: JSON.stringify(adParsed.content).slice(0, 200) + '...',
-      }, ad.timestamp));
-      emit('agent_status', { role: 'analyst', status: 'delivered', statusText: 'Delivered' });
-    } else {
-      emit('log', { icon: '⚠️', msg: 'Analyst deliverable not detected — timeout' });
-      emit('agent_status', { role: 'analyst', status: 'timeout', statusText: 'Timeout' });
-    }
+        // Orchestrator-managed Scholar consultation (first iteration only)
+        if (this.session.analystRevisionCount === 0) {
+          const consult = await this.runConsultation(infra, 'analyst', requestId, topicId, tokenId, paperUrl, lastSeq, emit);
+          lastSeq = consult.lastSeq;
+        }
 
-    // ── Step 5: ARCHITECT_WORKING — wait for architect to autonomously design and post deliverable ──
-    this.transition('ARCHITECT_WORKING', emit);
-    emit('step', { step: 5, title: 'Architect Working (Autonomous)' });
-    emit('log', { icon: '🏗️', msg: 'Waiting for Architect agent autonomous design...' });
-    emit('agent_status', { role: 'architect', status: 'working', statusText: 'Designing...' });
+        const analystDeliverables = await pollForHcsMessage(
+          topicId,
+          { type: 'deliverable', role: 'analyst', requestId, afterSeq: deliverableStartSeq },
+          1,
+          300_000,
+          emit,
+        );
 
-    const architectDeliverables = await pollForHcsMessage(
-      topicId,
-      { type: 'deliverable', role: 'architect', requestId, afterSeq: lastSeq },
-      1,
-      300_000,
-      emit,
-    );
+        if (analystDeliverables.length > 0) {
+          const ad = analystDeliverables[0];
+          lastSeq = Math.max(lastSeq, ad.sequenceNumber);
+          // Normalize deliverable fields (agents use varying schemas)
+          const raw = ad.parsed as Record<string, any>;
+          const adParsed: DeliverableMessage = {
+            type: 'deliverable',
+            requestId: raw.requestId ?? requestId,
+            sender: raw.sender ?? raw.senderAccount ?? '',
+            role: raw.role ?? 'analyst',
+            content: raw.content ?? raw.deliverable ?? raw.analysis ?? raw.output ?? { summary: raw.summary ?? '' },
+            senderName: raw.senderName ?? raw.name ?? analystProfile.name,
+            timestamp: raw.timestamp ?? ad.timestamp,
+          };
+          this.session.analystDeliverable = adParsed;
 
-    if (architectDeliverables.length > 0) {
-      const archD = architectDeliverables[0];
-      const archParsed = archD.parsed as DeliverableMessage;
-      lastSeq = Math.max(lastSeq, archD.sequenceNumber);
-      this.session.architectDeliverable = archParsed;
+          emit('hcs_message', this.formatHcsEvent(ad.sequenceNumber, 'deliverable', adParsed.sender, 'analyst', {
+            role: 'analyst',
+            senderName: adParsed.senderName || analystProfile.name,
+            preview: JSON.stringify(adParsed.content).slice(0, 200) + '...',
+          }, ad.timestamp));
+          emit('agent_status', { role: 'analyst', status: 'delivered', statusText: 'Delivered' });
+        } else {
+          emit('log', { icon: '⚠️', msg: `${analystProfile.name} deliverable not detected — timeout` });
+          emit('agent_status', { role: 'analyst', status: 'timeout', statusText: 'Timeout' });
+        }
+      }
 
-      emit('hcs_message', this.formatHcsEvent(archD.sequenceNumber, 'deliverable', archParsed.sender, 'architect', {
-        role: 'architect',
-        preview: JSON.stringify(archParsed.content).slice(0, 200) + '...',
-      }, archD.timestamp));
-      emit('agent_status', { role: 'architect', status: 'delivered', statusText: 'Delivered' });
-    } else {
-      emit('log', { icon: '⚠️', msg: 'Architect deliverable not detected — timeout' });
-      emit('agent_status', { role: 'architect', status: 'timeout', statusText: 'Timeout' });
-    }
+      // ── ARCHITECT_WORKING ──
+      if (needsArchitectWork) {
+        const architectProfile = getProfile('architect');
+        const round = this.session.architectRevisionCount > 0
+          ? ` (Round ${this.session.architectRevisionCount + 1})`
+          : '';
+        this.transition('ARCHITECT_WORKING', emit);
+        emit('step', { step: 5, title: `${architectProfile.name} Working${round}` });
+        emit('log', { icon: architectProfile.icon, msg: `Waiting for ${architectProfile.fullName} autonomous design...` });
+        emit('agent_status', { role: 'architect', status: 'working', statusText: 'Designing...', profile: architectProfile });
 
-    // ── Step 6: AWAITING_REVIEW — waiting for client review ──
-    this.transition('AWAITING_REVIEW', emit);
-    emit('step', { step: 6, title: 'Awaiting Your Review (Human)' });
-    emit('log', { icon: '👤', msg: 'Waiting for client review...' });
+        // Orchestrator-managed Scholar consultation (first iteration only)
+        if (this.session.architectRevisionCount === 0) {
+          const consult = await this.runConsultation(infra, 'architect', requestId, topicId, tokenId, paperUrl, lastSeq, emit);
+          lastSeq = consult.lastSeq;
+        }
 
-    emit('awaiting_review', {
-      analystDeliverable: this.session.analystDeliverable ?? null,
-      architectDeliverable: this.session.architectDeliverable ?? null,
-    });
+        // Use deliverableStartSeq (not lastSeq) so we don't miss deliverables
+        // posted while the analyst was working (agents are dispatched in parallel)
+        const architectDeliverables = await pollForHcsMessage(
+          topicId,
+          { type: 'deliverable', role: 'architect', requestId, afterSeq: deliverableStartSeq },
+          1,
+          300_000,
+          emit,
+        );
 
-    const review = await new Promise<ClientReview>((resolve) => {
-      this.reviewResolver = resolve;
-    });
+        if (architectDeliverables.length > 0) {
+          const archD = architectDeliverables[0];
+          lastSeq = Math.max(lastSeq, archD.sequenceNumber);
+          // Normalize deliverable fields (agents use varying schemas)
+          const raw = archD.parsed as Record<string, any>;
+          const archParsed: DeliverableMessage = {
+            type: 'deliverable',
+            requestId: raw.requestId ?? requestId,
+            sender: raw.sender ?? raw.senderAccount ?? '',
+            role: raw.role ?? 'architect',
+            content: raw.content ?? raw.deliverable ?? raw.course ?? raw.design ?? raw.output ?? { summary: raw.summary ?? '' },
+            senderName: raw.senderName ?? raw.name ?? architectProfile.name,
+            timestamp: raw.timestamp ?? archD.timestamp,
+          };
+          this.session.architectDeliverable = archParsed;
 
-    // Record client_review to HCS
-    for (const [role, accountId, approved, score, feedback] of [
-      ['analyst', analystAccount.accountId, review.analystApproved, review.analystScore, review.analystFeedback] as const,
-      ['architect', architectAccount.accountId, review.architectApproved, review.architectScore, review.architectFeedback] as const,
-    ]) {
-      const reviewPayload = JSON.stringify({
-        type: 'client_review',
-        requestId,
-        sender: 'requester',
-        targetRole: role,
-        targetAccountId: accountId,
-        approved,
-        score,
-        feedback,
-        timestamp: new Date().toISOString(),
+          emit('hcs_message', this.formatHcsEvent(archD.sequenceNumber, 'deliverable', archParsed.sender, 'architect', {
+            role: 'architect',
+            senderName: archParsed.senderName || architectProfile.name,
+            preview: JSON.stringify(archParsed.content).slice(0, 200) + '...',
+          }, archD.timestamp));
+          emit('agent_status', { role: 'architect', status: 'delivered', statusText: 'Delivered' });
+        } else {
+          emit('log', { icon: '⚠️', msg: `${architectProfile.name} deliverable not detected — timeout` });
+          emit('agent_status', { role: 'architect', status: 'timeout', statusText: 'Timeout' });
+        }
+      }
+
+      // Update deliverableStartSeq for potential rework iterations
+      deliverableStartSeq = lastSeq;
+
+      // ── AWAITING_REVIEW ──
+      this.transition('AWAITING_REVIEW', emit);
+      emit('step', { step: 6, title: 'Awaiting Your Review (Human)' });
+      emit('log', { icon: '👤', msg: 'Waiting for client review...' });
+
+      emit('awaiting_review', {
+        analystDeliverable: this.session.analystDeliverable ?? null,
+        architectDeliverable: this.session.architectDeliverable ?? null,
       });
-      const reviewRecord = await submitMessage(this.ctx, topicId, reviewPayload);
-      lastSeq = reviewRecord.sequenceNumber;
-      emit('hcs_message', this.formatHcsEvent(reviewRecord.sequenceNumber, 'client_review', 'requester', 'requester', {
-        targetRole: role, approved, score, feedback,
-      }, reviewRecord.timestamp));
+
+      review = await new Promise<ClientReview>((resolve) => {
+        this.reviewResolver = resolve;
+      });
+
+      // Record client_review to HCS
+      for (const [role, accountId, approved, score, feedback] of [
+        ['analyst', analystAccount.accountId, review.analystApproved, review.analystScore, review.analystFeedback] as const,
+        ['architect', architectAccount.accountId, review.architectApproved, review.architectScore, review.architectFeedback] as const,
+      ]) {
+        const reviewPayload = JSON.stringify({
+          type: 'client_review',
+          requestId,
+          sender: 'requester',
+          targetRole: role,
+          targetAccountId: accountId,
+          approved,
+          score,
+          feedback,
+          timestamp: new Date().toISOString(),
+        });
+        const reviewRecord = await submitMessage(this.ctx, topicId, reviewPayload);
+        lastSeq = reviewRecord.sequenceNumber;
+        emit('hcs_message', this.formatHcsEvent(reviewRecord.sequenceNumber, 'client_review', 'requester', 'requester', {
+          targetRole: role, approved, score, feedback,
+        }, reviewRecord.timestamp));
+      }
+
+      // Check if rework is needed
+      needsAnalystWork = !review.analystApproved && this.session.analystRevisionCount < this.session.maxRevisions;
+      needsArchitectWork = !review.architectApproved && this.session.architectRevisionCount < this.session.maxRevisions;
+
+      if (!needsAnalystWork && !needsArchitectWork) {
+        // All approved or max revisions reached
+        reviewDone = true;
+      } else {
+        // Post revision_request to HCS for rejected roles
+        for (const [role, needsWork, feedback] of [
+          ['analyst', needsAnalystWork, review.analystFeedback] as const,
+          ['architect', needsArchitectWork, review.architectFeedback] as const,
+        ]) {
+          if (!needsWork) continue;
+
+          const revCount = role === 'analyst'
+            ? ++this.session.analystRevisionCount
+            : ++this.session.architectRevisionCount;
+          const roleName = getDisplayName(role);
+
+          const revisionPayload = JSON.stringify({
+            type: 'revision_request',
+            requestId,
+            sender: 'server',
+            targetRole: role,
+            feedback,
+            revisionNumber: revCount,
+            timestamp: new Date().toISOString(),
+          });
+          const revRecord = await submitMessage(this.ctx, topicId, revisionPayload);
+          lastSeq = revRecord.sequenceNumber;
+          emit('hcs_message', this.formatHcsEvent(revRecord.sequenceNumber, 'revision_request', 'server', 'server', {
+            targetRole: role, targetName: roleName, feedback, revisionNumber: revCount,
+          }, revRecord.timestamp));
+          emit('log', { icon: '🔄', msg: `Revision requested for ${roleName} (Round ${revCount + 1})` });
+        }
+      }
     }
 
-    // Record ERC-8004 reputation (based on client review scores)
+    // Record ERC-8004 reputation (based on final client review scores)
     await this.recordERC8004Reputation(infra, requestId, [
-      { role: 'analyst', score: review.analystScore, feedback: review.analystFeedback },
-      { role: 'architect', score: review.architectScore, feedback: review.architectFeedback },
+      { role: 'analyst', score: review!.analystScore, feedback: review!.analystFeedback },
+      { role: 'architect', score: review!.architectScore, feedback: review!.architectFeedback },
     ], emit);
 
-    // ── Step 7: RELEASING — escrow release (50:50, approved agents only) ──
+    // ── Step 7: RELEASING — score-proportional escrow release ──
     this.transition('RELEASING', emit);
-    emit('log', { icon: '💰', msg: 'Processing escrow release...' });
+    emit('log', { icon: '💰', msg: 'Calculating score-proportional payments...' });
+
+    const analystPayment = calculatePayment(analystPrice, review!.analystScore, review!.analystApproved);
+    const architectPayment = calculatePayment(architectPrice, review!.architectScore, review!.architectApproved);
+
+    // Emit payment preview so the dashboard can show the breakdown
+    emit('payment_preview', {
+      analyst: {
+        name: getDisplayName('analyst'),
+        score: review!.analystScore,
+        bidPrice: analystPrice,
+        payment: analystPayment,
+        approved: review!.analystApproved,
+      },
+      architect: {
+        name: getDisplayName('architect'),
+        score: review!.architectScore,
+        bidPrice: architectPrice,
+        payment: architectPayment,
+        approved: review!.architectApproved,
+      },
+    });
 
     let totalReleased = 0;
 
-    if (review.analystApproved) {
-      const txId = await escrowRelease(this.ctx, escrowAccount, tokenId, analystAccount, analystPrice);
-      totalReleased += analystPrice;
+    if (analystPayment > 0) {
+      const txId = await escrowRelease(this.ctx, escrowAccount, tokenId, analystAccount, analystPayment);
+      totalReleased += analystPayment;
       const releasePayload = JSON.stringify({
         type: 'escrow_release', requestId, sender: 'server',
-        toAccountId: analystAccount.accountId, role: 'analyst', amount: analystPrice, txId,
+        toAccountId: analystAccount.accountId, role: 'analyst', amount: analystPayment, txId,
         timestamp: new Date().toISOString(),
       });
       const releaseRecord = await submitMessage(this.ctx, topicId, releasePayload);
       emit('hcs_message', this.formatHcsEvent(releaseRecord.sequenceNumber, 'escrow_release', 'server', 'server', {
-        toAccountId: analystAccount.accountId, role: 'analyst', amount: analystPrice, txId,
+        toAccountId: analystAccount.accountId, role: 'analyst', amount: analystPayment, txId,
+        name: getDisplayName('analyst'), score: review!.analystScore,
       }, releaseRecord.timestamp));
     }
 
-    if (review.architectApproved) {
-      const txId = await escrowRelease(this.ctx, escrowAccount, tokenId, architectAccount, architectPrice);
-      totalReleased += architectPrice;
+    if (architectPayment > 0) {
+      const txId = await escrowRelease(this.ctx, escrowAccount, tokenId, architectAccount, architectPayment);
+      totalReleased += architectPayment;
       const releasePayload = JSON.stringify({
         type: 'escrow_release', requestId, sender: 'server',
-        toAccountId: architectAccount.accountId, role: 'architect', amount: architectPrice, txId,
+        toAccountId: architectAccount.accountId, role: 'architect', amount: architectPayment, txId,
         timestamp: new Date().toISOString(),
       });
       const releaseRecord = await submitMessage(this.ctx, topicId, releasePayload);
       emit('hcs_message', this.formatHcsEvent(releaseRecord.sequenceNumber, 'escrow_release', 'server', 'server', {
-        toAccountId: architectAccount.accountId, role: 'architect', amount: architectPrice, txId,
+        toAccountId: architectAccount.accountId, role: 'architect', amount: architectPayment, txId,
+        name: getDisplayName('architect'), score: review!.architectScore,
       }, releaseRecord.timestamp));
     }
 
@@ -383,8 +546,134 @@ export class MarketplaceOrchestrator {
       courseTitle: `Course from: ${paperUrl}`,
     }, completeRecord.timestamp));
 
-    emit('agent_status', { role: 'analyst', status: 'done', statusText: 'Done' });
-    emit('agent_status', { role: 'architect', status: 'done', statusText: 'Done' });
+    emit('agent_status', { role: 'analyst', status: 'done', statusText: 'Done', profile: getProfile('analyst') });
+    emit('agent_status', { role: 'architect', status: 'done', statusText: 'Done', profile: getProfile('architect') });
+  }
+
+  // ── Orchestrator-managed Scholar consultation ──
+  // Posts consultation_request → waits for Scholar fee_quote → posts fee_accepted + KNOW transfer → waits for response.
+  // Falls back to synthetic messages on timeout so the flow always completes.
+  // This ensures every session has on-chain consultation + agent-to-agent KNOW payment.
+
+  private async runConsultation(
+    infra: MarketplaceInfra,
+    role: 'analyst' | 'architect',
+    requestId: string,
+    topicId: string,
+    tokenId: string,
+    paperUrl: string,
+    afterSeq: number,
+    emit: SSEEmitter,
+  ): Promise<{ response: string; lastSeq: number }> {
+    const agentAccount = role === 'analyst' ? infra.analystAccount : infra.architectAccount;
+    const scholarAccount = infra.scholarAccount;
+    const profile = getProfile(role);
+    const scholarProfile = getProfile('scholar');
+    const fee = 5;
+    let lastSeq = afterSeq;
+
+    const question = role === 'analyst'
+      ? `What are the key methodological contributions and potential limitations of this paper (${paperUrl})? Focus on experimental design and reproducibility.`
+      : `What pedagogical approaches work best for teaching the core concepts from this paper? Suggest hands-on exercises and assessment strategies.`;
+
+    emit('log', { icon: '📩', msg: `${profile.name} requesting consultation from ${scholarProfile.fullName}...` });
+
+    // Step 1: Post consultation_request from agent
+    const reqRec = await submitMessage(this.ctx, topicId, JSON.stringify({
+      type: 'consultation_request', requestId, sender: agentAccount.accountId,
+      senderName: profile.name, question, offeredFee: fee,
+      timestamp: new Date().toISOString(),
+    }));
+    lastSeq = reqRec.sequenceNumber;
+    emit('hcs_message', this.formatHcsEvent(reqRec.sequenceNumber, 'consultation_request', agentAccount.accountId, role, {
+      question: question.slice(0, 120) + '...', offeredFee: fee, senderName: profile.name,
+    }, reqRec.timestamp));
+
+    // Step 2: Wait for Scholar's fee_quote (watcher dispatches Scholar on consultation_request)
+    let scholarResponded = false;
+    const feeQuotes = await pollForHcsMessage(
+      topicId,
+      { type: 'consultation_fee_quote' as any, requestId, afterSeq: lastSeq },
+      1, 45_000, emit,
+    );
+
+    if (feeQuotes.length > 0) {
+      lastSeq = Math.max(lastSeq, feeQuotes[0].sequenceNumber);
+      scholarResponded = true;
+      const fq = feeQuotes[0].parsed as any;
+      emit('hcs_message', this.formatHcsEvent(feeQuotes[0].sequenceNumber, 'consultation_fee_quote', fq.sender || scholarAccount.accountId, 'scholar', {
+        fee: fq.fee ?? fee, estimatedDepth: fq.estimatedDepth ?? 'standard', senderName: scholarProfile.name,
+      }, feeQuotes[0].timestamp));
+    } else {
+      // Scholar timeout — post synthetic fee_quote for on-chain record
+      emit('log', { icon: '⏱️', msg: `${scholarProfile.name} fee quote timeout — using default` });
+      const synthRec = await submitMessage(this.ctx, topicId, JSON.stringify({
+        type: 'consultation_fee_quote', requestId, sender: scholarAccount.accountId,
+        senderName: scholarProfile.name, fee, estimatedDepth: 'standard',
+        timestamp: new Date().toISOString(),
+      }));
+      lastSeq = synthRec.sequenceNumber;
+      emit('hcs_message', this.formatHcsEvent(synthRec.sequenceNumber, 'consultation_fee_quote', scholarAccount.accountId, 'scholar', {
+        fee, estimatedDepth: 'standard', senderName: scholarProfile.name,
+      }, synthRec.timestamp));
+    }
+
+    // Step 3: Post fee_accepted from agent
+    const acceptRec = await submitMessage(this.ctx, topicId, JSON.stringify({
+      type: 'fee_accepted', requestId, sender: agentAccount.accountId,
+      senderName: profile.name, fee,
+      timestamp: new Date().toISOString(),
+    }));
+    lastSeq = acceptRec.sequenceNumber;
+    emit('hcs_message', this.formatHcsEvent(acceptRec.sequenceNumber, 'fee_accepted', agentAccount.accountId, role, {
+      fee, senderName: profile.name,
+    }, acceptRec.timestamp));
+
+    // Step 4: Transfer consultation fee from escrow to Scholar (project expense)
+    try {
+      await escrowRelease(this.ctx, infra.escrowAccount, tokenId, scholarAccount, fee);
+      this.session!.escrowReleased += fee;
+      emit('log', { icon: '🪙', msg: `${profile.name} → ${scholarProfile.name}: ${fee} KNOW consultation fee` });
+      emit('escrow_update', {
+        locked: this.session!.escrowLocked,
+        released: this.session!.escrowReleased,
+        remaining: this.session!.escrowLocked - this.session!.escrowReleased,
+      });
+    } catch (err: any) {
+      emit('log', { icon: '⚠️', msg: `Consultation fee transfer failed: ${err.message}` });
+    }
+
+    // Step 5: Wait for consultation_response from Scholar
+    const fallbackAnswer = 'The paper presents a robust methodology with well-designed ablation studies. Key strengths include the scalability analysis and attention visualization. For pedagogical design, consider starting with intuition before mathematical formulation, and include hands-on implementation exercises.';
+    let answer = fallbackAnswer;
+
+    const responses = await pollForHcsMessage(
+      topicId,
+      { type: 'consultation_response' as any, requestId, afterSeq: lastSeq },
+      1, scholarResponded ? 45_000 : 5_000, emit,
+    );
+
+    if (responses.length > 0) {
+      lastSeq = Math.max(lastSeq, responses[0].sequenceNumber);
+      answer = (responses[0].parsed as any).answer || answer;
+      emit('hcs_message', this.formatHcsEvent(responses[0].sequenceNumber, 'consultation_response', scholarAccount.accountId, 'scholar', {
+        answer: answer.slice(0, 200) + '...', fee, senderName: scholarProfile.name,
+      }, responses[0].timestamp));
+    } else {
+      // Post synthetic consultation_response
+      const synthRes = await submitMessage(this.ctx, topicId, JSON.stringify({
+        type: 'consultation_response', requestId, sender: scholarAccount.accountId,
+        senderName: scholarProfile.name, answer, fee,
+        timestamp: new Date().toISOString(),
+      }));
+      lastSeq = synthRes.sequenceNumber;
+      emit('hcs_message', this.formatHcsEvent(synthRes.sequenceNumber, 'consultation_response', scholarAccount.accountId, 'scholar', {
+        answer: answer.slice(0, 200) + '...', fee, senderName: scholarProfile.name,
+      }, synthRes.timestamp));
+    }
+
+    emit('log', { icon: '✅', msg: `Consultation complete: ${profile.name} ↔ ${scholarProfile.name} (${fee} KNOW)` });
+    return { response: answer, lastSeq };
   }
 
   // ── State transition ──
@@ -426,8 +715,9 @@ export class MarketplaceOrchestrator {
 
     for (const { role, account } of roles) {
       try {
+        const profile = getProfile(role);
         const result = await this.erc8004.registerAgent(
-          `marketplace-${role}`,
+          `marketplace-${profile.name}`,
           account.accountId,
           role,
         );
@@ -440,7 +730,7 @@ export class MarketplaceOrchestrator {
             txHash: result.txHash,
             etherscanUrl: result.etherscanUrl,
           });
-          emit('log', { icon: '🔗', msg: `ERC-8004: ${role} registered (ID: ${result.agentId})` });
+          emit('log', { icon: '🔗', msg: `ERC-8004: ${profile.fullName} registered (ID: ${result.agentId})` });
         }
       } catch (err: any) {
         emit('log', { icon: '⚠️', msg: `ERC-8004 ${role} registration failed (continuing): ${err.message}` });

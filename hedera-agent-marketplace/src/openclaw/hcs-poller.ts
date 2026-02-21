@@ -60,7 +60,12 @@ export async function pollForHcsMessage(
       try {
         parsed = JSON.parse(msg.message) as MarketplaceMessage;
       } catch {
-        // JSON parse failed — skip (agent may send invalid format)
+        // JSON parse failed — log raw content for debugging (may indicate chunking issue)
+        const preview = msg.message.slice(0, 150);
+        emit?.('log', {
+          icon: '⚠️',
+          msg: `HCS seq:${msg.sequenceNumber} JSON parse failed (${msg.message.length} chars) — "${preview}..."`,
+        });
         seenSeqs.add(msg.sequenceNumber);
         continue;
       }
@@ -68,7 +73,8 @@ export async function pollForHcsMessage(
       // Filter matching
       if (filter.type && parsed.type !== filter.type) continue;
       if (filter.requestId && 'requestId' in parsed && parsed.requestId !== filter.requestId) continue;
-      if (filter.role && 'role' in parsed && (parsed as any).role !== filter.role) continue;
+      // Role filter: match if role field matches OR is absent (agents may omit role)
+      if (filter.role && 'role' in parsed && (parsed as any).role && (parsed as any).role !== filter.role) continue;
 
       seenSeqs.add(msg.sequenceNumber);
       collected.push({
