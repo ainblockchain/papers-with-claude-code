@@ -30,7 +30,7 @@ if [ -z "$COURSE_ID" ] || [ -z "$USER_ID" ]; then
 fi
 
 # Build curl command
-CURL_ARGS=(-s -w "\n%{http_code}" -X POST "http://web-terminal-service:3000/api/x402/unlock-stage")
+CURL_ARGS=(-s -w "\n%{http_code}" -X POST "http://web-terminal-service/api/x402/unlock-stage")
 CURL_ARGS+=(-H "Content-Type: application/json")
 
 if [ -n "$PAYMENT_B64" ]; then

@@ -102,7 +102,7 @@ wss.on('connection', async (ws: WebSocket, req) => {
       session.id,
       {
         courseId: session.courseId,
-        model: 'haiku', // TODO: dynamically change based on x402 payment tier
+        model: 'opus', // TODO: dynamically change based on x402 payment tier
         // Generator mode: disable idle nudge (autonomous execution); learner: default behavior
         idleNudgeMs: session.mode === 'generator' ? 0 : (session.courseId ? 120_000 : 0),
         mode: session.mode,

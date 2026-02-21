@@ -32,12 +32,14 @@ spec:
     - ports:
         - port: 443
           protocol: TCP
-    # Allow traffic to web-terminal-service (x402 payment API)
+    # Allow traffic to web-terminal-service (x402 payment API, Service port 80)
     - to:
         - podSelector:
             matchLabels:
               app: web-terminal-service
       ports:
+        - port: 80
+          protocol: TCP
         - port: 3000
           protocol: TCP
     # Allow DNS lookups (kube-dns / CoreDNS)

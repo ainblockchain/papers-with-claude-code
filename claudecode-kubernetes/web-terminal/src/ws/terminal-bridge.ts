@@ -42,7 +42,7 @@ export async function attachTerminal(
   options?: TerminalOptions,
 ): Promise<void> {
   const exec = new k8s.Exec(kc);
-  const { model = 'haiku', idleNudgeMs = 0, mode = 'learner' } = options ?? {};
+  const { model = 'opus', idleNudgeMs = 0, mode = 'learner' } = options ?? {};
 
   let isCleanedUp = false;
   let idleTimer: ReturnType<typeof setTimeout> | null = null;
