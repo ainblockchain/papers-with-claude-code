@@ -120,13 +120,13 @@ class MultiChainPaymentAdapter {
     }
   }
 
-  // ── Base Sepolia: Course Purchase via client-side x402 ──
+  // ── Base: Course Purchase via client-side x402 ──
   private async basePurchaseCourse(
     params: ChainPaymentParams
   ): Promise<PaymentResult> {
     const x402Fetch = createBaseX402Fetch();
     if (!x402Fetch) {
-      return { success: false, error: 'Register passkey first to pay on Base Sepolia.', errorCode: 'no_passkey' };
+      return { success: false, error: 'Register passkey first to pay on Base.', errorCode: 'no_passkey' };
     }
     try {
       const res = await x402Fetch('/api/x402/enroll?chain=base', {
@@ -150,7 +150,7 @@ class MultiChainPaymentAdapter {
       const txHash = this.extractTxHashFromResponse(res);
       const data = await res.json();
       const explorerUrl = txHash
-        ? `https://sepolia.basescan.org/tx/${txHash}`
+        ? `https://basescan.org/tx/${txHash}`
         : data.explorerUrl;
 
       return {
@@ -183,13 +183,13 @@ class MultiChainPaymentAdapter {
     });
   }
 
-  // ── Base Sepolia: Stage Unlock via client-side x402 ──
+  // ── Base: Stage Unlock via client-side x402 ──
   private async baseUnlockStage(
     params: ChainPaymentParams
   ): Promise<PaymentResult> {
     const x402Fetch = createBaseX402Fetch();
     if (!x402Fetch) {
-      return { success: false, error: 'Register passkey first to pay on Base Sepolia.', errorCode: 'no_passkey' };
+      return { success: false, error: 'Register passkey first to pay on Base.', errorCode: 'no_passkey' };
     }
     try {
       const res = await x402Fetch('/api/x402/unlock-stage?chain=base', {
@@ -216,7 +216,7 @@ class MultiChainPaymentAdapter {
       const txHash = this.extractTxHashFromResponse(res);
       const data = await res.json();
       const explorerUrl = txHash
-        ? `https://sepolia.basescan.org/tx/${txHash}`
+        ? `https://basescan.org/tx/${txHash}`
         : data.explorerUrl;
 
       return {

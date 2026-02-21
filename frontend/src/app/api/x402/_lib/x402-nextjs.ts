@@ -1,5 +1,5 @@
 // Next.js App Router adapter for x402 payment gating
-// Supports Kite (Pieverse facilitator) and Base Sepolia (CDP facilitator)
+// Supports Kite (Pieverse facilitator) and Base Mainnet (CDP facilitator)
 
 import { NextRequest, NextResponse } from 'next/server';
 import { withX402 } from '@x402/next';
@@ -18,7 +18,7 @@ const kiteFacilitator = new HTTPFacilitatorClient({
 const kiteServer = new x402ResourceServer(kiteFacilitator);
 registerExactEvmScheme(kiteServer);
 
-// ── Base Sepolia Server (CDP facilitator) ──
+// ── Base Mainnet Server (CDP facilitator) ──
 
 const CDP_API_KEY_ID = process.env.CDP_API_KEY_ID || '';
 const CDP_API_KEY_SECRET = process.env.CDP_API_KEY_SECRET || '';
@@ -50,10 +50,10 @@ registerExactEvmScheme(baseServer);
 // ── Network Configuration ──
 
 const KITE_NETWORK: Network = `eip155:${process.env.NEXT_PUBLIC_KITE_CHAIN_ID || '2368'}`;
-const BASE_SEPOLIA_NETWORK: Network = 'eip155:84532';
+const BASE_NETWORK: Network = 'eip155:8453';
 
-// USDC on Base Sepolia (6 decimals)
-const BASE_SEPOLIA_USDC = '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
+// USDC on Base Mainnet (6 decimals)
+const BASE_USDC = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 
 // ── Exported helpers ──
 
@@ -65,7 +65,7 @@ export function getServerForChain(chain: string): x402ResourceServer {
 
 export function getExplorerUrl(chain: string): string {
   return chain === 'base'
-    ? 'https://sepolia.basescan.org'
+    ? 'https://basescan.org'
     : `https://testnet.kitescan.ai`;
 }
 
@@ -97,7 +97,7 @@ export function buildKiteRouteConfig(overrides?: {
 }
 
 /**
- * Build a RouteConfig for Base Sepolia (x402.org).
+ * Build a RouteConfig for Base Mainnet (CDP facilitator).
  * Uses standard USDC with 6 decimals: 0.001 USDC = 1000 (1e3)
  */
 export function buildBaseRouteConfig(overrides?: {
@@ -107,11 +107,11 @@ export function buildBaseRouteConfig(overrides?: {
   return {
     accepts: {
       scheme: 'exact',
-      network: BASE_SEPOLIA_NETWORK,
+      network: BASE_NETWORK,
       payTo,
       price: {
         amount: process.env.BASE_X402_PRICE_AMOUNT || '1000',
-        asset: BASE_SEPOLIA_USDC,
+        asset: BASE_USDC,
         extra: { name: 'USDC', version: '2' },
       },
       maxTimeoutSeconds: 300,

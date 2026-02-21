@@ -1,4 +1,4 @@
-// DEPRECATED: Base Sepolia payments now happen client-side using the user's
+// DEPRECATED: Base payments now happen client-side using the user's
 // passkey-derived EVM key. See src/lib/payment/base-x402-client.ts.
 
 import { NextResponse } from 'next/server';
@@ -8,7 +8,7 @@ export async function POST() {
     {
       error: 'gone',
       message:
-        'This proxy endpoint is deprecated. Base Sepolia payments are now signed client-side using your passkey-derived wallet.',
+        'This proxy endpoint is deprecated. Base payments are now signed client-side using your passkey-derived wallet.',
     },
     { status: 410 },
   );

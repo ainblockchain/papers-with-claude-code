@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getChainConfig } from '@/lib/kite/contracts';
 
-const BASE_SEPOLIA_RPC = 'https://sepolia.base.org';
-const BASE_SEPOLIA_EXPLORER = 'https://sepolia.basescan.org/';
+const BASE_RPC = 'https://mainnet.base.org';
+const BASE_EXPLORER = 'https://basescan.org/';
 
 export async function GET(
   req: NextRequest,
@@ -24,9 +24,9 @@ export async function GET(
   let chainName: string;
 
   if (chain === 'base') {
-    rpcUrl = BASE_SEPOLIA_RPC;
-    explorerBase = BASE_SEPOLIA_EXPLORER;
-    chainName = 'Base Sepolia';
+    rpcUrl = BASE_RPC;
+    explorerBase = BASE_EXPLORER;
+    chainName = 'Base';
   } else {
     const chainConfig = getChainConfig();
     rpcUrl = process.env.NEXT_PUBLIC_KITE_RPC_URL || chainConfig.rpcUrl;

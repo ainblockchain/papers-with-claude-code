@@ -31,11 +31,10 @@ export const PAYMENT_CHAINS: Record<PaymentChainId, PaymentChainConfig> = {
   },
   base: {
     id: 'base',
-    name: 'Base Sepolia',
+    name: 'Base',
     currency: 'USDC',
     icon: '\u{1F535}',
-    explorerUrl: 'https://sepolia.basescan.org',
-    faucetUrl: 'https://portal.cdp.coinbase.com/products/faucet',
+    explorerUrl: 'https://basescan.org',
     amounts: { coursePurchase: 0.001, stageUnlock: 0.001 },
     enabled: true,
   },

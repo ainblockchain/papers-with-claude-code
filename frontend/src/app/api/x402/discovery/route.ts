@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
 
   const kitePrice = process.env.KITE_X402_PRICE_AMOUNT || '1000000000000000';
   const basePrice = process.env.BASE_X402_PRICE_AMOUNT || '1000';
-  const BASE_SEPOLIA_USDC = '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
+  const BASE_USDC = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 
   return NextResponse.json({
     x402: {
@@ -31,15 +31,14 @@ export async function GET(req: NextRequest) {
         faucet: 'https://faucet.gokite.ai',
       },
       base: {
-        network: 'eip155:84532',
-        name: 'Base Sepolia',
-        asset: BASE_SEPOLIA_USDC,
+        network: 'eip155:8453',
+        name: 'Base',
+        asset: BASE_USDC,
         assetName: 'USDC',
         assetDecimals: 6,
-        facilitator: 'https://x402.org/facilitator',
-        explorer: 'https://sepolia.basescan.org',
-        faucet: 'https://faucet.circle.com/',
-        note: 'Recommended for external agents. Standard USDC.',
+        facilitator: process.env.CDP_X402_URL || 'https://api.cdp.coinbase.com/platform/v2/x402',
+        explorer: 'https://basescan.org',
+        note: 'Recommended for external agents. Standard USDC on Base Mainnet.',
       },
     },
     endpoints: {
@@ -53,7 +52,7 @@ export async function GET(req: NextRequest) {
         },
         payment: {
           kite: { scheme: 'exact', network: kiteNetwork, asset: KITE_TEST_USDT_ADDRESS, amount: kitePrice },
-          base: { scheme: 'exact', network: 'eip155:84532', asset: BASE_SEPOLIA_USDC, amount: basePrice },
+          base: { scheme: 'exact', network: 'eip155:8453', asset: BASE_USDC, amount: basePrice },
         },
       },
       'unlock-stage': {
@@ -70,7 +69,7 @@ export async function GET(req: NextRequest) {
         },
         payment: {
           kite: { scheme: 'exact', network: kiteNetwork, asset: KITE_TEST_USDT_ADDRESS, amount: kitePrice },
-          base: { scheme: 'exact', network: 'eip155:84532', asset: BASE_SEPOLIA_USDC, amount: basePrice },
+          base: { scheme: 'exact', network: 'eip155:8453', asset: BASE_USDC, amount: basePrice },
         },
       },
     },
