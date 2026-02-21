@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAin } from '@/lib/ain-server';
+import { titleWords, similarity, hasPaperRef, hasCodeRef } from '@/lib/mcp/helpers/publication-criteria';
 
 async function collectAllTopicPaths(ain: any): Promise<string[]> {
   const paths: string[] = [];
@@ -19,41 +20,7 @@ async function collectAllTopicPaths(ain: any): Promise<string[]> {
   return paths;
 }
 
-/** Check if entry has an official paper reference (arxiv tag) */
-function hasPaperRef(entry: any): boolean {
-  const tags = entry.tags || '';
-  return /arxiv:/i.test(tags) || /doi:/i.test(tags) || /paper:/i.test(tags);
-}
-
-/** Check if entry has a code repository reference */
-function hasCodeRef(entry: any): boolean {
-  const tags = entry.tags || '';
-  const content = entry.content || '';
-  const summary = entry.summary || '';
-  const all = `${tags} ${content} ${summary}`;
-  return /github\.com\/[\w-]+\/[\w.-]+/i.test(all) || /code:/i.test(tags) || /repo:/i.test(tags);
-}
-
-/** Extract significant words from a title */
-function titleWords(title: string): Set<string> {
-  return new Set(
-    title
-      .toLowerCase()
-      .replace(/[^a-z0-9\s]/g, '')
-      .split(/\s+/)
-      .filter(w => w.length > 2)
-  );
-}
-
-/** Jaccard similarity between two word sets (0-1) */
-function similarity(a: Set<string>, b: Set<string>): number {
-  let intersection = 0;
-  for (const w of a) if (b.has(w)) intersection++;
-  const union = a.size + b.size - intersection;
-  return union === 0 ? 0 : intersection / union;
-}
-
-/** Deduplicate entries by title similarity (>60% word overlap), keeping the most recent */
+/** Deduplicate entries by title similarity (>45% word overlap), keeping the most recent */
 function deduplicateByTitle(entries: any[]): any[] {
   const result: any[] = [];
   const wordSets: Set<string>[] = [];
