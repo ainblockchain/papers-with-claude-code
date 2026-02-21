@@ -1,13 +1,14 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, ShoppingCart, CheckCircle, AlertTriangle, ExternalLink, SkipForward } from 'lucide-react';
+import { Loader2, ShoppingCart, CheckCircle, AlertTriangle, ExternalLink, SkipForward, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ChainSelector } from '@/components/payment/ChainSelector';
 import { usePurchaseStore } from '@/stores/usePurchaseStore';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { PAYMENT_CHAINS, formatChainAmount } from '@/lib/payment/chains';
+import { getBaseUsdcBalance } from '@/lib/payment/base-x402-client';
 
 export function PurchaseModal() {
   const router = useRouter();
@@ -43,6 +44,22 @@ export function PurchaseModal() {
     }
   }, [purchaseModalPaperId, router, setPurchaseModal]);
 
+  // Fetch USDC balance when Base is selected
+  const [baseBalance, setBaseBalance] = useState<{ formatted: string; balance: bigint } | null>(null);
+  const [balanceLoading, setBalanceLoading] = useState(false);
+
+  useEffect(() => {
+    if (!purchaseModalPaperId || selectedChain !== 'base') {
+      setBaseBalance(null);
+      return;
+    }
+    setBalanceLoading(true);
+    getBaseUsdcBalance()
+      .then((result) => setBaseBalance(result))
+      .catch(() => setBaseBalance(null))
+      .finally(() => setBalanceLoading(false));
+  }, [purchaseModalPaperId, selectedChain]);
+
   if (!purchaseModalPaperId || !purchaseModalPaper) return null;
 
   // Redirect to login if not authenticated
@@ -54,6 +71,8 @@ export function PurchaseModal() {
 
   const isSuccess = getAccessStatus(purchaseModalPaperId) === 'purchased' && lastPurchaseReceipt;
   const chainConfig = PAYMENT_CHAINS[selectedChain];
+  const requiredAmount = chainConfig.amounts.coursePurchase;
+  const hasInsufficientBalance = selectedChain === 'base' && baseBalance && parseFloat(baseBalance.formatted) < requiredAmount;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
@@ -147,6 +166,28 @@ export function PurchaseModal() {
                 <p className="text-xs text-gray-600 mt-1">
                   {purchaseModalPaper.totalStages} stages included
                 </p>
+                {selectedChain === 'base' && (
+                  <div className="mt-2 pt-2 border-t border-gray-700/50 flex items-center justify-between">
+                    <span className="text-xs text-gray-500 flex items-center gap-1">
+                      <Wallet className="h-3 w-3" />
+                      Your Balance
+                    </span>
+                    {balanceLoading ? (
+                      <Loader2 className="h-3 w-3 animate-spin text-gray-500" />
+                    ) : baseBalance ? (
+                      <span className={`text-xs font-mono ${hasInsufficientBalance ? 'text-red-400' : 'text-green-400'}`}>
+                        {baseBalance.formatted} USDC
+                      </span>
+                    ) : (
+                      <span className="text-xs text-gray-600">--</span>
+                    )}
+                  </div>
+                )}
+                {hasInsufficientBalance && (
+                  <p className="mt-1 text-[10px] text-red-400">
+                    Insufficient balance. Fund your wallet or use Skip.
+                  </p>
+                )}
               </div>
 
               {isPurchasing && (
@@ -217,8 +258,8 @@ export function PurchaseModal() {
               </Button>
               <Button
                 onClick={handlePurchase}
-                className="flex-1 bg-[#FF9D00] hover:bg-[#FF9D00]/90 text-white"
-                disabled={isPurchasing}
+                className="flex-1 bg-[#FF9D00] hover:bg-[#FF9D00]/90 text-white disabled:opacity-50"
+                disabled={isPurchasing || !!hasInsufficientBalance}
               >
                 {isPurchasing ? (
                   <>
