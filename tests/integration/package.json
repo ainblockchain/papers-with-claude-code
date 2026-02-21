@@ -1,0 +1,13 @@
+{
+  "name": "cogito-integration-tests",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@ainblockchain/ain-js": "^1.15.0",
+    "@modelcontextprotocol/sdk": "^1.26.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.0",
+    "typescript": "^5.7.0"
+  }
+}
