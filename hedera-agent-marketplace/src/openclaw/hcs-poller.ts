@@ -1,19 +1,19 @@
-// HCS Mirror Node 폴링 유틸리티
-// 에이전트가 HCS에 게시한 메시지를 주기적으로 폴링하여 감지한다.
-// Mirror Node 반영 지연(3-6초)을 감안해 3초 간격으로 폴링한다.
+// HCS Mirror Node polling utility
+// Periodically polls messages posted by agents to HCS.
+// Polls every 3 seconds to account for Mirror Node propagation delay (3-6s).
 
 import { getTopicMessages, type HCSMessage } from '../hedera/client.js';
 import type { MarketplaceMessage, MarketplaceMessageType } from '../types/marketplace.js';
 import type { SSEEmitter } from '../marketplace-orchestrator.js';
 
 export interface HcsMessageFilter {
-  /** 메시지 type 필드로 필터 (예: 'bid', 'deliverable', 'review') */
+  /** Filter by message type field (e.g. 'bid', 'deliverable', 'review') */
   type?: MarketplaceMessageType;
-  /** 에이전트 role 필드로 필터 (type이 'bid'|'deliverable'일 때) */
+  /** Filter by agent role field (when type is 'bid' | 'deliverable') */
   role?: string;
-  /** 이 시퀀스 번호 이후의 메시지만 검색 */
+  /** Only retrieve messages after this sequence number */
   afterSeq?: number;
-  /** requestId로 필터 (세션 격리) */
+  /** Filter by requestId (session isolation) */
   requestId?: string;
 }
 
@@ -27,11 +27,11 @@ export interface ParsedHcsMessage {
 const POLL_INTERVAL_MS = 3000;
 
 /**
- * HCS 토픽을 폴링하여 특정 조건의 메시지를 감지한다.
+ * Polls an HCS topic for messages matching specific criteria.
  *
- * Mirror Node에 3초 간격으로 조회하면서:
- * - filter 조건에 맞는 메시지가 expectedCount만큼 모이면 반환
- * - timeoutMs 경과 시 지금까지 수집된 메시지를 반환
+ * Queries Mirror Node every 3 seconds:
+ * - Returns when expectedCount matching messages are collected
+ * - Returns collected messages so far when timeoutMs elapses
  */
 export async function pollForHcsMessage(
   topicId: string,
@@ -46,7 +46,7 @@ export async function pollForHcsMessage(
 
   emit?.('log', {
     icon: '🔍',
-    msg: `HCS 폴링 시작 — type:${filter.type ?? '*'}, role:${filter.role ?? '*'}, 대기:${expectedCount}건, timeout:${Math.round(timeoutMs / 1000)}초`,
+    msg: `HCS polling started — type:${filter.type ?? '*'}, role:${filter.role ?? '*'}, expecting:${expectedCount}, timeout:${Math.round(timeoutMs / 1000)}s`,
   });
 
   while (Date.now() < deadline && collected.length < expectedCount) {
@@ -60,12 +60,12 @@ export async function pollForHcsMessage(
       try {
         parsed = JSON.parse(msg.message) as MarketplaceMessage;
       } catch {
-        // JSON 파싱 실패 — 무시 (에이전트가 잘못된 포맷을 보낼 수 있음)
+        // JSON parse failed — skip (agent may send invalid format)
         seenSeqs.add(msg.sequenceNumber);
         continue;
       }
 
-      // 필터 매칭
+      // Filter matching
       if (filter.type && parsed.type !== filter.type) continue;
       if (filter.requestId && 'requestId' in parsed && parsed.requestId !== filter.requestId) continue;
       if (filter.role && 'role' in parsed && (parsed as any).role !== filter.role) continue;
@@ -80,7 +80,7 @@ export async function pollForHcsMessage(
 
       emit?.('log', {
         icon: '📨',
-        msg: `HCS 메시지 감지 [seq:${msg.sequenceNumber}] type:${parsed.type} (${collected.length}/${expectedCount})`,
+        msg: `HCS message detected [seq:${msg.sequenceNumber}] type:${parsed.type} (${collected.length}/${expectedCount})`,
       });
 
       if (collected.length >= expectedCount) break;
@@ -94,7 +94,7 @@ export async function pollForHcsMessage(
   if (collected.length < expectedCount) {
     emit?.('log', {
       icon: '⚠️',
-      msg: `폴링 타임아웃 — ${collected.length}/${expectedCount}건만 수집됨`,
+      msg: `Polling timeout — only ${collected.length}/${expectedCount} collected`,
     });
   }
 

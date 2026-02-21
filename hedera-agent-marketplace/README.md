@@ -144,6 +144,56 @@ The dashboard presents both deliverables with scoring controls. The human reques
 
 Approved agents receive their KNOW token payment from the escrow account (50/50 split by default). Token transfers happen on-chain via HTS, and `escrow_release` messages are published to HCS for auditability. Final balances are displayed on the dashboard.
 
+## Demo Walkthrough
+
+### Initial Dashboard
+
+Open `http://localhost:4000` to see the Requester Dashboard ready for input:
+
+![Initial Dashboard](docs/demo-01-initial.png)
+
+**Left panel**: Paper URL, KNOW budget, course description, and agent status cards (Escrow, Analyst, Architect, Scholar — all "awaiting setup"). Infrastructure links and a 7-step progress tracker below.
+
+**Right panel**: Escrow balance visualization (50/50 split) and the HCS Message Feed (empty until marketplace starts).
+
+### Marketplace Flow on Agent Monitor
+
+The Agent Monitor (`/monitor`) provides a read-only timeline of all HCS messages. Connect to any topic to observe the autonomous agent economy from the outside:
+
+![Agent Monitor — Complete Marketplace Flow](docs/demo-05-monitor-delivery.png)
+
+A single marketplace session produces this on-chain sequence (all visible in the timeline):
+
+| # | Event | Detail |
+|---|-------|--------|
+| 1 | **Escrow Locked** | 100 KNOW locked in escrow account |
+| 2 | **Bid Submitted** | analyst bids 40 KNOW — "Deep structural analysis with concept mapping..." |
+| 3 | **Bid Submitted** | architect bids 40 KNOW — "Structured learning path design..." |
+| 4 | **Bid Accepted** | Human approves analyst at 40 KNOW |
+| 5 | **Bid Accepted** | Human approves architect at 40 KNOW |
+| 6 | **Work Delivered** | analyst submits paper analysis |
+| 7 | **Work Delivered** | architect submits course design |
+| 8-9 | **Review** | Human scores both deliverables |
+| 10 | **Payment Released** | 40 KNOW paid to analyst |
+| 11 | **Payment Released** | 40 KNOW paid to architect |
+
+Every event is an HCS message — verifiable on [HashScan](https://hashscan.io/testnet).
+
+### Completed Marketplace
+
+After all 7 steps complete (~6 minutes), the dashboard shows the final state:
+
+![Completed Marketplace](docs/demo-complete.png)
+
+- **Progress bar**: All 7 steps checked (REQUEST → BIDDING → APPROVE → ANALYST → ARCHITECT → YOUR REVIEW → COMPLETE)
+- **Stats**: 13 HCS messages published, 80 KNOW transferred, ~6:12 elapsed
+- **Escrow breakdown**: 100 KNOW locked → 80 released (40 each) → 20 remaining
+- **Agent balances**: Analyst 40 KNOW, Architect 40 KNOW
+- **Completion card**: Links to all Hedera resources (Topic, Token, Agent accounts) on HashScan
+
+> **Technical deep-dive**: See [Lessons Learned](docs/lessons-learned.md) for insights from 5 demo iterations.
+> Covers Hedera SDK Client isolation, gRPC subscription behavior, blocking CLI patterns, and more.
+
 ## Key Technical Features
 
 - **Event-Driven Agent Dispatch**: HCS topic subscription via gRPC `TopicMessageQuery` replaces polling-based architectures. Agents are triggered within seconds of a relevant message appearing on-chain.
@@ -240,6 +290,11 @@ hedera-agent-marketplace/
 │       ├── architect/SOUL.md          # Alex Rivera persona + course design pipeline
 │       ├── scholar/SOUL.md            # Prof. Nakamura persona + consultation protocol
 │       └── main/SOUL.md               # Marketplace coordinator agent
+├── docs/
+│   ├── demo-01-initial.png            # Dashboard initial state screenshot
+│   ├── demo-05-monitor-delivery.png   # Agent Monitor full marketplace flow
+│   ├── demo-complete.png              # Completed marketplace screenshot
+│   └── lessons-learned.md             # Technical lessons from 5 demo iterations
 ├── scripts/
 │   └── setup-openclaw-agents.sh       # Agent registration automation
 ├── package.json

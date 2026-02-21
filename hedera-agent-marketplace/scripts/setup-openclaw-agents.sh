@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# OpenClaw 에이전트 등록 스크립트
-# analyst, architect, scholar 3개 에이전트를 OpenClaw에 등록하고
-# 각 workspace의 SOUL.md 존재 여부를 확인한다.
+# OpenClaw agent registration script
+# Registers the 3 agents (analyst, architect, scholar) with OpenClaw
+# and verifies each workspace has a SOUL.md file.
 
 set -euo pipefail
 
@@ -11,58 +11,58 @@ AGENTS_DIR="$PROJECT_DIR/openclaw-config/agents"
 
 AGENTS=("analyst" "architect" "scholar")
 
-echo "=== OpenClaw 에이전트 등록 ==="
+echo "=== OpenClaw Agent Registration ==="
 echo "Project: $PROJECT_DIR"
 echo ""
 
-# 1. openclaw CLI 확인
+# 1. Check openclaw CLI
 if ! command -v openclaw &>/dev/null; then
-  echo "ERROR: openclaw CLI가 설치되어 있지 않습니다."
-  echo "  → npm install -g openclaw 또는 해당 설치 가이드를 참고하세요."
+  echo "ERROR: openclaw CLI is not installed."
+  echo "  → Run 'npm install -g openclaw' or see the installation guide."
   exit 1
 fi
 
-# 2. 게이트웨이 건강 확인
-echo ">> 게이트웨이 상태 확인..."
+# 2. Check gateway health
+echo ">> Checking gateway status..."
 if openclaw gateway call health &>/dev/null; then
-  echo "   OK — 게이트웨이 정상"
+  echo "   OK — gateway is healthy"
 else
-  echo "   WARN — 게이트웨이 연결 실패. 'openclaw doctor --fix' 또는 'openclaw configure'를 먼저 실행하세요."
+  echo "   WARN — gateway connection failed. Run 'openclaw doctor --fix' or 'openclaw configure' first."
 fi
 echo ""
 
-# 3. 에이전트 등록
+# 3. Register agents
 for agent in "${AGENTS[@]}"; do
   workspace="$AGENTS_DIR/$agent"
   soul="$workspace/SOUL.md"
 
-  echo ">> $agent 에이전트 등록..."
+  echo ">> Registering $agent agent..."
 
-  # SOUL.md 확인
+  # Check SOUL.md
   if [ ! -f "$soul" ]; then
-    echo "   ERROR: $soul 파일이 없습니다."
+    echo "   ERROR: $soul file not found."
     exit 1
   fi
-  echo "   SOUL.md 확인 OK"
+  echo "   SOUL.md check OK"
 
-  # 이미 등록되어 있는지 확인 (에러 무시)
+  # Check if already registered (ignore errors)
   if openclaw agents list --json 2>/dev/null | grep -q "\"$agent\""; then
-    echo "   이미 등록됨 — 건너뜀"
+    echo "   Already registered — skipping"
   else
     openclaw agents add "$agent" --non-interactive \
       --workspace "$workspace" 2>/dev/null \
-      && echo "   등록 완료" \
-      || echo "   WARN: 등록 실패 — 수동으로 'openclaw agents add $agent --workspace $workspace'를 실행하세요."
+      && echo "   Registration complete" \
+      || echo "   WARN: Registration failed — manually run 'openclaw agents add $agent --workspace $workspace'."
   fi
   echo ""
 done
 
-# 4. 등록 결과 확인
-echo "=== 등록된 에이전트 목록 ==="
-openclaw agents list --json 2>/dev/null || openclaw agents list 2>/dev/null || echo "(목록 조회 실패)"
+# 4. Verify registration results
+echo "=== Registered Agents ==="
+openclaw agents list --json 2>/dev/null || openclaw agents list 2>/dev/null || echo "(Failed to list agents)"
 
 echo ""
-echo "=== 완료 ==="
-echo "다음 단계:"
-echo "  1. 각 에이전트 테스트: openclaw agent --agent analyst --message 'ping' --json"
-echo "  2. 데모 실행: npm run web"
+echo "=== Done ==="
+echo "Next steps:"
+echo "  1. Test each agent: openclaw agent --agent analyst --message 'ping' --json"
+echo "  2. Run demo: npm run web"

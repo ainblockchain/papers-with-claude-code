@@ -1,4 +1,4 @@
-// Hedera 클라이언트 초기화 — 공유 인터페이스와 operator 컨텍스트 생성
+// Hedera client initialization — shared interfaces and operator context creation
 
 import {
   Client,
@@ -8,7 +8,7 @@ import {
   Hbar,
 } from '@hashgraph/sdk';
 
-// ── 인터페이스 ──
+// ── Interfaces ──
 
 export interface HederaContext {
   client: Client;
@@ -29,14 +29,14 @@ export interface HCSMessage {
   message: string;
 }
 
-// ── 클라이언트 초기화 ──
+// ── Client initialization ──
 
 export function createContext(): HederaContext {
   const accountId = process.env.HEDERA_ACCOUNT_ID;
   const privateKey = process.env.HEDERA_PRIVATE_KEY;
 
   if (!accountId || !privateKey) {
-    throw new Error('HEDERA_ACCOUNT_ID와 HEDERA_PRIVATE_KEY를 .env에 설정하세요');
+    throw new Error('HEDERA_ACCOUNT_ID and HEDERA_PRIVATE_KEY must be set in .env');
   }
 
   const operatorId = AccountId.fromString(accountId);
@@ -46,18 +46,18 @@ export function createContext(): HederaContext {
   return { client, operatorId, operatorKey };
 }
 
-// ── 에이전트 계정 생성 (테스트넷에 실제 계정) ──
+// ── Agent account creation (real account on testnet) ──
 
 export async function createAgentAccount(
   ctx: HederaContext,
   name: string,
 ): Promise<AgentAccount> {
-  // ECDSA 키 생성 (EVM 호환)
+  // Generate ECDSA key (EVM compatible)
   const newKey = PrivateKey.generateECDSA();
 
   const tx = await new AccountCreateTransaction()
     .setKey(newKey.publicKey)
-    .setInitialBalance(new Hbar(1)) // 1 HBAR — token association + 수수료 충분
+    .setInitialBalance(new Hbar(1)) // 1 HBAR — enough for token association + fees
     .execute(ctx.client);
 
   const receipt = await tx.getReceipt(ctx.client);

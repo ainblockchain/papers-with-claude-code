@@ -1,4 +1,4 @@
-// HTS (Hedera Token Service) — 토큰 생성, Association, 전송, 잔액 조회
+// HTS (Hedera Token Service) — token creation, association, transfer, balance query
 
 import {
   TokenCreateTransaction,
@@ -30,7 +30,7 @@ export async function createToken(
   return receipt.tokenId!.toString();
 }
 
-// 계정이 토큰을 받으려면 먼저 association 필요
+// Account must associate with token before receiving it
 export async function associateToken(
   ctx: HederaContext,
   account: AgentAccount,
@@ -46,7 +46,7 @@ export async function associateToken(
   await response.getReceipt(ctx.client);
 }
 
-// Operator(Treasury)에서 에이전트로 토큰 전송
+// Transfer tokens from Operator (Treasury) to agent
 export async function transferTokenFromTreasury(
   ctx: HederaContext,
   tokenId: string,
@@ -62,7 +62,7 @@ export async function transferTokenFromTreasury(
   return tx.transactionId.toString();
 }
 
-// 에이전트 간 토큰 전송
+// Transfer tokens between agents
 export async function transferToken(
   ctx: HederaContext,
   tokenId: string,
@@ -81,7 +81,7 @@ export async function transferToken(
   return response.transactionId.toString();
 }
 
-// Mirror Node에서 토큰 잔액 조회
+// Query token balance from Mirror Node
 export async function getTokenBalance(
   accountId: string,
   tokenId: string,

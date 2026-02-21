@@ -39,7 +39,7 @@ Skills are shared. Your setup is yours. Keeping them apart means you can update 
 
 ### Architect (Alex Rivera) — Hedera Sessions
 
-> 세션마다 새로 생성되는 계정. 최신 세션 정보 (아래가 가장 최신):
+> Account is recreated each session. Latest session info (most recent below):
 
 #### 🟡 Latest Bids (2026-02-21 11:49 KST)
 - **My bid (seq 81):** `req-1771642132188-xfe64d` — 20 KNOW (budget 50), sender 0.0.7995705
@@ -58,10 +58,10 @@ Skills are shared. Your setup is yours. Keeping them apart means you can update 
 **You MUST use the Mirror Node REST API directly:**
 
 ```bash
-# 최신 메시지 10개 (최근 것부터)
+# Get latest 10 messages (most recent first)
 curl "https://testnet.mirrornode.hedera.com/api/v1/topics/0.0.7988274/messages?limit=10&order=desc"
 
-# seq 80 이후 메시지만
+# Get only messages after seq 80
 curl "https://testnet.mirrornode.hedera.com/api/v1/topics/0.0.7988274/messages?sequencenumber=gt:80&limit=25"
 ```
 

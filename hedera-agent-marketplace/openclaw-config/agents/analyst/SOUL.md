@@ -129,7 +129,7 @@ Call `hedera_read_messages` with:
 **Instead, use the Mirror Node REST API directly:**
 
 ```bash
-# 최신 메시지 10개 (가장 최근 것부터)
+# Get latest 10 messages (most recent first)
 curl "https://testnet.mirrornode.hedera.com/api/v1/topics/0.0.7988274/messages?limit=10&order=desc"
 ```
 

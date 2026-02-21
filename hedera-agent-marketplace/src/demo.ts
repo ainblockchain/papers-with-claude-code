@@ -1,11 +1,11 @@
-// CLI 데모 — 마켓플레이스 인프라만 셋업하고, 에이전트는 OpenClaw cron으로 자율 동작
+// CLI demo — only sets up marketplace infrastructure; agents operate autonomously via OpenClaw cron
 //
-// 이 스크립트는 Hedera 테스트넷에 인프라를 생성하고,
-// 에이전트 시작 방법 + 웹 대시보드 접속 정보를 출력한다.
-// 에이전트를 직접 제어하지 않는다 (자율 에이전트 경제).
+// This script creates infrastructure on Hedera testnet
+// and prints agent startup instructions + web dashboard access info.
+// It does not directly control agents (autonomous agent economy).
 //
-// 실행: npm run demo                    (기본: attention-is-all-you-need)
-//       npm run demo -- bert            (BERT 논문 선택)
+// Run: npm run demo                    (default: attention-is-all-you-need)
+//      npm run demo -- bert            (select BERT paper)
 
 import 'dotenv/config';
 import {
@@ -14,7 +14,7 @@ import {
   hashscanUrl,
 } from './hedera/client.js';
 
-// ── 터미널 출력 ──
+// ── Terminal output ──
 
 const C = {
   reset: '\x1b[0m',
@@ -47,7 +47,7 @@ function link(label: string, url: string) {
   console.log(`  ${C.dim}${label}: ${C.cyan}${url}${C.reset}`);
 }
 
-// ── 메인 ──
+// ── Main ──
 
 async function main() {
   const paperUrl = process.argv[2] || 'attention-is-all-you-need';
@@ -59,9 +59,9 @@ async function main() {
   log('💰', `Budget: ${budget} KNOW\n`);
 
   // ──────────────────────────────────────────
-  // Step 1: 마켓플레이스 인프라 셋업
+  // Step 1: Marketplace infrastructure setup
   // ──────────────────────────────────────────
-  step(1, 'Hedera 테스트넷 연결 & 마켓플레이스 인프라 생성');
+  step(1, 'Connect to Hedera testnet & create marketplace infrastructure');
 
   const ctx = createContext();
   log('✅', `Operator: ${ctx.operatorId.toString()}`);
@@ -76,17 +76,17 @@ async function main() {
   link('   KNOW Token', hashscanUrl('token', infra.tokenId));
 
   // ──────────────────────────────────────────
-  // Step 2: 에이전트 시작 안내
+  // Step 2: Agent startup instructions
   // ──────────────────────────────────────────
-  step(2, '에이전트 시작 (OpenClaw cron 등록)');
+  step(2, 'Start agents (register OpenClaw cron)');
 
   console.log(`
-  에이전트는 서버가 직접 제어하지 않습니다.
-  아래 명령으로 에이전트들을 자율 폴링 모드로 시작하세요:
+  Agents are not directly controlled by the server.
+  Start agents in autonomous polling mode with the following command:
 
   ${C.bold}bash scripts/start-agents.sh${C.reset}
 
-  또는 개별 등록:
+  Or register individually:
 
   ${C.dim}openclaw cron add --name "analyst-poll" --agent analyst --every 5s \\
     --message "Check HCS topic ${infra.topicId} for new work" --session isolated${C.reset}
@@ -99,27 +99,27 @@ async function main() {
 `);
 
   // ──────────────────────────────────────────
-  // Step 3: 웹 대시보드 안내
+  // Step 3: Web dashboard instructions
   // ──────────────────────────────────────────
-  step(3, '웹 대시보드 시작');
+  step(3, 'Start web dashboard');
 
   console.log(`
-  두 개의 분리된 웹 서비스를 실행하세요:
+  Run two separate web services:
 
-  ${C.bold}1. 의뢰인 대시보드 (port 4000)${C.reset}
+  ${C.bold}1. Client Dashboard (port 4000)${C.reset}
      ${C.cyan}npm run web${C.reset}
-     → 일감 게시, 입찰 승인, 리뷰 제출
+     → Post tasks, approve bids, submit reviews
 
-  ${C.bold}2. 에이전트 모니터 (port 4001)${C.reset}
+  ${C.bold}2. Agent Monitor (port 4001)${C.reset}
      ${C.cyan}npm run monitor${C.reset}
-     → HCS 피드 실시간 관찰, 에이전트 활동 추적
+     → Real-time HCS feed observation, agent activity tracking
      → http://localhost:4001?topicId=${infra.topicId}&tokenId=${infra.tokenId}
 `);
 
-  // ── 요약 ──
-  banner('인프라 준비 완료 — 에이전트가 HCS를 자율 폴링할 준비 완료');
+  // ── Summary ──
+  banner('Infrastructure ready — agents are ready to autonomously poll HCS');
 
-  console.log(`  ${C.bold}HashScan에서 확인:${C.reset}\n`);
+  console.log(`  ${C.bold}Verify on HashScan:${C.reset}\n`);
   link('  HCS Topic', hashscanUrl('topic', infra.topicId));
   link('  KNOW Token', hashscanUrl('token', infra.tokenId));
   link('  Escrow', hashscanUrl('account', infra.escrowAccount.accountId));
@@ -127,11 +127,11 @@ async function main() {
   link('  Architect', hashscanUrl('account', infra.architectAccount.accountId));
   link('  Scholar', hashscanUrl('account', infra.scholarAccount.accountId));
 
-  console.log(`\n  ${C.bold}다음 단계:${C.reset}`);
-  console.log(`  1. ${C.cyan}bash scripts/start-agents.sh${C.reset} — 에이전트 cron 등록`);
-  console.log(`  2. ${C.cyan}npm run web${C.reset} — 의뢰인 대시보드 시작`);
-  console.log(`  3. ${C.cyan}npm run monitor${C.reset} — 에이전트 모니터 시작`);
-  console.log(`  4. 대시보드에서 일감 게시 → 에이전트 자율 입찰 대기\n`);
+  console.log(`\n  ${C.bold}Next steps:${C.reset}`);
+  console.log(`  1. ${C.cyan}bash scripts/start-agents.sh${C.reset} — Register agent cron jobs`);
+  console.log(`  2. ${C.cyan}npm run web${C.reset} — Start client dashboard`);
+  console.log(`  3. ${C.cyan}npm run monitor${C.reset} — Start agent monitor`);
+  console.log(`  4. Post a task from the dashboard → Wait for autonomous agent bids\n`);
 }
 
 main().catch((err) => {

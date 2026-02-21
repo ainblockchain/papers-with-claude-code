@@ -1,5 +1,5 @@
-// MCP Tool 정의 — Hedera 블록체인 프리미티브를 범용 MCP 도구로 래핑
-// 에이전트가 자율적으로 사용할 수 있도록 워크플로우에 종속되지 않는 범용 도구만 제공
+// MCP Tool definitions — wraps Hedera blockchain primitives as general-purpose MCP tools
+// Provides only workflow-agnostic tools so agents can use them autonomously
 
 import { z } from 'zod';
 import { PrivateKey } from '@hashgraph/sdk';
@@ -20,7 +20,7 @@ import {
   type AgentAccount,
 } from '../hedera/client.js';
 
-// HederaContext는 서버 시작 시 한 번 초기화 후 재사용
+// HederaContext is initialized once at server start and reused
 let cachedCtx: HederaContext | null = null;
 
 function getContext(): HederaContext {
@@ -30,17 +30,17 @@ function getContext(): HederaContext {
   return cachedCtx;
 }
 
-/** JSON 결과를 MCP text content로 변환하는 헬퍼 */
+/** Helper to convert JSON result to MCP text content */
 function jsonResult(data: unknown) {
   return {
     content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }],
   };
 }
 
-/** 모든 Hedera 도구를 McpServer에 등록 */
+/** Register all Hedera tools with the McpServer */
 export function registerAllTools(server: McpServer): void {
   // ── 1. hedera_setup_infra ──
-  // Topic, Token, Agent 계정을 한번에 생성하는 인프라 셋업 도구
+  // Infrastructure setup tool that creates Topic, Token, and Agent accounts at once
 
   server.tool(
     'hedera_setup_infra',
@@ -63,7 +63,7 @@ export function registerAllTools(server: McpServer): void {
       await associateToken(ctx, explorer, tokenId);
       await associateToken(ctx, curator, tokenId);
 
-      // Curator에게 보상 풀 전송 (초기 공급량의 50%)
+      // Transfer reward pool to Curator (50% of initial supply)
       const rewardPool = Math.floor(args.initialSupply / 2);
       await transferTokenFromTreasury(ctx, tokenId, curator, rewardPool);
 
@@ -90,7 +90,7 @@ export function registerAllTools(server: McpServer): void {
   );
 
   // ── 2. hedera_send_message ──
-  // 임의의 JSON 메시지를 HCS 토픽에 기록하는 범용 도구
+  // General-purpose tool for recording arbitrary JSON messages to an HCS topic
 
   server.tool(
     'hedera_send_message',
@@ -102,7 +102,7 @@ export function registerAllTools(server: McpServer): void {
     async (args) => {
       const ctx = getContext();
 
-      // 메시지가 유효한 JSON인지 검증
+      // Validate that message is valid JSON
       try {
         JSON.parse(args.message);
       } catch {
@@ -121,7 +121,7 @@ export function registerAllTools(server: McpServer): void {
   );
 
   // ── 3. hedera_read_messages ──
-  // Mirror Node에서 HCS 토픽 메시지를 조회하고 선택적으로 필터링
+  // Query HCS topic messages from Mirror Node with optional filtering
 
   server.tool(
     'hedera_read_messages',
@@ -150,7 +150,7 @@ export function registerAllTools(server: McpServer): void {
         };
       });
 
-      // 필터 적용
+      // Apply filters
       if (args.afterSequence !== undefined) {
         parsed = parsed.filter((m) => m.sequenceNumber > args.afterSequence!);
       }
@@ -174,7 +174,7 @@ export function registerAllTools(server: McpServer): void {
   );
 
   // ── 4. hedera_transfer_token ──
-  // 에이전트 간 범용 토큰 전송
+  // General-purpose token transfer between agents
 
   server.tool(
     'hedera_transfer_token',
@@ -215,7 +215,7 @@ export function registerAllTools(server: McpServer): void {
   );
 
   // ── 5. hedera_get_balance ──
-  // Mirror Node에서 토큰 잔액 조회
+  // Query token balance from Mirror Node
 
   server.tool(
     'hedera_get_balance',
@@ -237,7 +237,7 @@ export function registerAllTools(server: McpServer): void {
   );
 
   // ── 6. hedera_escrow_status ──
-  // 에스크로 계정의 잔액과 HCS에 기록된 lock/release 이력 조회
+  // Query escrow account balance and lock/release history recorded on HCS
 
   server.tool(
     'hedera_escrow_status',
@@ -251,7 +251,7 @@ export function registerAllTools(server: McpServer): void {
       const balance = await getTokenBalance(args.escrowAccountId, args.tokenId);
       const messages = await getTopicMessages(args.topicId);
 
-      // HCS에서 escrow 관련 메시지 필터링
+      // Filter escrow-related messages from HCS
       const escrowMessages = messages
         .map((msg) => {
           try { return JSON.parse(msg.message); } catch { return null; }

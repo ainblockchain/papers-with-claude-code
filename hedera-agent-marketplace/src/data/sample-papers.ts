@@ -1,5 +1,5 @@
-// 샘플 논문 데이터 — 실제 환경에서는 LLM이 동적으로 추출
-// 현재는 데모용 하드코딩 데이터
+// Sample paper data — in production, LLM extracts this dynamically
+// Currently hardcoded for demo purposes
 
 export interface KnowledgeNode {
   id: string;

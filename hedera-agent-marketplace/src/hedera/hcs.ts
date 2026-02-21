@@ -1,4 +1,4 @@
-// HCS (Hedera Consensus Service) — 토픽 생성, 메시지 게시/조회
+// HCS (Hedera Consensus Service) — topic creation, message submission/retrieval
 
 import {
   TopicCreateTransaction,
@@ -40,7 +40,7 @@ export async function submitMessage(
   };
 }
 
-// Mirror Node 응답의 chunk 메타데이터 포함 메시지 타입
+// Message type including chunk metadata from Mirror Node response
 interface MirrorMessage {
   sequence_number: number;
   consensus_timestamp: string;
@@ -52,9 +52,9 @@ interface MirrorMessage {
   };
 }
 
-// chunk된 메시지를 initial_transaction_id 기준으로 재조립
-// HCS 메시지가 1024 bytes를 초과하면 SDK가 자동으로 chunk 분할하며,
-// Mirror Node REST API는 개별 chunk를 반환하므로 수동 재조립이 필요하다.
+// Reassemble chunked messages by initial_transaction_id
+// When HCS messages exceed 1024 bytes, the SDK automatically splits them into chunks.
+// The Mirror Node REST API returns individual chunks, so manual reassembly is required.
 function reassembleChunks(raw: MirrorMessage[], topicId: string): HCSMessage[] {
   const singles: HCSMessage[] = [];
   const chunkBuckets = new Map<string, { total: number; parts: Map<number, MirrorMessage> }>();
@@ -80,7 +80,7 @@ function reassembleChunks(raw: MirrorMessage[], topicId: string): HCSMessage[] {
   }
 
   for (const [, bucket] of chunkBuckets) {
-    if (bucket.parts.size < bucket.total) continue; // 아직 모든 chunk 미도착
+    if (bucket.parts.size < bucket.total) continue; // not all chunks received yet
 
     const sorted = Array.from(bucket.parts.entries())
       .sort(([a], [b]) => a - b)
@@ -92,7 +92,7 @@ function reassembleChunks(raw: MirrorMessage[], topicId: string): HCSMessage[] {
 
     singles.push({
       topicId,
-      sequenceNumber: sorted[0].sequence_number, // 첫 chunk의 seq 사용
+      sequenceNumber: sorted[0].sequence_number, // use first chunk's seq
       timestamp: sorted[0].consensus_timestamp,
       message: combined,
     });
@@ -101,9 +101,32 @@ function reassembleChunks(raw: MirrorMessage[], topicId: string): HCSMessage[] {
   return singles.sort((a, b) => a.sequenceNumber - b.sequenceNumber);
 }
 
-// Mirror Node에서 HCS 메시지 조회
-// afterSeq를 전달하면 해당 seq 이후 메시지만 가져온다 (pagination 문제 해결)
-// chunk된 메시지는 자동으로 재조립하여 완성된 메시지만 반환한다.
+// Retrieve ALL HCS messages from Mirror Node via pagination (100 per page)
+// Returns messages in descending order (newest first) for monitor initial load.
+export async function getAllTopicMessages(topicId: string): Promise<HCSMessage[]> {
+  const all: HCSMessage[] = [];
+  let nextUrl: string | null =
+    `https://testnet.mirrornode.hedera.com/api/v1/topics/${topicId}/messages?limit=100&order=desc`;
+
+  while (nextUrl) {
+    try {
+      const res = await fetch(nextUrl);
+      const data = await res.json() as { messages?: MirrorMessage[]; links?: { next?: string } };
+      const batch = reassembleChunks(data.messages ?? [], topicId);
+      all.push(...batch);
+      nextUrl = data.links?.next
+        ? `https://testnet.mirrornode.hedera.com${data.links.next}`
+        : null;
+    } catch {
+      break;
+    }
+  }
+  return all; // already in desc order (newest first)
+}
+
+// Retrieve HCS messages from Mirror Node (single page, asc order)
+// If afterSeq is provided, only fetches messages after that sequence number (for incremental polling)
+// Chunked messages are automatically reassembled, returning only complete messages.
 export async function getTopicMessages(
   topicId: string,
   afterSeq?: number,

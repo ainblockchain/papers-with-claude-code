@@ -1,8 +1,8 @@
-// 의뢰인 대시보드 서버 (port 4000)
-// 에이전트를 제어하지 않고, HCS에 일감 게시 + 인간 승인 API만 제공
-// 에이전트는 HCS Watcher(hcs-watcher.ts)가 메시지 감지 시 자동 트리거
+// Client dashboard server (port 4000)
+// Does not control agents directly — only publishes tasks to HCS + provides human approval API
+// Agents are auto-triggered by HCS Watcher (hcs-watcher.ts) upon message detection
 //
-// 실행: npm run web → http://localhost:4000
+// Run: npm run web → http://localhost:4000
 
 import 'dotenv/config';
 import express from 'express';
@@ -12,6 +12,7 @@ import {
   createContext,
   setupMarketplaceInfra,
   getTopicMessages,
+  getAllTopicMessages,
   getTokenBalance,
   hashscanUrl,
 } from './hedera/client.js';
@@ -26,13 +27,13 @@ const PORT = 4000;
 app.use(express.json());
 app.use(express.static(join(__dirname, '../public')));
 
-// ── 마켓플레이스 상태 ──
+// ── Marketplace state ──
 
 let currentOrchestrator: MarketplaceOrchestrator | null = null;
 let currentInfra: MarketplaceInfra | null = null;
 let isRunning = false;
 
-// 상태 확인 엔드포인트
+// Status check endpoint
 app.get('/api/status', (_req, res) => {
   res.json({
     mode: 'autonomous',
@@ -41,9 +42,9 @@ app.get('/api/status', (_req, res) => {
   });
 });
 
-// ── 마켓플레이스 트리거 — HCS에 course_request 게시 ──
+// ── Marketplace trigger — publish course_request to HCS ──
 
-// ── 상태 리셋 — 이전 세션이 비정상 종료된 경우 잠금 해제 ──
+// ── State reset — unlock if a previous session terminated abnormally ──
 
 app.post('/api/marketplace/reset', (_req, res) => {
   isRunning = false;
@@ -54,9 +55,9 @@ app.post('/api/marketplace/reset', (_req, res) => {
 });
 
 app.post('/api/marketplace/trigger', async (req, res) => {
-  // 이전 세션이 남아있으면 강제 정리 후 새 세션 시작
+  // If a previous session remains, force cleanup and start a new session
   if (isRunning) {
-    console.log('[RESET] 이전 세션 정리 — 새 trigger 수신');
+    console.log('[RESET] Cleaning up previous session — new trigger received');
     isRunning = false;
     currentOrchestrator = null;
     currentInfra = null;
@@ -81,7 +82,7 @@ app.post('/api/marketplace/trigger', async (req, res) => {
 
 let pendingTrigger: { paperUrl: string; budget: number; description: string } | null = null;
 
-// ── 입찰 승인 API — 의뢰인이 bid 선택 후 호출 ──
+// ── Bid approval API — called after the client selects a bid ──
 
 app.post('/api/marketplace/bid-approval', (req, res) => {
   if (!currentOrchestrator) {
@@ -104,7 +105,7 @@ app.post('/api/marketplace/bid-approval', (req, res) => {
   res.json({ ok: true, message: 'Bid approval submitted' });
 });
 
-// ── 리뷰 API — 의뢰인이 deliverable 검토 후 호출 ──
+// ── Review API — called after the client reviews a deliverable ──
 
 app.post('/api/marketplace/review', (req, res) => {
   if (!currentOrchestrator) {
@@ -133,7 +134,7 @@ app.post('/api/marketplace/review', (req, res) => {
   res.json({ ok: true, message: 'Review submitted' });
 });
 
-// ── SSE 마켓플레이스 피드 (실시간 HCS 메시지 스트리밍) ──
+// ── SSE marketplace feed (real-time HCS message streaming) ──
 
 app.get('/api/marketplace/feed', async (req, res) => {
   res.writeHead(200, {
@@ -154,18 +155,18 @@ app.get('/api/marketplace/feed', async (req, res) => {
   pendingTrigger = null;
 
   try {
-    // ── Step 1: 인프라 셋업 ──
-    send('step', { step: 1, title: 'Hedera 테스트넷 연결 & 인프라 생성' });
-    send('log', { icon: '⏳', msg: 'Hedera 클라이언트 초기화...' });
+    // ── Step 1: Infrastructure setup ──
+    send('step', { step: 1, title: 'Connect to Hedera testnet & create infrastructure' });
+    send('log', { icon: '⏳', msg: 'Initializing Hedera client...' });
 
     const ctx = createContext();
     send('log', { icon: '✅', msg: `Operator: ${ctx.operatorId.toString()}` });
 
-    send('log', { icon: '⏳', msg: '마켓플레이스 인프라 셋업 중 (4 계정 병렬 생성)...' });
+    send('log', { icon: '⏳', msg: 'Setting up marketplace infrastructure (creating 4 accounts in parallel)...' });
     const infra = await setupMarketplaceInfra(ctx, trigger.budget, (msg) => send('log', { icon: '⏳', msg }));
     currentInfra = infra;
 
-    // 에이전트 카드 데이터 전송
+    // Send agent card data
     send('agent', {
       role: 'escrow',
       accountId: infra.escrowAccount.accountId,
@@ -187,7 +188,7 @@ app.get('/api/marketplace/feed', async (req, res) => {
       url: hashscanUrl('account', infra.scholarAccount.accountId),
     });
 
-    // 인프라 카드 데이터 전송
+    // Send infrastructure card data
     send('infra', {
       type: 'topic',
       id: infra.topicId,
@@ -202,15 +203,15 @@ app.get('/api/marketplace/feed', async (req, res) => {
     });
 
     send('balance', { analyst: 0, architect: 0, scholar: 0, escrow: trigger.budget });
-    send('log', { icon: '✅', msg: '인프라 준비 완료' });
+    send('log', { icon: '✅', msg: 'Infrastructure ready' });
 
-    // ── 임베디드 워처: 토픽 생성 직후 gRPC 구독 시작 ──
+    // ── Embedded watcher: start gRPC subscription right after topic creation ──
     const watcher = startEmbeddedWatcher(ctx, infra.topicId, (msg) => {
       send('log', { icon: '📡', msg });
     });
-    send('log', { icon: '📡', msg: `HCS 워처 활성화 — 에이전트 자동 트리거 대기 중` });
+    send('log', { icon: '📡', msg: `HCS watcher active — waiting for automatic agent triggers` });
 
-    // ── Steps 2+: 마켓플레이스 오케스트레이터 실행 ──
+    // ── Steps 2+: run marketplace orchestrator ──
     const orchestrator = new MarketplaceOrchestrator(ctx);
     currentOrchestrator = orchestrator;
 
@@ -220,7 +221,7 @@ app.get('/api/marketplace/feed', async (req, res) => {
       watcher.unsubscribe();
     }
 
-    // ── 완료 ──
+    // ── Complete ──
     send('done', {
       topic: { id: infra.topicId, url: hashscanUrl('topic', infra.topicId) },
       token: { id: infra.tokenId, url: hashscanUrl('token', infra.tokenId) },
@@ -241,7 +242,7 @@ app.get('/api/marketplace/feed', async (req, res) => {
   res.end();
 });
 
-// ── 에이전트 모니터 (/monitor) — read-only HCS 피드 관찰 ──
+// ── Agent monitor (/monitor) — read-only HCS feed observation ──
 
 app.get('/monitor', (_req, res) => {
   res.sendFile(join(__dirname, '../public/monitor.html'));
@@ -266,29 +267,53 @@ app.get('/api/monitor/feed', async (req, res) => {
   send('connected', { topicId, tokenId: (req.query.tokenId as string) || null });
 
   const seenSeqs = new Set<number>();
+  let maxSeq = 0;
   let running = true;
   req.on('close', () => { running = false; });
 
+  // Phase 1: Initial load — fetch ALL messages (newest first) via pagination
+  try {
+    const allMessages = await getAllTopicMessages(topicId);
+    for (const msg of allMessages) {
+      seenSeqs.add(msg.sequenceNumber);
+      maxSeq = Math.max(maxSeq, msg.sequenceNumber);
+
+      let parsed: MarketplaceMessage;
+      try {
+        parsed = JSON.parse(msg.message) as MarketplaceMessage;
+      } catch {
+        send('raw_message', { seq: msg.sequenceNumber, timestamp: msg.timestamp, raw: msg.message });
+        continue;
+      }
+      send('hcs_message', { seq: msg.sequenceNumber, hcsTimestamp: msg.timestamp, ...parsed });
+    }
+    send('initial_load_complete', { total: allMessages.length });
+  } catch (err: any) {
+    send('poll_error', { message: `Initial load failed: ${err.message ?? String(err)}` });
+  }
+
+  // Phase 2: Incremental polling — only new messages after maxSeq
   while (running) {
     try {
-      const messages = await getTopicMessages(topicId);
-      for (const msg of messages) {
+      const newMessages = await getTopicMessages(topicId, maxSeq);
+      for (const msg of newMessages) {
         if (seenSeqs.has(msg.sequenceNumber)) continue;
         seenSeqs.add(msg.sequenceNumber);
+        maxSeq = Math.max(maxSeq, msg.sequenceNumber);
 
         let parsed: MarketplaceMessage;
         try {
           parsed = JSON.parse(msg.message) as MarketplaceMessage;
         } catch {
-          send('raw_message', { seq: msg.sequenceNumber, timestamp: msg.timestamp, raw: msg.message });
+          send('new_message', { seq: msg.sequenceNumber, timestamp: msg.timestamp, raw: msg.message, _raw: true });
           continue;
         }
-        send('hcs_message', { seq: msg.sequenceNumber, hcsTimestamp: msg.timestamp, ...parsed });
+        send('new_message', { seq: msg.sequenceNumber, hcsTimestamp: msg.timestamp, ...parsed });
       }
     } catch (err: any) {
       send('poll_error', { message: err.message ?? String(err) });
     }
-    await new Promise(r => setTimeout(r, 5000));
+    await new Promise(r => setTimeout(r, 3000));
   }
   res.end();
 });
@@ -308,12 +333,12 @@ app.get('/api/monitor/agents', async (req, res) => {
   res.json({ agents, tokenId });
 });
 
-// Hedera SDK gRPC 채널이 event loop를 unref하여 프로세스가 즉시 종료되는 것 방지
+// Prevent process from exiting immediately due to Hedera SDK gRPC channels unref'ing the event loop
 setInterval(() => {}, 1 << 30);
 
 app.listen(PORT, () => {
   console.log(`\n  🏪 Course Generation Marketplace`);
   console.log(`  → Dashboard: http://localhost:${PORT}`);
   console.log(`  → Monitor:   http://localhost:${PORT}/monitor`);
-  console.log(`  📡 HCS Watcher가 메시지 감지 시 에이전트를 자동 트리거합니다\n`);
+  console.log(`  📡 HCS Watcher auto-triggers agents upon message detection\n`);
 });

@@ -1,7 +1,7 @@
-// OpenClaw 에이전트 프롬프트 빌더
-// 각 단계별로 에이전트에게 보낼 프롬프트를 생성한다.
-// 인프라 정보(topicId, tokenId, accountId 등)를 주입하여
-// 에이전트가 MCP 도구로 Hedera 트랜잭션을 실행할 수 있게 한다.
+// OpenClaw agent prompt builder
+// Generates prompts for each step to send to agents.
+// Injects infrastructure info (topicId, tokenId, accountId, etc.)
+// so agents can execute Hedera transactions via MCP tools.
 
 import type { MarketplaceInfra } from '../types/marketplace.js';
 import type { AgentAccount } from '../hedera/client.js';
@@ -14,12 +14,12 @@ interface InfraContext {
 }
 
 function formatAccountInfo(account: AgentAccount): string {
-  // DER hex — 에이전트가 hedera_send_message에서 사용
+  // DER hex — used by agents in hedera_send_message
   const privateKeyHex = account.privateKey.toStringDer();
   return `  - Account ID: ${account.accountId}\n  - Private Key (DER): ${privateKeyHex}`;
 }
 
-// ── Bid 프롬프트 (analyst / architect 공통) ──
+// ── Bid prompt (shared by analyst / architect) ──
 
 export function buildBidPrompt(
   role: 'analyst' | 'architect',
@@ -67,7 +67,7 @@ ${formatAccountInfo(account)}
 Post this JSON as the message content to topic ${ctx.topicId} using hedera_send_message.`;
 }
 
-// ── Analyst 분석 프롬프트 ──
+// ── Analyst analysis prompt ──
 
 export function buildAnalyzePrompt(
   infra: MarketplaceInfra,
@@ -124,7 +124,7 @@ Requirements:
 - Be thorough and accurate — the requester will review your work`;
 }
 
-// ── Architect 설계 프롬프트 ──
+// ── Architect design prompt ──
 
 export function buildDesignPrompt(
   infra: MarketplaceInfra,
@@ -181,15 +181,15 @@ Requirements:
 - Be creative and pedagogically sound`;
 }
 
-// ── Scholar Consultation 프로토콜 참고 ──
-// Scholar 에이전트는 SOUL.md 기반으로 자율 동작하며, 아래는 참고용 프로토콜 설명.
+// ── Scholar Consultation protocol reference ──
+// The Scholar agent operates autonomously based on SOUL.md; below is protocol documentation.
 //
-// consultation_request (Analyst/Architect → HCS):
+// consultation_request (Analyst/Architect -> HCS):
 //   { "type": "consultation_request", "requestId": "...", "sender": "<account>",
 //     "question": "...", "offeredFee": 5, "timestamp": "..." }
 //
-// consultation_response (Scholar → HCS):
+// consultation_response (Scholar -> HCS):
 //   { "type": "consultation_response", "requestId": "...", "sender": "<scholar-account>",
 //     "answer": "...", "fee": 5, "timestamp": "..." }
 //
-// 리뷰는 의뢰인(사람)이 웹 대시보드에서 직접 수행 (buildReviewPrompt 삭제됨)
+// Reviews are performed directly by the requester (human) via the web dashboard (buildReviewPrompt removed)

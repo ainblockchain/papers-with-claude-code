@@ -1,32 +1,32 @@
 # hedera/
 
-Hedera 테스트넷 연동 모듈 — HCS/HTS 트랜잭션 실행 및 에스크로 인프라 관리
+Hedera testnet integration module — HCS/HTS transaction execution and escrow infrastructure management
 
-## 파일 구조
+## File structure
 
-| 파일 | 역할 |
+| File | Role |
 |------|------|
-| `context.ts` | 공유 인터페이스(`HederaContext`, `AgentAccount`, `HCSMessage`) + 클라이언트 초기화 + 계정 생성 |
-| `hcs.ts` | HCS (Hedera Consensus Service) — 토픽 생성, 메시지 게시/조회 |
-| `hts.ts` | HTS (Hedera Token Service) — 토큰 생성, Association, 전송, 잔액 조회 |
-| `escrow.ts` | 에스크로 해제 + 마켓플레이스 인프라 셋업 (계정·토큰·토픽 일괄 프로비저닝) |
-| `utils.ts` | HashScan 탐색기 URL 생성 유틸 |
-| `client.ts` | Barrel re-export — 외부 import 경로(`hedera/client.js`) 호환 유지 |
+| `context.ts` | Shared interfaces (`HederaContext`, `AgentAccount`, `HCSMessage`) + client initialization + account creation |
+| `hcs.ts` | HCS (Hedera Consensus Service) — topic creation, message submission/retrieval |
+| `hts.ts` | HTS (Hedera Token Service) — token creation, association, transfer, balance query |
+| `escrow.ts` | Escrow release + marketplace infrastructure setup (batch provisioning of accounts, tokens, topics) |
+| `utils.ts` | HashScan explorer URL generation utility |
+| `client.ts` | Barrel re-export — maintains backward compatibility with external import path (`hedera/client.js`) |
 
-## 의존성 그래프
+## Dependency graph
 
 ```
-utils.ts        ← 독립
-context.ts      ← 독립 (@hashgraph/sdk)
+utils.ts        ← standalone
+context.ts      ← standalone (@hashgraph/sdk)
 hcs.ts          ← context.ts
 hts.ts          ← context.ts
 escrow.ts       ← context.ts + hcs.ts + hts.ts + types/marketplace.ts
-client.ts       ← 모든 서브모듈 re-export (로직 없음)
+client.ts       ← re-exports all submodules (no logic)
 ```
 
-## 외부에서 import하는 법
+## How to import from external modules
 
-기존과 동일하게 `hedera/client.js`에서 import하면 됩니다:
+Import from `hedera/client.js` as before:
 
 ```typescript
 import { createContext, createTopic, submitMessage } from './hedera/client.js';

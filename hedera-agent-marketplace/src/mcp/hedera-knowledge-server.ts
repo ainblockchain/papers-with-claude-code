@@ -1,5 +1,5 @@
-// MCP Server 진입점 — Hedera 블록체인 도구를 stdin/stdout JSON-RPC 2.0으로 노출
-// OpenClaw mcp-adapter 또는 Claude Code가 이 서버를 subprocess로 실행하여 도구 호출
+// MCP Server entry point — exposes Hedera blockchain tools via stdin/stdout JSON-RPC 2.0
+// OpenClaw mcp-adapter or Claude Code runs this server as a subprocess to invoke tools
 
 import 'dotenv/config';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';

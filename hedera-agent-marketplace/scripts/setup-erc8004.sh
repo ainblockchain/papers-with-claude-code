@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# ERC-8004 Sepolia 지갑 셋업 스크립트
-# Sepolia 지갑을 생성하고 .env에 키를 추가한다.
+# ERC-8004 Sepolia wallet setup script
+# Creates a Sepolia wallet and adds the key to .env.
 
 set -euo pipefail
 
@@ -11,7 +11,7 @@ ENV_FILE="$PROJECT_DIR/.env"
 echo "=== ERC-8004 Sepolia Wallet Setup ==="
 echo ""
 
-# Node.js로 ethers를 사용하여 지갑 생성
+# Generate wallet using Node.js with ethers
 WALLET_OUTPUT=$(node -e "
 const { ethers } = require('ethers');
 const wallet = ethers.Wallet.createRandom();
@@ -36,9 +36,9 @@ echo "  Address:     $ADDRESS"
 echo "  Private Key: ${PRIVATE_KEY:0:10}...${PRIVATE_KEY: -4}"
 echo ""
 
-# .env 파일 업데이트
+# Update .env file
 if [ -f "$ENV_FILE" ]; then
-  # 기존 키가 있으면 교체, 없으면 추가
+  # Replace existing key if present, otherwise append
   if grep -q "^ERC8004_PRIVATE_KEY=" "$ENV_FILE" 2>/dev/null; then
     echo "ERC8004_PRIVATE_KEY already exists in .env — skipping (delete line to regenerate)"
   else

@@ -1,12 +1,12 @@
-// 마켓플레이스 오케스트레이터 — 에이전트 자율 경제 + 인간 의뢰인 리뷰
+// Marketplace orchestrator — autonomous agent economy + human client review
 //
-// 핵심 변경: 서버가 에이전트에게 직접 통신하지 않음.
-// 에이전트는 OpenClaw cron(5초 간격)으로 HCS를 자율 폴링하며,
-// 오케스트레이터는 HCS 메시지를 감지하고 인간 승인을 중개하는 역할만 수행.
+// Key design: the server does not communicate directly with agents.
+// Agents autonomously poll HCS via OpenClaw cron (every 5s),
+// and the orchestrator only detects HCS messages and mediates human approval.
 //
-// 상태 흐름:
-// course_request → bid(들) → AWAITING_BID_APPROVAL(사람) → bid_accepted
-// → deliverable(analyst) → deliverable(architect) → AWAITING_REVIEW(사람)
+// State flow:
+// course_request → bid(s) → AWAITING_BID_APPROVAL(human) → bid_accepted
+// → deliverable(analyst) → deliverable(architect) → AWAITING_REVIEW(human)
 // → client_review → escrow_release → course_complete
 
 import {
@@ -44,7 +44,7 @@ export class MarketplaceOrchestrator {
   private state: MarketplaceState = 'IDLE';
   private session: CourseSession | null = null;
 
-  // Promise resolver 패턴 — 인간 승인 대기
+  // Promise resolver pattern — waiting for human approval
   private bidApprovalResolver: ((approval: BidApproval) => void) | null = null;
   private reviewResolver: ((review: ClientReview) => void) | null = null;
 
@@ -60,7 +60,7 @@ export class MarketplaceOrchestrator {
     return this.session;
   }
 
-  /** 의뢰인이 입찰 승인 제출 시 호출 */
+  /** Called when the client submits bid approval */
   submitBidApproval(approval: BidApproval): void {
     if (this.bidApprovalResolver) {
       this.bidApprovalResolver(approval);
@@ -68,7 +68,7 @@ export class MarketplaceOrchestrator {
     }
   }
 
-  /** 의뢰인이 리뷰 결과 제출 시 호출 */
+  /** Called when the client submits a review */
   submitReview(review: ClientReview): void {
     if (this.reviewResolver) {
       this.reviewResolver(review);
@@ -76,8 +76,8 @@ export class MarketplaceOrchestrator {
     }
   }
 
-  // ── 메인 실행 ──
-  // HCS에 일감 게시 → 에이전트 자율 입찰 대기 → 인간 승인 → 에이전트 자율 작업 → 인간 리뷰
+  // ── Main execution ──
+  // Publish task to HCS → wait for autonomous agent bids → human approval → autonomous agent work → human review
 
   async run(
     infra: MarketplaceInfra,
@@ -89,7 +89,7 @@ export class MarketplaceOrchestrator {
     emit('mode', { mode: 'autonomous' });
 
     if (this.erc8004.isAvailable()) {
-      emit('log', { icon: '🔗', msg: 'ERC-8004 온체인 평판 시스템 활성화 (Ethereum Sepolia)' });
+      emit('log', { icon: '🔗', msg: 'ERC-8004 on-chain reputation system active (Ethereum Sepolia)' });
     }
 
     await this.registerERC8004Agents(infra, emit);
@@ -114,9 +114,9 @@ export class MarketplaceOrchestrator {
 
     this.transition('REQUEST', emit);
 
-    // ── Step 1: course_request + escrow_lock 게시 ──
+    // ── Step 1: publish course_request + escrow_lock ──
     emit('step', { step: 2, title: 'Course Request → HCS' });
-    emit('log', { icon: '📄', msg: `코스 요청 게시: ${paperUrl}` });
+    emit('log', { icon: '📄', msg: `Publishing course request: ${paperUrl}` });
 
     const requestPayload = JSON.stringify({
       type: 'course_request',
@@ -133,7 +133,7 @@ export class MarketplaceOrchestrator {
       requestId, paperUrl, budget, description,
     }, requestRecord.timestamp));
 
-    emit('log', { icon: '🔒', msg: `에스크로에 ${budget} KNOW 잠금 완료` });
+    emit('log', { icon: '🔒', msg: `${budget} KNOW locked in escrow` });
     const lockPayload = JSON.stringify({
       type: 'escrow_lock',
       requestId,
@@ -151,16 +151,16 @@ export class MarketplaceOrchestrator {
     }, lockRecord.timestamp));
     emit('escrow_update', { locked: budget, released: 0, remaining: budget });
 
-    // ── Step 2: BIDDING — 에이전트가 자율적으로 HCS에 bid 게시 대기 ──
+    // ── Step 2: BIDDING — wait for agents to autonomously post bids to HCS ──
     this.transition('BIDDING', emit);
     emit('step', { step: 3, title: 'Bidding Phase (Autonomous Agents)' });
-    emit('log', { icon: '🏷️', msg: '에이전트들의 자율 입찰 대기 중... (HCS 폴링)' });
+    emit('log', { icon: '🏷️', msg: 'Waiting for autonomous agent bids... (HCS polling)' });
 
     const bidMessages = await pollForHcsMessage(
       topicId,
       { type: 'bid', requestId, afterSeq: lastSeq },
       2,
-      300_000, // 5분 대기 — 에이전트가 cron으로 감지할 시간 필요
+      300_000, // 5 min wait — agents need time to detect via cron
       emit,
     );
 
@@ -175,20 +175,20 @@ export class MarketplaceOrchestrator {
       }, bm.timestamp));
     }
 
-    // ── Step 3: AWAITING_BID_APPROVAL — 의뢰인 승인 대기 ──
+    // ── Step 3: AWAITING_BID_APPROVAL — waiting for client approval ──
     this.transition('AWAITING_BID_APPROVAL', emit);
     emit('step', { step: 3.5, title: 'Awaiting Bid Approval (Human)' });
-    emit('log', { icon: '👤', msg: '의뢰인의 입찰 승인 대기 중...' });
+    emit('log', { icon: '👤', msg: 'Waiting for client bid approval...' });
 
-    // 의뢰인에게 입찰 정보 전달 → UI에서 승인/거절 버튼 표시
+    // Send bid info to client → UI shows approve/reject buttons
     emit('awaiting_bid_approval', { bids: collectedBids });
 
-    // Promise 패턴으로 인간 승인 대기
+    // Wait for human approval via Promise pattern
     const approval = await new Promise<BidApproval>((resolve) => {
       this.bidApprovalResolver = resolve;
     });
 
-    // bid_accepted 게시
+    // Publish bid_accepted
     const analystPrice = approval.analystPrice;
     const architectPrice = approval.architectPrice;
 
@@ -215,10 +215,10 @@ export class MarketplaceOrchestrator {
     this.session.acceptedAnalyst = { accountId: approval.analystAccountId, price: analystPrice };
     this.session.acceptedArchitect = { accountId: approval.architectAccountId, price: architectPrice };
 
-    // ── Step 4: ANALYST_WORKING — analyst가 자율적으로 작업 후 deliverable 게시 대기 ──
+    // ── Step 4: ANALYST_WORKING — wait for analyst to autonomously work and post deliverable ──
     this.transition('ANALYST_WORKING', emit);
     emit('step', { step: 4, title: 'Analyst Working (Autonomous)' });
-    emit('log', { icon: '🔬', msg: 'Analyst 에이전트의 자율 분석 대기 중...' });
+    emit('log', { icon: '🔬', msg: 'Waiting for Analyst agent autonomous analysis...' });
     emit('agent_status', { role: 'analyst', status: 'working', statusText: 'Analyzing...' });
 
     const analystDeliverables = await pollForHcsMessage(
@@ -241,14 +241,14 @@ export class MarketplaceOrchestrator {
       }, ad.timestamp));
       emit('agent_status', { role: 'analyst', status: 'delivered', statusText: 'Delivered' });
     } else {
-      emit('log', { icon: '⚠️', msg: 'Analyst 결과물 미감지 — 타임아웃' });
+      emit('log', { icon: '⚠️', msg: 'Analyst deliverable not detected — timeout' });
       emit('agent_status', { role: 'analyst', status: 'timeout', statusText: 'Timeout' });
     }
 
-    // ── Step 5: ARCHITECT_WORKING — architect가 자율적으로 설계 후 deliverable 게시 대기 ──
+    // ── Step 5: ARCHITECT_WORKING — wait for architect to autonomously design and post deliverable ──
     this.transition('ARCHITECT_WORKING', emit);
     emit('step', { step: 5, title: 'Architect Working (Autonomous)' });
-    emit('log', { icon: '🏗️', msg: 'Architect 에이전트의 자율 설계 대기 중...' });
+    emit('log', { icon: '🏗️', msg: 'Waiting for Architect agent autonomous design...' });
     emit('agent_status', { role: 'architect', status: 'working', statusText: 'Designing...' });
 
     const architectDeliverables = await pollForHcsMessage(
@@ -271,14 +271,14 @@ export class MarketplaceOrchestrator {
       }, archD.timestamp));
       emit('agent_status', { role: 'architect', status: 'delivered', statusText: 'Delivered' });
     } else {
-      emit('log', { icon: '⚠️', msg: 'Architect 결과물 미감지 — 타임아웃' });
+      emit('log', { icon: '⚠️', msg: 'Architect deliverable not detected — timeout' });
       emit('agent_status', { role: 'architect', status: 'timeout', statusText: 'Timeout' });
     }
 
-    // ── Step 6: AWAITING_REVIEW — 의뢰인 리뷰 대기 ──
+    // ── Step 6: AWAITING_REVIEW — waiting for client review ──
     this.transition('AWAITING_REVIEW', emit);
     emit('step', { step: 6, title: 'Awaiting Your Review (Human)' });
-    emit('log', { icon: '👤', msg: '의뢰인의 리뷰 대기 중...' });
+    emit('log', { icon: '👤', msg: 'Waiting for client review...' });
 
     emit('awaiting_review', {
       analystDeliverable: this.session.analystDeliverable ?? null,
@@ -289,7 +289,7 @@ export class MarketplaceOrchestrator {
       this.reviewResolver = resolve;
     });
 
-    // client_review HCS 기록
+    // Record client_review to HCS
     for (const [role, accountId, approved, score, feedback] of [
       ['analyst', analystAccount.accountId, review.analystApproved, review.analystScore, review.analystFeedback] as const,
       ['architect', architectAccount.accountId, review.architectApproved, review.architectScore, review.architectFeedback] as const,
@@ -312,15 +312,15 @@ export class MarketplaceOrchestrator {
       }, reviewRecord.timestamp));
     }
 
-    // ERC-8004 평판 기록 (의뢰인 리뷰 점수 기반)
+    // Record ERC-8004 reputation (based on client review scores)
     await this.recordERC8004Reputation(infra, requestId, [
       { role: 'analyst', score: review.analystScore, feedback: review.analystFeedback },
       { role: 'architect', score: review.architectScore, feedback: review.architectFeedback },
     ], emit);
 
-    // ── Step 7: RELEASING — 에스크로 해제 (50:50, 승인된 에이전트만) ──
+    // ── Step 7: RELEASING — escrow release (50:50, approved agents only) ──
     this.transition('RELEASING', emit);
-    emit('log', { icon: '💰', msg: '에스크로 지급 처리 중...' });
+    emit('log', { icon: '💰', msg: 'Processing escrow release...' });
 
     let totalReleased = 0;
 
@@ -354,8 +354,8 @@ export class MarketplaceOrchestrator {
 
     emit('escrow_update', { locked: budget, released: totalReleased, remaining: budget - totalReleased });
 
-    // 잔액 조회
-    emit('log', { icon: '⏳', msg: '잔액 반영 대기 (6초)...' });
+    // Check balances
+    emit('log', { icon: '⏳', msg: 'Waiting for balance update (6s)...' });
     await delay(6000);
 
     const [analystBal, architectBal, scholarBal, escrowBal] = await Promise.all([
@@ -366,7 +366,7 @@ export class MarketplaceOrchestrator {
     ]);
     emit('balance', { analyst: analystBal, architect: architectBal, scholar: scholarBal, escrow: escrowBal });
 
-    // ── Step 8: 코스 완성 ──
+    // ── Step 8: Course complete ──
     this.transition('COMPLETE', emit);
     emit('step', { step: 7, title: 'Course Complete' });
 
@@ -387,7 +387,7 @@ export class MarketplaceOrchestrator {
     emit('agent_status', { role: 'architect', status: 'done', statusText: 'Done' });
   }
 
-  // ── 상태 전이 ──
+  // ── State transition ──
 
   private transition(newState: MarketplaceState, emit: SSEEmitter): void {
     this.state = newState;
@@ -395,7 +395,7 @@ export class MarketplaceOrchestrator {
     emit('marketplace_state', { state: newState });
   }
 
-  // ── SSE 이벤트 포맷 헬퍼 ──
+  // ── SSE event format helper ──
 
   private formatHcsEvent(
     seq: number,
@@ -408,7 +408,7 @@ export class MarketplaceOrchestrator {
     return { seq, type, sender, senderRole, payload, timestamp };
   }
 
-  // ── ERC-8004: Identity Registry 에이전트 등록 ──
+  // ── ERC-8004: Identity Registry agent registration ──
 
   private async registerERC8004Agents(
     infra: MarketplaceInfra,
@@ -440,10 +440,10 @@ export class MarketplaceOrchestrator {
             txHash: result.txHash,
             etherscanUrl: result.etherscanUrl,
           });
-          emit('log', { icon: '🔗', msg: `ERC-8004: ${role} 등록 완료 (ID: ${result.agentId})` });
+          emit('log', { icon: '🔗', msg: `ERC-8004: ${role} registered (ID: ${result.agentId})` });
         }
       } catch (err: any) {
-        emit('log', { icon: '⚠️', msg: `ERC-8004 ${role} 등록 실패 (계속 진행): ${err.message}` });
+        emit('log', { icon: '⚠️', msg: `ERC-8004 ${role} registration failed (continuing): ${err.message}` });
       }
     }
 
@@ -452,7 +452,7 @@ export class MarketplaceOrchestrator {
     }
   }
 
-  // ── ERC-8004: Reputation Registry 평판 기록 (의뢰인 리뷰 점수 기반) ──
+  // ── ERC-8004: Reputation Registry record (based on client review scores) ──
 
   private async recordERC8004Reputation(
     infra: MarketplaceInfra,
@@ -482,10 +482,10 @@ export class MarketplaceOrchestrator {
             txHash: result.txHash,
             etherscanUrl: result.etherscanUrl,
           });
-          emit('log', { icon: '🔗', msg: `ERC-8004: ${review.role} 평판 기록 완료 (score: ${review.score})` });
+          emit('log', { icon: '🔗', msg: `ERC-8004: ${review.role} reputation recorded (score: ${review.score})` });
         }
       } catch (err: any) {
-        emit('log', { icon: '⚠️', msg: `ERC-8004 ${review.role} 평판 기록 실패 (계속 진행): ${err.message}` });
+        emit('log', { icon: '⚠️', msg: `ERC-8004 ${review.role} reputation recording failed (continuing): ${err.message}` });
       }
     }
   }

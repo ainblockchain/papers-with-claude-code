@@ -1,4 +1,4 @@
-// 에스크로 + 인프라 셋업 — 마켓플레이스 계정·토큰·토픽 일괄 프로비저닝
+// Escrow + infrastructure setup — batch provisioning of marketplace accounts, tokens, and topics
 
 import type { HederaContext, AgentAccount } from './context.js';
 import { createAgentAccount } from './context.js';
@@ -6,9 +6,9 @@ import { createTopic } from './hcs.js';
 import { createToken, associateToken, transferTokenFromTreasury, transferToken } from './hts.js';
 import type { MarketplaceInfra } from '../types/marketplace.js';
 
-// ── 인프라 셋업 (재사용 지원) ──
+// ── Infrastructure setup (with reuse support) ──
 
-// 레거시 인프라 (Explorer/Curator) — 기존 코드 호환용
+// Legacy infrastructure (Explorer/Curator) — for backward compatibility
 export interface InfrastructureIds {
   topicId: string;
   tokenId: string;
@@ -16,7 +16,7 @@ export interface InfrastructureIds {
   curatorAccount: AgentAccount;
 }
 
-// 레거시 셋업 (기존 Explorer/Curator 데모용)
+// Legacy setup (for existing Explorer/Curator demo)
 export async function setupOrReuse(
   ctx: HederaContext,
   log?: (msg: string) => void,
@@ -27,45 +27,45 @@ export async function setupOrReuse(
 
   let topicId: string;
   if (existingTopicId) {
-    emit(`토픽 재사용: ${existingTopicId}`);
+    emit(`Reusing topic: ${existingTopicId}`);
     topicId = existingTopicId;
   } else {
-    emit('HCS 토픽 생성 중...');
+    emit('Creating HCS topic...');
     topicId = await createTopic(ctx, 'Knowledge Marketplace Ledger');
-    emit(`토픽 생성 완료: ${topicId}`);
+    emit(`Topic created: ${topicId}`);
   }
 
   let tokenId: string;
   if (existingTokenId) {
-    emit(`토큰 재사용: ${existingTokenId}`);
+    emit(`Reusing token: ${existingTokenId}`);
     tokenId = existingTokenId;
   } else {
-    emit('KNOW 토큰 생성 중...');
+    emit('Creating KNOW token...');
     tokenId = await createToken(ctx, 'Knowledge Token', 'KNOW', 10000);
-    emit(`토큰 생성 완료: ${tokenId}`);
+    emit(`Token created: ${tokenId}`);
   }
 
-  emit('Explorer 계정 생성 중...');
+  emit('Creating Explorer account...');
   const explorerAccount = await createAgentAccount(ctx, 'Explorer');
   emit(`Explorer: ${explorerAccount.accountId}`);
 
-  emit('Curator 계정 생성 중...');
+  emit('Creating Curator account...');
   const curatorAccount = await createAgentAccount(ctx, 'Curator');
   emit(`Curator: ${curatorAccount.accountId}`);
 
-  emit('토큰 Association 중...');
+  emit('Associating tokens...');
   await associateToken(ctx, explorerAccount, tokenId);
   await associateToken(ctx, curatorAccount, tokenId);
 
-  emit('Curator에게 초기 KNOW 전송 중...');
+  emit('Transferring initial KNOW to Curator...');
   await transferTokenFromTreasury(ctx, tokenId, curatorAccount, 5000);
 
   return { topicId, tokenId, explorerAccount, curatorAccount };
 }
 
-// ── 마켓플레이스 인프라 셋업 ──
-// Escrow + Analyst + Architect + Scholar 4개 계정 병렬 생성
-// 에스크로 계정에 budget만큼 KNOW 토큰 입금
+// ── Marketplace infrastructure setup ──
+// Create 4 accounts in parallel: Escrow + Analyst + Architect + Scholar
+// Deposit budget amount of KNOW tokens into the escrow account
 
 export async function setupMarketplaceInfra(
   ctx: HederaContext,
@@ -75,31 +75,31 @@ export async function setupMarketplaceInfra(
   const emit = log ?? (() => {});
   const existingTopicId = process.env.HCS_TOPIC_ID;
 
-  // 토픽: 재사용 또는 생성
+  // Topic: reuse or create
   let topicId: string;
   if (existingTopicId) {
-    emit(`토픽 재사용: ${existingTopicId}`);
+    emit(`Reusing topic: ${existingTopicId}`);
     topicId = existingTopicId;
   } else {
-    emit('HCS 토픽 생성 중...');
+    emit('Creating HCS topic...');
     topicId = await createTopic(ctx, 'Course Generation Marketplace');
-    emit(`토픽 생성 완료: ${topicId}`);
+    emit(`Topic created: ${topicId}`);
   }
 
-  // 토큰: 재사용 또는 생성 (생성 시 ~40-80 HBAR 소모)
+  // Token: reuse or create (creation costs ~40-80 HBAR)
   const existingTokenId = process.env.KNOW_TOKEN_ID;
   let tokenId: string;
   if (existingTokenId) {
-    emit(`토큰 재사용: ${existingTokenId}`);
+    emit(`Reusing token: ${existingTokenId}`);
     tokenId = existingTokenId;
   } else {
-    emit('KNOW 토큰 생성 중...');
+    emit('Creating KNOW token...');
     tokenId = await createToken(ctx, 'Knowledge Token', 'KNOW', 10000);
-    emit(`토큰 생성 완료: ${tokenId} — .env에 KNOW_TOKEN_ID=${tokenId} 추가하면 다음부터 재사용`);
+    emit(`Token created: ${tokenId} — add KNOW_TOKEN_ID=${tokenId} to .env to reuse next time`);
   }
 
-  // 4개 계정 병렬 생성 — 네트워크 왕복 최소화
-  emit('에이전트 계정 4개 병렬 생성 중...');
+  // Create 4 accounts in parallel — minimize network round trips
+  emit('Creating 4 agent accounts in parallel...');
   const [escrowAccount, analystAccount, architectAccount, scholarAccount] = await Promise.all([
     createAgentAccount(ctx, 'Escrow'),
     createAgentAccount(ctx, 'Analyst'),
@@ -111,8 +111,8 @@ export async function setupMarketplaceInfra(
   emit(`Architect: ${architectAccount.accountId}`);
   emit(`Scholar: ${scholarAccount.accountId}`);
 
-  // 토큰 Association 병렬 처리
-  emit('토큰 Association 중...');
+  // Token association in parallel
+  emit('Associating tokens...');
   await Promise.all([
     associateToken(ctx, escrowAccount, tokenId),
     associateToken(ctx, analystAccount, tokenId),
@@ -120,15 +120,15 @@ export async function setupMarketplaceInfra(
     associateToken(ctx, scholarAccount, tokenId),
   ]);
 
-  // 에스크로 계정에 budget만큼 입금
-  emit(`에스크로에 ${budget} KNOW 입금 중...`);
+  // Deposit budget amount into escrow account
+  emit(`Depositing ${budget} KNOW into escrow...`);
   await transferTokenFromTreasury(ctx, tokenId, escrowAccount, budget);
-  emit('에스크로 입금 완료');
+  emit('Escrow deposit complete');
 
   return { topicId, tokenId, escrowAccount, analystAccount, architectAccount, scholarAccount };
 }
 
-// 에스크로에서 특정 에이전트에게 토큰 지급
+// Release tokens from escrow to a specific agent
 export async function escrowRelease(
   ctx: HederaContext,
   escrowAccount: AgentAccount,

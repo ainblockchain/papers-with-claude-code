@@ -1,17 +1,17 @@
-// 마켓플레이스 HCS 메시지 프로토콜 타입 정의
-// 모든 에이전트 간 통신은 이 타입들로 HCS에 기록됨
-// Reviewer 에이전트 제거 — 의뢰인(사람)이 직접 리뷰 수행
+// Marketplace HCS message protocol type definitions
+// All inter-agent communication is recorded on HCS using these types
+// Reviewer agent removed — requester (human) performs reviews directly
 
 import type { AgentAccount } from '../hedera/client.js';
 
-// ── HCS 메시지 프로토콜 ──
+// ── HCS message protocol ──
 
 export interface CourseRequestMessage {
   type: 'course_request';
   requestId: string;
-  sender: string;        // 의뢰인 (서버가 대리 게시)
+  sender: string;        // requester (server posts on behalf)
   paperUrl: string;
-  budget: number;        // 총 에스크로 예산 (KNOW)
+  budget: number;        // total escrow budget (KNOW)
   description: string;
   timestamp: string;
 }
@@ -19,17 +19,17 @@ export interface CourseRequestMessage {
 export interface BidMessage {
   type: 'bid';
   requestId: string;
-  sender: string;        // 입찰 에이전트 account ID
+  sender: string;        // bidding agent account ID
   role: 'analyst' | 'architect';
-  price: number;         // 요청 금액 (KNOW)
-  pitch: string;         // 입찰 제안 설명
+  price: number;         // requested amount (KNOW)
+  pitch: string;         // bid proposal description
   timestamp: string;
 }
 
 export interface BidAcceptedMessage {
   type: 'bid_accepted';
   requestId: string;
-  sender: string;        // 의뢰인 (사람이 승인)
+  sender: string;        // requester (human-approved)
   bidderAccountId: string;
   role: 'analyst' | 'architect';
   price: number;
@@ -39,7 +39,7 @@ export interface BidAcceptedMessage {
 export interface EscrowLockMessage {
   type: 'escrow_lock';
   requestId: string;
-  sender: string;        // 서버 (trusted intermediary)
+  sender: string;        // server (trusted intermediary)
   escrowAccountId: string;
   tokenId: string;
   amount: number;
@@ -50,17 +50,17 @@ export interface EscrowLockMessage {
 export interface DeliverableMessage {
   type: 'deliverable';
   requestId: string;
-  sender: string;        // Analyst 또는 Architect account ID
+  sender: string;        // Analyst or Architect account ID
   role: 'analyst' | 'architect';
-  content: Record<string, unknown>;  // 작업 결과물 (유연한 구조)
+  content: Record<string, unknown>;  // work deliverable (flexible structure)
   timestamp: string;
 }
 
-/** 의뢰인(사람)이 직접 수행하는 리뷰 — 기존 ReviewerAgent 자동 리뷰 대체 */
+/** Review performed directly by the requester (human) — replaces former ReviewerAgent auto-review */
 export interface ClientReviewMessage {
   type: 'client_review';
   requestId: string;
-  sender: string;        // 의뢰인 (서버가 대리 게시)
+  sender: string;        // requester (server posts on behalf)
   targetRole: 'analyst' | 'architect';
   targetAccountId: string;
   approved: boolean;
@@ -72,7 +72,7 @@ export interface ClientReviewMessage {
 export interface EscrowReleaseMessage {
   type: 'escrow_release';
   requestId: string;
-  sender: string;        // 서버
+  sender: string;        // server
   toAccountId: string;
   role: 'analyst' | 'architect';
   amount: number;
@@ -83,33 +83,33 @@ export interface EscrowReleaseMessage {
 export interface CourseCompleteMessage {
   type: 'course_complete';
   requestId: string;
-  sender: string;        // 서버
+  sender: string;        // server
   courseTitle: string;
   modules: string[];
   timestamp: string;
 }
 
-/** Scholar에게 자문 요청 (Analyst/Architect → Scholar) */
+/** Consultation request to Scholar (Analyst/Architect -> Scholar) */
 export interface ConsultationRequestMessage {
   type: 'consultation_request';
   requestId: string;
-  sender: string;        // 요청 에이전트 account ID
+  sender: string;        // requesting agent account ID
   question: string;
-  offeredFee: number;    // KNOW 토큰으로 제안하는 자문비
+  offeredFee: number;    // consultation fee offered in KNOW tokens
   timestamp: string;
 }
 
-/** Scholar 자문 응답 (KNOW 수신 확인 후) */
+/** Scholar consultation response (after confirming KNOW receipt) */
 export interface ConsultationResponseMessage {
   type: 'consultation_response';
   requestId: string;
   sender: string;        // Scholar account ID
   answer: string;
-  fee: number;           // 실제 청구한 자문비
+  fee: number;           // actual consultation fee charged
   timestamp: string;
 }
 
-/** 모든 HCS 메시지 타입의 유니온 */
+/** Union of all HCS message types */
 export type MarketplaceMessage =
   | CourseRequestMessage
   | BidMessage
@@ -122,12 +122,12 @@ export type MarketplaceMessage =
   | ConsultationRequestMessage
   | ConsultationResponseMessage;
 
-/** HCS 메시지의 type 필드 리터럴 유니온 */
+/** Literal union of the type field from HCS messages */
 export type MarketplaceMessageType = MarketplaceMessage['type'];
 
-// ── 마켓플레이스 인프라 ──
+// ── Marketplace infrastructure ──
 
-/** ERC-8004 에이전트 등록 정보 */
+/** ERC-8004 agent registration info */
 export interface ERC8004AgentInfo {
   agentId: number;
   txHash: string;
@@ -141,7 +141,7 @@ export interface MarketplaceInfra {
   analystAccount: AgentAccount;
   architectAccount: AgentAccount;
   scholarAccount: AgentAccount;
-  /** ERC-8004 온체인 평판 — Sepolia 미설정 시 undefined */
+  /** ERC-8004 on-chain reputation — undefined when Sepolia is not configured */
   erc8004?: {
     analyst: ERC8004AgentInfo;
     architect: ERC8004AgentInfo;
@@ -149,7 +149,7 @@ export interface MarketplaceInfra {
   };
 }
 
-// ── 오케스트레이터 상태 머신 ──
+// ── Orchestrator state machine ──
 
 export type MarketplaceState =
   | 'IDLE'
@@ -163,7 +163,7 @@ export type MarketplaceState =
   | 'COMPLETE'
   | 'ERROR';
 
-/** 의뢰인이 입찰을 승인할 때 전달하는 데이터 */
+/** Data passed when the requester approves bids */
 export interface BidApproval {
   analystAccountId: string;
   analystPrice: number;
@@ -171,7 +171,7 @@ export interface BidApproval {
   architectPrice: number;
 }
 
-/** 의뢰인이 리뷰 결과를 제출할 때 전달하는 데이터 */
+/** Data passed when the requester submits review results */
 export interface ClientReview {
   analystApproved: boolean;
   analystScore: number;
@@ -181,7 +181,7 @@ export interface ClientReview {
   architectFeedback: string;
 }
 
-/** requestId별 활성 코스 요청 상태 추적 */
+/** Tracks the active course request state per requestId */
 export interface CourseSession {
   requestId: string;
   state: MarketplaceState;
@@ -189,37 +189,37 @@ export interface CourseSession {
   budget: number;
   description: string;
 
-  // 에스크로
+  // Escrow
   escrowTxId?: string;
   escrowLocked: number;
   escrowReleased: number;
 
-  // 입찰
+  // Bids
   bids: BidMessage[];
   acceptedAnalyst?: { accountId: string; price: number };
   acceptedArchitect?: { accountId: string; price: number };
 
-  // 결과물
+  // Deliverables
   analystDeliverable?: DeliverableMessage;
   architectDeliverable?: DeliverableMessage;
 
-  // 의뢰인 리뷰
+  // Client reviews
   clientReviews: ClientReviewMessage[];
 
-  // 정산
+  // Settlement
   releases: EscrowReleaseMessage[];
 }
 
-// ── SSE 이벤트 (대시보드용) ──
+// ── SSE events (for dashboard) ──
 
 export interface MarketplaceSSEEvent {
   type: 'marketplace_state' | 'hcs_message' | 'escrow_update' | 'agent_status' | 'course_preview';
   data: Record<string, unknown>;
 }
 
-// ── 에스크로 분배 기본값 ──
+// ── Default escrow distribution ──
 
-/** 예산 기준 기본 분배 비율 — Reviewer 제거로 50:50 */
+/** Default budget split ratio — 50:50 after Reviewer removal */
 export const DEFAULT_ESCROW_SPLIT = {
   analyst: 0.5,    // 50%
   architect: 0.5,  // 50%

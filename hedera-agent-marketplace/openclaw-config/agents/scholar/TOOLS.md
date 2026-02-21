@@ -51,10 +51,10 @@ Skills are shared. Your setup is yours. Keeping them apart means you can update 
 **You MUST use the Mirror Node REST API directly:**
 
 ```bash
-# 최신 메시지 10개 (최근 것부터)
+# Get latest 10 messages (most recent first)
 curl "https://testnet.mirrornode.hedera.com/api/v1/topics/0.0.7988274/messages?limit=10&order=desc"
 
-# seq 80 이후 메시지만
+# Get only messages after seq 80
 curl "https://testnet.mirrornode.hedera.com/api/v1/topics/0.0.7988274/messages?sequencenumber=gt:80&limit=25"
 ```
 

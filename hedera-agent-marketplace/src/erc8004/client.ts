@@ -1,7 +1,7 @@
-// ERC-8004 (Trustless Agents) 온체인 평판 클라이언트
-// Ethereum Sepolia의 Identity + Reputation Registry에 연결하여
-// 에이전트 등록, 평판 기록, 평판 조회를 수행한다.
-// 환경변수 미설정 시 모든 메서드가 no-op으로 동작 (graceful degradation).
+// ERC-8004 (Trustless Agents) on-chain reputation client
+// Connects to Identity + Reputation Registry on Ethereum Sepolia
+// to register agents, record reputation, and query reputation.
+// All methods act as no-ops when env vars are not configured (graceful degradation).
 
 import { ethers } from 'ethers';
 import {
@@ -41,7 +41,7 @@ export class ERC8004Client {
     const privateKey = process.env.ERC8004_PRIVATE_KEY;
 
     if (!privateKey) {
-      // ERC-8004 미설정 — 모든 메서드가 no-op
+      // ERC-8004 not configured — all methods are no-ops
       return;
     }
 
@@ -63,22 +63,22 @@ export class ERC8004Client {
 
       this.available = true;
     } catch {
-      // 초기화 실패 — graceful skip
+      // Initialization failed — graceful skip
       this.available = false;
     }
   }
 
-  /** ERC-8004 설정 여부 */
+  /** Whether ERC-8004 is configured */
   isAvailable(): boolean {
     return this.available;
   }
 
-  /** Etherscan 트랜잭션 URL 생성 */
+  /** Generate Etherscan transaction URL */
   txUrl(txHash: string): string {
     return `${ETHERSCAN_BASE}/tx/${txHash}`;
   }
 
-  /** 에이전트를 Identity Registry에 등록 (ERC-721 민트) */
+  /** Register an agent in the Identity Registry (ERC-721 mint) */
   async registerAgent(
     name: string,
     hederaAccountId: string,
@@ -86,7 +86,7 @@ export class ERC8004Client {
   ): Promise<AgentRegistration | null> {
     if (!this.available || !this.identityRegistry) return null;
 
-    // agentURI: 에이전트 메타데이터를 JSON으로 인코딩
+    // agentURI: agent metadata encoded as JSON
     const agentURI = JSON.stringify({
       name: `${name}-${role}`,
       role,
@@ -98,17 +98,17 @@ export class ERC8004Client {
     const tx = await this.identityRegistry.register(agentURI);
     const receipt = await tx.wait();
 
-    // register()가 반환하는 agentId를 이벤트 로그에서 추출
-    // ERC-721 Transfer 이벤트: Transfer(address from, address to, uint256 tokenId)
+    // Extract agentId returned by register() from event logs
+    // ERC-721 Transfer event: Transfer(address from, address to, uint256 tokenId)
     const transferLog = receipt.logs.find(
-      (log: ethers.Log) => log.topics.length === 4, // Transfer는 3개의 indexed arg
+      (log: ethers.Log) => log.topics.length === 4, // Transfer has 3 indexed args
     );
 
     let agentId: number;
     if (transferLog) {
       agentId = Number(BigInt(transferLog.topics[3]));
     } else {
-      // 이벤트 파싱 실패 시 totalSupply로 추정
+      // Fallback to totalSupply if event parsing fails
       const supply = await this.identityRegistry.totalSupply();
       agentId = Number(supply);
     }
@@ -120,7 +120,7 @@ export class ERC8004Client {
     };
   }
 
-  /** 리뷰 점수를 Reputation Registry에 기록 */
+  /** Record a review score in the Reputation Registry */
   async recordReputation(
     agentId: number,
     score: number, // 0-100
@@ -129,7 +129,7 @@ export class ERC8004Client {
   ): Promise<ReputationRecord | null> {
     if (!this.available || !this.reputationRegistry) return null;
 
-    // feedbackURI: 리뷰 상세를 JSON으로 인코딩
+    // feedbackURI: review details encoded as JSON
     const feedbackURI = JSON.stringify({
       score,
       feedback,
@@ -139,16 +139,16 @@ export class ERC8004Client {
       timestamp: new Date().toISOString(),
     });
 
-    // feedbackHash: URI의 keccak256 해시
+    // feedbackHash: keccak256 hash of the URI
     const feedbackHash = ethers.keccak256(ethers.toUtf8Bytes(feedbackURI));
 
     const tx = await this.reputationRegistry.giveFeedback(
       agentId,
       score,       // int128 value (0-100)
-      0,           // uint8 valueDecimals (정수이므로 0)
-      'quality',   // tag1: 평가 카테고리
-      context.role, // tag2: 에이전트 역할
-      '',          // endpoint (비어 있음)
+      0,           // uint8 valueDecimals (integer, so 0)
+      'quality',   // tag1: evaluation category
+      context.role, // tag2: agent role
+      '',          // endpoint (empty)
       feedbackURI,
       feedbackHash,
     );
@@ -161,15 +161,15 @@ export class ERC8004Client {
     };
   }
 
-  /** 에이전트 평판 요약 조회 */
+  /** Query agent reputation summary */
   async getReputation(agentId: number): Promise<ReputationSummary | null> {
     if (!this.available || !this.reputationRegistry) return null;
 
     const [count, summaryValue, decimals] = await this.reputationRegistry.getSummary(
       agentId,
-      [],        // reviewers 필터 없음 (모든 리뷰어)
+      [],        // no reviewer filter (all reviewers)
       'quality', // tag1
-      '',        // tag2 (모든 역할)
+      '',        // tag2 (all roles)
     );
 
     const countNum = Number(count);
