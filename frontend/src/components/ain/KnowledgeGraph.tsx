@@ -62,13 +62,13 @@ const CLUSTER_COLORS = [
 ];
 
 const SIM = {
-  repulsion: 8000,
+  repulsion: 30000,
   attraction: 0.005,
-  centerGravity: 0.005,
-  clusterGravity: 0.03,
-  damping: 0.9,
+  centerGravity: 0.001,
+  clusterGravity: 0.008,
+  damping: 0.85,
   minVelocity: 0.01,
-  maxVelocity: 12,
+  maxVelocity: 20,
 };
 
 /* ───────── Component ───────── */
@@ -126,7 +126,7 @@ export function KnowledgeGraph() {
     // Compute cluster centers in a large circle
     const clusterIds = Array.from(clusterMap.keys());
     const clusterCount = clusterIds.length;
-    const clusterRadius = Math.max(300, clusterCount * 60);
+    const clusterRadius = Math.max(1000, clusterCount * 200);
     const clusters: ClusterInfo[] = clusterIds.map((cid, i) => {
       const angle = (2 * Math.PI * i) / clusterCount;
       return {
@@ -151,7 +151,7 @@ export function KnowledgeGraph() {
       const topicPath = n.topic_path || '';
       const cluster = topicPath.split('/')[0] || 'other';
       const center = clusterCenterMap.get(cluster) || { cx: 0, cy: 0 };
-      const noise = 60 + Math.random() * 100;
+      const noise = 150 + Math.random() * 350;
       const angle = Math.random() * 2 * Math.PI;
       return {
         id,
@@ -184,7 +184,7 @@ export function KnowledgeGraph() {
     edgesRef.current = edges;
 
     // Reset camera with zoom out for large graphs
-    const autoZoom = ids.length > 50 ? 0.5 : ids.length > 20 ? 0.7 : 1;
+    const autoZoom = ids.length > 100 ? 0.2 : ids.length > 50 ? 0.35 : ids.length > 20 ? 0.5 : 1;
     camRef.current = { x: 0, y: 0, zoom: autoZoom };
   }, [graph]);
 
