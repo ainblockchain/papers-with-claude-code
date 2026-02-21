@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { Paper } from '@/types/paper';
+import { syncCoursesToAin } from '@/lib/ain/course-sync';
 
 interface ExploreState {
   papers: Paper[];
@@ -20,7 +21,10 @@ export const useExploreStore = create<ExploreState>((set, get) => ({
   searchQuery: '',
   period: 'daily',
   isLoading: false,
-  setPapers: (papers) => set({ papers, filteredPapers: papers }),
+  setPapers: (papers) => {
+    set({ papers, filteredPapers: papers });
+    syncCoursesToAin(papers);
+  },
   setSearchQuery: (searchQuery) => {
     set({ searchQuery });
     get().filterPapers();

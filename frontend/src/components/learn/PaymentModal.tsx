@@ -120,6 +120,7 @@ export function PaymentModal() {
           {phase === 'done' ? (
             <>
               <h3 className="font-bold text-lg text-white">Stage Unlocked!</h3>
+              <p className="mt-1 text-xs text-gray-500 font-mono">settled via x402</p>
               <p className="mt-2 text-sm text-gray-400">
                 {nextStage.title}
               </p>
@@ -134,6 +135,10 @@ export function PaymentModal() {
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-gray-500">Chain</span>
                     <span className="text-xs text-green-400">{chainConfig.name}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-500">Protocol</span>
+                    <span className="text-xs text-green-400 font-mono">x402</span>
                   </div>
                   {resultExplorerUrl && (
                     <a
@@ -152,6 +157,7 @@ export function PaymentModal() {
           ) : (
             <>
               <h3 className="font-bold text-lg text-white">Unlock Stage {nextStage.stageNumber}</h3>
+              <p className="mt-1 text-xs text-gray-500 font-mono">via x402 protocol</p>
               <p className="mt-2 text-sm text-gray-400">
                 {nextStage.title}
               </p>
@@ -168,7 +174,7 @@ export function PaymentModal() {
               </div>
 
               <div className="mt-3 p-3 bg-[#16162a] rounded-lg">
-                <p className="text-xs text-gray-500">Payment via {chainConfig.name}</p>
+                <p className="text-xs text-gray-500">x402 Payment via {chainConfig.name}</p>
                 <p className="text-lg font-bold text-white">
                   {formatChainAmount(selectedChain, 'stageUnlock')}
                 </p>

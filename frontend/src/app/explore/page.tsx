@@ -6,22 +6,23 @@ import { PaperCard } from '@/components/explore/PaperCard';
 import { PurchaseModal } from '@/components/purchase/PurchaseModal';
 import { useExploreStore } from '@/stores/useExploreStore';
 import { usePurchaseStore } from '@/stores/usePurchaseStore';
-import { papersAdapter } from '@/lib/adapters/papers';
+import { useCourses } from '@/hooks/useCourses';
 
 export default function ExplorePage() {
   const { filteredPapers, setPapers, setLoading, isLoading } = useExploreStore();
   const { initializeAccess } = usePurchaseStore();
+  const { data: courses, isLoading: coursesLoading } = useCourses();
 
   useEffect(() => {
-    async function load() {
-      setLoading(true);
-      const papers = await papersAdapter.fetchTrendingPapers('daily');
-      setPapers(papers);
-      initializeAccess(papers);
-      setLoading(false);
+    setLoading(coursesLoading);
+  }, [coursesLoading, setLoading]);
+
+  useEffect(() => {
+    if (courses && courses.length > 0) {
+      setPapers(courses);
+      initializeAccess(courses);
     }
-    load();
-  }, [setPapers, setLoading, initializeAccess]);
+  }, [courses, setPapers, initializeAccess]);
 
   return (
     <div className="mx-auto max-w-[1280px] px-4 py-8">

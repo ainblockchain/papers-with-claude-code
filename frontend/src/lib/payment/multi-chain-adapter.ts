@@ -1,8 +1,6 @@
-// Multi-chain payment adapter — delegates to existing x402Adapter and ainAdapter
+// Multi-chain payment adapter — delegates to x402Adapter for Kite and direct x402 API for Base
 
 import { x402Adapter, type PaymentResult } from '@/lib/adapters/x402';
-import { ainAdapter } from '@/lib/adapters/ain-blockchain';
-import { useAuthStore } from '@/stores/useAuthStore';
 import { loadPasskeyInfo } from '@/lib/ain/passkey';
 import { type PaymentChainId, PAYMENT_CHAINS } from './chains';
 
@@ -19,8 +17,8 @@ class MultiChainPaymentAdapter {
     switch (params.chain) {
       case 'kite':
         return this.kitePurchaseCourse(params);
-      case 'ain':
-        return this.ainPurchaseCourse(params);
+      case 'base':
+        return this.basePurchaseCourse(params);
       default:
         return {
           success: false,
@@ -33,8 +31,8 @@ class MultiChainPaymentAdapter {
     switch (params.chain) {
       case 'kite':
         return this.kiteUnlockStage(params);
-      case 'ain':
-        return this.ainUnlockStage(params);
+      case 'base':
+        return this.baseUnlockStage(params);
       default:
         return {
           success: false,
@@ -65,7 +63,7 @@ class MultiChainPaymentAdapter {
         if (body?.error === 'insufficient_funds') {
           return {
             success: false,
-            error: 'Insufficient USDT balance.',
+            error: 'Insufficient USDC balance.',
             errorCode: 'insufficient_funds',
           };
         }
@@ -99,12 +97,18 @@ class MultiChainPaymentAdapter {
         };
       }
 
+      // Extract txHash from PAYMENT-RESPONSE header (base64-encoded JSON from withX402)
+      const txHash = this.extractTxHashFromResponse(res);
       const data = await res.json();
+      const explorerUrl = txHash
+        ? `https://testnet.kitescan.ai/tx/${txHash}`
+        : data.explorerUrl;
+
       return {
         success: true,
         receiptId: data.enrollment?.paperId,
-        txHash: data.txHash,
-        explorerUrl: data.explorerUrl,
+        txHash: txHash || data.txHash,
+        explorerUrl,
       };
     } catch (err) {
       return {
@@ -115,38 +119,14 @@ class MultiChainPaymentAdapter {
     }
   }
 
-  // ── AIN: Course Purchase via ainAdapter.accessEntry() ──
-  private async ainPurchaseCourse(
+  // ── Base Sepolia: Course Purchase via server-side proxy ──
+  private async basePurchaseCourse(
     params: ChainPaymentParams
   ): Promise<PaymentResult> {
-    try {
-      const passkeyInfo = useAuthStore.getState().passkeyInfo;
-      const ownerAddress = passkeyInfo?.ainAddress || '0x_default_owner';
-      const topicPath = `courses/${params.paperId}`;
-
-      const result = await ainAdapter.accessEntry(
-        ownerAddress,
-        topicPath,
-        params.paperId
-      );
-
-      if (result?.paid || result?.data?.paid || result?.ok) {
-        return {
-          success: true,
-          receiptId: `ain-purchase-${Date.now()}`,
-          txHash: result?.tx_hash || result?.data?.tx_hash,
-        };
-      }
-      return {
-        success: false,
-        error: result?.error || 'AIN purchase failed',
-      };
-    } catch (err) {
-      return {
-        success: false,
-        error: err instanceof Error ? err.message : 'AIN payment failed',
-      };
-    }
+    return this.baseProxyRequest('enroll', {
+      paperId: params.paperId,
+      passkeyPublicKey: loadPasskeyInfo()?.publicKey || '',
+    });
   }
 
   // ── Kite: Stage Unlock — delegates to existing x402Adapter ──
@@ -164,38 +144,67 @@ class MultiChainPaymentAdapter {
     });
   }
 
-  // ── AIN: Stage Unlock via accessEntry with stage-specific topicPath ──
-  private async ainUnlockStage(
+  // ── Base Sepolia: Stage Unlock via server-side proxy ──
+  private async baseUnlockStage(
     params: ChainPaymentParams
   ): Promise<PaymentResult> {
+    return this.baseProxyRequest('unlock-stage', {
+      paperId: params.paperId,
+      stageId: params.stageId,
+      stageNum: params.stageNum ?? 0,
+      score: params.score ?? 0,
+      passkeyPublicKey: loadPasskeyInfo()?.publicKey || '',
+    });
+  }
+
+  // ── Base Sepolia: Shared proxy helper ──
+  private async baseProxyRequest(
+    action: 'enroll' | 'unlock-stage',
+    requestParams: Record<string, unknown>
+  ): Promise<PaymentResult> {
     try {
-      const passkeyInfo = useAuthStore.getState().passkeyInfo;
-      const ownerAddress = passkeyInfo?.ainAddress || '0x_default_owner';
-      const topicPath = `courses/${params.paperId}/stages/${params.stageNum}`;
-      const entryId = params.stageId || `stage-${params.stageNum}`;
+      const res = await fetch('/api/x402/base-proxy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, ...requestParams }),
+      });
 
-      const result = await ainAdapter.accessEntry(
-        ownerAddress,
-        topicPath,
-        entryId
-      );
-
-      if (result?.paid || result?.data?.paid || result?.ok) {
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        const errorMsg = body?.message ?? `Request failed (${res.status})`;
         return {
-          success: true,
-          receiptId: `ain-stage-${Date.now()}`,
-          txHash: result?.tx_hash || result?.data?.tx_hash,
+          success: false,
+          error: errorMsg,
+          errorCode: body?.error ?? 'payment_failed',
         };
       }
+
+      const data = await res.json();
       return {
-        success: false,
-        error: result?.error || 'AIN stage unlock failed',
+        success: true,
+        receiptId: data.enrollment?.paperId ?? data.txHash,
+        txHash: data.txHash,
+        explorerUrl: data.explorerUrl,
       };
     } catch (err) {
       return {
         success: false,
-        error: err instanceof Error ? err.message : 'AIN payment failed',
+        error: err instanceof Error ? err.message : 'Network error',
+        errorCode: 'network_error',
       };
+    }
+  }
+
+  // ── Shared: Extract txHash from x402 PAYMENT-RESPONSE header ──
+  private extractTxHashFromResponse(res: Response): string | undefined {
+    const header =
+      res.headers.get('PAYMENT-RESPONSE') || res.headers.get('X-PAYMENT-RESPONSE');
+    if (!header) return undefined;
+    try {
+      const decoded = JSON.parse(atob(header));
+      return decoded.transaction || decoded.txHash || undefined;
+    } catch {
+      return undefined;
     }
   }
 
@@ -219,7 +228,7 @@ class MultiChainPaymentAdapter {
         accepts?.payTo || (paymentInfo?.payTo as string) || '';
       const amount =
         accepts?.maxAmountRequired || (paymentInfo?.amount as string) || '0';
-      const tokenType = accepts?.asset || 'USDT';
+      const tokenType = accepts?.asset || 'USDC';
       if (!payeeAddr) return null;
 
       const approveRes = await fetch('/api/kite-mcp/tools', {

@@ -1,6 +1,6 @@
 // Multi-chain payment configuration
 
-export type PaymentChainId = 'kite' | 'ain' | 'base';
+export type PaymentChainId = 'kite' | 'base';
 
 export interface PaymentChainConfig {
   id: PaymentChainId;
@@ -29,23 +29,15 @@ export const PAYMENT_CHAINS: Record<PaymentChainId, PaymentChainConfig> = {
     amounts: { coursePurchase: 0.001, stageUnlock: 0.001 },
     enabled: true,
   },
-  ain: {
-    id: 'ain',
-    name: 'AIN Blockchain',
-    currency: 'AIN',
-    icon: '\u{1F517}',
-    explorerUrl: 'https://insight.ainetwork.ai',
-    amounts: { coursePurchase: 10, stageUnlock: 5 },
-    enabled: true,
-  },
   base: {
     id: 'base',
-    name: 'Base',
+    name: 'Base Sepolia',
     currency: 'USDC',
     icon: '\u{1F535}',
-    explorerUrl: 'https://basescan.org',
+    explorerUrl: 'https://sepolia.basescan.org',
+    faucetUrl: 'https://portal.cdp.coinbase.com/products/faucet',
     amounts: { coursePurchase: 0.001, stageUnlock: 0.001 },
-    enabled: false,
+    enabled: true,
   },
 };
 

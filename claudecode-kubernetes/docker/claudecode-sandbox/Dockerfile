@@ -59,6 +59,10 @@ COPY generator-CLAUDE.md /home/claude/generator-CLAUDE.md
 RUN chown claude:claude /home/claude/generator-CLAUDE.md && \
     chmod 444 /home/claude/generator-CLAUDE.md
 
+# x402 payment helper — simplifies stage unlock to a single command
+COPY unlock-stage.sh /usr/local/bin/unlock-stage.sh
+RUN chmod +x /usr/local/bin/unlock-stage.sh
+
 # Claude Code launcher wrapper script
 COPY start-claude.sh /usr/local/bin/start-claude.sh
 RUN chmod +x /usr/local/bin/start-claude.sh

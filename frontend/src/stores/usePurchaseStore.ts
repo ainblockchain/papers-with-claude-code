@@ -23,6 +23,8 @@ interface PurchaseState {
     amount: string;
     currency: string;
     chain: PaymentChainId;
+    txHash?: string;
+    explorerUrl?: string;
   } | null;
   /** Selected payment chain */
   selectedChain: PaymentChainId;
@@ -100,6 +102,8 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
             amount: String(chainConfig.amounts.coursePurchase),
             currency: chainConfig.currency,
             chain: selectedChain,
+            txHash: result.txHash,
+            explorerUrl: result.explorerUrl,
           },
         }));
         return true;

@@ -14,4 +14,8 @@ data:
   POD_MEMORY_REQUEST: "512Mi"
   POD_MEMORY_LIMIT: "4Gi"
   SESSION_TIMEOUT_SECONDS: "7200"
-  MAX_SESSIONS: "4"
+  MAX_SESSIONS: "20"
+  # x402 payment — set X402_MERCHANT_WALLET to enable payment enforcement
+  # Leave empty or omit to run in dev mode (payments skipped)
+  X402_MERCHANT_WALLET: "0xc0078d495e80fd3b1e92f0803d0bc7c279165d8c"
+  X402_STAGE_PRICE: "100000"  # 0.1 USDT (6 decimals)

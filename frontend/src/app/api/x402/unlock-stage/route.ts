@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getChainConfig } from '@/lib/kite/contracts';
-import { withX402Payment, buildRouteConfig } from '../_lib/x402-nextjs';
+import {
+  buildKiteRouteConfig,
+  buildBaseRouteConfig,
+  createWrappedHandler,
+  getExplorerUrl,
+} from '../_lib/x402-nextjs';
 
-async function handleUnlockStage(
-  _req: NextRequest,
-  bodyText: string
-): Promise<NextResponse> {
+async function handleUnlockStage(req: NextRequest): Promise<NextResponse> {
   let body: {
     paperId?: string;
     stageId?: string;
@@ -14,7 +15,7 @@ async function handleUnlockStage(
     passkeyPublicKey?: string;
   };
   try {
-    body = JSON.parse(bodyText);
+    body = await req.json();
   } catch {
     return NextResponse.json(
       { error: 'invalid_params', message: 'Invalid JSON body' },
@@ -43,9 +44,9 @@ async function handleUnlockStage(
     );
   }
 
-  const chainConfig = getChainConfig();
+  const chain = req.nextUrl.searchParams.get('chain') || 'kite';
 
-  // Payment has already been verified and settled by withX402Payment middleware.
+  // Payment has already been verified and settled by withX402 middleware.
   // Record stage completion on AIN blockchain via event tracker.
   try {
     const { trackEvent } = await import('@/lib/ain/event-tracker');
@@ -93,37 +94,33 @@ async function handleUnlockStage(
       attestationHash: `0x${attestationHash}`,
       completedAt: new Date().toISOString(),
     },
-    explorerUrl: `${chainConfig.explorerUrl}`,
-    message: 'Stage unlocked. Payment settled via Kite x402 protocol. Progress recorded on AIN blockchain.',
+    explorerUrl: getExplorerUrl(chain),
+    message: 'Stage unlocked. Payment settled via x402 protocol. Progress recorded on AIN blockchain.',
   });
 }
 
-export async function POST(req: NextRequest) {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-  const routeConfig = buildRouteConfig({
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
+const kiteHandler = createWrappedHandler(
+  handleUnlockStage,
+  buildKiteRouteConfig({
     description: 'Unlock a learning stage after quiz completion',
     resource: `${baseUrl}/api/x402/unlock-stage`,
-    outputSchema: {
-      input: {
-        discoverable: true,
-        method: 'POST',
-        type: 'http',
-        body: {
-          paperId: { description: 'The paper/course ID', required: true, type: 'string' },
-          stageNum: { description: 'Stage number to unlock', required: true, type: 'number' },
-          score: { description: 'Quiz score (0-100)', required: true, type: 'number' },
-        },
-      },
-      output: {
-        properties: {
-          success: { description: 'Whether stage unlock succeeded', type: 'boolean' },
-          stageCompletion: { description: 'Stage completion details with attestation', type: 'object' },
-        },
-        required: ['success', 'stageCompletion'],
-        type: 'object',
-      },
-    },
-  });
+  }),
+  'kite',
+);
 
-  return withX402Payment(req, routeConfig, handleUnlockStage);
+const baseHandler = createWrappedHandler(
+  handleUnlockStage,
+  buildBaseRouteConfig({
+    description: 'Unlock a learning stage after quiz completion',
+    resource: `${baseUrl}/api/x402/unlock-stage`,
+  }),
+  'base',
+);
+
+export async function POST(req: NextRequest) {
+  const chain = req.nextUrl.searchParams.get('chain') || 'kite';
+  if (chain === 'base') return baseHandler(req);
+  return kiteHandler(req);
 }

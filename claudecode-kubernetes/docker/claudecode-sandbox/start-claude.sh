@@ -2,10 +2,11 @@
 # Claude Code launcher wrapper — starts paper learning / course generation sessions.
 # Configured so that the lesson begins immediately when the user connects to the terminal.
 #
-# Usage: start-claude.sh [COURSE_ID] [MODEL] [MODE]
+# Usage: start-claude.sh [COURSE_ID] [MODEL] [MODE] [USER_ID]
 #   COURSE_ID: Paper identifier (e.g., dlgochan-papers-test-repo)
 #   MODEL:    Claude model (e.g., haiku, sonnet, opus). Default: haiku
 #   MODE:     learner (default) | generator
+#   USER_ID:  OAuth user ID (optional, written to /tmp/session-context)
 #
 # Behavior:
 #   learner:
@@ -21,8 +22,11 @@
 #   Uses a dummy API key instead of the real one (proxy replaces it with the real key).
 
 COURSE_ID="${1:-}"
-MODEL="${2:-haiku}"
+MODEL="${2:-sonnet}"
 MODE="${3:-learner}"
+# 4th CLI arg takes precedence over USER_ID env var (set by Pod template)
+ARG_USER_ID="${4:-}"
+EFFECTIVE_USER_ID="${ARG_USER_ID:-$USER_ID}"
 
 # ─── Validate ANTHROPIC_BASE_URL ─────────────────
 if [ -z "$ANTHROPIC_BASE_URL" ]; then
@@ -47,13 +51,26 @@ cat > ~/.claude.json << EOF
   "hasCompletedOnboarding": true,
   "hasTrustDialogAccepted": true,
   "hasTrustDialogHooksAccepted": true,
-  "lastOnboardingVersion": "2.1.45",
-  "changelogLastFetched": 9999999999999
+  "lastOnboardingVersion": "9.9.99",
+  "changelogLastFetched": 9999999999999,
+  "mcpServers": {
+    "kite-passport": {
+      "type": "http",
+      "url": "https://neo.dev.gokite.ai/v1/mcp"
+    }
+  }
 }
 EOF
 
 chmod 444 ~/.claude.json
 unset ANTHROPIC_API_KEY
+
+# ─── Write session context (COURSE_ID, USER_ID) ─────
+# Read by CLAUDE.md payment flow; used by Claude to fill curl payloads
+cat > /tmp/session-context << CTXEOF
+COURSE_ID=${COURSE_ID}
+USER_ID=${EFFECTIVE_USER_ID}
+CTXEOF
 
 # ─── Restore settings.json (if shadowed by PV mount) ─
 mkdir -p /home/claude/.claude
@@ -103,11 +120,11 @@ else
     cd /home/claude/papers/current
   fi
 
-  # resumeStage context (optional)
-  RESUME_HINT=""
+  # Determine current stage number (default: 1, or from resume context)
+  CURRENT_STAGE=1
   if [ -f "/tmp/resume-context" ]; then
     source /tmp/resume-context
-    RESUME_HINT=" The student is resuming learning from Stage ${RESUME_FROM_STAGE}."
+    CURRENT_STAGE="${RESUME_FROM_STAGE:-1}"
   fi
 
   # Determine first visit vs return visit.
@@ -121,7 +138,7 @@ else
   else
     # First visit: create marker, then start lesson with initial message
     [ -n "$COURSE_ID" ] && touch "$MARKER" 2>/dev/null
-    INITIAL_MSG="Starting the learning course for this paper.${RESUME_HINT} Please read CLAUDE.md and begin exploring."
+    INITIAL_MSG="Starting the learning course for this paper (Stage ${CURRENT_STAGE}). Begin exploring."
     exec claude $COMMON_FLAGS "$INITIAL_MSG"
   fi
 fi

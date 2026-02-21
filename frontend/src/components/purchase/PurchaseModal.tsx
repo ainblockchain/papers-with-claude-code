@@ -70,11 +70,22 @@ export function PurchaseModal() {
           {isSuccess ? (
             <>
               <h3 className="font-bold text-lg text-white">Course Purchased!</h3>
+              <p className="mt-1 text-xs text-gray-500 font-mono">settled via x402</p>
               <p className="mt-2 text-sm text-gray-400 line-clamp-2">
                 {purchaseModalPaper.title}
               </p>
               {lastPurchaseReceipt && (
                 <div className="mt-4 p-3 bg-[#16162a] rounded-lg text-left space-y-2">
+                  {lastPurchaseReceipt.txHash && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-500">Tx Hash</span>
+                      <code className="text-xs text-blue-400 font-mono">
+                        {lastPurchaseReceipt.txHash.length > 14
+                          ? `${lastPurchaseReceipt.txHash.slice(0, 6)}...${lastPurchaseReceipt.txHash.slice(-4)}`
+                          : lastPurchaseReceipt.txHash}
+                      </code>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-gray-500">Amount Paid</span>
                     <span className="text-xs text-green-400 font-mono">
@@ -88,15 +99,31 @@ export function PurchaseModal() {
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-500">Protocol</span>
+                    <span className="text-xs text-green-400 font-mono">x402</span>
+                  </div>
+                  <div className="flex items-center justify-between">
                     <span className="text-xs text-gray-500">Status</span>
                     <span className="text-xs text-green-400">Confirmed</span>
                   </div>
+                  {lastPurchaseReceipt.explorerUrl && (
+                    <a
+                      href={lastPurchaseReceipt.explorerUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300"
+                    >
+                      View on {PAYMENT_CHAINS[lastPurchaseReceipt.chain].name} Explorer
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  )}
                 </div>
               )}
             </>
           ) : (
             <>
               <h3 className="font-bold text-lg text-white">Purchase Course</h3>
+              <p className="mt-1 text-xs text-gray-500 font-mono">via x402 protocol</p>
               <p className="mt-2 text-sm text-gray-400 line-clamp-2">
                 {purchaseModalPaper.title}
               </p>
@@ -113,7 +140,7 @@ export function PurchaseModal() {
               </div>
 
               <div className="mt-3 p-3 bg-[#16162a] rounded-lg">
-                <p className="text-xs text-gray-500">Payment via {chainConfig.name}</p>
+                <p className="text-xs text-gray-500">x402 Payment via {chainConfig.name}</p>
                 <p className="text-lg font-bold text-white">
                   {formatChainAmount(selectedChain, 'coursePurchase')}
                 </p>

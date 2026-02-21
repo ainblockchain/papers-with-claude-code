@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getChainConfig } from '@/lib/kite/contracts';
+import { getChainConfig, KITE_TEST_USDT_ADDRESS, MERCHANT_WALLET_ADDRESS } from '@/lib/kite/contracts';
 
 export async function GET(req: NextRequest) {
   try {
     const chainConfig = getChainConfig();
     const agentDID =
       process.env.NEXT_PUBLIC_AGENT_DID || 'did:kite:learner.eth/claude-tutor/v1';
-    const merchantWallet = process.env.KITE_MERCHANT_WALLET || '';
+    const merchantWallet = MERCHANT_WALLET_ADDRESS || process.env.KITE_MERCHANT_WALLET || '';
 
     // Try to get AIN account info for balance display
     let ainAddress: string | null = null;
@@ -25,6 +25,7 @@ export async function GET(req: NextRequest) {
       walletAddress: merchantWallet || ainAddress,
       ainAddress,
       ainBalance,
+      // Kite chain info (backward compatible)
       chainId: chainConfig.chainId,
       network: chainConfig.network,
       explorerUrl: merchantWallet
@@ -32,9 +33,30 @@ export async function GET(req: NextRequest) {
         : chainConfig.explorerUrl,
       protocol: {
         scheme: 'gokite-aa',
-        asset: '0x0fF5393387ad2f9f691FD6Fd28e07E3969e27e63',
+        asset: KITE_TEST_USDT_ADDRESS,
         assetName: 'Test USDT',
-        facilitator: 'https://facilitator.pieverse.io',
+        facilitator: process.env.X402_FACILITATOR_URL || 'https://facilitator.pieverse.io',
+      },
+      // Multi-chain x402 info for external agents
+      x402: {
+        version: '2',
+        supportedChains: {
+          kite: {
+            network: `eip155:${chainConfig.chainId}`,
+            asset: KITE_TEST_USDT_ADDRESS,
+            assetName: 'Test USDT',
+            facilitator: process.env.X402_FACILITATOR_URL || 'https://facilitator.pieverse.io',
+            explorer: chainConfig.explorerUrl,
+          },
+          base: {
+            network: 'eip155:84532',
+            asset: '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
+            assetName: 'USDC',
+            facilitator: 'https://x402.org/facilitator',
+            explorer: 'https://sepolia.basescan.org',
+          },
+        },
+        discoveryUrl: `${process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin}/api/x402/discovery`,
       },
       configured: !!merchantWallet,
     });

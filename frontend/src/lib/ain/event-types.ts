@@ -42,6 +42,8 @@ export type LocationEvent = VillageEvent | CourseEnterEvent | CourseEvent;
 
 /** Events that should also be written to the knowledge graph */
 export const LEARNING_EVENT_TYPES: EventType[] = [
+  'course_enter',
+  'stage_enter',
   'concept_view',
   'quiz_pass',
   'stage_complete',

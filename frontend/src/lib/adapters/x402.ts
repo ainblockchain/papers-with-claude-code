@@ -67,7 +67,7 @@ class KiteX402Adapter implements X402PaymentAdapter {
         if (body?.error === 'insufficient_funds') {
           return {
             success: false,
-            error: `Insufficient USDT balance. Required: ${body.required}, Available: ${body.available}`,
+            error: `Insufficient USDC balance. Required: ${body.required}, Available: ${body.available}`,
             errorCode: 'insufficient_funds',
           };
         }
@@ -107,12 +107,18 @@ class KiteX402Adapter implements X402PaymentAdapter {
         };
       }
 
+      // Extract txHash from PAYMENT-RESPONSE header (base64-encoded JSON from withX402)
+      const txHash = this.extractTxHash(res);
       const data = await res.json();
+      const explorerUrl = txHash
+        ? `https://testnet.kitescan.ai/tx/${txHash}`
+        : data.explorerUrl;
+
       return {
         success: true,
-        receiptId: data.txHash,
-        txHash: data.txHash,
-        explorerUrl: data.explorerUrl,
+        receiptId: txHash || data.txHash,
+        txHash: txHash || data.txHash,
+        explorerUrl,
       };
     } catch (err) {
       return {
@@ -120,6 +126,21 @@ class KiteX402Adapter implements X402PaymentAdapter {
         error: err instanceof Error ? err.message : 'Network error',
         errorCode: 'network_error',
       };
+    }
+  }
+
+  /**
+   * Extract txHash from x402 PAYMENT-RESPONSE header (base64-encoded SettleResponse).
+   */
+  private extractTxHash(res: Response): string | undefined {
+    const header =
+      res.headers.get('PAYMENT-RESPONSE') || res.headers.get('X-PAYMENT-RESPONSE');
+    if (!header) return undefined;
+    try {
+      const decoded = JSON.parse(atob(header));
+      return decoded.transaction || decoded.txHash || undefined;
+    } catch {
+      return undefined;
     }
   }
 
@@ -142,7 +163,7 @@ class KiteX402Adapter implements X402PaymentAdapter {
       const accepts = (paymentInfo?.accepts as Array<Record<string, string>>)?.[0];
       const payeeAddr = accepts?.payTo || (paymentInfo?.payTo as string) || '';
       const amount = accepts?.maxAmountRequired || (paymentInfo?.amount as string) || '0';
-      const tokenType = accepts?.asset || 'USDT';
+      const tokenType = accepts?.asset || 'USDC';
 
       if (!payeeAddr) return null;
 

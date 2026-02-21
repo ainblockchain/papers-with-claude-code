@@ -28,18 +28,21 @@ export async function GET() {
         if (entry.depth >= 2) {
           // depth >= 2 means stage completion
           const crypto = await import('crypto');
+          const paperId = topic.topicPath.replace('courses/', '');
+          const stageNum = entry.depth - 1;
+          const score = 100; // completed entries default to 100
           const hash = crypto
             .createHash('sha256')
             .update(
-              `${topic.topicPath}:${entry.entryId}:${entry.depth}:${entry.createdAt}`
+              `${paperId}:${stageNum}:${score}:${new Date(entry.createdAt).getTime()}`
             )
             .digest('hex');
 
           attestations.push({
-            paperId: topic.topicPath.replace('courses/', ''),
+            paperId,
             paperTitle: entry.title,
-            stageNum: entry.depth - 1,
-            score: 100, // AIN doesn't store score; default to 100 for completed
+            stageNum,
+            score,
             attestationHash: `0x${hash}`,
             completedAt: new Date(entry.createdAt).toISOString(),
           });

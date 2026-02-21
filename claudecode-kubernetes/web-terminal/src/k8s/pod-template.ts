@@ -124,6 +124,11 @@ export function buildSandboxPodSpec(
               name: 'ANTHROPIC_BASE_URL',
               value: API_PROXY_URL,
             },
+            // Learner mode: inject USER_ID so start-claude.sh can write session-context
+            ...(userId ? [{
+              name: 'USER_ID',
+              value: userId,
+            }] : []),
             // Generator mode: inject GITHUB_TOKEN from K8s Secret
             ...(mode === 'generator' ? [
               {
