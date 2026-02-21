@@ -1,9 +1,10 @@
 'use client';
 
+import { useState, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { signOut as nextAuthSignOut } from 'next-auth/react';
-import { Compass, LayoutDashboard, Map, Hammer, LogIn, Menu, X, LogOut, Fingerprint } from 'lucide-react';
+import { Compass, LayoutDashboard, Map, Hammer, LogIn, Menu, X, LogOut, Fingerprint, Copy, Check } from 'lucide-react';
 import { ClaudeMark } from '@/components/shared/ClaudeMark';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/useAuthStore';
@@ -17,6 +18,31 @@ const navItems = [
   { href: '/village', label: 'Village', icon: Map },
   { href: '/builder', label: 'Course Builder', icon: Hammer },
 ];
+
+function WalletAddress({ address }: { address: string }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(address);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }, [address]);
+
+  return (
+    <span
+      className="flex items-center gap-1 text-xs text-muted-foreground bg-accent/50 px-1.5 py-0.5 rounded font-mono cursor-pointer hover:bg-accent/80 transition-colors"
+      title={`Click to copy: ${address}`}
+      onClick={handleCopy}
+    >
+      <Fingerprint className="h-3 w-3 shrink-0" />
+      <span className="truncate max-w-[180px]">{address}</span>
+      {copied ? (
+        <Check className="h-3 w-3 text-green-500 shrink-0" />
+      ) : (
+        <Copy className="h-3 w-3 shrink-0 opacity-50" />
+      )}
+    </span>
+  );
+}
 
 export function Header() {
   const pathname = usePathname();
@@ -74,11 +100,8 @@ export function Header() {
                 </div>
               )}
               <span className="text-sm font-medium">{user.username}</span>
-              {passkeyInfo && (
-                <span className="flex items-center gap-1 text-xs text-muted-foreground bg-accent/50 px-1.5 py-0.5 rounded font-mono" title={passkeyInfo.ainAddress}>
-                  <Fingerprint className="h-3 w-3" />
-                  {passkeyInfo.ainAddress.slice(0, 6)}...{passkeyInfo.ainAddress.slice(-4)}
-                </span>
+              {passkeyInfo?.evmAddress && (
+                <WalletAddress address={passkeyInfo.evmAddress} />
               )}
               <button
                 onClick={handleSignOut}
