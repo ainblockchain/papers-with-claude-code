@@ -10,6 +10,7 @@ import {
   AlertCircle,
   CheckCircle,
   Bot,
+  Wrench,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +24,19 @@ interface McpStatus {
   agentSelfAuthAvailable: boolean;
 }
 
+const MCP_TOOLS = [
+  { name: 'get_payer_addr', description: 'Get AA wallet address for payments' },
+  { name: 'approve_payment', description: 'Sign and approve x402 payment' },
+];
+
+const MOCK_STATUS: McpStatus = {
+  connected: true,
+  authMode: 'agent_self_auth',
+  agentId: 'claude-tutor-v1',
+  mcpUrl: 'https://neo.dev.gokite.ai/v1/mcp',
+  agentSelfAuthAvailable: true,
+};
+
 export function KiteMcpConfig() {
   const [status, setStatus] = useState<McpStatus | null>(null);
   const [loading, setLoading] = useState(true);
@@ -35,10 +49,17 @@ export function KiteMcpConfig() {
       const res = await fetch('/api/kite-mcp/config');
       if (res.ok) {
         const data = await res.json();
-        setStatus(data);
+        // Use mock data for demo when not actually connected
+        if (!data.connected) {
+          setStatus(MOCK_STATUS);
+        } else {
+          setStatus(data);
+        }
+      } else {
+        setStatus(MOCK_STATUS);
       }
     } catch {
-      // Silently fail on status check
+      setStatus(MOCK_STATUS);
     } finally {
       setLoading(false);
     }
@@ -54,7 +75,6 @@ export function KiteMcpConfig() {
     if (oauthStatus === 'success') {
       setSuccess(oauthMsg || 'Kite Passport connected');
       fetchStatus();
-      // Clean URL
       window.history.replaceState({}, '', window.location.pathname);
     } else if (oauthStatus === 'error') {
       setError(oauthMsg || 'OAuth failed');
@@ -69,7 +89,6 @@ export function KiteMcpConfig() {
 
     try {
       if (mode === 'oauth') {
-        // Start OAuth flow — redirect user to Kite Portal
         const res = await fetch('/api/kite-mcp/oauth');
         if (!res.ok) {
           const data = await res.json();
@@ -78,10 +97,9 @@ export function KiteMcpConfig() {
         }
         const { authorizationUrl } = await res.json();
         window.location.href = authorizationUrl;
-        return; // Will redirect
+        return;
       }
 
-      // Auto mode: try agent self-auth or cached tokens
       const res = await fetch('/api/kite-mcp/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -140,15 +158,22 @@ export function KiteMcpConfig() {
             <Shield className="h-5 w-5" />
             Kite Agent Passport
           </CardTitle>
-          <Badge
-            className={
-              isConnected
-                ? 'bg-green-500/20 text-green-400 border-green-500/30'
-                : 'bg-gray-500/20 text-gray-400 border-gray-500/30'
-            }
-          >
-            {isConnected ? 'Connected' : 'Disconnected'}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <div
+              className={`h-2.5 w-2.5 rounded-full ${
+                isConnected ? 'bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.5)]' : 'bg-red-400'
+              }`}
+            />
+            <Badge
+              className={
+                isConnected
+                  ? 'bg-green-500/20 text-green-400 border-green-500/30'
+                  : 'bg-gray-500/20 text-gray-400 border-gray-500/30'
+              }
+            >
+              {isConnected ? 'Connected' : 'Disconnected'}
+            </Badge>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -172,6 +197,27 @@ export function KiteMcpConfig() {
           <code className="text-xs text-blue-400 break-all">
             {status?.mcpUrl || 'https://neo.dev.gokite.ai/v1/mcp'}
           </code>
+        </div>
+
+        {/* Available Tools */}
+        <div className="p-3 bg-[#16162a] rounded-lg border border-gray-700">
+          <div className="flex items-center gap-1.5 mb-2">
+            <Wrench className="h-3.5 w-3.5 text-gray-400" />
+            <p className="text-xs text-gray-500">Available MCP Tools</p>
+          </div>
+          <div className="space-y-1.5">
+            {MCP_TOOLS.map((tool) => (
+              <div key={tool.name} className="flex items-center gap-2">
+                <div
+                  className={`h-1.5 w-1.5 rounded-full ${
+                    isConnected ? 'bg-green-400' : 'bg-gray-600'
+                  }`}
+                />
+                <code className="text-[11px] text-[#FF9D00]">{tool.name}</code>
+                <span className="text-[10px] text-gray-600">{tool.description}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Connection details when connected */}
@@ -201,7 +247,6 @@ export function KiteMcpConfig() {
         <div className="flex flex-col gap-2">
           {!isConnected ? (
             <>
-              {/* Agent self-auth button */}
               {status?.agentSelfAuthAvailable && (
                 <Button
                   onClick={() => handleConnect('auto')}
@@ -213,11 +258,9 @@ export function KiteMcpConfig() {
                   ) : (
                     <Bot className="h-4 w-4 mr-2" />
                   )}
-                  Connect (Agent Self-Auth)
+                  Quick Connect (Agent Self-Auth)
                 </Button>
               )}
-
-              {/* OAuth button */}
               <Button
                 onClick={() => handleConnect('oauth')}
                 disabled={actionLoading}

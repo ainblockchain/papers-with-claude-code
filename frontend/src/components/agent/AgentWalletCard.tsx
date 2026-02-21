@@ -12,7 +12,7 @@ function truncateAddress(address: string): string {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
-const EXPLORER_BASE = process.env.NEXT_PUBLIC_KITE_EXPLORER_URL || 'https://testnet.kitescan.ai';
+const EXPLORER_BASE = (process.env.NEXT_PUBLIC_KITE_EXPLORER_URL || 'https://testnet.kitescan.ai').replace(/\/+$/, '');
 
 export function AgentWalletCard() {
   const [copiedField, setCopiedField] = useState<string | null>(null);
