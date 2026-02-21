@@ -3,26 +3,38 @@
 import { useState } from 'react';
 import { Loader2, Lock, Unlock, ExternalLink, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ChainSelector } from '@/components/payment/ChainSelector';
 import { useLearningStore } from '@/stores/useLearningStore';
-import { x402Adapter } from '@/lib/adapters/x402';
+import { multiChainAdapter } from '@/lib/payment/multi-chain-adapter';
+import {
+  type PaymentChainId,
+  PAYMENT_CHAINS,
+  getDefaultChain,
+  formatChainAmount,
+} from '@/lib/payment/chains';
 
 type PaymentPhase = 'idle' | 'signing' | 'submitting' | 'confirming' | 'done';
-
-const phaseLabels: Record<PaymentPhase, string> = {
-  idle: '',
-  signing: 'Signing...',
-  submitting: 'Submitting to Kite Chain...',
-  confirming: 'Confirming...',
-  done: 'Done',
-};
 
 function truncateHash(hash: string): string {
   if (hash.length <= 14) return hash;
   return `${hash.slice(0, 6)}...${hash.slice(-4)}`;
 }
 
-const EXPLORER_BASE = process.env.NEXT_PUBLIC_KITE_EXPLORER_URL || 'https://testnet.kitescan.ai';
-const FAUCET_URL = 'https://faucet.gokite.ai';
+function getPhaseLabel(phase: PaymentPhase, chain: PaymentChainId): string {
+  const chainName = PAYMENT_CHAINS[chain].name;
+  switch (phase) {
+    case 'idle':
+      return '';
+    case 'signing':
+      return 'Signing...';
+    case 'submitting':
+      return `Submitting to ${chainName}...`;
+    case 'confirming':
+      return 'Confirming...';
+    case 'done':
+      return 'Done';
+  }
+}
 
 export function PaymentModal() {
   const [phase, setPhase] = useState<PaymentPhase>('idle');
@@ -30,6 +42,7 @@ export function PaymentModal() {
   const [errorCode, setErrorCode] = useState<string | null>(null);
   const [resultTxHash, setResultTxHash] = useState<string | null>(null);
   const [resultExplorerUrl, setResultExplorerUrl] = useState<string | null>(null);
+  const [selectedChain, setSelectedChain] = useState<PaymentChainId>(getDefaultChain());
   const {
     currentPaper,
     stages,
@@ -47,6 +60,7 @@ export function PaymentModal() {
   if (!nextStage) return null;
 
   const isPaying = phase !== 'idle' && phase !== 'done';
+  const chainConfig = PAYMENT_CHAINS[selectedChain];
 
   const handlePayment = async () => {
     setPhase('signing');
@@ -54,18 +68,16 @@ export function PaymentModal() {
     setErrorCode(null);
     try {
       setPhase('submitting');
-      const result = await x402Adapter.requestPayment({
+      const result = await multiChainAdapter.unlockStage({
+        chain: selectedChain,
         stageId: nextStage.id,
         paperId: currentPaper.id,
-        amount: 0.001,
-        currency: 'USDT',
         stageNum: nextStage.stageNumber,
         score: 0,
       });
 
       if (result.success) {
         setPhase('confirming');
-        // Brief pause to show confirming state
         await new Promise(resolve => setTimeout(resolve, 500));
         setPhase('done');
         setResultTxHash(result.txHash || null);
@@ -95,7 +107,7 @@ export function PaymentModal() {
 
   return (
     <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-[#1a1a2e] border border-gray-700 rounded-lg shadow-xl max-w-sm w-full mx-4">
+      <div className="bg-[#1a1a2e] border border-gray-700 rounded-lg shadow-xl max-w-md w-full mx-4">
         <div className="p-6 text-center">
           <div className="mx-auto w-12 h-12 rounded-full bg-[#FF9D00]/10 flex items-center justify-center mb-4">
             {phase === 'done' ? (
@@ -119,6 +131,10 @@ export function PaymentModal() {
                       {truncateHash(resultTxHash)}
                     </code>
                   </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-500">Chain</span>
+                    <span className="text-xs text-green-400">{chainConfig.name}</span>
+                  </div>
                   {resultExplorerUrl && (
                     <a
                       href={resultExplorerUrl}
@@ -126,7 +142,7 @@ export function PaymentModal() {
                       rel="noopener noreferrer"
                       className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300"
                     >
-                      View on KiteScan
+                      View on {chainConfig.name} Explorer
                       <ExternalLink className="h-3 w-3" />
                     </a>
                   )}
@@ -139,16 +155,30 @@ export function PaymentModal() {
               <p className="mt-2 text-sm text-gray-400">
                 {nextStage.title}
               </p>
-              <div className="mt-4 p-3 bg-[#16162a] rounded-lg">
-                <p className="text-xs text-gray-500">x402 Payment</p>
-                <p className="text-lg font-bold text-white">0.001 USDT</p>
+
+              {/* Chain Selector */}
+              <div className="mt-4">
+                <p className="text-xs text-gray-500 mb-2 text-left">Select payment chain</p>
+                <ChainSelector
+                  selectedChain={selectedChain}
+                  onSelect={setSelectedChain}
+                  paymentType="stageUnlock"
+                  disabled={isPaying}
+                />
+              </div>
+
+              <div className="mt-3 p-3 bg-[#16162a] rounded-lg">
+                <p className="text-xs text-gray-500">Payment via {chainConfig.name}</p>
+                <p className="text-lg font-bold text-white">
+                  {formatChainAmount(selectedChain, 'stageUnlock')}
+                </p>
               </div>
 
               {/* Progress indicator */}
               {isPaying && (
                 <div className="mt-3 flex items-center justify-center gap-2 text-sm text-[#FF9D00]">
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  <span>{phaseLabels[phase]}</span>
+                  <span>{getPhaseLabel(phase, selectedChain)}</span>
                 </div>
               )}
 
@@ -159,14 +189,14 @@ export function PaymentModal() {
                     <AlertTriangle className="h-4 w-4 text-red-400 mt-0.5 shrink-0" />
                     <div>
                       <p className="text-xs text-red-400">{error}</p>
-                      {errorCode === 'insufficient_funds' && (
+                      {errorCode === 'insufficient_funds' && chainConfig.faucetUrl && (
                         <a
-                          href={FAUCET_URL}
+                          href={chainConfig.faucetUrl}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1 mt-1 text-xs text-blue-400 hover:text-blue-300"
                         >
-                          Get test USDT tokens
+                          Get test tokens
                           <ExternalLink className="h-3 w-3" />
                         </a>
                       )}
@@ -204,7 +234,7 @@ export function PaymentModal() {
                 {isPaying ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-                    {phaseLabels[phase]}
+                    {getPhaseLabel(phase, selectedChain)}
                   </>
                 ) : (
                   <>

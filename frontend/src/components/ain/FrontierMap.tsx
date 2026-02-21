@@ -75,7 +75,7 @@ export function FrontierMap() {
                     />
                   </div>
                   <p className="text-xs text-gray-600">
-                    avg depth: {stats.avg_depth.toFixed(1)} / max: {stats.max_depth}
+                    avg depth: {(stats.avg_depth ?? 0).toFixed(1)} / max: {stats.max_depth ?? 0}
                   </p>
                 </div>
               );

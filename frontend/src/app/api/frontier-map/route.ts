@@ -7,7 +7,18 @@ export async function GET(request: NextRequest) {
     const topicPath = searchParams.get('topicPath') ?? undefined;
 
     const ain = getAinClient();
-    const frontierMap = await ain.knowledge.getFrontierMap(topicPath);
+    const raw = await ain.knowledge.getFrontierMap(topicPath);
+
+    // ain-js returns FrontierMapEntry[] — convert to Record<string, stats> for the client
+    const frontierMap: Record<string, any> = {};
+    if (Array.isArray(raw)) {
+      for (const entry of raw) {
+        frontierMap[entry.topic] = entry.stats;
+      }
+    } else {
+      Object.assign(frontierMap, raw);
+    }
+
     return NextResponse.json({ ok: true, data: frontierMap });
   } catch (error: any) {
     return NextResponse.json(

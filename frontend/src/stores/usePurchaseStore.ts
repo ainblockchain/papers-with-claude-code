@@ -1,6 +1,11 @@
 import { create } from 'zustand';
-import { ainAdapter } from '@/lib/adapters/ain-blockchain';
 import { useAuthStore } from '@/stores/useAuthStore';
+import { multiChainAdapter } from '@/lib/payment/multi-chain-adapter';
+import {
+  type PaymentChainId,
+  PAYMENT_CHAINS,
+  getDefaultChain,
+} from '@/lib/payment/chains';
 import type { Paper } from '@/types/paper';
 
 export type CourseAccessStatus = 'owned' | 'purchased' | 'available';
@@ -14,14 +19,21 @@ interface PurchaseState {
   purchaseModalPaper: Paper | null;
   isPurchasing: boolean;
   purchaseError: string | null;
-  lastPurchaseReceipt: { amount: string; currency: string } | null;
+  lastPurchaseReceipt: {
+    amount: string;
+    currency: string;
+    chain: PaymentChainId;
+  } | null;
+  /** Selected payment chain */
+  selectedChain: PaymentChainId;
 
   setPurchaseModal: (paperId: string | null, paper?: Paper | null) => void;
+  setSelectedChain: (chain: PaymentChainId) => void;
   getAccessStatus: (paperId: string) => CourseAccessStatus;
   setAccessStatus: (paperId: string, status: CourseAccessStatus) => void;
   /** Initialize access map from paper list. Marks papers as 'owned' if submittedBy matches current user. */
   initializeAccess: (papers: Paper[]) => void;
-  /** Execute purchase via ain.knowledge.access(). Returns true on success. */
+  /** Execute purchase via selected payment chain. Returns true on success. */
   purchaseCourse: (paperId: string) => Promise<boolean>;
   clearPurchaseError: () => void;
 }
@@ -33,6 +45,7 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
   isPurchasing: false,
   purchaseError: null,
   lastPurchaseReceipt: null,
+  selectedChain: getDefaultChain(),
 
   setPurchaseModal: (paperId, paper) =>
     set({
@@ -41,6 +54,8 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
       purchaseError: null,
       lastPurchaseReceipt: null,
     }),
+
+  setSelectedChain: (chain) => set({ selectedChain: chain }),
 
   getAccessStatus: (paperId) => get().accessMap[paperId] ?? 'available',
 
@@ -68,30 +83,30 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
   },
 
   purchaseCourse: async (paperId) => {
+    const { selectedChain } = get();
     set({ isPurchasing: true, purchaseError: null });
     try {
-      // Use ain.knowledge.access() for x402 payment flow
-      // ownerAddress: paper publisher address (in production, resolved from paper metadata)
-      // topicPath: courses/{paperId}
-      // entryId: paperId
-      const topicPath = `courses/${paperId}`;
-      const passkeyInfo = useAuthStore.getState().passkeyInfo;
-      const ownerAddress = passkeyInfo?.ainAddress || '0x_default_owner';
+      const result = await multiChainAdapter.purchaseCourse({
+        chain: selectedChain,
+        paperId,
+      });
 
-      const result = await ainAdapter.accessEntry(ownerAddress, topicPath, paperId);
-
-      if (result?.paid || result?.data?.paid || result?.ok) {
-        const receipt = result?.receipt || result?.data?.receipt || { amount: '10', currency: 'AIN' };
+      if (result.success) {
+        const chainConfig = PAYMENT_CHAINS[selectedChain];
         set((state) => ({
           accessMap: { ...state.accessMap, [paperId]: 'purchased' },
           isPurchasing: false,
-          lastPurchaseReceipt: receipt,
+          lastPurchaseReceipt: {
+            amount: String(chainConfig.amounts.coursePurchase),
+            currency: chainConfig.currency,
+            chain: selectedChain,
+          },
         }));
         return true;
       } else {
         set({
           isPurchasing: false,
-          purchaseError: result?.error || 'Purchase failed. Please try again.',
+          purchaseError: result.error || 'Purchase failed. Please try again.',
         });
         return false;
       }

@@ -7,6 +7,7 @@ import { AinWalletInfo } from '@/components/ain/AinWalletInfo';
 import { KnowledgeGraph } from '@/components/ain/KnowledgeGraph';
 import { FrontierMap } from '@/components/ain/FrontierMap';
 import { LearnerProgressView } from '@/components/ain/LearnerProgressView';
+import { PurchaseModal } from '@/components/purchase/PurchaseModal';
 
 export default function CommunityPage() {
   const router = useRouter();
@@ -35,21 +36,22 @@ export default function CommunityPage() {
       </div>
 
       {/* Content */}
-      <div className="mx-auto max-w-[1280px] px-4 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-6">
-          {/* Left Column */}
-          <div className="space-y-6">
-            <AinWalletInfo />
-            <FrontierMap />
-            <LearnerProgressView />
-          </div>
+      <div className="mx-auto max-w-[1440px] px-4 py-6">
+        {/* Knowledge Graph — full width, prominent */}
+        <div className="mb-6">
+          <KnowledgeGraph />
+        </div>
 
-          {/* Right Column */}
-          <div className="space-y-6">
-            <KnowledgeGraph />
-          </div>
+        {/* Info panels below */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <AinWalletInfo />
+          <FrontierMap />
+          <LearnerProgressView />
         </div>
       </div>
+
+      {/* Purchase Modal (triggered by node clicks in KnowledgeGraph) */}
+      <PurchaseModal />
     </div>
   );
 }

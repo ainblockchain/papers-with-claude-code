@@ -4,8 +4,10 @@ import { useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2, ShoppingCart, CheckCircle, AlertTriangle, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ChainSelector } from '@/components/payment/ChainSelector';
 import { usePurchaseStore } from '@/stores/usePurchaseStore';
 import { useAuthStore } from '@/stores/useAuthStore';
+import { PAYMENT_CHAINS, formatChainAmount } from '@/lib/payment/chains';
 
 export function PurchaseModal() {
   const router = useRouter();
@@ -16,7 +18,9 @@ export function PurchaseModal() {
     isPurchasing,
     purchaseError,
     lastPurchaseReceipt,
+    selectedChain,
     setPurchaseModal,
+    setSelectedChain,
     purchaseCourse,
     getAccessStatus,
     clearPurchaseError,
@@ -25,10 +29,7 @@ export function PurchaseModal() {
   const handlePurchase = useCallback(async () => {
     if (!purchaseModalPaperId) return;
     clearPurchaseError();
-    const success = await purchaseCourse(purchaseModalPaperId);
-    if (success) {
-      // Stay open to show success state
-    }
+    await purchaseCourse(purchaseModalPaperId);
   }, [purchaseModalPaperId, purchaseCourse, clearPurchaseError]);
 
   const handleClose = useCallback(() => {
@@ -52,10 +53,11 @@ export function PurchaseModal() {
   }
 
   const isSuccess = getAccessStatus(purchaseModalPaperId) === 'purchased' && lastPurchaseReceipt;
+  const chainConfig = PAYMENT_CHAINS[selectedChain];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-[#1a1a2e] border border-gray-700 rounded-lg shadow-xl max-w-sm w-full mx-4">
+      <div className="bg-[#1a1a2e] border border-gray-700 rounded-lg shadow-xl max-w-md w-full mx-4">
         <div className="p-6 text-center">
           <div className="mx-auto w-12 h-12 rounded-full bg-[#FF9D00]/10 flex items-center justify-center mb-4">
             {isSuccess ? (
@@ -80,6 +82,12 @@ export function PurchaseModal() {
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-500">Chain</span>
+                    <span className="text-xs text-green-400">
+                      {PAYMENT_CHAINS[lastPurchaseReceipt.chain].name}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
                     <span className="text-xs text-gray-500">Status</span>
                     <span className="text-xs text-green-400">Confirmed</span>
                   </div>
@@ -92,9 +100,23 @@ export function PurchaseModal() {
               <p className="mt-2 text-sm text-gray-400 line-clamp-2">
                 {purchaseModalPaper.title}
               </p>
-              <div className="mt-4 p-3 bg-[#16162a] rounded-lg">
-                <p className="text-xs text-gray-500">x402 Payment via AIN Blockchain</p>
-                <p className="text-lg font-bold text-white">10 AIN</p>
+
+              {/* Chain Selector */}
+              <div className="mt-4">
+                <p className="text-xs text-gray-500 mb-2 text-left">Select payment chain</p>
+                <ChainSelector
+                  selectedChain={selectedChain}
+                  onSelect={setSelectedChain}
+                  paymentType="coursePurchase"
+                  disabled={isPurchasing}
+                />
+              </div>
+
+              <div className="mt-3 p-3 bg-[#16162a] rounded-lg">
+                <p className="text-xs text-gray-500">Payment via {chainConfig.name}</p>
+                <p className="text-lg font-bold text-white">
+                  {formatChainAmount(selectedChain, 'coursePurchase')}
+                </p>
                 <p className="text-xs text-gray-600 mt-1">
                   {purchaseModalPaper.totalStages} stages included
                 </p>
@@ -113,9 +135,9 @@ export function PurchaseModal() {
                     <AlertTriangle className="h-4 w-4 text-red-400 mt-0.5 shrink-0" />
                     <div>
                       <p className="text-xs text-red-400">{purchaseError}</p>
-                      {purchaseError.includes('insufficient') && (
+                      {purchaseError.includes('insufficient') && chainConfig.faucetUrl && (
                         <a
-                          href="https://faucet.gokite.ai"
+                          href={chainConfig.faucetUrl}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1 mt-1 text-xs text-blue-400 hover:text-blue-300"

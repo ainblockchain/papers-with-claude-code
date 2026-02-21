@@ -26,3 +26,7 @@ export const STAGE_COLORS = {
 
 export const PLAYER_COLOR = '#3B82F6';
 export const FRIEND_COLORS = ['#EF4444', '#8B5CF6', '#EC4899', '#14B8A6'];
+
+// Animation
+export const WALK_ANIMATION_DURATION = 300; // ms before returning to idle
+export const SPRITE_SOURCE_SIZE = 16;        // px (16×16 pixel art)

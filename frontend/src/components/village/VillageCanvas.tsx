@@ -3,7 +3,7 @@
 import { useEffect, useRef, useCallback, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useVillageStore } from '@/stores/useVillageStore';
-import { TILE_SIZE, PLAYER_COLOR, FRIEND_COLORS } from '@/constants/game';
+import { TILE_SIZE, WALK_ANIMATION_DURATION, SPRITE_SOURCE_SIZE } from '@/constants/game';
 import { useLocationSync } from '@/hooks/useLocationSync';
 import { useVillageMap } from '@/hooks/useVillageMap';
 import { trackEvent } from '@/lib/ain/event-tracker';
@@ -12,6 +12,12 @@ import { renderTileLayer, type Viewport } from '@/lib/tmj/renderer';
 import { usePurchaseStore } from '@/stores/usePurchaseStore';
 import { papersAdapter } from '@/lib/adapters/papers';
 import { PLOT_WIDTH, PLOT_HEIGHT } from '@/lib/tmj/village-generator';
+import { drawGrassTile, drawPathTile, drawTree } from '@/lib/sprites/terrain';
+import { drawBuilding } from '@/lib/sprites/buildings';
+import { getPreRenderedSprite } from '@/lib/sprites/cache';
+import { PLAYER_SPRITE } from '@/lib/sprites/player';
+import { FRIEND_SPRITES } from '@/lib/sprites/friends';
+import type { Direction } from '@/lib/sprites/types';
 
 interface CourseEntrance {
   paperId: string;
@@ -29,6 +35,14 @@ export function VillageCanvas() {
   const { playerPosition, playerDirection, setPlayerPosition, setPlayerDirection, friends, courseLocations, setMapDimensions } =
     useVillageStore();
   const { getAccessStatus, setPurchaseModal } = usePurchaseStore();
+
+  // Animation state
+  const isWalkingRef = useRef(false);
+  const animFrameRef = useRef(0); // 0 = idle, 1 = walk1, 2 = walk2
+  const walkTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prevPositionRef = useRef(playerPosition);
+  const rafIdRef = useRef<number>(0);
+  const dirtyRef = useRef(true);
 
   // Fetch courses and sync positions with AIN blockchain
   const [courses, setCourses] = useState<Paper[]>();
@@ -91,6 +105,29 @@ export function VillageCanvas() {
     [courseEntrances]
   );
 
+  // Detect movement → trigger walk animation
+  useEffect(() => {
+    const prev = prevPositionRef.current;
+    if (prev.x !== playerPosition.x || prev.y !== playerPosition.y) {
+      isWalkingRef.current = true;
+      animFrameRef.current = animFrameRef.current === 1 ? 2 : 1;
+      dirtyRef.current = true;
+
+      if (walkTimerRef.current) clearTimeout(walkTimerRef.current);
+      walkTimerRef.current = setTimeout(() => {
+        isWalkingRef.current = false;
+        animFrameRef.current = 0;
+        dirtyRef.current = true;
+      }, WALK_ANIMATION_DURATION);
+    }
+    prevPositionRef.current = playerPosition;
+  }, [playerPosition]);
+
+  // Mark dirty on any state change
+  useEffect(() => {
+    dirtyRef.current = true;
+  }, [playerPosition, playerDirection, friends, courseEntrances, mapData]);
+
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       let dx = 0;
@@ -133,7 +170,6 @@ export function VillageCanvas() {
               });
               router.push(`/learn/${paperId}`);
             } else {
-              // Not purchased — open purchase modal
               papersAdapter.getPaperById(paperId).then((p) => {
                 if (p) setPurchaseModal(paperId, p);
               });
@@ -159,146 +195,175 @@ export function VillageCanvas() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
 
-  // Render
+  // rAF render loop
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Viewport
-    const viewW = canvas.parentElement?.clientWidth || 800;
-    const viewH = canvas.parentElement?.clientHeight || 600;
-    canvas.width = viewW;
-    canvas.height = viewH;
+    const draw = () => {
+      if (!dirtyRef.current) {
+        rafIdRef.current = requestAnimationFrame(draw);
+        return;
+      }
+      dirtyRef.current = false;
 
-    const tilesX = Math.ceil(viewW / TILE_SIZE) + 1;
-    const tilesY = Math.ceil(viewH / TILE_SIZE) + 1;
-    const offsetX = playerPosition.x - Math.floor(tilesX / 2);
-    const offsetY = playerPosition.y - Math.floor(tilesY / 2);
+      // Viewport
+      const viewW = canvas.parentElement?.clientWidth || 800;
+      const viewH = canvas.parentElement?.clientHeight || 600;
+      if (canvas.width !== viewW || canvas.height !== viewH) {
+        canvas.width = viewW;
+        canvas.height = viewH;
+      }
 
-    // Clear
-    ctx.fillStyle = '#4A7C59';
-    ctx.fillRect(0, 0, viewW, viewH);
+      const pos = useVillageStore.getState().playerPosition;
+      const dir = useVillageStore.getState().playerDirection as Direction;
+      const tilesX = Math.ceil(viewW / TILE_SIZE) + 1;
+      const tilesY = Math.ceil(viewH / TILE_SIZE) + 1;
+      const offsetX = pos.x - Math.floor(tilesX / 2);
+      const offsetY = pos.y - Math.floor(tilesY / 2);
 
-    // Draw ground tiles
-    const groundLayer = mapData?.layersByName.get('ground');
-    if (groundLayer && mapData) {
-      // TMJ-based rendering
-      const viewport: Viewport = { offsetX, offsetY, tilesX, tilesY };
-      renderTileLayer(ctx, groundLayer, mapData.tilesets, viewport, TILE_SIZE, '#4A7C59');
-    } else {
-      // Fallback: procedural rendering
-      for (let tx = 0; tx < tilesX; tx++) {
-        for (let ty = 0; ty < tilesY; ty++) {
-          const worldX = offsetX + tx;
-          const worldY = offsetY + ty;
-          if (worldX < 0 || worldY < 0 || worldX >= mapW || worldY >= mapH)
-            continue;
+      // Clear
+      ctx.fillStyle = '#4A7C59';
+      ctx.fillRect(0, 0, viewW, viewH);
 
-          const screenX = tx * TILE_SIZE;
-          const screenY = ty * TILE_SIZE;
+      // ── Ground tiles ──
+      const groundLayer = mapData?.layersByName.get('ground');
+      if (groundLayer && mapData) {
+        const viewport: Viewport = { offsetX, offsetY, tilesX, tilesY };
+        renderTileLayer(ctx, groundLayer, mapData.tilesets, viewport, TILE_SIZE, '#4A7C59');
+      } else {
+        for (let tx = 0; tx < tilesX; tx++) {
+          for (let ty = 0; ty < tilesY; ty++) {
+            const worldX = offsetX + tx;
+            const worldY = offsetY + ty;
+            if (worldX < 0 || worldY < 0 || worldX >= mapW || worldY >= mapH) continue;
 
-          const isPath =
-            (worldX >= 6 && worldX <= 50 && (worldY === 12 || worldY === 26)) ||
-            ((worldX === 14 || worldX === 30 || worldX === 46) && worldY >= 6 && worldY <= 30);
+            const screenX = tx * TILE_SIZE;
+            const screenY = ty * TILE_SIZE;
 
-          ctx.fillStyle = isPath ? '#D2B48C' : (worldX + worldY) % 2 === 0 ? '#5B8C5A' : '#4A7C59';
-          ctx.fillRect(screenX, screenY, TILE_SIZE, TILE_SIZE);
+            const isPath =
+              (worldX >= 6 && worldX <= 50 && (worldY === 12 || worldY === 26)) ||
+              ((worldX === 14 || worldX === 30 || worldX === 46) && worldY >= 6 && worldY <= 30);
+
+            if (isPath) {
+              drawPathTile(ctx, screenX, screenY, worldX, worldY, TILE_SIZE);
+            } else {
+              drawGrassTile(ctx, screenX, screenY, worldX, worldY, TILE_SIZE);
+            }
+          }
         }
       }
-    }
 
-    // Draw course buildings (from blockchain-backed courseEntrances)
-    courseEntrances.forEach((d) => {
-      const bx = (d.x - offsetX) * TILE_SIZE;
-      const by = (d.y - offsetY) * TILE_SIZE;
+      // ── Trees (decorative, placed deterministically along plot borders) ──
+      if (!groundLayer) {
+        for (let tx = 0; tx < tilesX; tx++) {
+          for (let ty = 0; ty < tilesY; ty++) {
+            const worldX = offsetX + tx;
+            const worldY = offsetY + ty;
+            if (worldX < 0 || worldY < 0 || worldX >= mapW || worldY >= mapH) continue;
 
-      // Building body
-      ctx.fillStyle = d.color;
-      ctx.fillRect(bx, by, d.width * TILE_SIZE, d.height * TILE_SIZE);
+            // Place trees along plot borders using hash
+            const hash = ((worldX * 374761393 + worldY * 668265263) | 0) & 0x7fffffff;
+            const h = (hash & 0xffff) / 0xffff;
+            const isPlotBorder = worldX % 16 === 0 || worldY % 16 === 0;
+            const isNotPath =
+              !((worldX >= 6 && worldX <= 50 && (worldY === 12 || worldY === 26)) ||
+                ((worldX === 14 || worldX === 30 || worldX === 46) && worldY >= 6 && worldY <= 30));
+            const isNotBuilding = !courseEntrances.some(
+              (d) => worldX >= d.x - 1 && worldX <= d.x + d.width && worldY >= d.y - 2 && worldY <= d.y + d.height + 1
+            );
 
-      // Roof
-      ctx.fillStyle = '#1A1A2E';
-      ctx.beginPath();
-      ctx.moveTo(bx - 5, by);
-      ctx.lineTo(bx + (d.width * TILE_SIZE) / 2, by - 25);
-      ctx.lineTo(bx + d.width * TILE_SIZE + 5, by);
-      ctx.fill();
+            if (isPlotBorder && isNotPath && isNotBuilding && h < 0.25) {
+              const screenX = tx * TILE_SIZE;
+              const screenY = ty * TILE_SIZE;
+              drawTree(ctx, screenX, screenY, TILE_SIZE);
+            }
+          }
+        }
+      }
 
-      // Entrance
-      const entranceX = d.x + Math.floor(d.width / 2);
-      const entranceScreenX = (entranceX - offsetX) * TILE_SIZE;
-      const entranceScreenY = (d.y + d.height - 1 - offsetY) * TILE_SIZE;
-      ctx.fillStyle = '#2D1810';
-      ctx.fillRect(entranceScreenX - 5, entranceScreenY, TILE_SIZE + 10, TILE_SIZE);
+      // ── Course buildings ──
+      courseEntrances.forEach((d) => {
+        const bx = (d.x - offsetX) * TILE_SIZE;
+        const by = (d.y - offsetY) * TILE_SIZE;
+        drawBuilding(ctx, bx, by, d.width, d.height, d.color, TILE_SIZE, d.label);
 
-      // Label
+        // Entrance marker
+        const entranceX = d.x + Math.floor(d.width / 2);
+        const entranceScreenX = (entranceX - offsetX) * TILE_SIZE;
+        const entranceScreenY = (d.y + d.height - offsetY) * TILE_SIZE;
+        ctx.fillStyle = '#FFD700';
+        ctx.font = '9px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('▼ Enter', entranceScreenX + TILE_SIZE / 2, entranceScreenY + 10);
+      });
+
+      // ── Friends (pixel art sprites) ──
+      const friendsList = useVillageStore.getState().friends;
+      friendsList.forEach((friend, i) => {
+        if (friend.currentScene !== 'village') return;
+        const fScreenX = (friend.position.x - offsetX) * TILE_SIZE;
+        const fScreenY = (friend.position.y - offsetY) * TILE_SIZE;
+
+        const sprite = FRIEND_SPRITES[i % FRIEND_SPRITES.length];
+        const friendDir: Direction = 'down'; // friends always face down (no direction in FriendPosition)
+        const frame = sprite.frames[friendDir][0]; // idle frame
+        const cacheKey = `friend-${i}-idle`;
+        const spriteCanvas = getPreRenderedSprite(cacheKey, frame, sprite.palette, TILE_SIZE, TILE_SIZE);
+        ctx.drawImage(spriteCanvas, fScreenX, fScreenY);
+
+        // Name label
+        ctx.fillStyle = '#FFF';
+        ctx.font = 'bold 9px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 2;
+        ctx.strokeText(friend.username, fScreenX + TILE_SIZE / 2, fScreenY - 4);
+        ctx.fillText(friend.username, fScreenX + TILE_SIZE / 2, fScreenY - 4);
+      });
+
+      // ── Player (always centered, pixel art sprite with animation) ──
+      const playerScreenX = Math.floor(tilesX / 2) * TILE_SIZE;
+      const playerScreenY = Math.floor(tilesY / 2) * TILE_SIZE;
+
+      const frameIdx = animFrameRef.current;
+      const playerFrame = PLAYER_SPRITE.frames[dir][frameIdx];
+      const cacheKey = `player-${dir}-${frameIdx}`;
+      const playerCanvas = getPreRenderedSprite(cacheKey, playerFrame, PLAYER_SPRITE.palette, TILE_SIZE, TILE_SIZE);
+      ctx.drawImage(playerCanvas, playerScreenX, playerScreenY);
+
+      // Player name
       ctx.fillStyle = '#FFF';
-      ctx.font = 'bold 11px sans-serif';
+      ctx.font = 'bold 9px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(
-        d.label,
-        bx + (d.width * TILE_SIZE) / 2,
-        by + d.height * TILE_SIZE + 14
-      );
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 2;
+      ctx.strokeText('You', playerScreenX + TILE_SIZE / 2, playerScreenY - 4);
+      ctx.fillText('You', playerScreenX + TILE_SIZE / 2, playerScreenY - 4);
 
-      // Course entrance label
-      ctx.fillStyle = '#FFD700';
-      ctx.font = '9px sans-serif';
-      ctx.fillText(
-        'Course Entrance',
-        bx + (d.width * TILE_SIZE) / 2,
-        by + d.height * TILE_SIZE + 26
-      );
-    });
+      // ── Interaction hint near course entrance ──
+      const nearPaper = checkCourseEntry(pos.x, pos.y);
+      if (nearPaper) {
+        const nearAccess = usePurchaseStore.getState().accessMap[nearPaper];
+        const canEnter = nearAccess === 'owned' || nearAccess === 'purchased';
+        ctx.fillStyle = canEnter ? '#FF9D00' : '#7C3AED';
+        ctx.font = 'bold 13px sans-serif';
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 3;
+        const hintText = canEnter ? 'Press E to enter course' : 'Press E to purchase course';
+        ctx.strokeText(hintText, playerScreenX + TILE_SIZE / 2, playerScreenY + TILE_SIZE + 16);
+        ctx.fillText(hintText, playerScreenX + TILE_SIZE / 2, playerScreenY + TILE_SIZE + 16);
+      }
 
-    // Draw friends
-    friends.forEach((friend, i) => {
-      if (friend.currentScene !== 'village') return;
-      const fx = (friend.position.x - offsetX) * TILE_SIZE + TILE_SIZE / 2;
-      const fy = (friend.position.y - offsetY) * TILE_SIZE + TILE_SIZE / 2;
+      rafIdRef.current = requestAnimationFrame(draw);
+    };
 
-      ctx.fillStyle = FRIEND_COLORS[i % FRIEND_COLORS.length];
-      ctx.beginPath();
-      ctx.arc(fx, fy, TILE_SIZE * 0.35, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Name label
-      ctx.fillStyle = '#FFF';
-      ctx.font = 'bold 10px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(friend.username, fx, fy - TILE_SIZE * 0.5);
-    });
-
-    // Draw player (always centered)
-    const playerScreenX = Math.floor(tilesX / 2) * TILE_SIZE + TILE_SIZE / 2;
-    const playerScreenY = Math.floor(tilesY / 2) * TILE_SIZE + TILE_SIZE / 2;
-
-    ctx.fillStyle = PLAYER_COLOR;
-    ctx.beginPath();
-    ctx.arc(playerScreenX, playerScreenY, TILE_SIZE * 0.4, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = '#FFF';
-    ctx.font = 'bold 10px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('You', playerScreenX, playerScreenY - TILE_SIZE * 0.55);
-
-    // Interaction hint near course entrance
-    const nearPaper = checkCourseEntry(playerPosition.x, playerPosition.y);
-    if (nearPaper) {
-      const nearAccess = usePurchaseStore.getState().accessMap[nearPaper];
-      const canEnter = nearAccess === 'owned' || nearAccess === 'purchased';
-      ctx.fillStyle = canEnter ? '#FF9D00' : '#7C3AED';
-      ctx.font = 'bold 13px sans-serif';
-      ctx.fillText(
-        canEnter ? 'Press E to enter course' : 'Press E to purchase course',
-        playerScreenX,
-        playerScreenY + TILE_SIZE * 1.2,
-      );
-    }
-  }, [playerPosition, playerDirection, friends, courseEntrances, checkCourseEntry, mapData, mapW, mapH]);
+    dirtyRef.current = true;
+    rafIdRef.current = requestAnimationFrame(draw);
+    return () => cancelAnimationFrame(rafIdRef.current);
+  }, [mapData, mapW, mapH, courseEntrances, checkCourseEntry]);
 
   return (
     <canvas
