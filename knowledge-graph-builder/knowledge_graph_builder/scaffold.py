@@ -114,7 +114,7 @@ All commands follow this pattern — load config, init Ain, load wallet, call AP
 node -e "
   const Ain = require('./blockchain/node_modules/@ainblockchain/ain-js').default;
   const cfg = require('./blockchain/config.json');
-  const ain = new Ain(cfg.provider_url);
+  const ain = new Ain(cfg.provider_url, null, cfg.chain_id ?? 0);
   const fs = require('fs');
   const pk = fs.readFileSync('blockchain/.env','utf-8').match(/AIN_PRIVATE_KEY=(.+)/)[1].trim();
   ain.wallet.addAndSetDefaultAccount(pk);
@@ -148,7 +148,7 @@ Key ain.knowledge methods:
 node -e "
   const Ain = require('./blockchain/node_modules/@ainblockchain/ain-js').default;
   const cfg = require('./blockchain/config.json');
-  const ain = new Ain(cfg.provider_url);
+  const ain = new Ain(cfg.provider_url, null, cfg.chain_id ?? 0);
   const crypto = require('crypto'), fs = require('fs');
   let pk;
   try { pk = fs.readFileSync('blockchain/.env','utf-8').match(/AIN_PRIVATE_KEY=(.+)/)[1].trim(); }
@@ -167,7 +167,7 @@ Look up the concept's topicPath and depth from blockchain/config.json, then:
 node -e "
   const Ain = require('./blockchain/node_modules/@ainblockchain/ain-js').default;
   const cfg = require('./blockchain/config.json');
-  const ain = new Ain(cfg.provider_url);
+  const ain = new Ain(cfg.provider_url, null, cfg.chain_id ?? 0);
   const fs = require('fs');
   const pk = fs.readFileSync('blockchain/.env','utf-8').match(/AIN_PRIVATE_KEY=(.+)/)[1].trim();
   ain.wallet.addAndSetDefaultAccount(pk);
@@ -190,7 +190,7 @@ For PARENT_REF_OR_NULL: use `null` for the first concept, or `{ownerAddress: '0x
 node -e "
   const Ain = require('./blockchain/node_modules/@ainblockchain/ain-js').default;
   const cfg = require('./blockchain/config.json');
-  const ain = new Ain(cfg.provider_url);
+  const ain = new Ain(cfg.provider_url, null, cfg.chain_id ?? 0);
   ain.knowledge.getExplorationsByUser('FRIEND_ADDRESS').then(r => console.log(JSON.stringify(r, null, 2)));
 "
 ```
@@ -200,7 +200,7 @@ node -e "
 node -e "
   const Ain = require('./blockchain/node_modules/@ainblockchain/ain-js').default;
   const cfg = require('./blockchain/config.json');
-  const ain = new Ain(cfg.provider_url);
+  const ain = new Ain(cfg.provider_url, null, cfg.chain_id ?? 0);
   ain.knowledge.getGraph().then(r => console.log(JSON.stringify(r, null, 2)));
 "
 ```
@@ -210,7 +210,7 @@ node -e "
 node -e "
   const Ain = require('./blockchain/node_modules/@ainblockchain/ain-js').default;
   const cfg = require('./blockchain/config.json');
-  const ain = new Ain(cfg.provider_url);
+  const ain = new Ain(cfg.provider_url, null, cfg.chain_id ?? 0);
   ain.knowledge.getFrontierMap(cfg.topic_prefix).then(r => console.log(JSON.stringify(r, null, 2)));
 "
 ```
@@ -220,7 +220,7 @@ node -e "
 node -e "
   const Ain = require('./blockchain/node_modules/@ainblockchain/ain-js').default;
   const cfg = require('./blockchain/config.json');
-  const ain = new Ain(cfg.provider_url);
+  const ain = new Ain(cfg.provider_url, null, cfg.chain_id ?? 0);
   ain.knowledge.getExplorers(cfg.topic_map['CONCEPT_ID']).then(r => console.log(JSON.stringify(r)));
 "
 ```

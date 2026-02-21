@@ -334,7 +334,8 @@ Create the following 7 files using the **Write tool**:
 
 Generate from the extracted concept nodes in graph.json. Apply this mapping:
 
-- `provider_url`: `"https://mainnet-api.ainetwork.ai"` (fixed)
+- `provider_url`: `"https://devnet-api.ainetwork.ai"` (fixed)
+- `chain_id`: `0` (devnet)
 - `topic_prefix`: `<paper-slug>`
 - `topic_map`: each concept `id` → `"<paper-slug>/<concept_id>"`
 - `depth_map`: concept `level` → integer (`foundational`=1, `intermediate`=2, `advanced`=3, `frontier`=4)
@@ -345,7 +346,8 @@ Example output for paper-slug `attention-is-all-you-need` with concepts `self_at
 
 ```json
 {
-  "provider_url": "https://mainnet-api.ainetwork.ai",
+  "provider_url": "https://devnet-api.ainetwork.ai",
+  "chain_id": 0,
   "topic_prefix": "attention-is-all-you-need",
   "topic_map": {
     "self_attention": "attention-is-all-you-need/self_attention",
@@ -441,7 +443,7 @@ node -e "
       fs.writeFileSync(ainConfigPath, JSON.stringify({ privateKey: pk, providerUrl: cfg.provider_url }, null, 2));
     }
 
-    const ain = new Ain(cfg.provider_url);
+    const ain = new Ain(cfg.provider_url, null, cfg.chain_id ?? 0);
     ain.wallet.addAndSetDefaultAccount(pk);
     const address = ain.wallet.defaultAccount.address;
 
