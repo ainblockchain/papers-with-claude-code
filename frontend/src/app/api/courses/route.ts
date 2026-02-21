@@ -124,7 +124,9 @@ export async function GET() {
     );
 
     // Filter out courses with 0 stages (failed to fetch)
-    const validPapers = papers.filter((p) => p.totalStages > 0);
+    const validPapers = papers
+      .filter((p) => p.totalStages > 0)
+      .sort((a, b) => (b.publishedAt || '').localeCompare(a.publishedAt || ''));
 
     cachedResponse = { data: validPapers, timestamp: Date.now() };
     return NextResponse.json(validPapers);
