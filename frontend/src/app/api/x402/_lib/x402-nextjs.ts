@@ -1,5 +1,5 @@
 // Next.js App Router adapter for x402 payment gating
-// Supports Kite (Pieverse facilitator) and Base Sepolia (x402.org facilitator)
+// Supports Kite (Pieverse facilitator) and Base Sepolia (CDP facilitator)
 
 import { NextRequest, NextResponse } from 'next/server';
 import { withX402 } from '@x402/next';
@@ -7,6 +7,7 @@ import { x402ResourceServer, HTTPFacilitatorClient } from '@x402/core/server';
 import { registerExactEvmScheme } from '@x402/evm/exact/server';
 import type { RouteConfig } from '@x402/core/server';
 import type { Network } from '@x402/core/types';
+import { generateJwt } from '@coinbase/cdp-sdk/auth';
 import { MERCHANT_WALLET_ADDRESS, KITE_TEST_USDT_ADDRESS } from '@/lib/kite/contracts';
 
 // ── Kite Server (Pieverse facilitator) ──
@@ -17,10 +18,31 @@ const kiteFacilitator = new HTTPFacilitatorClient({
 const kiteServer = new x402ResourceServer(kiteFacilitator);
 registerExactEvmScheme(kiteServer);
 
-// ── Base Sepolia Server (x402.org facilitator) ──
+// ── Base Sepolia Server (CDP facilitator) ──
+
+const CDP_API_KEY_ID = process.env.CDP_API_KEY_ID || '';
+const CDP_API_KEY_SECRET = process.env.CDP_API_KEY_SECRET || '';
+const CDP_X402_URL = process.env.CDP_X402_URL || 'https://api.cdp.coinbase.com/platform/v2/x402';
+
+async function cdpAuthHeader(method: string, path: string): Promise<Record<string, string>> {
+  if (!CDP_API_KEY_ID || !CDP_API_KEY_SECRET) return {};
+  const jwt = await generateJwt({
+    apiKeyId: CDP_API_KEY_ID,
+    apiKeySecret: CDP_API_KEY_SECRET,
+    requestMethod: method,
+    requestHost: 'api.cdp.coinbase.com',
+    requestPath: `/platform/v2/x402/${path}`,
+  });
+  return { Authorization: `Bearer ${jwt}` };
+}
 
 const baseFacilitator = new HTTPFacilitatorClient({
-  url: 'https://x402.org/facilitator',
+  url: CDP_X402_URL,
+  createAuthHeaders: async () => ({
+    verify: await cdpAuthHeader('POST', 'verify'),
+    settle: await cdpAuthHeader('POST', 'settle'),
+    supported: await cdpAuthHeader('GET', 'supported'),
+  }),
 });
 const baseServer = new x402ResourceServer(baseFacilitator);
 registerExactEvmScheme(baseServer);

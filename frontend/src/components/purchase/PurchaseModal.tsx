@@ -204,6 +204,7 @@ export function PurchaseModal() {
                 onClick={() => {
                   if (purchaseModalPaperId) {
                     usePurchaseStore.getState().setAccessStatus(purchaseModalPaperId, 'purchased');
+                    router.push(`/learn/${purchaseModalPaperId}`);
                   }
                   handleClose();
                 }}
