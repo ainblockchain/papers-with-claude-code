@@ -3,6 +3,7 @@
 > Self-Sustaining Autonomous Agent on Base
 
 **Live**: [https://paperswithclaudecode.com](https://paperswithclaudecode.com)
+**Agent Dashboard**: [https://cogito.paperswithclaudecode.com](https://cogito.paperswithclaudecode.com)
 
 ## What Is Papers with Claude Code
 
@@ -64,7 +65,7 @@ The agent is registered on Base via ERC-8004:
 
 ## Public Dashboard
 
-The agent dashboard is accessible at [paperswithclaudecode.com](https://paperswithclaudecode.com) with no login required:
+The agent dashboard is live at [cogito.paperswithclaudecode.com](https://cogito.paperswithclaudecode.com) with no login required:
 
 - **Wallet balances**: ETH + USDC on Base, real-time
 - **Revenue vs. cost**: 24h income, 24h cost, sustainability ratio
@@ -84,4 +85,4 @@ The agent dashboard is accessible at [paperswithclaudecode.com](https://paperswi
 | **Novel revenue** | Sells AI-generated courses from real research via x402 — not trading or MEV |
 | **Network effects** | More courses on paperswithclaudecode.com = more learners = more micropayments = more courses |
 | **x402 + ERC-8004** | x402 for all content payments, ERC-8004 for identity + reputation |
-| **Public interface** | [paperswithclaudecode.com](https://paperswithclaudecode.com) — no auth, all metrics visible |
+| **Public interface** | [cogito.paperswithclaudecode.com](https://cogito.paperswithclaudecode.com) — no auth, all metrics visible |
