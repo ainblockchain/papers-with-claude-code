@@ -1,9 +1,12 @@
 'use client';
 
 import { useEffect, useRef, useCallback, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Network, RefreshCw, Maximize2, Minimize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAinStore } from '@/stores/useAinStore';
+import { usePurchaseStore } from '@/stores/usePurchaseStore';
+import { papersAdapter } from '@/lib/adapters/papers';
 
 /* ───────── Types ───────── */
 
@@ -12,6 +15,7 @@ interface SimNode {
   title: string;
   depth: number;
   topicPath: string;
+  cluster: string;
   x: number;
   y: number;
   vx: number;
@@ -24,6 +28,15 @@ interface SimEdge {
   source: string;
   target: string;
   type: 'extends' | 'related' | 'prerequisite';
+}
+
+interface ClusterInfo {
+  id: string;
+  cx: number;
+  cy: number;
+  color: string;
+  label: string;
+  nodeCount: number;
 }
 
 /* ───────── Constants ───────── */
@@ -42,24 +55,34 @@ const EDGE_COLORS: Record<string, string> = {
   prerequisite: '#f59e0b',
 };
 
+const CLUSTER_COLORS = [
+  '#4ade80', '#60a5fa', '#f59e0b', '#f87171', '#a78bfa',
+  '#34d399', '#38bdf8', '#fb923c', '#e879f9', '#22d3ee',
+  '#a3e635', '#f472b6', '#818cf8', '#fbbf24', '#2dd4bf',
+];
+
 const SIM = {
-  repulsion: 3000,
+  repulsion: 8000,
   attraction: 0.005,
-  centerGravity: 0.02,
-  damping: 0.85,
+  centerGravity: 0.005,
+  clusterGravity: 0.03,
+  damping: 0.9,
   minVelocity: 0.01,
-  maxVelocity: 8,
+  maxVelocity: 12,
 };
 
 /* ───────── Component ───────── */
 
 export function KnowledgeGraph() {
+  const router = useRouter();
   const { graph, isLoadingGraph, fetchGraph } = useAinStore();
+  const { setPurchaseModal, getAccessStatus } = usePurchaseStore();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const animRef = useRef<number>(0);
   const nodesRef = useRef<SimNode[]>([]);
   const edgesRef = useRef<SimEdge[]>([]);
+  const clustersRef = useRef<ClusterInfo[]>([]);
 
   // Camera state
   const camRef = useRef({ x: 0, y: 0, zoom: 1 });
@@ -72,10 +95,12 @@ export function KnowledgeGraph() {
     startY: number;
     startCamX: number;
     startCamY: number;
-  }>({ type: 'none', nodeIdx: -1, startX: 0, startY: 0, startCamX: 0, startCamY: 0 });
+    dragDist: number;
+  }>({ type: 'none', nodeIdx: -1, startX: 0, startY: 0, startCamX: 0, startCamY: 0, dragDist: 0 });
 
   const hoverRef = useRef<number>(-1);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [clickFeedback, setClickFeedback] = useState<{ x: number; y: number; text: string } | null>(null);
 
   useEffect(() => {
     fetchGraph();
@@ -88,18 +113,54 @@ export function KnowledgeGraph() {
     const rawEdges = graph.edges || {};
     const ids = Object.keys(rawNodes);
 
-    // Spread nodes in a random circle
-    const nodes: SimNode[] = ids.map((id, i) => {
+    // Extract clusters from topic_path
+    const clusterMap = new Map<string, string[]>();
+    for (const id of ids) {
       const n = rawNodes[id];
-      const angle = (2 * Math.PI * i) / ids.length + Math.random() * 0.5;
-      const r = 80 + Math.random() * 120;
+      const topicPath = n.topic_path || '';
+      const cluster = topicPath.split('/')[0] || 'other';
+      if (!clusterMap.has(cluster)) clusterMap.set(cluster, []);
+      clusterMap.get(cluster)!.push(id);
+    }
+
+    // Compute cluster centers in a large circle
+    const clusterIds = Array.from(clusterMap.keys());
+    const clusterCount = clusterIds.length;
+    const clusterRadius = Math.max(300, clusterCount * 60);
+    const clusters: ClusterInfo[] = clusterIds.map((cid, i) => {
+      const angle = (2 * Math.PI * i) / clusterCount;
+      return {
+        id: cid,
+        cx: Math.cos(angle) * clusterRadius,
+        cy: Math.sin(angle) * clusterRadius,
+        color: CLUSTER_COLORS[i % CLUSTER_COLORS.length],
+        label: cid,
+        nodeCount: clusterMap.get(cid)!.length,
+      };
+    });
+    clustersRef.current = clusters;
+
+    const clusterCenterMap = new Map<string, { cx: number; cy: number }>();
+    for (const c of clusters) {
+      clusterCenterMap.set(c.id, { cx: c.cx, cy: c.cy });
+    }
+
+    // Place nodes near their cluster center with noise
+    const nodes: SimNode[] = ids.map((id) => {
+      const n = rawNodes[id];
+      const topicPath = n.topic_path || '';
+      const cluster = topicPath.split('/')[0] || 'other';
+      const center = clusterCenterMap.get(cluster) || { cx: 0, cy: 0 };
+      const noise = 60 + Math.random() * 100;
+      const angle = Math.random() * 2 * Math.PI;
       return {
         id,
         title: n.title || id,
         depth: n.depth || 1,
-        topicPath: n.topic_path || '',
-        x: Math.cos(angle) * r,
-        y: Math.sin(angle) * r,
+        topicPath,
+        cluster,
+        x: center.cx + Math.cos(angle) * noise,
+        y: center.cy + Math.sin(angle) * noise,
         vx: 0,
         vy: 0,
         radius: 6 + (n.depth || 1) * 2,
@@ -122,8 +183,9 @@ export function KnowledgeGraph() {
     nodesRef.current = nodes;
     edgesRef.current = edges;
 
-    // Reset camera
-    camRef.current = { x: 0, y: 0, zoom: 1 };
+    // Reset camera with zoom out for large graphs
+    const autoZoom = ids.length > 50 ? 0.5 : ids.length > 20 ? 0.7 : 1;
+    camRef.current = { x: 0, y: 0, zoom: autoZoom };
   }, [graph]);
 
   // Screen → world coordinate transforms
@@ -159,6 +221,41 @@ export function KnowledgeGraph() {
     return -1;
   }, [screenToWorld]);
 
+  // Handle node click → navigate to course or show purchase modal
+  const handleNodeClick = useCallback(async (node: SimNode) => {
+    const topicName = node.topicPath.split('/').pop() || node.title;
+    try {
+      const papers = await papersAdapter.searchPapers(topicName);
+      if (papers.length > 0) {
+        const paper = papers[0];
+        const access = getAccessStatus(paper.id);
+        if (access === 'available') {
+          setPurchaseModal(paper.id, paper);
+        } else {
+          router.push(`/learn/${paper.id}`);
+        }
+      } else {
+        // Try searching by node title
+        const byTitle = await papersAdapter.searchPapers(node.title);
+        if (byTitle.length > 0) {
+          const paper = byTitle[0];
+          const access = getAccessStatus(paper.id);
+          if (access === 'available') {
+            setPurchaseModal(paper.id, paper);
+          } else {
+            router.push(`/learn/${paper.id}`);
+          }
+        } else {
+          setClickFeedback({ x: node.x, y: node.y, text: 'No course available' });
+          setTimeout(() => setClickFeedback(null), 2000);
+        }
+      }
+    } catch {
+      setClickFeedback({ x: node.x, y: node.y, text: 'Search failed' });
+      setTimeout(() => setClickFeedback(null), 2000);
+    }
+  }, [router, getAccessStatus, setPurchaseModal]);
+
   // ── Mouse handlers ──
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -178,6 +275,7 @@ export function KnowledgeGraph() {
           startY: sy,
           startCamX: nodesRef.current[hit].x,
           startCamY: nodesRef.current[hit].y,
+          dragDist: 0,
         };
         nodesRef.current[hit].pinned = true;
         canvas.style.cursor = 'grabbing';
@@ -189,6 +287,7 @@ export function KnowledgeGraph() {
           startY: sy,
           startCamX: camRef.current.x,
           startCamY: camRef.current.y,
+          dragDist: 0,
         };
         canvas.style.cursor = 'grabbing';
       }
@@ -199,6 +298,11 @@ export function KnowledgeGraph() {
       const sx = e.clientX - rect.left;
       const sy = e.clientY - rect.top;
       const drag = dragRef.current;
+
+      // Track drag distance
+      const ddx = sx - drag.startX;
+      const ddy = sy - drag.startY;
+      drag.dragDist = Math.sqrt(ddx * ddx + ddy * ddy);
 
       if (drag.type === 'pan') {
         const dx = (sx - drag.startX) / camRef.current.zoom;
@@ -223,8 +327,12 @@ export function KnowledgeGraph() {
       const drag = dragRef.current;
       if (drag.type === 'node' && drag.nodeIdx >= 0) {
         nodesRef.current[drag.nodeIdx].pinned = false;
+        // Click detection: minimal drag distance
+        if (drag.dragDist < 5) {
+          handleNodeClick(nodesRef.current[drag.nodeIdx]);
+        }
       }
-      dragRef.current = { type: 'none', nodeIdx: -1, startX: 0, startY: 0, startCamX: 0, startCamY: 0 };
+      dragRef.current = { type: 'none', nodeIdx: -1, startX: 0, startY: 0, startCamX: 0, startCamY: 0, dragDist: 0 };
       canvas.style.cursor = 'grab';
     };
 
@@ -259,7 +367,7 @@ export function KnowledgeGraph() {
       canvas.removeEventListener('mouseleave', onMouseUp);
       canvas.removeEventListener('wheel', onWheel);
     };
-  }, [hitTest, screenToWorld]);
+  }, [hitTest, screenToWorld, handleNodeClick]);
 
   // ── Animation loop: physics + render ──
   useEffect(() => {
@@ -282,6 +390,13 @@ export function KnowledgeGraph() {
 
       const nodes = nodesRef.current;
       const edges = edgesRef.current;
+      const clusters = clustersRef.current;
+
+      // Build cluster center map for physics
+      const clusterCenters = new Map<string, { cx: number; cy: number }>();
+      for (const c of clusters) {
+        clusterCenters.set(c.id, { cx: c.cx, cy: c.cy });
+      }
 
       // ── Physics step ──
       if (nodes.length > 0) {
@@ -321,11 +436,21 @@ export function KnowledgeGraph() {
           if (!b.pinned) { b.vx -= fx; b.vy -= fy; }
         }
 
-        // Center gravity + velocity update
+        // Center gravity + Cluster gravity + velocity update
         for (const n of nodes) {
           if (n.pinned) continue;
+
+          // Weak center gravity
           n.vx -= n.x * SIM.centerGravity;
           n.vy -= n.y * SIM.centerGravity;
+
+          // Cluster gravity — pull toward cluster center
+          const cc = clusterCenters.get(n.cluster);
+          if (cc) {
+            n.vx += (cc.cx - n.x) * SIM.clusterGravity;
+            n.vy += (cc.cy - n.y) * SIM.clusterGravity;
+          }
+
           n.vx *= SIM.damping;
           n.vy *= SIM.damping;
 
@@ -339,6 +464,23 @@ export function KnowledgeGraph() {
 
           n.x += n.vx;
           n.y += n.vy;
+        }
+
+        // Update dynamic cluster centers based on actual node positions
+        const clusterSums = new Map<string, { sx: number; sy: number; count: number }>();
+        for (const n of nodes) {
+          const s = clusterSums.get(n.cluster) || { sx: 0, sy: 0, count: 0 };
+          s.sx += n.x;
+          s.sy += n.y;
+          s.count += 1;
+          clusterSums.set(n.cluster, s);
+        }
+        for (const c of clusters) {
+          const s = clusterSums.get(c.id);
+          if (s && s.count > 0) {
+            c.cx = s.sx / s.count;
+            c.cy = s.sy / s.count;
+          }
         }
       }
 
@@ -374,6 +516,40 @@ export function KnowledgeGraph() {
       const nodeMap = new Map<string, SimNode>();
       nodes.forEach((n) => nodeMap.set(n.id, n));
 
+      // Draw cluster halos
+      for (const cluster of clusters) {
+        if (cluster.nodeCount < 2) continue;
+        const s = worldToScreen(cluster.cx, cluster.cy, cw, ch);
+
+        // Compute cluster radius based on max distance of nodes from center
+        let maxDist = 0;
+        for (const n of nodes) {
+          if (n.cluster !== cluster.id) continue;
+          const ns = worldToScreen(n.x, n.y, cw, ch);
+          const dx = ns.x - s.x;
+          const dy = ns.y - s.y;
+          maxDist = Math.max(maxDist, Math.sqrt(dx * dx + dy * dy));
+        }
+        const haloRadius = maxDist + 30 * cam.zoom;
+
+        // Draw soft halo
+        const grad = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, haloRadius);
+        grad.addColorStop(0, cluster.color + '08');
+        grad.addColorStop(0.7, cluster.color + '05');
+        grad.addColorStop(1, cluster.color + '00');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, haloRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Cluster label
+        const fontSize = Math.max(9, Math.min(14, 11 * cam.zoom));
+        ctx.fillStyle = cluster.color + '60';
+        ctx.font = `bold ${fontSize}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText(cluster.label, s.x, s.y - haloRadius + fontSize + 4);
+      }
+
       // Draw edges
       for (const edge of edges) {
         const sn = nodeMap.get(edge.source);
@@ -398,19 +574,18 @@ export function KnowledgeGraph() {
         const my = (from.y + to.y) / 2;
         const dx = to.x - from.x;
         const dy = to.y - from.y;
-        const offset = Math.min(20 * cam.zoom, Math.sqrt(dx * dx + dy * dy) * 0.15);
-        const cx = mx - dy * 0.1;
-        const cy = my + dx * 0.1;
+        const cx2 = mx - dy * 0.1;
+        const cy2 = my + dx * 0.1;
 
         ctx.beginPath();
         ctx.moveTo(from.x, from.y);
-        ctx.quadraticCurveTo(cx, cy, to.x, to.y);
+        ctx.quadraticCurveTo(cx2, cy2, to.x, to.y);
         ctx.stroke();
 
         // Arrowhead
         const t = 0.85;
-        const ax = (1 - t) * (1 - t) * from.x + 2 * (1 - t) * t * cx + t * t * to.x;
-        const ay = (1 - t) * (1 - t) * from.y + 2 * (1 - t) * t * cy + t * t * to.y;
+        const ax = (1 - t) * (1 - t) * from.x + 2 * (1 - t) * t * cx2 + t * t * to.x;
+        const ay = (1 - t) * (1 - t) * from.y + 2 * (1 - t) * t * cy2 + t * t * to.y;
         const angle = Math.atan2(to.y - ay, to.x - ax);
         const arrowLen = 6 * cam.zoom;
         ctx.setLineDash([]);
@@ -478,18 +653,40 @@ export function KnowledgeGraph() {
         ctx.strokeStyle = '#334155';
         ctx.lineWidth = 1;
         const text = `${n.title} (depth: ${n.depth})`;
+        const hint = 'Click to explore course';
         ctx.font = 'bold 11px sans-serif';
-        const tw = ctx.measureText(text).width;
+        const tw = Math.max(ctx.measureText(text).width, ctx.measureText(hint).width);
         const pad = 8;
         const bx = s.x - tw / 2 - pad;
-        const by = tooltipY - 10;
+        const by = tooltipY - 24;
         ctx.beginPath();
-        ctx.roundRect(bx, by, tw + pad * 2, 20, 4);
+        ctx.roundRect(bx, by, tw + pad * 2, 34, 4);
         ctx.fill();
         ctx.stroke();
         ctx.fillStyle = '#f1f5f9';
         ctx.textAlign = 'center';
-        ctx.fillText(text, s.x, tooltipY + 4);
+        ctx.fillText(text, s.x, tooltipY - 8);
+        ctx.fillStyle = '#60a5fa';
+        ctx.font = '10px sans-serif';
+        ctx.fillText(hint, s.x, tooltipY + 6);
+      }
+
+      // Click feedback toast
+      if (clickFeedback) {
+        const s = worldToScreen(clickFeedback.x, clickFeedback.y, cw, ch);
+        ctx.font = 'bold 11px sans-serif';
+        const tw = ctx.measureText(clickFeedback.text).width;
+        const pad = 8;
+        ctx.fillStyle = '#1e293bdd';
+        ctx.strokeStyle = '#f59e0b50';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(s.x - tw / 2 - pad, s.y - 30, tw + pad * 2, 22, 4);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = '#f59e0b';
+        ctx.textAlign = 'center';
+        ctx.fillText(clickFeedback.text, s.x, s.y - 15);
       }
 
       animRef.current = requestAnimationFrame(tick);
@@ -497,7 +694,7 @@ export function KnowledgeGraph() {
 
     animRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(animRef.current);
-  }, [graph, isLoadingGraph, worldToScreen]);
+  }, [graph, isLoadingGraph, worldToScreen, clickFeedback]);
 
   const toggleFullscreen = useCallback(() => setIsFullscreen((v) => !v), []);
 
@@ -566,7 +763,7 @@ export function KnowledgeGraph() {
 
         {/* Controls hint */}
         <div className="absolute bottom-3 right-3 text-[10px] text-gray-600 bg-[#1a1a2ecc] backdrop-blur-sm px-2 py-1 rounded border border-gray-800">
-          Drag to pan · Scroll to zoom · Drag nodes to move
+          Drag to pan · Scroll to zoom · Click nodes to explore
         </div>
       </div>
     </div>

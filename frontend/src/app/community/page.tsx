@@ -7,6 +7,7 @@ import { AinWalletInfo } from '@/components/ain/AinWalletInfo';
 import { KnowledgeGraph } from '@/components/ain/KnowledgeGraph';
 import { FrontierMap } from '@/components/ain/FrontierMap';
 import { LearnerProgressView } from '@/components/ain/LearnerProgressView';
+import { PurchaseModal } from '@/components/purchase/PurchaseModal';
 
 export default function CommunityPage() {
   const router = useRouter();
@@ -48,6 +49,9 @@ export default function CommunityPage() {
           <LearnerProgressView />
         </div>
       </div>
+
+      {/* Purchase Modal (triggered by node clicks in KnowledgeGraph) */}
+      <PurchaseModal />
     </div>
   );
 }
