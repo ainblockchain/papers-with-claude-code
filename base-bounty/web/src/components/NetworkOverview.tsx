@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { AGENT_ADDRESS, AGENT_ID, AGENT_NAME, AGENT_URI, getAgentRegistration } from '@/lib/base-client';
+import { AGENT_ADDRESS, AGENT_ID, AGENT_NAME, AGENT_REGISTRATION_URL, getAgentRegistration } from '@/lib/base-client';
 
 export default function NetworkOverview() {
   const [registered, setRegistered] = useState(false);
@@ -27,7 +27,7 @@ export default function NetworkOverview() {
         )}
       </div>
       <div className="text-xs text-gray-400 font-mono truncate">{AGENT_ADDRESS}</div>
-      <div className="text-xs text-gray-500 mt-1">{AGENT_URI}</div>
+      <div className="text-xs text-gray-500 mt-1">{AGENT_REGISTRATION_URL}</div>
     </div>
   );
 }
