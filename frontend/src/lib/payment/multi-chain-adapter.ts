@@ -140,9 +140,13 @@ class MultiChainPaymentAdapter {
 
       if (!res.ok) {
         const body = await res.json().catch(() => null);
+        // x402 settlement returns { error: "Settlement failed", details: "reason" }
+        const errorMsg = body?.details
+          ? `${body.error}: ${body.details}`
+          : (body?.message ?? body?.error ?? `Request failed (${res.status})`);
         return {
           success: false,
-          error: body?.message ?? body?.error ?? `Request failed (${res.status})`,
+          error: errorMsg,
           errorCode: body?.error ?? 'payment_failed',
         };
       }
@@ -207,9 +211,12 @@ class MultiChainPaymentAdapter {
 
       if (!res.ok) {
         const body = await res.json().catch(() => null);
+        const errorMsg = body?.details
+          ? `${body.error}: ${body.details}`
+          : (body?.message ?? body?.error ?? `Request failed (${res.status})`);
         return {
           success: false,
-          error: body?.message ?? `Request failed (${res.status})`,
+          error: errorMsg,
           errorCode: body?.error ?? 'payment_failed',
         };
       }
