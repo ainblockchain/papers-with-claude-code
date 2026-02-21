@@ -22,7 +22,7 @@
 #   Uses a dummy API key instead of the real one (proxy replaces it with the real key).
 
 COURSE_ID="${1:-}"
-MODEL="${2:-sonnet}"
+MODEL="${2:-haiku}"
 MODE="${3:-learner}"
 # 4th CLI arg takes precedence over USER_ID env var (set by Pod template)
 ARG_USER_ID="${4:-}"
