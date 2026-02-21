@@ -1,8 +1,9 @@
-// Multi-chain payment adapter — delegates to x402Adapter for Kite and direct x402 API for Base
+// Multi-chain payment adapter — delegates to x402Adapter for Kite and client-side x402 for Base
 
 import { x402Adapter, type PaymentResult } from '@/lib/adapters/x402';
 import { loadPasskeyInfo } from '@/lib/ain/passkey';
 import { type PaymentChainId, PAYMENT_CHAINS } from './chains';
+import { createBaseX402Fetch } from './base-x402-client';
 
 export interface ChainPaymentParams {
   chain: PaymentChainId;
@@ -119,14 +120,52 @@ class MultiChainPaymentAdapter {
     }
   }
 
-  // ── Base Sepolia: Course Purchase via server-side proxy ──
+  // ── Base Sepolia: Course Purchase via client-side x402 ──
   private async basePurchaseCourse(
     params: ChainPaymentParams
   ): Promise<PaymentResult> {
-    return this.baseProxyRequest('enroll', {
-      paperId: params.paperId,
-      passkeyPublicKey: loadPasskeyInfo()?.publicKey || '',
-    });
+    const x402Fetch = createBaseX402Fetch();
+    if (!x402Fetch) {
+      return { success: false, error: 'Register passkey first to pay on Base Sepolia.', errorCode: 'no_passkey' };
+    }
+    try {
+      const res = await x402Fetch('/api/x402/enroll?chain=base', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paperId: params.paperId,
+          passkeyPublicKey: loadPasskeyInfo()?.publicKey || '',
+        }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        return {
+          success: false,
+          error: body?.message ?? `Request failed (${res.status})`,
+          errorCode: body?.error ?? 'payment_failed',
+        };
+      }
+
+      const txHash = this.extractTxHashFromResponse(res);
+      const data = await res.json();
+      const explorerUrl = txHash
+        ? `https://sepolia.basescan.org/tx/${txHash}`
+        : data.explorerUrl;
+
+      return {
+        success: true,
+        receiptId: data.enrollment?.paperId,
+        txHash: txHash || data.txHash,
+        explorerUrl,
+      };
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : 'Network error',
+        errorCode: 'network_error',
+      };
+    }
   }
 
   // ── Kite: Stage Unlock — delegates to existing x402Adapter ──
@@ -144,47 +183,47 @@ class MultiChainPaymentAdapter {
     });
   }
 
-  // ── Base Sepolia: Stage Unlock via server-side proxy ──
+  // ── Base Sepolia: Stage Unlock via client-side x402 ──
   private async baseUnlockStage(
     params: ChainPaymentParams
   ): Promise<PaymentResult> {
-    return this.baseProxyRequest('unlock-stage', {
-      paperId: params.paperId,
-      stageId: params.stageId,
-      stageNum: params.stageNum ?? 0,
-      score: params.score ?? 0,
-      passkeyPublicKey: loadPasskeyInfo()?.publicKey || '',
-    });
-  }
-
-  // ── Base Sepolia: Shared proxy helper ──
-  private async baseProxyRequest(
-    action: 'enroll' | 'unlock-stage',
-    requestParams: Record<string, unknown>
-  ): Promise<PaymentResult> {
+    const x402Fetch = createBaseX402Fetch();
+    if (!x402Fetch) {
+      return { success: false, error: 'Register passkey first to pay on Base Sepolia.', errorCode: 'no_passkey' };
+    }
     try {
-      const res = await fetch('/api/x402/base-proxy', {
+      const res = await x402Fetch('/api/x402/unlock-stage?chain=base', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, ...requestParams }),
+        body: JSON.stringify({
+          paperId: params.paperId,
+          stageId: params.stageId,
+          stageNum: params.stageNum ?? 0,
+          score: params.score ?? 0,
+          passkeyPublicKey: loadPasskeyInfo()?.publicKey || '',
+        }),
       });
 
       if (!res.ok) {
         const body = await res.json().catch(() => null);
-        const errorMsg = body?.message ?? `Request failed (${res.status})`;
         return {
           success: false,
-          error: errorMsg,
+          error: body?.message ?? `Request failed (${res.status})`,
           errorCode: body?.error ?? 'payment_failed',
         };
       }
 
+      const txHash = this.extractTxHashFromResponse(res);
       const data = await res.json();
+      const explorerUrl = txHash
+        ? `https://sepolia.basescan.org/tx/${txHash}`
+        : data.explorerUrl;
+
       return {
         success: true,
         receiptId: data.enrollment?.paperId ?? data.txHash,
-        txHash: data.txHash,
-        explorerUrl: data.explorerUrl,
+        txHash: txHash || data.txHash,
+        explorerUrl,
       };
     } catch (err) {
       return {

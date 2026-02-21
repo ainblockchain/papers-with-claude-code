@@ -2,7 +2,7 @@
 
 import { useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, ShoppingCart, CheckCircle, AlertTriangle, ExternalLink } from 'lucide-react';
+import { Loader2, ShoppingCart, CheckCircle, AlertTriangle, ExternalLink, SkipForward } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ChainSelector } from '@/components/payment/ChainSelector';
 import { usePurchaseStore } from '@/stores/usePurchaseStore';
@@ -198,6 +198,21 @@ export function PurchaseModal() {
                 disabled={isPurchasing}
               >
                 Cancel
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  if (purchaseModalPaperId) {
+                    usePurchaseStore.getState().setAccessStatus(purchaseModalPaperId, 'purchased');
+                  }
+                  handleClose();
+                }}
+                className="text-xs text-gray-500 hover:text-gray-300 px-2"
+                disabled={isPurchasing}
+                title="For demo/judge review"
+              >
+                <SkipForward className="h-3.5 w-3.5 mr-1" />
+                Skip
               </Button>
               <Button
                 onClick={handlePurchase}

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Loader2, Lock, Unlock, ExternalLink, AlertTriangle } from 'lucide-react';
+import { Loader2, Lock, Unlock, ExternalLink, AlertTriangle, SkipForward } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ChainSelector } from '@/components/payment/ChainSelector';
 import { useLearningStore } from '@/stores/useLearningStore';
@@ -231,6 +231,19 @@ export function PaymentModal() {
                 disabled={isPaying}
               >
                 Cancel
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setDoorUnlocked(true);
+                  handleClose();
+                }}
+                className="text-xs text-gray-500 hover:text-gray-300 px-2"
+                disabled={isPaying}
+                title="For demo/judge review"
+              >
+                <SkipForward className="h-3.5 w-3.5 mr-1" />
+                Skip
               </Button>
               <Button
                 onClick={handlePayment}
