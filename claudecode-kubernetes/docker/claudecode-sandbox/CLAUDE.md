@@ -53,41 +53,49 @@ These markers are automatically detected by the system. The exact format must be
 ## Payment Protocol (x402 + Kite Passport)
 
 x402 payment is required before starting each stage.
-Use the Kite Passport MCP tools (`get_payer_addr`, `approve_payment`).
+Kite Passport MCP (`kite-passport`) is pre-configured in this sandbox — no manual setup needed.
 
-### Prerequisites
-- Kite Passport MCP must be configured
-- If not configured: Guide with "Please set up Kite Passport MCP: `claude mcp add kite-passport --url https://neo.dev.gokite.ai/v1/mcp`"
-- If the `KITE_MERCHANT_WALLET` environment variable is not set, proceed without payment (development mode)
+### Session Context
+Read `/tmp/session-context` to get the current user's COURSE_ID and USER_ID:
+```bash
+source /tmp/session-context
+# Now $COURSE_ID and $USER_ID are available
+```
+
+### IMPORTANT: Payment is Mandatory
+If you skip payment, **stage completion will NOT be saved** — the server-side safety net
+blocks unpaid progress. The student will lose their work. Always complete payment before proceeding.
 
 ### x402 Payment Flow
-1. Send a payment request to the service via Bash:
+1. Read session context and send a payment request:
    ```bash
+   source /tmp/session-context
+   curl -s -w "\n%{http_code}" -X POST http://web-terminal-service:3000/api/x402/unlock-stage \
+     -H "Content-Type: application/json" \
+     -d "{\"courseId\":\"$COURSE_ID\",\"stageNumber\":N,\"userId\":\"$USER_ID\"}"
+   ```
+2. If HTTP 200 with `alreadyUnlocked: true` — proceed immediately (no marker needed)
+3. If HTTP 402 — payment required; check the response for payment info (accepts array)
+4. Use the `get_payer_addr` MCP tool to get the user's wallet address
+5. Use the `approve_payment` MCP tool to approve payment and obtain the X-PAYMENT JSON
+6. Base64-encode the X-PAYMENT and resend via curl:
+   ```bash
+   PAYMENT_B64=$(echo -n 'X_PAYMENT_JSON' | base64)
    curl -s -X POST http://web-terminal-service:3000/api/x402/unlock-stage \
      -H "Content-Type: application/json" \
-     -d '{"courseId":"COURSE_ID","stageNumber":N,"userId":"USER_ID"}'
+     -H "X-PAYMENT: $PAYMENT_B64" \
+     -d "{\"courseId\":\"$COURSE_ID\",\"stageNumber\":N,\"userId\":\"$USER_ID\"}"
    ```
-2. If an HTTP 402 response is received, check the payment information (accepts array)
-3. Use the `get_payer_addr` MCP tool to get the user's wallet address
-4. Use the `approve_payment` MCP tool to approve payment and obtain the X-PAYMENT JSON
-5. Base64-encode the X-PAYMENT and resend via curl:
-   ```bash
-   curl -s -X POST http://web-terminal-service:3000/api/x402/unlock-stage \
-     -H "Content-Type: application/json" \
-     -H "X-PAYMENT: BASE64_ENCODED_PAYMENT" \
-     -d '{"courseId":"COURSE_ID","stageNumber":N,"userId":"USER_ID"}'
-   ```
-6. Extract txHash from the success response
-7. Output the marker: `[PAYMENT_CONFIRMED:N:txHash]`
+7. Extract txHash from the success response
+8. Output the marker: `[PAYMENT_CONFIRMED:N:txHash]`
 
 ### Example Message to Show the Student
 "Payment is required to start Stage N. A small amount of Test USDT will be deducted on the Kite testnet. Would you like to proceed?"
 
 ### On Payment Failure
-- **Kite MCP not configured**: Guide MCP setup
 - **Insufficient balance**: "Get tokens from the Kite Faucet: https://faucet.gokite.ai"
 - **Payment rejected**: Guide to check session limits (Kite Portal)
-- **KITE_MERCHANT_WALLET not set**: Proceed without payment (development mode)
+- **HTTP 500 or network error**: Retry once, then inform the student
 
 ### Important
 - After successful payment, always output the `[PAYMENT_CONFIRMED:N:txHash]` marker exactly

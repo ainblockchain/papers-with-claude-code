@@ -2,10 +2,11 @@
 # Claude Code launcher wrapper — starts paper learning / course generation sessions.
 # Configured so that the lesson begins immediately when the user connects to the terminal.
 #
-# Usage: start-claude.sh [COURSE_ID] [MODEL] [MODE]
+# Usage: start-claude.sh [COURSE_ID] [MODEL] [MODE] [USER_ID]
 #   COURSE_ID: Paper identifier (e.g., dlgochan-papers-test-repo)
 #   MODEL:    Claude model (e.g., haiku, sonnet, opus). Default: haiku
 #   MODE:     learner (default) | generator
+#   USER_ID:  OAuth user ID (optional, written to /tmp/session-context)
 #
 # Behavior:
 #   learner:
@@ -23,6 +24,9 @@
 COURSE_ID="${1:-}"
 MODEL="${2:-haiku}"
 MODE="${3:-learner}"
+# 4th CLI arg takes precedence over USER_ID env var (set by Pod template)
+ARG_USER_ID="${4:-}"
+EFFECTIVE_USER_ID="${ARG_USER_ID:-$USER_ID}"
 
 # ─── Validate ANTHROPIC_BASE_URL ─────────────────
 if [ -z "$ANTHROPIC_BASE_URL" ]; then
@@ -48,12 +52,25 @@ cat > ~/.claude.json << EOF
   "hasTrustDialogAccepted": true,
   "hasTrustDialogHooksAccepted": true,
   "lastOnboardingVersion": "2.1.45",
-  "changelogLastFetched": 9999999999999
+  "changelogLastFetched": 9999999999999,
+  "mcpServers": {
+    "kite-passport": {
+      "url": "https://neo.dev.gokite.ai/v1/mcp",
+      "auth": { "CLIENT_ID": "client_agent_R9Jzo61R3hr7MBfgozY5lSGZ" }
+    }
+  }
 }
 EOF
 
 chmod 444 ~/.claude.json
 unset ANTHROPIC_API_KEY
+
+# ─── Write session context (COURSE_ID, USER_ID) ─────
+# Read by CLAUDE.md payment flow; used by Claude to fill curl payloads
+cat > /tmp/session-context << CTXEOF
+COURSE_ID=${COURSE_ID}
+USER_ID=${EFFECTIVE_USER_ID}
+CTXEOF
 
 # ─── Restore settings.json (if shadowed by PV mount) ─
 mkdir -p /home/claude/.claude

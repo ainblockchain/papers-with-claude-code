@@ -89,14 +89,25 @@ export async function attachTerminal(
       text = text.replace(PAYMENT_CONFIRMED_RE, '');
 
       // Detect and process [STAGE_COMPLETE:N] markers
+      // Safety net: if X402_MERCHANT_WALLET is set (production), verify payment before saving
+      const merchantWallet = process.env.X402_MERCHANT_WALLET;
       let stageMatch: RegExpExecArray | null;
       STAGE_COMPLETE_RE.lastIndex = 0;
       while ((stageMatch = STAGE_COMPLETE_RE.exec(text)) !== null) {
         const stageNumber = parseInt(stageMatch[1], 10);
         if (userId && courseId && progressStore && sessionId) {
-          progressStore.saveStageComplete(userId, courseId, stageNumber, sessionId);
+          if (merchantWallet && !progressStore.isStageUnlocked(userId, courseId, stageNumber)) {
+            // Production mode: stage not paid — skip DB save, notify frontend
+            console.log(`[terminal-bridge] Unpaid stage completion blocked: user=${userId}, course=${courseId}, stage=${stageNumber}`);
+            ws.send(JSON.stringify({ type: 'stage_complete_unpaid', stageNumber }));
+          } else {
+            // Dev mode (no wallet) or already paid — save normally
+            progressStore.saveStageComplete(userId, courseId, stageNumber, sessionId);
+            ws.send(JSON.stringify({ type: 'stage_complete', stageNumber }));
+          }
+        } else {
+          ws.send(JSON.stringify({ type: 'stage_complete', stageNumber }));
         }
-        ws.send(JSON.stringify({ type: 'stage_complete', stageNumber }));
       }
       text = text.replace(STAGE_COMPLETE_RE, '');
 
@@ -198,9 +209,10 @@ export async function attachTerminal(
 
   ws.on('close', () => clearInterval(pingInterval));
 
-  // Pass courseId, model, mode as arguments to start-claude.sh
+  // Pass courseId, model, mode, userId as arguments to start-claude.sh
   // start-claude.sh branches by mode (learner/generator); learner detects first visit vs revisit
-  const execCommand = ['/usr/local/bin/start-claude.sh', courseId || '', model, mode];
+  // userId (5th arg) is written to /tmp/session-context for the payment flow
+  const execCommand = ['/usr/local/bin/start-claude.sh', courseId || '', model, mode, userId || ''];
 
   try {
     k8sExecWs = await exec.exec(
@@ -214,6 +226,26 @@ export async function attachTerminal(
       true, // TTY mode
     ) as unknown as WebSocket;
     console.log(`[terminal-bridge] exec attached for pod ${podName} (model: ${model})`);
+
+    // Handle K8s exec process termination (e.g. Claude CLI exits after "done", /exit, or crash).
+    // Without this, the browser WebSocket stays open with no data after the process ends.
+    k8sExecWs.on('close', () => {
+      console.log(`[terminal-bridge] K8s exec closed for pod ${podName}`);
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'session_end', reason: 'process_exit' }));
+        ws.close(1000, 'Process exited');
+      }
+      cleanup();
+    });
+
+    k8sExecWs.on('error', (err) => {
+      console.error(`[terminal-bridge] K8s exec error for pod ${podName}:`, err.message);
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'session_end', reason: 'error' }));
+        ws.close(1011, 'K8s exec error');
+      }
+      cleanup();
+    });
 
     // Send auto_start event to frontend (for loading UI -> "in session" transition)
     // No separate prompt injection needed since start-claude.sh sends initial message via CLI args
