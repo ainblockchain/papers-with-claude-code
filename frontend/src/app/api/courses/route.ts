@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { listCourses, fetchCoursesJson, fetchCourseReadme, fetchPaperJson } from '@/lib/github';
+import { listCourses, fetchCoursesJson, fetchCourseReadme, fetchPaperJson, getRawUrl } from '@/lib/github';
 import type { Paper } from '@/types/paper';
 
 /** Convert slug to title case: "attention-is-all-you-need" → "Attention Is All You Need" */
@@ -58,7 +58,7 @@ function extractDescriptionFromReadme(readme: string): string | null {
 
 // In-memory cache for the full course list response
 let cachedResponse: { data: Paper[]; timestamp: number } | null = null;
-const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+const CACHE_TTL = 2 * 60 * 1000; // 2 minutes
 
 export async function GET() {
   // Return cached response if still fresh
@@ -105,14 +105,21 @@ export async function GET() {
         if (paperJson?.title && title === slugToTitle(entry.paperSlug)) {
           title = paperJson.title;
         }
-        if (paperJson?.description && description.startsWith('Interactive learning course:')) {
+        if (paperJson?.description) {
           description = paperJson.description;
         }
 
         const arxivId = paperJson?.arxivId || '';
+        const rawThumb = paperJson?.thumbnailUrl || '';
         const thumbnailUrl = arxivId
           ? `https://cdn-thumbnails.huggingface.co/social-thumbnails/papers/${arxivId}.png`
-          : '';
+          : entry.thumbnailPath
+            ? getRawUrl(entry.thumbnailPath)
+            : rawThumb.startsWith('http')
+              ? rawThumb
+              : rawThumb
+                ? getRawUrl(`${entry.paperSlug}/${rawThumb}`)
+                : '';
 
         const authors = paperJson?.authors?.length
           ? paperJson.authors.map((a, i) => ({ id: `${entry.paperSlug}-${i}`, name: a.name }))
@@ -121,6 +128,11 @@ export async function GET() {
         // Append course slug if paper has multiple courses
         const courseLabel = entry.courseSlug !== 'bible' ? ` (${slugToTitle(entry.courseSlug)})` : '';
 
+        const rawBg = paperJson?.backgroundUrl || '';
+        const backgroundUrl = rawBg.startsWith('http')
+          ? rawBg
+          : rawBg ? getRawUrl(`${entry.paperSlug}/${rawBg}`) : '';
+
         const paper: Paper = {
           id: courseId,
           title: title + courseLabel,
@@ -128,7 +140,9 @@ export async function GET() {
           authors,
           publishedAt,
           thumbnailUrl,
+          backgroundUrl: backgroundUrl || undefined,
           arxivUrl: arxivId ? `https://arxiv.org/abs/${arxivId}` : '',
+          docsUrl: paperJson?.docsUrl,
           githubUrl: paperJson?.githubUrl,
           submittedBy: paperJson?.submittedBy || 'papers-kg-builder',
           totalStages,
