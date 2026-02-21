@@ -138,7 +138,7 @@ else
   else
     # First visit: create marker, then start lesson with initial message
     [ -n "$COURSE_ID" ] && touch "$MARKER" 2>/dev/null
-    INITIAL_MSG="Starting the learning course for this paper (Stage ${CURRENT_STAGE}). Please read CLAUDE.md and begin exploring."
+    INITIAL_MSG="Starting the learning course for this paper (Stage ${CURRENT_STAGE}). Begin exploring."
     exec claude $COMMON_FLAGS "$INITIAL_MSG"
   fi
 fi
