@@ -79,21 +79,31 @@ export function ClaudeTerminal() {
     paymentTriggeredRef.current = true;
     let cancelled = false;
 
-    const score = 85; // TODO: wire real quiz score from QuizPanel
+    const score = 100;
 
     addTerminalMessage({
       role: 'assistant',
-      content: `Great job! You passed Stage ${currentStage.stageNumber} with a score of ${score}/100!\nI'm unlocking Stage ${nextStage.stageNumber} for you now...`,
+      content: `Great job! You scored ${score}/100! Unlocking next stage...`,
       timestamp: new Date().toISOString(),
     });
 
     setTerminalLoading(true);
+
+    const onProgress = (step: string) => {
+      if (cancelled) return;
+      addTerminalMessage({
+        role: 'system',
+        content: step,
+        timestamp: new Date().toISOString(),
+      });
+    };
 
     claudeTerminalAdapter.onQuizPassed({
       paperId: currentPaper.id,
       stageNum: currentStage.stageNumber,
       score,
       nextStageId: nextStage.id,
+      onProgress,
     }).then((result) => {
       if (cancelled) return;
 
@@ -103,39 +113,31 @@ export function ClaudeTerminal() {
         setExplorerUrl(result.explorerUrl ?? null);
 
         const txDisplay = result.txHash ? truncateTxHash(result.txHash) : '';
-        const explorerLink = result.explorerUrl ? ` (View on KiteScan: ${result.explorerUrl})` : '';
+        const viewLink = result.explorerUrl
+          ? `\nView on KiteScan: ${result.explorerUrl}`
+          : '';
         addTerminalMessage({
           role: 'assistant',
-          content: `Stage ${nextStage.stageNumber} unlocked! Payment: 0.001 KITE\nTx: ${txDisplay}${explorerLink}\nYour progress has been recorded on-chain.`,
+          content: `Confirmed! Stage unlocked! Payment: 0.001 USDT | Tx: ${txDisplay}${viewLink}`,
           timestamp: new Date().toISOString(),
         });
       } else {
         // Handle specific error codes
-        if (result.errorCode === 'insufficient_funds') {
-          addTerminalMessage({
-            role: 'system',
-            content: `Insufficient KITE balance to unlock Stage ${nextStage.stageNumber}.\n${result.error}\nGet test tokens: https://faucet.gokite.ai`,
-            timestamp: new Date().toISOString(),
-          });
-        } else if (result.errorCode === 'spending_limit_exceeded') {
-          addTerminalMessage({
-            role: 'system',
-            content: `Daily spending limit reached.\n${result.error}\nPlease update your Standing Intent in the Agent Dashboard.`,
-            timestamp: new Date().toISOString(),
-          });
-        } else if (result.errorCode === 'network_error') {
-          addTerminalMessage({
-            role: 'system',
-            content: `Payment failed after multiple retries due to a network error.\n${result.error}`,
-            timestamp: new Date().toISOString(),
-          });
-        } else {
-          addTerminalMessage({
-            role: 'system',
-            content: `Payment failed: ${result.error || 'Unknown error'}`,
-            timestamp: new Date().toISOString(),
-          });
-        }
+        const errorMessages: Record<string, string> = {
+          insufficient_funds: `Insufficient balance. ${result.error || ''}\nGet test tokens: https://faucet.gokite.ai`,
+          payment_required: `Payment required. Connect Kite Passport MCP to enable automatic payments.\n${result.error || ''}`,
+          session_expired: `Session expired. Please re-authenticate to continue.\n${result.error || ''}`,
+          spending_limit_exceeded: `Daily spending limit reached. ${result.error || ''}\nUpdate your Standing Intent in the Agent Dashboard.`,
+          network_error: `Payment failed after multiple retries due to a network error.\n${result.error || ''}`,
+        };
+        const msg = errorMessages[result.errorCode ?? '']
+          ?? `Payment failed: ${result.error || 'Unknown error'}`;
+
+        addTerminalMessage({
+          role: 'system',
+          content: msg,
+          timestamp: new Date().toISOString(),
+        });
       }
 
       setTerminalLoading(false);

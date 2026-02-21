@@ -14,6 +14,7 @@ export interface QuizPassedParams {
   stageNum: number;
   score: number;
   nextStageId: string;
+  onProgress?: (step: string) => void;
 }
 
 export interface ClaudeTerminalAdapter {
@@ -52,8 +53,19 @@ class MockClaudeTerminalAdapter implements ClaudeTerminalAdapter {
   }
 
   async onQuizPassed(params: QuizPassedParams): Promise<PaymentResult> {
+    const progress = params.onProgress ?? (() => {});
+
     // Attempt payment with automatic retries on network errors
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      if (attempt > 1) {
+        progress(`Retry ${attempt}/${MAX_RETRIES} — reconnecting...`);
+        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+      }
+
+      progress('Requesting payment authorization...');
+      await new Promise(resolve => setTimeout(resolve, 400));
+
+      progress('Signing with Kite Passport...');
       const result = await x402Adapter.requestPayment({
         stageId: params.nextStageId,
         paperId: params.paperId,
@@ -64,12 +76,13 @@ class MockClaudeTerminalAdapter implements ClaudeTerminalAdapter {
       });
 
       if (result.success) {
+        progress('Settling on Kite Chain...');
+        await new Promise(resolve => setTimeout(resolve, 300));
         return result;
       }
 
       // Only retry on network errors
       if (result.errorCode === 'network_error' && attempt < MAX_RETRIES) {
-        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
         continue;
       }
 
