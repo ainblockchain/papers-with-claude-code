@@ -7,7 +7,7 @@ const REPO_OWNER = 'ainblockchain';
 const REPO_NAME = 'awesome-papers-with-claude-code';
 const REPO_BRANCH = process.env.GITHUB_BRANCH || 'feat/0G-developer-course';
 const RAW_BASE = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${REPO_BRANCH}`;
-const CACHE_TTL_MS = 10 * 60 * 1000; // 10분
+const CACHE_TTL_MS = 0; // 캐시 비활성화 (디버깅용)
 
 export interface PapersAdapter {
   fetchTrendingPapers(period: 'daily' | 'weekly' | 'monthly'): Promise<Paper[]>;
@@ -120,10 +120,15 @@ function buildPaper(
 
   const statsDescription = `${stats.totalConcepts} concepts · ${stats.totalLessons} lessons across ${readmeMeta.totalModules || 1} module${(readmeMeta.totalModules || 1) > 1 ? 's' : ''}`;
 
+  const COURSE_DESCRIPTIONS: Record<string, string> = {
+    '0g-basic-course': "Meet 0G \u2014 the world's first decentralized AI operating system. With four core services (Chain, Storage, Compute, and DA), 0G is redefining how AI infrastructure works. In this beginner-friendly course, an AI tutor guides you step by step \u2014 from wallet setup to file uploads, AI inference, and building a verifiable AI pipeline. No blockchain experience required: 3 modules, 12 hands-on concepts, and you'll deploy your first app on 0G.",
+    '0g-developer-course': "Unlock the full potential of 0G, the world's first decentralized AI operating system designed for high-performance intelligence. Beyond mere theory, engage with live, runnable TypeScript examples that demonstrate how to leverage data availability (DA) and modular storage for AI scalability.",
+  };
+
   return {
     id: `${paperSlug}--${courseSlug}`,
     title: paperJson?.title || readmeMeta.title || slugToName(paperSlug),
-    description: paperJson?.description || statsDescription,
+    description: COURSE_DESCRIPTIONS[courseSlug] || paperJson?.description || statsDescription,
     authors,
     publishedAt: paperJson?.publishedAt || (readmeMeta.year ? `${readmeMeta.year}-01-01` : ''),
     thumbnailUrl,
@@ -226,7 +231,6 @@ async function fetchPapersFromGitHub(): Promise<Paper[]> {
         } catch { /* malformed JSON */ }
       }
 
-      // 코스별 paper.json이 있으면 부모 paper.json 위에 머지
       const parentJson = paperJsonCache.get(paperSlug);
       const courseJson = courseJsonCache.get(`${paperSlug}/${courseSlug}`);
       const mergedJson = courseJson ? { ...parentJson, ...courseJson } : parentJson;

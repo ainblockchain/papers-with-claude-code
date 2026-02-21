@@ -105,9 +105,22 @@ export async function GET() {
         if (paperJson?.title && title === slugToTitle(entry.paperSlug)) {
           title = paperJson.title;
         }
+        // 코스별 description: 코스 디렉토리의 paper.json 우선, 없으면 부모 paper.json
         if (paperJson?.description) {
           description = paperJson.description;
         }
+        let courseBgOverride = '';
+        try {
+          const res = await fetch(getRawUrl(`${entry.paperSlug}/${entry.courseSlug}/paper.json`));
+          if (res.ok) {
+            const courseJson = await res.json();
+            if (courseJson?.description) description = courseJson.description;
+            if (courseJson?.backgroundUrl) {
+              const bg = courseJson.backgroundUrl;
+              courseBgOverride = bg.startsWith('http') ? bg : getRawUrl(`${entry.paperSlug}/${bg}`);
+            }
+          }
+        } catch { /* 코스별 paper.json 없으면 무시 */ }
 
         const arxivId = paperJson?.arxivId || '';
         const rawThumb = paperJson?.thumbnailUrl || '';
@@ -129,9 +142,8 @@ export async function GET() {
         const courseLabel = entry.courseSlug !== 'bible' ? ` (${slugToTitle(entry.courseSlug)})` : '';
 
         const rawBg = paperJson?.backgroundUrl || '';
-        const backgroundUrl = rawBg.startsWith('http')
-          ? rawBg
-          : rawBg ? getRawUrl(`${entry.paperSlug}/${rawBg}`) : '';
+        const backgroundUrl = courseBgOverride
+          || (rawBg.startsWith('http') ? rawBg : rawBg ? getRawUrl(`${entry.paperSlug}/${rawBg}`) : '');
 
         const paper: Paper = {
           id: courseId,

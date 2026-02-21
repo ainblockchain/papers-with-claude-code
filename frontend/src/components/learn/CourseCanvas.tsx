@@ -7,9 +7,14 @@ import { StageConfig } from '@/types/learning';
 import { useMapLoader } from '@/hooks/useMapLoader';
 import { renderFullTileLayer } from '@/lib/tmj/renderer';
 import { trackEvent } from '@/lib/ain/event-tracker';
-import { drawWoodFloorTile, drawWallTile, drawDoor, drawBlackboard } from '@/lib/sprites/terrain';
+import { drawWoodFloorTile, drawWallTile, drawDoor, drawBlackboard, tileHash } from '@/lib/sprites/terrain';
+import {
+  drawPlanetFloorA, drawPlanetFloorB, drawSpaceMountainWall,
+  drawSpacePortal, drawSpaceOutpost, drawSpaceCrystal, is0GCourse,
+} from '@/lib/sprites/terrain-space';
 import { getPreRenderedSprite } from '@/lib/sprites/cache';
 import { PLAYER_SPRITE } from '@/lib/sprites/player';
+import { SPACE_PANDA_SPRITE } from '@/lib/sprites/space-panda';
 import type { Direction } from '@/lib/sprites/types';
 
 interface CourseCanvasProps {
@@ -200,8 +205,10 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
       const oX = (containerW - roomW * scale) / 2;
       const oY = (containerH - roomH * scale) / 2;
 
+      const isSpaceTheme = is0GCourse(useLearningStore.getState().currentPaper?.id);
+
       // Fill background
-      ctx.fillStyle = '#111827';
+      ctx.fillStyle = isSpaceTheme ? '#0A0515' : '#111827';
       ctx.fillRect(0, 0, containerW, containerH);
 
       ctx.save();
@@ -209,40 +216,77 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
       ctx.scale(scale, scale);
 
       // ── Floor and walls ──
-      const floorLayer = canUseTmj ? mapData!.layersByName.get('floor') : null;
+      const floorLayer = (canUseTmj && !isSpaceTheme) ? mapData!.layersByName.get('floor') : null;
       if (floorLayer && mapData) {
         renderFullTileLayer(ctx, floorLayer, mapData.tilesets, TILE_SIZE);
       } else {
-        // Procedural floor — wood planks
+        // Procedural floor
         for (let x = 1; x < stage.roomWidth - 1; x++) {
           for (let y = 1; y < stage.roomHeight - 1; y++) {
-            drawWoodFloorTile(ctx, x * TILE_SIZE, y * TILE_SIZE, x, y, TILE_SIZE);
+            if (isSpaceTheme) {
+              const h = tileHash(x, y);
+              if (h < 0.2) {
+                drawPlanetFloorB(ctx, x * TILE_SIZE, y * TILE_SIZE, x, y, TILE_SIZE);
+              } else {
+                drawPlanetFloorA(ctx, x * TILE_SIZE, y * TILE_SIZE, x, y, TILE_SIZE);
+              }
+            } else {
+              drawWoodFloorTile(ctx, x * TILE_SIZE, y * TILE_SIZE, x, y, TILE_SIZE);
+            }
           }
         }
 
-        // Walls — brick pattern
+        // Walls
+        const drawWall = isSpaceTheme ? drawSpaceMountainWall : drawWallTile;
         for (let x = 0; x < stage.roomWidth; x++) {
-          drawWallTile(ctx, x * TILE_SIZE, 0, TILE_SIZE);
-          drawWallTile(ctx, x * TILE_SIZE, (stage.roomHeight - 1) * TILE_SIZE, TILE_SIZE);
+          drawWall(ctx, x * TILE_SIZE, 0, TILE_SIZE);
+          drawWall(ctx, x * TILE_SIZE, (stage.roomHeight - 1) * TILE_SIZE, TILE_SIZE);
         }
         for (let y = 0; y < stage.roomHeight; y++) {
-          drawWallTile(ctx, 0, y * TILE_SIZE, TILE_SIZE);
+          drawWall(ctx, 0, y * TILE_SIZE, TILE_SIZE);
           if (y !== doorPosition.y) {
-            drawWallTile(ctx, (stage.roomWidth - 1) * TILE_SIZE, y * TILE_SIZE, TILE_SIZE);
+            drawWall(ctx, (stage.roomWidth - 1) * TILE_SIZE, y * TILE_SIZE, TILE_SIZE);
           }
         }
       }
 
-      // ── Door (pixel art) ──
-      drawDoor(
-        ctx,
-        (stage.roomWidth - 1) * TILE_SIZE,
-        doorPosition.y * TILE_SIZE,
-        TILE_SIZE,
-        isDoorUnlocked,
-      );
+      // ── Space decorations — glowing crystals ──
+      if (isSpaceTheme) {
+        for (let x = 1; x < stage.roomWidth - 1; x++) {
+          for (let y = 1; y < stage.roomHeight - 1; y++) {
+            const h = tileHash(x + 100, y + 100);
+            if (h < 0.015) {
+              const tooClose = stage.concepts.some(
+                (c) => Math.abs(c.position.x - x) <= 1 && Math.abs(c.position.y - y) <= 1
+              ) || (Math.abs(x - doorPosition.x) <= 1 && Math.abs(y - doorPosition.y) <= 1);
+              if (!tooClose) {
+                drawSpaceCrystal(ctx, x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE);
+              }
+            }
+          }
+        }
+      }
 
-      // ── Concepts (blackboards) ──
+      // ── Door ──
+      if (isSpaceTheme) {
+        drawSpacePortal(
+          ctx,
+          (stage.roomWidth - 1) * TILE_SIZE,
+          doorPosition.y * TILE_SIZE,
+          TILE_SIZE,
+          isDoorUnlocked,
+        );
+      } else {
+        drawDoor(
+          ctx,
+          (stage.roomWidth - 1) * TILE_SIZE,
+          doorPosition.y * TILE_SIZE,
+          TILE_SIZE,
+          isDoorUnlocked,
+        );
+      }
+
+      // ── Concepts ──
       stage.concepts.forEach((concept) => {
         const isActive = activeConceptId === concept.id;
         const cx = concept.position.x * TILE_SIZE;
@@ -250,14 +294,18 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
         const bbW = TILE_SIZE * 2;
         const bbH = TILE_SIZE * 1.5;
 
-        drawBlackboard(ctx, cx, cy, bbW, bbH, isActive, concept.title);
+        if (isSpaceTheme) {
+          drawSpaceOutpost(ctx, cx, cy, bbW, bbH, isActive, concept.title);
+        } else {
+          drawBlackboard(ctx, cx, cy, bbW, bbH, isActive, concept.title);
+        }
 
         // Interaction hint
         const isNear =
           Math.abs(concept.position.x - playerPosition.x) <= 1 &&
           Math.abs(concept.position.y - playerPosition.y) <= 1;
         if (isNear && !isActive) {
-          ctx.fillStyle = '#FF9D00';
+          ctx.fillStyle = isSpaceTheme ? '#00FFFF' : '#FF9D00';
           ctx.font = `${TILE_SIZE * 0.25}px sans-serif`;
           ctx.textAlign = 'center';
           ctx.fillText('Press E', cx + TILE_SIZE, cy - 8);
@@ -268,9 +316,10 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
       const pos = useLearningStore.getState().playerPosition;
       const dir = useLearningStore.getState().playerDirection as Direction;
       const frameIdx = animFrameRef.current;
-      const playerFrame = PLAYER_SPRITE.frames[dir][frameIdx];
-      const cacheKey = `course-player-${dir}-${frameIdx}`;
-      const spriteCanvas = getPreRenderedSprite(cacheKey, playerFrame, PLAYER_SPRITE.palette, TILE_SIZE, TILE_SIZE);
+      const sprite = isSpaceTheme ? SPACE_PANDA_SPRITE : PLAYER_SPRITE;
+      const playerFrame = sprite.frames[dir][frameIdx];
+      const cacheKey = `course-${sprite.name}-${dir}-${frameIdx}`;
+      const spriteCanvas = getPreRenderedSprite(cacheKey, playerFrame, sprite.palette, TILE_SIZE, TILE_SIZE);
       ctx.drawImage(spriteCanvas, pos.x * TILE_SIZE, pos.y * TILE_SIZE);
 
       // ── Stage title ──

@@ -29,8 +29,12 @@ export function PurchaseModal() {
   const handlePurchase = useCallback(async () => {
     if (!purchaseModalPaperId) return;
     clearPurchaseError();
-    await purchaseCourse(purchaseModalPaperId);
-  }, [purchaseModalPaperId, purchaseCourse, clearPurchaseError]);
+    const success = await purchaseCourse(purchaseModalPaperId);
+    if (success) {
+      router.push(`/learn/${purchaseModalPaperId}`);
+      setPurchaseModal(null);
+    }
+  }, [purchaseModalPaperId, purchaseCourse, clearPurchaseError, router, setPurchaseModal]);
 
   const handleClose = useCallback(() => {
     setPurchaseModal(null);
