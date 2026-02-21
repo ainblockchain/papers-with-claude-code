@@ -265,41 +265,6 @@ export async function fetchCourseReadme(
   return fetchRawFile(path);
 }
 
-interface GitHubCommit {
-  commit: { committer: { date: string } };
-}
-
-/**
- * Fetch the latest commit date for a course directory via GitHub Commits API.
- * Returns an ISO date string (e.g. "2024-06-15") or throws on failure.
- */
-export async function fetchCourseCreatedAt(
-  paperSlug: string,
-  courseSlug: string,
-): Promise<string> {
-  const cacheKey = `commitDate:${paperSlug}/${courseSlug}`;
-  const cached = getCached<string>(cacheKey);
-  if (cached) return cached;
-
-  const url =
-    `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/commits` +
-    `?path=${encodeURIComponent(`${paperSlug}/${courseSlug}`)}&per_page=1`;
-
-  const response = await fetch(url, { headers: buildHeaders() });
-  if (!response.ok) {
-    throw new Error(`GitHub Commits API failed: ${response.status}`);
-  }
-
-  const commits: GitHubCommit[] = await response.json();
-  if (commits.length === 0) {
-    throw new Error(`No commits found for ${paperSlug}/${courseSlug}`);
-  }
-
-  const isoDate = commits[0].commit.committer.date.split('T')[0];
-  setCache(cacheKey, isoDate);
-  return isoDate;
-}
-
 export interface PaperJsonData {
   title?: string;
   description?: string;

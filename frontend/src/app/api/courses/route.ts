@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { listCourses, fetchCoursesJson, fetchCourseReadme, fetchCourseCreatedAt, fetchPaperJson } from '@/lib/github';
+import { listCourses, fetchCoursesJson, fetchCourseReadme, fetchPaperJson } from '@/lib/github';
 import type { Paper } from '@/types/paper';
 
 /** Convert slug to title case: "attention-is-all-you-need" → "Attention Is All You Need" */
@@ -99,14 +99,7 @@ export async function GET() {
         // Fetch paper.json for rich metadata (authors, arxiv, thumbnail, etc.)
         const paperJson = await fetchPaperJson(entry.paperSlug);
 
-        // Fetch latest commit date for the course directory
-        let publishedAt = '';
-        try {
-          publishedAt = await fetchCourseCreatedAt(entry.paperSlug, entry.courseSlug);
-        } catch {
-          // Commit date not available — fall back to paper.json date
-          publishedAt = paperJson?.publishedAt || '';
-        }
+        const publishedAt = paperJson?.publishedAt || '';
 
         // Use paper.json title/description if README didn't provide them
         if (paperJson?.title && title === slugToTitle(entry.paperSlug)) {
@@ -150,9 +143,7 @@ export async function GET() {
     );
 
     // Filter out courses with 0 stages (failed to fetch)
-    const validPapers = papers
-      .filter((p) => p.totalStages > 0)
-      .sort((a, b) => (b.publishedAt || '').localeCompare(a.publishedAt || ''));
+    const validPapers = papers.filter((p) => p.totalStages > 0);
 
     cachedResponse = { data: validPapers, timestamp: Date.now() };
     return NextResponse.json(validPapers);
