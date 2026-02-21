@@ -27,6 +27,8 @@ interface PaperJsonData {
   publishedAt?: string;
   organization?: { name: string };
   submittedBy?: string;
+  thumbnailUrl?: string;
+  docsUrl?: string;
 }
 
 // ── 파싱 유틸 ──────────────────────────────────
@@ -97,9 +99,8 @@ function buildPaper(
   paperJson?: PaperJsonData,
 ): Paper {
   const arxivId = paperJson?.arxivId || readmeMeta.arxivId || '';
-  const thumbnailUrl = arxivId
-    ? `https://cdn-thumbnails.huggingface.co/social-thumbnails/papers/${arxivId}.png`
-    : '';
+  const thumbnailUrl = paperJson?.thumbnailUrl
+    || (arxivId ? `https://cdn-thumbnails.huggingface.co/social-thumbnails/papers/${arxivId}.png` : '');
 
   const courseRepoUrl = `https://github.com/${REPO_OWNER}/${REPO_NAME}/tree/main/${paperSlug}/${courseSlug}`;
 
@@ -124,7 +125,7 @@ function buildPaper(
     authors,
     publishedAt: paperJson?.publishedAt || (readmeMeta.year ? `${readmeMeta.year}-01-01` : ''),
     thumbnailUrl,
-    arxivUrl: arxivId ? `https://arxiv.org/abs/${arxivId}` : '',
+    arxivUrl: paperJson?.docsUrl || (arxivId ? `https://arxiv.org/abs/${arxivId}` : ''),
     githubUrl: paperJson?.githubUrl,
     courseRepoUrl,
     submittedBy: paperJson?.submittedBy || 'community',
