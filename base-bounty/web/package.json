@@ -9,13 +9,17 @@
   },
   "dependencies": {
     "@ainblockchain/ain-js": "^1.15.0",
+    "@modelcontextprotocol/sdk": "^1.26.0",
     "@tailwindcss/typography": "^0.5.19",
     "ethers": "^6.13.0",
+    "ox": "^0.12.4",
     "next": "^14.2.0",
     "next-auth": "^4.24.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
-    "react-markdown": "^9.0.0"
+    "cheerio": "^1.0.0",
+    "react-markdown": "^9.0.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

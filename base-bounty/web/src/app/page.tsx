@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getGraphStats, getAllFrontierEntries, getRecentExplorations, getAgentStatus } from '@/lib/agent-client';
 import {
-  AGENT_ADDRESS, AGENT_ID, AGENT_URI, ERC_8004_REGISTRY,
+  AGENT_ADDRESS, AGENT_ID, AGENT_REGISTRATION_URL, ERC_8004_REGISTRY,
   getAgentRegistration, getETHBalance, getUSDCBalance,
   getRecentTransactions, AgentRegistration, BaseTx,
   getReputationSummary, ReputationSummary,
@@ -31,6 +31,9 @@ export default function HomePage() {
   const [a2aCard, setA2aCard] = useState<Record<string, unknown> | null>(null);
   const [registrationFile, setRegistrationFile] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sendingTx, setSendingTx] = useState(false);
+  const [txResult, setTxResult] = useState<{ hash: string; basescanUrl: string } | null>(null);
+  const [txError, setTxError] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -127,6 +130,26 @@ export default function HomePage() {
 
   const metCount = requirements.filter(r => r.met).length;
 
+  async function handleSendAttributedTx() {
+    setSendingTx(true);
+    setTxResult(null);
+    setTxError(null);
+    try {
+      const res = await fetch('/api/erc8021', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Transaction failed');
+      setTxResult(data);
+    } catch (err: any) {
+      setTxError(err.message || 'Unknown error');
+    } finally {
+      setSendingTx(false);
+    }
+  }
+
   return (
     <div className="space-y-8">
       {/* Hero */}
@@ -210,9 +233,9 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-gray-700 pt-4">
             <div>
               <div className="text-xs text-gray-400 uppercase mb-1">Agent URI (Registration File)</div>
-              <a href={AGENT_URI} target="_blank" rel="noopener noreferrer"
+              <a href={AGENT_REGISTRATION_URL} target="_blank" rel="noopener noreferrer"
                 className="text-xs text-cogito-blue hover:underline break-all">
-                {AGENT_URI}
+                {AGENT_REGISTRATION_URL}
               </a>
             </div>
             <div>
@@ -269,12 +292,12 @@ export default function HomePage() {
             <div className="flex items-center justify-between mb-2">
               <div className="text-xs text-gray-400 uppercase">A2A Agent Card</div>
               <a
-                href={`${process.env.NEXT_PUBLIC_AIN_PROVIDER_URL || 'https://devnet-api.ainetwork.ai'}/json?path=/apps/knowledge/a2a_agent_card`}
+                href={`${process.env.NEXT_PUBLIC_COGITO_URL || 'https://cogito.ainetwork.ai'}/.well-known/agent-card.json`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-[10px] text-cogito-blue hover:underline"
               >
-                View on AIN devnet
+                View agent card
               </a>
             </div>
             {a2aCard ? (
@@ -389,6 +412,50 @@ export default function HomePage() {
               All transactions tagged with ERC-8021 builder codes
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* ERC-8021 Attribution */}
+      <div>
+        <h2 className="text-xl font-bold mb-3">ERC-8021 Attribution</h2>
+        <div className="bg-gray-800 rounded-lg p-5 border border-gray-700 space-y-4">
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-gray-400">Builder Code:</span>
+            <span className="font-mono text-sm text-cogito-purple bg-cogito-purple/10 px-2 py-0.5 rounded">
+              bc_cy2vjcg9
+            </span>
+            <span className="text-xs text-gray-500">Schema 0 (canonical registry)</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleSendAttributedTx}
+              disabled={sendingTx}
+              className="px-4 py-2 bg-cogito-blue text-white text-sm font-medium rounded-lg hover:bg-cogito-blue/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {sendingTx ? 'Sending...' : 'Send Attributed Transaction'}
+            </button>
+            <span className="text-xs text-gray-500">
+              Sends 0 ETH to self with ERC-8021 builder code suffix
+            </span>
+          </div>
+          {txResult && (
+            <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3">
+              <div className="text-xs text-green-400 font-medium mb-1">Transaction sent!</div>
+              <a
+                href={txResult.basescanUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-mono text-xs text-cogito-blue hover:underline break-all"
+              >
+                {txResult.hash}
+              </a>
+            </div>
+          )}
+          {txError && (
+            <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
+              <div className="text-xs text-red-400">{txError}</div>
+            </div>
+          )}
         </div>
       </div>
 

@@ -1,4 +1,5 @@
 import { ethers } from 'ethers';
+import { Attribution } from 'ox/erc8021';
 
 const BASE_RPC_URL = process.env.NEXT_PUBLIC_BASE_RPC_URL || 'https://mainnet.base.org';
 export const ERC_8004_REGISTRY = '0x8004A169FB4a3325136EB29fA0ceB6D2e539a432';
@@ -8,8 +9,8 @@ const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 export const AGENT_ADDRESS = '0xA7b9a0959451aeF731141a9e6FFcC619DeB563bF';
 export const AGENT_ID = 18276;
 export const AGENT_NAME = 'Cogito Node';
-// agentURI points to the AIN blockchain-hosted registration file
-export const AGENT_URI = 'https://devnet-api.ainetwork.ai/json?path=/apps/knowledge/agent_registration';
+/** URL where the agent card is served. */
+export const AGENT_REGISTRATION_URL = `${process.env.NEXT_PUBLIC_COGITO_URL || 'https://cogito.ainetwork.ai'}/.well-known/agent-card.json`;
 
 // Full ERC-8004 Identity Registry ABI (read functions)
 const ERC_8004_ABI = [
@@ -211,45 +212,20 @@ export async function getETHBalance(address: string): Promise<number> {
 }
 
 // ---------------------------------------------------------------------------
-// ERC-8021 Builder Code parsing (Schema 0)
+// ERC-8021 Builder Code parsing (using ox/erc8021)
 // ---------------------------------------------------------------------------
 
-const ERC_8021_MARKER = '80218021802180218021802180218021'; // 16 bytes
-
 /**
- * Parse ERC-8021 Schema 0 builder codes from transaction calldata.
- * Format: [codesLength(1B)] [codes(comma-delimited)] [schemaId(1B)] [marker(16B)]
+ * Parse ERC-8021 builder codes from transaction calldata using ox/erc8021.
  */
 export function parseBuilderCodes(txData: string): string[] {
-  const hex = txData.startsWith('0x') ? txData.slice(2) : txData;
-  if (hex.length < 36) return [];
-
-  if (!hex.endsWith(ERC_8021_MARKER)) return [];
-
-  const schemaIdPos = hex.length - 32 - 2;
-  const schemaId = parseInt(hex.slice(schemaIdPos, schemaIdPos + 2), 16);
-  if (schemaId !== 0) return [];
-
-  const codesEnd = schemaIdPos;
-  const maxCodesLen = Math.floor((codesEnd - 2) / 2);
-
-  for (let tryLen = Math.min(maxCodesLen, 255); tryLen >= 1; tryLen--) {
-    const lenBytePos = codesEnd - (tryLen * 2) - 2;
-    if (lenBytePos < 0) continue;
-
-    const lenByte = parseInt(hex.slice(lenBytePos, lenBytePos + 2), 16);
-    if (lenByte !== tryLen) continue;
-
-    const codesHex = hex.slice(lenBytePos + 2, codesEnd);
-    try {
-      const bytes = new Uint8Array(codesHex.match(/.{2}/g)!.map(b => parseInt(b, 16)));
-      const codesStr = new TextDecoder().decode(bytes);
-      if (/^[\x20-\x7e]+$/.test(codesStr)) {
-        return codesStr.split(',').filter(c => c.length > 0);
-      }
-    } catch {}
-  }
-
+  try {
+    const hex = (txData.startsWith('0x') ? txData : `0x${txData}`) as `0x${string}`;
+    const attribution = Attribution.fromData(hex);
+    if (attribution && attribution.codes) {
+      return [...attribution.codes];
+    }
+  } catch {}
   return [];
 }
 
@@ -312,29 +288,28 @@ export async function getAttributedTransactions(): Promise<BaseTx[]> {
 // A2A Agent Card (from AIN blockchain)
 // ---------------------------------------------------------------------------
 
-const AIN_PROVIDER_URL = process.env.NEXT_PUBLIC_AIN_PROVIDER_URL || 'https://devnet-api.ainetwork.ai';
+const COGITO_URL = process.env.NEXT_PUBLIC_COGITO_URL || 'https://cogito.ainetwork.ai';
 
 /**
- * Fetch the A2A agent card from AIN blockchain state.
+ * Fetch the A2A agent card directly from the cogito server.
  */
 export async function getA2AAgentCard(): Promise<Record<string, unknown> | null> {
   try {
-    const res = await fetch(`${AIN_PROVIDER_URL}/json?path=/apps/knowledge/a2a_agent_card`);
-    const data = await res.json();
-    return data?.result || data || null;
+    const res = await fetch(`${COGITO_URL}/.well-known/agent-card.json`);
+    return await res.json();
   } catch {
     return null;
   }
 }
 
 /**
- * Fetch the ERC-8004 registration file from AIN blockchain state.
+ * Fetch the ERC-8004 registration file from the cogito server stats.
  */
 export async function getAgentRegistrationFile(): Promise<Record<string, unknown> | null> {
   try {
-    const res = await fetch(`${AIN_PROVIDER_URL}/json?path=/apps/knowledge/agent_registration`);
+    const res = await fetch(`${COGITO_URL}/api/stats`);
     const data = await res.json();
-    return data?.result || data || null;
+    return data || null;
   } catch {
     return null;
   }
