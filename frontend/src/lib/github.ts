@@ -12,6 +12,7 @@
 const GITHUB_OWNER = 'ainblockchain';
 const GITHUB_REPO = 'awesome-papers-with-claude-code';
 const GITHUB_API_BASE = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents`;
+const RAW_BASE = `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/main`;
 
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -171,6 +172,15 @@ async function fetchFileContent(path: string): Promise<string> {
   );
 }
 
+/**
+ * Fetch a file via raw.githubusercontent.com (no API rate limit).
+ */
+async function fetchRawFile(path: string): Promise<string> {
+  const res = await fetch(`${RAW_BASE}/${path}`);
+  if (!res.ok) throw new Error(`Raw file not found: ${path} (${res.status})`);
+  return res.text();
+}
+
 // ---------------------------------------------------------------------------
 // Ignore list – top-level directories that are NOT paper slugs
 // ---------------------------------------------------------------------------
@@ -193,32 +203,26 @@ export async function listCourses(): Promise<GitHubCourseEntry[]> {
   const cached = getCached<GitHubCourseEntry[]>(cacheKey);
   if (cached) return cached;
 
-  // 1. List root – each directory is a paper slug.
-  const rootEntries = await listDirectory('');
-  const paperDirs = rootEntries.filter(
-    (e) => e.type === 'dir' && !IGNORED_DIRS.has(e.name) && !e.name.startsWith('.'),
-  );
+  // Single API call: Git Trees with recursive to get entire repo structure
+  const treeUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/git/trees/main?recursive=1`;
+  const response = await fetch(treeUrl, { headers: buildHeaders() });
+  if (!response.ok) {
+    throw new Error(`GitHub Trees API failed: ${response.status}`);
+  }
 
-  // 2. For each paper, list its children to find course slugs.
+  const tree = await response.json();
   const results: GitHubCourseEntry[] = [];
 
-  const settled = await Promise.allSettled(
-    paperDirs.map(async (paperDir) => {
-      const children = await listDirectory(paperDir.path);
-      const courseDirs = children.filter((c) => c.type === 'dir');
-      return courseDirs.map((courseDir) => ({
-        paperSlug: paperDir.name,
-        courseSlug: courseDir.name,
-        path: `${paperDir.name}/${courseDir.name}/knowledge`,
-      }));
-    }),
-  );
-
-  for (const result of settled) {
-    if (result.status === 'fulfilled') {
-      results.push(...result.value);
+  // Find course directories by matching README.md pattern: {paperSlug}/{courseSlug}/README.md
+  for (const item of tree.tree) {
+    const match = item.path.match(/^([^/]+)\/([^/]+)\/README\.md$/);
+    if (match && !IGNORED_DIRS.has(match[1]) && !match[1].startsWith('.')) {
+      results.push({
+        paperSlug: match[1],
+        courseSlug: match[2],
+        path: `${match[1]}/${match[2]}/knowledge`,
+      });
     }
-    // Silently skip papers whose listing failed (e.g. rate limit on one).
   }
 
   setCache(cacheKey, results);
@@ -236,7 +240,7 @@ export async function fetchCoursesJson(
   courseSlug: string,
 ): Promise<CoursesJson[]> {
   const path = `${paperSlug}/${courseSlug}/knowledge/courses.json`;
-  const raw = await fetchFileContent(path);
+  const raw = await fetchRawFile(path);
 
   try {
     const parsed = JSON.parse(raw);
@@ -258,7 +262,7 @@ export async function fetchCourseReadme(
   courseSlug: string,
 ): Promise<string> {
   const path = `${paperSlug}/${courseSlug}/README.md`;
-  return fetchFileContent(path);
+  return fetchRawFile(path);
 }
 
 interface GitHubCommit {
@@ -316,7 +320,7 @@ export async function fetchPaperJson(paperSlug: string): Promise<PaperJsonData |
   if (cached) return cached;
 
   try {
-    const raw = await fetchFileContent(`${paperSlug}/paper.json`);
+    const raw = await fetchRawFile(`${paperSlug}/paper.json`);
     const data = JSON.parse(raw) as PaperJsonData;
     setCache(cacheKey, data);
     return data;
