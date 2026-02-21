@@ -1,14 +1,16 @@
 {
   "title": "0G Developer Documentation",
-  "description": "0G 분산 AI 오퍼레이팅 시스템 개발자 가이드 — Chain, Storage, Compute, DA 통합 학습 코스.",
+  "description": "Meet 0G — the world's first decentralized AI operating system. With four core services (Chain, Storage, Compute, and DA), 0G is redefining how AI infrastructure works. In this beginner-friendly course, an AI tutor guides you step by step — from wallet setup to file uploads, AI inference, and building a verifiable AI pipeline. No blockchain experience required: 3 modules, 12 hands-on concepts, and you'll deploy your first app on 0G.",
   "githubUrl": "https://github.com/0gfoundation",
   "docsUrl": "https://docs.0g.ai/",
-  "thumbnailUrl": "https://raw.githubusercontent.com/ainblockchain/awesome-papers-with-claude-code/main/0g-developer-documentation/0G.jpg",
+  "thumbnailUrl": "Gx1Chz4aYAAKw2D.png",
+  "backgroundUrl": "unnamed.jpg",
   "authors": [
     { "name": "0G Labs" }
   ],
   "publishedAt": "2024-01-01",
   "organization": { "name": "0G Labs" },
   "submittedBy": "community",
-  "sortOrder": 20
+  "sortOrder": 20,
+  "badgeUrl": "Gemini_Generated_Image_bctqrrbctqrrbctq.png"
 }
