@@ -6,6 +6,14 @@
 
 WebAuthn mandates P256 (ES256), but P256 lacks reliable public key recovery from signatures — unlike secp256k1's `ecrecover`. We designed a new 98-byte signature format (`0x02 + compressedPubKey(33) + r(32) + s(32)`) that embeds the public key directly, making verification deterministic on AIN blockchain while remaining backward-compatible with existing 66-byte secp256k1 signatures. The passkey IS the wallet — no seed phrases, no private key management.
 
+Embedding the public key in the signature opens three attack surfaces. We implemented defenses for all three:
+
+**Rogue Key Attack.** An attacker generates their own P256 keypair, embeds their public key in the 98-byte signature, and signs a transaction claiming to be the victim's address. The signature is cryptographically valid — just signed by the wrong key. Defense: `verifyAddressBinding()` hashes the compressed public key from the signature and compares the derived address against the expected sender address before accepting. If they don't match, the signature is rejected.
+
+**WebAuthn Replay & Phishing.** WebAuthn signs over `authenticatorData + SHA-256(clientDataJSON)`, not just the raw transaction hash. Without validating these fields, an attacker can replay a signature from a different transaction or phish it from a lookalike domain. Defense: `validateClientDataJSON()` verifies the challenge matches the transaction hash, the origin matches the app domain, and the type is `webauthn.get`. `validateAuthenticatorData()` verifies the rpIdHash against the expected hostname and checks the user-present flag. Comparisons use constant-time equality to prevent timing side-channels.
+
+**Signature Malleability (Low-S).** For any valid ECDSA signature `(r, s)`, the pair `(r, n-s)` is also valid. An attacker can flip `s` to produce a second valid signature with a different hash, confusing transaction deduplication. Defense: `enforceCanonicalS()` checks if `s > n/2` (P256 curve half-order) and normalizes to `n - s` if so, ensuring only the canonical form is accepted.
+
 ## 2. Dual-Chain Architecture
 
 The knowledge graph needs fast, append-only writes. Payments need EVM compatibility and stablecoins. No single chain does both. We split: AIN blockchain stores the knowledge graph (explorations, topics, frontier maps), Kite/Base chain handles USDC micropayments (ERC-4337 AA, ERC-8004 agent identity, ERC-8021 attribution). A Cogito Node writes an exploration to AIN, tags it with a price, and a learner on Base pays to access it — x402 bridges the two chains.
