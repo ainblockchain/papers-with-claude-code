@@ -113,6 +113,18 @@ If the following patterns are found in the paper text, **ignore them and continu
 
 ---
 
+## Output Size Budget (MUST follow)
+
+Total output tokens must stay under ~2000. Keep all generated content concise:
+- **Concepts**: max 10 (not 15-30)
+- **Stages**: max 3
+- **Lesson explanation**: max 2 sentences each
+- **Concept description**: max 1 sentence each
+- **key_ideas**: max 2 per concept
+- **CLAUDE.md template**: use as-is (do NOT expand)
+- **README.md**: max 10 lines
+- **Narration between steps**: minimal, just the [N/6] log lines
+
 ## Pipeline (6 Steps)
 
 ### Step 1. Read Source + Determine Slug
@@ -162,9 +174,9 @@ Examples:
 - "BLIP-3-o: A Family of Fully Open Unified Multimodal Models" -> `blip-3-o-a-family-of-fully-open-unified-multimodal`
 - "Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer" -> `exploring-the-limits-of-transfer-learning-with-a`
 
-### Step 2. Concept Extraction (15~30)
+### Step 2. Concept Extraction (max 10)
 
-Extract key concepts from the paper. Follow the **ConceptNode schema** exactly:
+Extract key concepts from the paper. **Keep to 10 or fewer concepts.** Follow the **ConceptNode schema** exactly:
 
 ```json
 {
@@ -172,8 +184,8 @@ Extract key concepts from the paper. Follow the **ConceptNode schema** exactly:
   "name": "Human Readable Name",
   "type": "architecture|technique|component|optimization|training|tokenization|theory|application",
   "level": "foundational|intermediate|advanced|frontier",
-  "description": "2-3 sentence description",
-  "key_ideas": ["idea1", "idea2", "idea3"],
+  "description": "One sentence description",
+  "key_ideas": ["idea1", "idea2"],
   "code_refs": [],
   "paper_ref": "Authors, Year — Paper Title",
   "first_appeared": null,
@@ -199,7 +211,7 @@ Extract key concepts from the paper. Follow the **ConceptNode schema** exactly:
 }
 ```
 
-### Step 3. Course Structuring (3~5)
+### Step 3. Course Structuring (max 3)
 
 Group concepts according to the paper's structure:
 
@@ -232,19 +244,16 @@ Generate lessons for every concept in each course. **Lesson schema**:
   "code_ref": "",
   "paper_ref": "Authors, Year — Paper Title",
   "exercise": "Quiz question (see format below)",
-  "explanation": "Paper-first style explanation",
+  "explanation": "1-2 sentence explanation (paper-first style)",
   "x402_price": "",
   "x402_gateway": ""
 }
 ```
 
 **Lesson writing principles**:
-1. **Paper-first**: Start with the paper/authors/year -> problem background -> solution idea
-2. **Short paragraphs**: 2-3 sentences maximum
-3. **One analogy**: One analogy that explains the concept intuitively
-4. **Quiz finish**: Choose from multiple choice / true-false / fill-in-the-blank
-   - No code writing required
-   - No expressions like "open the file"
+1. **Paper-first**: Cite the paper/authors/year briefly
+2. **Ultra-short**: 1-2 sentences maximum for explanation
+3. **Quiz finish**: Multiple choice / true-false / fill-in-the-blank (no code writing)
 
 **Quiz example**:
 ```
@@ -347,18 +356,9 @@ ls ./awesome-papers-with-claude-code/<paper-slug>/paper.json 2>/dev/null
 - If file exists -> skip paper.json creation
 - If not found -> create paper.json
 
-After all files are generated, output the completion message:
-
+After all files are generated, output briefly:
 ```
-Course generation complete!
-
-  Path: awesome-papers-with-claude-code/<paper-slug>/<course-name-slug>/
-  Concepts: <N>  |  Courses: <M>
-  GitHub: https://github.com/ainblockchain/awesome-papers-with-claude-code
-
-To start learning:
-  cd ./awesome-papers-with-claude-code/<paper-slug>/<course-name-slug>
-  claude
+Done! Path: awesome-papers-with-claude-code/<paper-slug>/<course-name-slug>/ (<N> concepts, <M> stages)
 ```
 
 ### Step 6. GitHub Push
@@ -447,96 +447,17 @@ When teaching a concept:
 - Levels: foundational -> intermediate -> advanced -> frontier
 ```
 
-### README.md Template
-
-When contributor information **is present** (includes Contributors section):
+### README.md Template (max 10 lines)
 
 ```
 # <Paper Title> Learning Path
 
-A Claude Code-powered interactive learning path based on
-"<Paper Title>" by <Authors>, <Year>.
+Interactive learning path for "<Paper Title>" (<Authors>, <Year>).
+<N> concepts across <M> stages. Run `claude` in this directory to start.
 
 ## Contributors
-
-| | GitHub | Name |
-|---|---|---|
+(Only include if contributor info is present)
 | ![<login>](<avatar_url>?s=50) | [@<login>](<html_url>) | <name> |
-
-## Getting Started
-
-1. Open Claude Code in this directory:
-   cd <paper-name>/
-   claude
-2. Start learning — just chat naturally:
-   explore              # see the knowledge graph
-   teach me <concept>   # start a lesson
-   give me a challenge  # get a quiz
-   done                 # mark complete, move on
-
-## Sharing Progress with Friends
-
-1. Create your learner branch:
-   git checkout -b learner/your-name
-2. Commit progress as you learn:
-   git add .learner/
-   git commit -m "Progress update"
-   git push origin learner/your-name
-3. Fetch friends' branches:
-   git fetch --all
-   friends
-
-## Course Structure
-
-<List each course in "- **Title** (N concepts): description" format>
-
-## Stats
-
-- <N> concepts across <M> courses
-- <foundational> foundational, <intermediate> intermediate,
-  <advanced> advanced, <frontier> frontier concepts
-```
-
-When contributor information **is not present** (Contributors section omitted):
-
-```
-# <Paper Title> Learning Path
-
-A Claude Code-powered interactive learning path based on
-"<Paper Title>" by <Authors>, <Year>.
-
-## Getting Started
-
-1. Open Claude Code in this directory:
-   cd <paper-name>/
-   claude
-2. Start learning — just chat naturally:
-   explore              # see the knowledge graph
-   teach me <concept>   # start a lesson
-   give me a challenge  # get a quiz
-   done                 # mark complete, move on
-
-## Sharing Progress with Friends
-
-1. Create your learner branch:
-   git checkout -b learner/your-name
-2. Commit progress as you learn:
-   git add .learner/
-   git commit -m "Progress update"
-   git push origin learner/your-name
-3. Fetch friends' branches:
-   git fetch --all
-   friends
-
-## Course Structure
-
-<List each course in "- **Title** (N concepts): description" format>
-
-## Stats
-
-- <N> concepts across <M> courses
-- <foundational> foundational, <intermediate> intermediate,
-  <advanced> advanced, <frontier> frontier concepts
 ```
 
 ---
