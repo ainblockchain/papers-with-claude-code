@@ -5,19 +5,20 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "test": "vitest run"
   },
   "dependencies": {
     "@ainblockchain/ain-js": "^1.15.0",
     "@modelcontextprotocol/sdk": "^1.26.0",
     "@tailwindcss/typography": "^0.5.19",
+    "cheerio": "^1.0.0",
     "ethers": "^6.13.0",
-    "ox": "^0.12.4",
     "next": "^14.2.0",
     "next-auth": "^4.24.0",
+    "ox": "^0.12.4",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
-    "cheerio": "^1.0.0",
     "react-markdown": "^9.0.0",
     "zod": "^4.3.6"
   },
@@ -28,6 +29,7 @@
     "autoprefixer": "^10.4.0",
     "postcss": "^8.4.0",
     "tailwindcss": "^3.4.0",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "vitest": "^4.0.18"
   }
 }

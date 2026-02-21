@@ -17,7 +17,7 @@ const NAV_ITEMS = [
   { href: '/economics', label: 'Sustainability' },
   { href: '/transactions', label: 'Base Txs' },
   { href: '/content', label: 'Content' },
-  { href: '/recipes', label: 'Recipes' },
+  { href: '/mcp', label: 'MCP Tools' },
 ];
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -68,6 +68,17 @@ function ContentViewInner() {
     load();
   }, [topicPath, explorerAddress, entryId]);
 
+  // Send attribution tx with paper metadata when content loads
+  useEffect(() => {
+    if (entry?.tags) {
+      fetch('/api/erc8021', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tags: entry.tags }),
+      }).catch(() => {}); // fire-and-forget
+    }
+  }, [entry]);
+
   const DEPTH_COLORS: Record<number, string> = {
     1: 'bg-blue-500/20 text-blue-400',
     2: 'bg-purple-500/20 text-purple-400',

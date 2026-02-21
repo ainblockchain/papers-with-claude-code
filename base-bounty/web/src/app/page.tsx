@@ -2,14 +2,28 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getGraphStats, getAllFrontierEntries, getRecentExplorations, getAgentStatus } from '@/lib/agent-client';
-import {
-  AGENT_ADDRESS, AGENT_ID, AGENT_REGISTRATION_URL, ERC_8004_REGISTRY,
-  getAgentRegistration, getETHBalance, getUSDCBalance,
-  getRecentTransactions, AgentRegistration, BaseTx,
-  getReputationSummary, ReputationSummary,
-  getA2AAgentCard, getAgentRegistrationFile, parseTokenURI,
-} from '@/lib/base-client';
+import { AgentRegistration, BaseTx, ReputationSummary } from '@/lib/base-client';
+
+interface DashboardData {
+  registration: AgentRegistration | null;
+  ethBalance: number | null;
+  usdcBalance: number | null;
+  transactions: BaseTx[];
+  graphStats: any;
+  frontier: any[];
+  explorations: any[];
+  agentStatus: any;
+  reputation: ReputationSummary | null;
+  a2aCard: Record<string, unknown> | null;
+  registrationFile: Record<string, unknown> | null;
+  constants: {
+    AGENT_ADDRESS: string;
+    AGENT_ID: number;
+    AGENT_REGISTRATION_URL: string;
+    ERC_8004_REGISTRY: string;
+  };
+  cachedAt: number;
+}
 
 interface RequirementStatus {
   label: string;
@@ -19,54 +33,33 @@ interface RequirementStatus {
 }
 
 export default function HomePage() {
-  const [registration, setRegistration] = useState<AgentRegistration | null>(null);
-  const [ethBalance, setEthBalance] = useState<number | null>(null);
-  const [usdcBalance, setUsdcBalance] = useState<number | null>(null);
-  const [transactions, setTransactions] = useState<BaseTx[]>([]);
-  const [graphStats, setGraphStats] = useState<any>(null);
-  const [frontier, setFrontier] = useState<any[]>([]);
-  const [explorations, setExplorations] = useState<any[]>([]);
-  const [agentStatus, setAgentStatus] = useState<any>(null);
-  const [reputation, setReputation] = useState<ReputationSummary | null>(null);
-  const [a2aCard, setA2aCard] = useState<Record<string, unknown> | null>(null);
-  const [registrationFile, setRegistrationFile] = useState<Record<string, unknown> | null>(null);
+  const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [sendingTx, setSendingTx] = useState(false);
-  const [txResult, setTxResult] = useState<{ hash: string; basescanUrl: string } | null>(null);
+  const [txResult, setTxResult] = useState<{ hash: string; basescanUrl: string; codes?: string[] } | null>(null);
   const [txError, setTxError] = useState<string | null>(null);
+  const [paperTags, setPaperTags] = useState('arxiv:1706.03762,code:https://github.com/tensorflow/tensor2tensor,author:vaswani,author:shazeer,author:parmar');
 
   useEffect(() => {
-    async function load() {
-      const results = await Promise.allSettled([
-        getAgentRegistration(),
-        getETHBalance(AGENT_ADDRESS),
-        getUSDCBalance(AGENT_ADDRESS).catch(() => 0),
-        getRecentTransactions(AGENT_ADDRESS, 50),
-        getGraphStats(),
-        getAllFrontierEntries(),
-        getRecentExplorations(10),
-        getAgentStatus().catch(() => null),
-        getReputationSummary().catch(() => null),
-        getA2AAgentCard().catch(() => null),
-        getAgentRegistrationFile().catch(() => null),
-      ]);
-
-      if (results[0].status === 'fulfilled') setRegistration(results[0].value);
-      if (results[1].status === 'fulfilled') setEthBalance(results[1].value);
-      if (results[2].status === 'fulfilled') setUsdcBalance(results[2].value);
-      if (results[3].status === 'fulfilled') setTransactions(results[3].value);
-      if (results[4].status === 'fulfilled') setGraphStats(results[4].value);
-      if (results[5].status === 'fulfilled') setFrontier((results[5].value || []).filter((e: any) => e.stats?.explorer_count > 0));
-      if (results[6].status === 'fulfilled') setExplorations(results[6].value || []);
-      if (results[7].status === 'fulfilled') setAgentStatus(results[7].value);
-      if (results[8].status === 'fulfilled') setReputation(results[8].value);
-      if (results[9].status === 'fulfilled') setA2aCard(results[9].value);
-      if (results[10].status === 'fulfilled') setRegistrationFile(results[10].value);
-
-      setLoading(false);
-    }
-    load();
+    fetch('/api/dashboard')
+      .then(r => r.json())
+      .then(d => setData(d))
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
+
+  const c = data?.constants ?? { AGENT_ADDRESS: '', AGENT_ID: 0, AGENT_REGISTRATION_URL: '', ERC_8004_REGISTRY: '' };
+  const registration = data?.registration;
+  const ethBalance = data?.ethBalance ?? null;
+  const usdcBalance = data?.usdcBalance ?? null;
+  const transactions = data?.transactions ?? [];
+  const graphStats = data?.graphStats;
+  const frontier = data?.frontier ?? [];
+  const explorations = data?.explorations ?? [];
+  const agentStatus = data?.agentStatus;
+  const reputation = data?.reputation;
+  const a2aCard = data?.a2aCard;
+  const registrationFile = data?.registrationFile;
 
   const attributedTxCount = transactions.filter(tx => tx.builderCodes.length > 0).length;
   const registrationTx = transactions.find(tx =>
@@ -80,12 +73,12 @@ export default function HomePage() {
         ? `${transactions.length} transactions on Base (chain ID 8453)`
         : 'Pending first transaction',
       met: transactions.length > 0,
-      link: `https://basescan.org/address/${AGENT_ADDRESS}`,
+      link: `https://basescan.org/address/${c.AGENT_ADDRESS}`,
     },
     {
       label: 'ERC-8004 Agent Identity',
       detail: registration?.isRegistered
-        ? `Agent #${AGENT_ID} registered on Base`
+        ? `Agent #${c.AGENT_ID} registered on Base`
         : 'Not yet registered',
       met: !!registration?.isRegistered,
       link: registrationTx ? `https://basescan.org/tx/${registrationTx.hash}` : undefined,
@@ -138,11 +131,11 @@ export default function HomePage() {
       const res = await fetch('/api/erc8021', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ tags: paperTags }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Transaction failed');
-      setTxResult(data);
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || 'Transaction failed');
+      setTxResult(d);
     } catch (err: any) {
       setTxError(err.message || 'Unknown error');
     } finally {
@@ -204,12 +197,12 @@ export default function HomePage() {
               <div className="text-xs text-gray-400 uppercase mb-1">Identity Registry</div>
               {registration?.isRegistered ? (
                 <div>
-                  <a href={`https://basescan.org/token/${ERC_8004_REGISTRY}?a=${AGENT_ID}`} target="_blank" rel="noopener noreferrer"
+                  <a href={`https://basescan.org/token/${c.ERC_8004_REGISTRY}?a=${c.AGENT_ID}`} target="_blank" rel="noopener noreferrer"
                     className="text-lg font-bold text-green-400 hover:underline">
-                    Agent #{AGENT_ID}
+                    Agent #{c.AGENT_ID}
                   </a>
                   <div className="text-[10px] text-gray-500 font-mono mt-0.5">
-                    eip155:8453:{ERC_8004_REGISTRY}
+                    eip155:8453:{c.ERC_8004_REGISTRY}
                   </div>
                 </div>
               ) : (
@@ -218,9 +211,9 @@ export default function HomePage() {
             </div>
             <div>
               <div className="text-xs text-gray-400 uppercase mb-1">Base Address</div>
-              <a href={`https://basescan.org/address/${AGENT_ADDRESS}`} target="_blank" rel="noopener noreferrer"
+              <a href={`https://basescan.org/address/${c.AGENT_ADDRESS}`} target="_blank" rel="noopener noreferrer"
                 className="font-mono text-sm text-cogito-blue hover:underline break-all">
-                {AGENT_ADDRESS}
+                {c.AGENT_ADDRESS}
               </a>
               <div className="flex gap-4 mt-2 text-sm">
                 <span>{ethBalance !== null ? `${ethBalance.toFixed(4)} ETH` : '...'}</span>
@@ -233,9 +226,9 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-gray-700 pt-4">
             <div>
               <div className="text-xs text-gray-400 uppercase mb-1">Agent URI (Registration File)</div>
-              <a href={AGENT_REGISTRATION_URL} target="_blank" rel="noopener noreferrer"
+              <a href={c.AGENT_REGISTRATION_URL} target="_blank" rel="noopener noreferrer"
                 className="text-xs text-cogito-blue hover:underline break-all">
-                {AGENT_REGISTRATION_URL}
+                {c.AGENT_REGISTRATION_URL}
               </a>
             </div>
             <div>
@@ -246,7 +239,7 @@ export default function HomePage() {
                   {registration.agentWallet}
                 </a>
               ) : (
-                <span className="text-xs text-gray-500">Same as owner ({AGENT_ADDRESS.slice(0, 10)}...)</span>
+                <span className="text-xs text-gray-500">Same as owner ({c.AGENT_ADDRESS.slice(0, 10)}...)</span>
               )}
             </div>
           </div>
@@ -417,7 +410,7 @@ export default function HomePage() {
 
       {/* ERC-8021 Attribution */}
       <div>
-        <h2 className="text-xl font-bold mb-3">ERC-8021 Attribution</h2>
+        <h2 className="text-xl font-bold mb-3">ERC-8021 Paper Attribution</h2>
         <div className="bg-gray-800 rounded-lg p-5 border border-gray-700 space-y-4">
           <div className="flex items-center gap-3">
             <span className="text-xs text-gray-400">Builder Code:</span>
@@ -425,6 +418,19 @@ export default function HomePage() {
               bc_cy2vjcg9
             </span>
             <span className="text-xs text-gray-500">Schema 0 (canonical registry)</span>
+          </div>
+          <div>
+            <label className="text-xs text-gray-400 block mb-1">Paper Tags (comma-separated)</label>
+            <input
+              type="text"
+              value={paperTags}
+              onChange={e => setPaperTags(e.target.value)}
+              placeholder="arxiv:2401.12345,code:https://github.com/author/repo,author:name"
+              className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-xs font-mono text-gray-300 focus:outline-none focus:border-cogito-blue"
+            />
+            <div className="text-[10px] text-gray-500 mt-1">
+              Recognized: arxiv:, code:/repo: (GitHub), doi:, author:
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <button
@@ -435,20 +441,35 @@ export default function HomePage() {
               {sendingTx ? 'Sending...' : 'Send Attributed Transaction'}
             </button>
             <span className="text-xs text-gray-500">
-              Sends 0 ETH to self with ERC-8021 builder code suffix
+              Sends 0 ETH to self with paper attribution codes in ERC-8021 suffix
             </span>
           </div>
           {txResult && (
-            <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3">
-              <div className="text-xs text-green-400 font-medium mb-1">Transaction sent!</div>
+            <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 space-y-2">
+              <div className="text-xs text-green-400 font-medium">Transaction sent with paper attribution!</div>
               <a
                 href={txResult.basescanUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-mono text-xs text-cogito-blue hover:underline break-all"
+                className="font-mono text-xs text-cogito-blue hover:underline break-all block"
               >
                 {txResult.hash}
               </a>
+              {txResult.codes && txResult.codes.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {txResult.codes.map((code, i) => (
+                    <span key={i} className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${
+                      code.startsWith('arxiv:') ? 'bg-red-500/20 text-red-400' :
+                      code.startsWith('github:') ? 'bg-green-500/20 text-green-400' :
+                      code.startsWith('author:') ? 'bg-amber-500/20 text-amber-400' :
+                      code.startsWith('doi:') ? 'bg-orange-500/20 text-orange-400' :
+                      'bg-purple-500/20 text-purple-400'
+                    }`}>
+                      {code}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           )}
           {txError && (
@@ -465,7 +486,7 @@ export default function HomePage() {
           <h2 className="text-xl font-bold mb-3">Recent Paper Explorations</h2>
           <p className="text-xs text-gray-500 mb-2">Agent reads arXiv papers and writes structured knowledge to the global graph</p>
           <div className="space-y-2">
-            {explorations.slice(0, 5).map((exp, i) => {
+            {explorations.slice(0, 5).map((exp: any, i: number) => {
               const params = new URLSearchParams({
                 topic: exp.topic_path || '',
                 explorer: exp.explorer || '',
@@ -497,7 +518,7 @@ export default function HomePage() {
             <Link href="/frontier" className="text-xs text-cogito-blue hover:underline">View map</Link>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {frontier.map((entry) => (
+            {frontier.map((entry: any) => (
               <div key={entry.topic} className="bg-gray-800 rounded-lg p-3 border border-gray-700">
                 <div className="font-mono text-sm text-cogito-blue">{entry.topic}</div>
                 <div className="flex gap-4 mt-2 text-xs text-gray-400">
