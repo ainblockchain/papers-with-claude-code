@@ -2,11 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useVillageStore } from '@/stores/useVillageStore';
-import { X, Send, Loader2, Brain, AlertTriangle, Coins } from 'lucide-react';
+import { X, Send, Loader2, Brain, AlertTriangle, Wallet, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { x402Fetch, isX402Ready } from '@/lib/kite/x402-fetch';
-
-const COGITO_URL = process.env.NEXT_PUBLIC_COGITO_URL || 'https://cogito.ainetwork.ai';
+import { createBaseX402Fetch, getBaseUsdcBalance } from '@/lib/payment/base-x402-client';
+import { formatChainAmount } from '@/lib/payment/chains';
 
 interface AgentCard {
   name?: string;
@@ -32,15 +31,16 @@ export function CogitoDialog() {
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+  const [balance, setBalance] = useState<{ formatted: string; address: `0x${string}` } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch A2A agent card on open
+  // Fetch A2A agent card via our API proxy (avoids CORS)
   useEffect(() => {
     if (!cogitoDialogOpen) return;
     setCardLoading(true);
     setCardError(null);
-    fetch(`${COGITO_URL}/.well-known/agent-card.json`)
+    fetch('/api/cogito-chat')
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
@@ -48,6 +48,16 @@ export function CogitoDialog() {
       .then((card) => setAgentCard(card))
       .catch((err) => setCardError(err.message))
       .finally(() => setCardLoading(false));
+  }, [cogitoDialogOpen]);
+
+  // Fetch Base USDC balance on open
+  useEffect(() => {
+    if (!cogitoDialogOpen) return;
+    getBaseUsdcBalance()
+      .then((result) => {
+        if (result) setBalance({ formatted: result.formatted, address: result.address });
+      })
+      .catch(() => {});
   }, [cogitoDialogOpen]);
 
   // Focus input on open
@@ -82,9 +92,13 @@ export function CogitoDialog() {
     setSending(true);
 
     try {
-      // Use x402Fetch to automatically handle 402 payment gating
-      const fetcher = isX402Ready() ? x402Fetch : fetch;
-      const res = await fetcher('/api/cogito-chat', {
+      // Use Base x402 client — auto-handles 402 → sign → retry
+      const x402FetchFn = createBaseX402Fetch();
+      if (!x402FetchFn) {
+        throw new Error('Register a passkey first to enable Base x402 payments.');
+      }
+
+      const res = await x402FetchFn('/api/cogito-chat?chain=base', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: text }),
@@ -92,14 +106,39 @@ export function CogitoDialog() {
 
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error((body as Record<string, string>).error || `HTTP ${res.status}`);
+        const errorMsg = (body as Record<string, string>).details
+          ? `${(body as Record<string, string>).error}: ${(body as Record<string, string>).details}`
+          : (body as Record<string, string>).error || `HTTP ${res.status}`;
+        throw new Error(errorMsg);
+      }
+
+      // Extract txHash from payment response header
+      let txHash: string | undefined;
+      const paymentHeader = res.headers.get('PAYMENT-RESPONSE') || res.headers.get('X-PAYMENT-RESPONSE');
+      if (paymentHeader) {
+        try {
+          const decoded = JSON.parse(atob(paymentHeader));
+          txHash = decoded.transaction || decoded.txHash;
+        } catch { /* ignore */ }
       }
 
       const data = (await res.json()) as { reply: string; txHash?: string };
       setMessages((prev) => [
         ...prev,
-        { role: 'agent', content: data.reply, timestamp: Date.now(), txHash: data.txHash },
+        {
+          role: 'agent',
+          content: data.reply,
+          timestamp: Date.now(),
+          txHash: txHash || data.txHash,
+        },
       ]);
+
+      // Refresh balance after payment
+      getBaseUsdcBalance()
+        .then((result) => {
+          if (result) setBalance({ formatted: result.formatted, address: result.address });
+        })
+        .catch(() => {});
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to send message';
       setSendError(msg);
@@ -110,7 +149,7 @@ export function CogitoDialog() {
 
   if (!cogitoDialogOpen) return null;
 
-  const x402Ready = isX402Ready();
+  const hasPasskey = !!createBaseX402Fetch();
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
@@ -171,12 +210,27 @@ export function CogitoDialog() {
           </div>
         )}
 
-        {/* x402 Payment Notice */}
-        {!x402Ready && (
+        {/* x402 Base Payment Info */}
+        <div className="px-3 py-2 bg-blue-500/5 border-b border-blue-500/10 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Wallet className="h-3.5 w-3.5 text-blue-400 shrink-0" />
+            <p className="text-[10px] text-blue-300">
+              {formatChainAmount('base', 'stageUnlock')} per message &middot; Base x402
+            </p>
+          </div>
+          {balance && (
+            <span className="text-[10px] font-mono text-gray-400">
+              {balance.formatted} USDC
+            </span>
+          )}
+        </div>
+
+        {/* No passkey warning */}
+        {!hasPasskey && (
           <div className="px-3 py-2 bg-amber-500/10 border-b border-amber-500/20 flex items-center gap-2">
-            <Coins className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+            <AlertTriangle className="h-3.5 w-3.5 text-amber-400 shrink-0" />
             <p className="text-[10px] text-amber-300">
-              Responses require x402 micropayment. Configure Kite Passport for auto-pay, or each message will be sent without payment header.
+              Register a passkey to enable x402 payments on Base. Messages cannot be sent without payment.
             </p>
           </div>
         )}
@@ -187,7 +241,7 @@ export function CogitoDialog() {
             <div className="text-center text-xs text-gray-500 py-8">
               <Brain className="h-8 w-8 mx-auto mb-2 text-teal-500/30" />
               <p>Ask Cogito about papers, research, or publication guides.</p>
-              <p className="text-[10px] mt-1 text-gray-600">Powered by x402 micropayments</p>
+              <p className="text-[10px] mt-1 text-gray-600">Each message is settled on Base via x402</p>
             </div>
           )}
           {messages.map((msg, i) => (
@@ -204,9 +258,15 @@ export function CogitoDialog() {
               >
                 <p className="whitespace-pre-wrap">{msg.content}</p>
                 {msg.txHash && (
-                  <p className="text-[9px] text-teal-500 mt-1 font-mono">
+                  <a
+                    href={`https://basescan.org/tx/${msg.txHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[9px] text-blue-400 hover:text-blue-300 mt-1 font-mono"
+                  >
                     tx: {msg.txHash.slice(0, 10)}...
-                  </p>
+                    <ExternalLink className="h-2.5 w-2.5" />
+                  </a>
                 )}
               </div>
             </div>
@@ -215,7 +275,7 @@ export function CogitoDialog() {
             <div className="flex justify-start">
               <div className="bg-[#16162a] border border-teal-900/30 rounded-lg px-3 py-2 flex items-center gap-2 text-xs text-gray-400">
                 <Loader2 className="h-3 w-3 animate-spin" />
-                Cogito is thinking...
+                Paying &amp; querying Cogito...
               </div>
             </div>
           )}
@@ -250,13 +310,13 @@ export function CogitoDialog() {
                 handleSend();
               }
             }}
-            placeholder="Ask Cogito something..."
+            placeholder={hasPasskey ? 'Ask Cogito something...' : 'Register passkey to chat'}
             className="flex-1 bg-[#16162a] border border-teal-900/30 rounded px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-teal-500/50"
-            disabled={sending}
+            disabled={sending || !hasPasskey}
           />
           <Button
             onClick={handleSend}
-            disabled={sending || !input.trim()}
+            disabled={sending || !input.trim() || !hasPasskey}
             className="bg-teal-600 hover:bg-teal-700 text-white px-3"
           >
             {sending ? (

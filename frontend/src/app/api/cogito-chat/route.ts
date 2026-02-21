@@ -1,11 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
-  buildKiteRouteConfig,
   buildBaseRouteConfig,
   createWrappedHandler,
 } from '../x402/_lib/x402-nextjs';
 
 const COGITO_URL = process.env.NEXT_PUBLIC_COGITO_URL || 'https://cogito.ainetwork.ai';
+
+// GET — proxy the A2A agent card (avoids browser CORS)
+export async function GET() {
+  try {
+    const res = await fetch(`${COGITO_URL}/.well-known/agent-card.json`, {
+      next: { revalidate: 300 },
+    });
+    if (!res.ok) {
+      return NextResponse.json(
+        { error: `Upstream ${res.status}` },
+        { status: res.status },
+      );
+    }
+    const card = await res.json();
+    return NextResponse.json(card);
+  } catch (err) {
+    console.error('[cogito-chat] Agent card fetch failed:', err);
+    return NextResponse.json(
+      { error: 'Failed to fetch agent card' },
+      { status: 502 },
+    );
+  }
+}
 
 async function handleCogitoChat(req: NextRequest): Promise<NextResponse> {
   let body: { message?: string };
@@ -88,17 +110,8 @@ async function handleCogitoChat(req: NextRequest): Promise<NextResponse> {
   }
 }
 
-// x402-gated handlers — payment required to talk to Cogito
+// x402-gated handler — payment required to talk to Cogito (Base chain)
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-
-const kiteHandler = createWrappedHandler(
-  handleCogitoChat,
-  buildKiteRouteConfig({
-    description: 'Chat with Cogito Knowledge Agent',
-    resource: `${baseUrl}/api/cogito-chat`,
-  }),
-  'kite',
-);
 
 const baseHandler = createWrappedHandler(
   handleCogitoChat,
@@ -110,7 +123,5 @@ const baseHandler = createWrappedHandler(
 );
 
 export async function POST(req: NextRequest) {
-  const chain = req.nextUrl.searchParams.get('chain') || 'kite';
-  if (chain === 'base') return baseHandler(req);
-  return kiteHandler(req);
+  return baseHandler(req);
 }
