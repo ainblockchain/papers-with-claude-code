@@ -174,7 +174,7 @@ All marketplace communication happens through typed JSON messages on a single HC
 ## Project Structure
 
 ```
-openclaw-poc/
+hedera-agent-marketplace/
 ├── src/
 │   ├── server.ts                      # Express server: dashboard + monitor + REST API (port 4000)
 │   ├── marketplace-orchestrator.ts    # State machine: HCS publishing, polling, human approval gates
@@ -229,7 +229,7 @@ openclaw-poc/
 ### 1. Install and Configure
 
 ```bash
-cd openclaw-poc
+cd hedera-agent-marketplace
 npm install
 
 # Create .env from the example template

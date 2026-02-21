@@ -1,8 +1,8 @@
 {
-  "name": "openclaw-poc",
+  "name": "hedera-agent-marketplace",
   "version": "0.1.0",
   "private": true,
-  "description": "POC: Multi-agent knowledge marketplace on Hedera",
+  "description": "Multi-agent autonomous knowledge marketplace on Hedera",
   "type": "module",
   "scripts": {
     "demo": "tsx src/demo.ts",
