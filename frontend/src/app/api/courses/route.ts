@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { listCourses, fetchCoursesJson, fetchCourseReadme } from '@/lib/github';
+import { listCourses, fetchCoursesJson, fetchCourseReadme, fetchCourseCreatedAt } from '@/lib/github';
 import type { Paper } from '@/types/paper';
 
 /** Convert slug to title case: "attention-is-all-you-need" → "Attention Is All You Need" */
@@ -96,6 +96,14 @@ export async function GET() {
           // README not available
         }
 
+        // Fetch latest commit date for the course directory
+        let publishedAt = '';
+        try {
+          publishedAt = await fetchCourseCreatedAt(entry.paperSlug, entry.courseSlug);
+        } catch {
+          // Commit date not available
+        }
+
         // Append course slug if paper has multiple courses
         const courseLabel = entry.courseSlug !== 'bible' ? ` (${slugToTitle(entry.courseSlug)})` : '';
 
@@ -104,7 +112,7 @@ export async function GET() {
           title: title + courseLabel,
           description,
           authors: [],
-          publishedAt: '',
+          publishedAt,
           thumbnailUrl: '',
           arxivUrl: '',
           submittedBy: 'papers-kg-builder',
