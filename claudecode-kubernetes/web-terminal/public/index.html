@@ -140,7 +140,9 @@
     .event-type.stage_complete { color: #3fb950; }
     .event-type.stage_unlocked { color: #f0883e; }
     .event-type.course_complete { color: #d2a8ff; }
+    .event-type.stage_complete_unpaid { color: #f85149; }
     .event-type.auto_start { color: #d29922; }
+    .event-type.session_end { color: #484f58; }
     .event-type.pong { color: #484f58; }
     .event-type.error { color: #f85149; }
 
@@ -678,6 +680,14 @@
         case 'stage_complete':
           logEvent('stage_complete', `Stage #${msg.stageNumber} completed`);
           if (term) term.writeln(`\r\n\x1b[1;32m>>> STAGE ${msg.stageNumber} COMPLETE <<<\x1b[0m\r\n`);
+          break;
+        case 'stage_complete_unpaid':
+          logEvent('stage_complete_unpaid', `Stage #${msg.stageNumber} — UNPAID (progress NOT saved)`);
+          if (term) term.writeln(`\r\n\x1b[1;31m>>> STAGE ${msg.stageNumber} UNPAID — progress was NOT saved <<<\x1b[0m\r\n`);
+          break;
+        case 'session_end':
+          logEvent('session_end', `Session ended: ${msg.reason || 'unknown'}`);
+          if (term) term.writeln(`\r\n\x1b[1;90m>>> Session ended (${msg.reason || 'unknown'}) <<<\x1b[0m\r\n`);
           break;
         case 'course_complete':
           logEvent('course_complete', 'All stages completed!');
