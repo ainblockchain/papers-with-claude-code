@@ -22,7 +22,7 @@
 #   Uses a dummy API key instead of the real one (proxy replaces it with the real key).
 
 COURSE_ID="${1:-}"
-MODEL="${2:-haiku}"
+MODEL="${2:-opus}"
 MODE="${3:-learner}"
 # 4th CLI arg takes precedence over USER_ID env var (set by Pod template)
 ARG_USER_ID="${4:-}"
@@ -55,8 +55,8 @@ cat > ~/.claude.json << EOF
   "changelogLastFetched": 9999999999999,
   "mcpServers": {
     "kite-passport": {
-      "url": "https://neo.dev.gokite.ai/v1/mcp",
-      "auth": { "CLIENT_ID": "client_agent_R9Jzo61R3hr7MBfgozY5lSGZ" }
+      "type": "http",
+      "url": "https://neo.dev.gokite.ai/v1/mcp"
     }
   }
 }
@@ -120,11 +120,11 @@ else
     cd /home/claude/papers/current
   fi
 
-  # resumeStage context (optional)
-  RESUME_HINT=""
+  # Determine current stage number (default: 1, or from resume context)
+  CURRENT_STAGE=1
   if [ -f "/tmp/resume-context" ]; then
     source /tmp/resume-context
-    RESUME_HINT=" The student is resuming learning from Stage ${RESUME_FROM_STAGE}."
+    CURRENT_STAGE="${RESUME_FROM_STAGE:-1}"
   fi
 
   # Determine first visit vs return visit.
@@ -138,7 +138,7 @@ else
   else
     # First visit: create marker, then start lesson with initial message
     [ -n "$COURSE_ID" ] && touch "$MARKER" 2>/dev/null
-    INITIAL_MSG="Starting the learning course for this paper.${RESUME_HINT} Please read CLAUDE.md and begin exploring."
+    INITIAL_MSG="MANDATORY FIRST STEP: Run 'unlock-stage.sh ${CURRENT_STAGE}' to check payment before doing anything else. If exit code is 42 (payment required), complete payment using Kite MCP tools as described in ~/CLAUDE.md Payment Protocol section. Do NOT start teaching until payment is confirmed. After payment, read the local CLAUDE.md and begin exploring Stage ${CURRENT_STAGE}."
     exec claude $COMMON_FLAGS "$INITIAL_MSG"
   fi
 fi
