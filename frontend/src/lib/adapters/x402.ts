@@ -67,7 +67,7 @@ class KiteX402Adapter implements X402PaymentAdapter {
         if (body?.error === 'insufficient_funds') {
           return {
             success: false,
-            error: `Insufficient USDT balance. Required: ${body.required}, Available: ${body.available}`,
+            error: `Insufficient USDC balance. Required: ${body.required}, Available: ${body.available}`,
             errorCode: 'insufficient_funds',
           };
         }
@@ -142,7 +142,7 @@ class KiteX402Adapter implements X402PaymentAdapter {
       const accepts = (paymentInfo?.accepts as Array<Record<string, string>>)?.[0];
       const payeeAddr = accepts?.payTo || (paymentInfo?.payTo as string) || '';
       const amount = accepts?.maxAmountRequired || (paymentInfo?.amount as string) || '0';
-      const tokenType = accepts?.asset || 'USDT';
+      const tokenType = accepts?.asset || 'USDC';
 
       if (!payeeAddr) return null;
 

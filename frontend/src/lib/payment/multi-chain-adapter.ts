@@ -65,7 +65,7 @@ class MultiChainPaymentAdapter {
         if (body?.error === 'insufficient_funds') {
           return {
             success: false,
-            error: 'Insufficient USDT balance.',
+            error: 'Insufficient USDC balance.',
             errorCode: 'insufficient_funds',
           };
         }
@@ -238,7 +238,7 @@ class MultiChainPaymentAdapter {
         accepts?.payTo || (paymentInfo?.payTo as string) || '';
       const amount =
         accepts?.maxAmountRequired || (paymentInfo?.amount as string) || '0';
-      const tokenType = accepts?.asset || 'USDT';
+      const tokenType = accepts?.asset || 'USDC';
       if (!payeeAddr) return null;
 
       const approveRes = await fetch('/api/kite-mcp/tools', {

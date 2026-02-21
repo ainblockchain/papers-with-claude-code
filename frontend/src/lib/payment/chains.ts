@@ -20,7 +20,7 @@ export const PAYMENT_CHAINS: Record<PaymentChainId, PaymentChainConfig> = {
   kite: {
     id: 'kite',
     name: 'Kite Chain',
-    currency: 'USDT',
+    currency: 'USDC',
     icon: '\u{1FA81}',
     explorerUrl:
       process.env.NEXT_PUBLIC_KITE_EXPLORER_URL ||

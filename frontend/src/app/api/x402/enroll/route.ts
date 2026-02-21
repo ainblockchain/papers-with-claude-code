@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getChainConfig } from '@/lib/kite/contracts';
-import { withX402Payment, buildRouteConfig } from '../_lib/x402-nextjs';
+import { buildRouteConfig, withX402Payment } from '../_lib/x402-nextjs';
 
-async function handleEnroll(
-  _req: NextRequest,
-  bodyText: string
-): Promise<NextResponse> {
+async function handleEnroll(req: NextRequest): Promise<NextResponse> {
   let body: { paperId?: string; passkeyPublicKey?: string };
   try {
-    body = JSON.parse(bodyText);
+    body = await req.json();
   } catch {
     return NextResponse.json(
       { error: 'invalid_params', message: 'Invalid JSON body' },
@@ -26,7 +23,7 @@ async function handleEnroll(
 
   const chainConfig = getChainConfig();
 
-  // Payment has already been verified and settled by withX402Payment middleware.
+  // Payment has already been verified and settled by withX402 middleware.
   // Record enrollment on AIN blockchain via event tracker.
   try {
     const { trackEvent } = await import('@/lib/ain/event-tracker');
@@ -50,34 +47,14 @@ async function handleEnroll(
       enrolledAt: new Date().toISOString(),
     },
     explorerUrl: `${chainConfig.explorerUrl}`,
-    message: 'Enrollment confirmed. Payment settled via Kite x402 protocol.',
+    message: 'Enrollment confirmed. Payment settled via x402 protocol.',
   });
 }
 
-export async function POST(req: NextRequest) {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-  const routeConfig = buildRouteConfig({
-    description: 'Enroll in a Papers LMS learning course',
-    resource: `${baseUrl}/api/x402/enroll`,
-    outputSchema: {
-      input: {
-        discoverable: true,
-        method: 'POST',
-        type: 'http',
-        body: {
-          paperId: { description: 'The paper/course ID to enroll in', required: true, type: 'string' },
-        },
-      },
-      output: {
-        properties: {
-          success: { description: 'Whether enrollment succeeded', type: 'boolean' },
-          enrollment: { description: 'Enrollment details', type: 'object' },
-        },
-        required: ['success', 'enrollment'],
-        type: 'object',
-      },
-    },
-  });
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+const routeConfig = buildRouteConfig({
+  description: 'Enroll in a Papers LMS learning course',
+  resource: `${baseUrl}/api/x402/enroll`,
+});
 
-  return withX402Payment(req, routeConfig, handleEnroll);
-}
+export const POST = withX402Payment(routeConfig, handleEnroll);
