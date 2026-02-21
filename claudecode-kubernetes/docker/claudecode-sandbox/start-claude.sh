@@ -51,7 +51,7 @@ cat > ~/.claude.json << EOF
   "hasCompletedOnboarding": true,
   "hasTrustDialogAccepted": true,
   "hasTrustDialogHooksAccepted": true,
-  "lastOnboardingVersion": "2.1.45",
+  "lastOnboardingVersion": "9.9.99",
   "changelogLastFetched": 9999999999999,
   "mcpServers": {
     "kite-passport": {
