@@ -1,0 +1,346 @@
+Gemini said
+네, 원하시는 대로 개발자 도구 및 교육 콘텐츠 제작(해커톤 바운티 목적)에 불필요한 노드 구매(Node Sale), KYC, 하드웨어 스펙 등은 완전히 제외하고, **개발에 직접적으로 필요한 모든 아키텍처, 스마트 컨트랙트 코드, CLI/SDK 설정, 파라미터, 수학적 요금 계산식 등을 최대한 상세하게 담은 텍스트(Markdown 형식)**로 정리해 드립니다.
+
+아래 코드 블록 우측 상단의 '복사(Copy)' 버튼을 누르신 후 .txt 또는 .md 파일로 저장하시면 바로 활용하실 수 있습니다.
+
+Markdown
+# 0G Developer & Integration Comprehensive Guide
+
+[cite_start]This document contains comprehensive technical context about 0G infrastructure to help developers, AI coding assistants, and educational tool builders build on 0G[cite: 1]. It excludes non-developer operations such as Node Sales and KYC.
+
+## 1. Network Configurations & Smart Contract Addresses
+
+### Testnet (Galileo)
+* [cite_start]**Network Name**: 0G-Galileo-Testnet [cite: 2]
+* [cite_start]**Chain ID**: 16602 [cite: 2]
+* [cite_start]**Token Symbol**: 0G [cite: 2]
+* [cite_start]**RPC Endpoint**: `https://evmrpc-testnet.0g.ai` [cite: 2]
+* [cite_start]**Block Explorer**: `https://chainscan-galileo.0g.ai` [cite: 2]
+* [cite_start]**Faucet**: `https://faucet.0g.ai` (0.1 0G/day) [cite: 2]
+* [cite_start]**Third-Party RPCs**: QuickNode, ThirdWeb, Ankr, dRPC NodeCloud [cite: 2]
+
+[cite_start]**Testnet Smart Contracts**[cite: 2]:
+* **Flow** (Storage data flow management): `0x22E03a6A89B950F1c82ec5e74F8eCa321a105296`
+* **Mine** (Storage mining rewards): `0x00A9E9604b0538e06b268Fb297Df333337f9593b`
+* **Reward** (Reward distribution): `0xA97B57b4BdFEA2D0a25e535bd849ad4e6C440A69`
+* **DAEntrance** (DA blob submission): `0xE75A073dA5bb7b0eC622170Fd268f35E675a957B`
+* **DASigners** (DA signer management precompile): `0x0000000000000000000000000000000000001000`
+* **WrappedOGBase** (Wrapped native token precompile): `0x0000000000000000000000000000000000001001`
+* **Compute Ledger**: `0xE70830508dAc0A97e6c087c75f402f9Be669E406`
+* **Compute Inference**: `0xa79F4c8311FF93C06b8CfB403690cc987c93F91E`
+* **Compute FineTuning**: `0xaC66eBd174435c04F1449BBa08157a707B6fa7b1`
+
+### Mainnet (Aristotle)
+* [cite_start]**Network Name**: 0G Mainnet [cite: 2]
+* [cite_start]**Chain ID**: 16661 [cite: 2]
+* [cite_start]**RPC Endpoint**: `https://evmrpc.0g.ai` [cite: 2]
+* [cite_start]**Block Explorer**: `https://chainscan.0g.ai` [cite: 2]
+
+[cite_start]**Mainnet Smart Contracts**[cite: 2]:
+* **Flow**: `0x62D4144dB0F0a6fBBaeb6296c785C71B3D57C526`
+* **Mine**: `0xCd01c5Cd953971CE4C2c9bFb95610236a7F414fe`
+* **Reward**: `0x457aC76B58ffcDc118AABD6DbC63ff9072880870`
+* **Compute Ledger**: `0x2dE54c845Cd948B72D2e32e39586fe89607074E3`
+* **Compute Inference**: `0x47340d900bdFec2BD393c626E12ea0656F938d84`
+* **Compute FineTuning**: `0x4e3474095518883744ddf135b7E0A23301c7F9c0`
+
+---
+
+## 2. Smart Contract Development on 0G Chain
+
+[cite_start]0G Chain features an advanced modular design that separates consensus from execution, achieving 11,000 TPS per Shard with sub-second finality[cite: 3, 42]. [cite_start]It is fully EVM compatible[cite: 4].
+
+### Compiler Configuration
+[cite_start]When compiling smart contracts, specify `--evm-version cancun` to ensure compatibility with the latest EVM upgrades[cite: 393, 394].
+
+[cite_start]**Hardhat Example**[cite: 394]:
+```javascript
+module.exports = {
+  solidity: {
+    version: "0.8.19",
+    settings: {
+      evmVersion: "cancun",
+      optimizer: { enabled: true, runs: 200 }
+    }
+  },
+  networks: {
+    testnet: { url: "[https://evmrpc-testnet.0g.ai](https://evmrpc-testnet.0g.ai)", chainId: 16602, accounts: ["YOUR_PRIVATE_KEY"] },
+    mainnet: { url: "[https://evmrpc.0g.ai](https://evmrpc.0g.ai)", chainId: 16661, accounts: ["YOUR_PRIVATE_KEY"] }
+  }
+};
+
+Foundry Example:
++1
+
+Ini, TOML
+# foundry.toml
+[profile.default]
+evm_version = "cancun"
+
+[rpc_endpoints]
+0g_testnet = "[https://evmrpc-testnet.0g.ai](https://evmrpc-testnet.0g.ai)"
+Bash
+forge create --rpc-url [https://evmrpc-testnet.0g.ai](https://evmrpc-testnet.0g.ai) \
+--private-key $PRIVATE_KEY \
+--evm-version cancun \
+src/MyToken.sol:MyToken \
+--constructor-args 1000000
+Precompiled Contracts
+Precompiles are special contracts deployed at fixed addresses that execute native code instead of EVM bytecode, providing gas efficiency.
+
+1. DASigners (0x0000000000000000000000000000000000001000):
+Manages data availability signatures for 0G's DA layer.
++1
+
+
+params(): Returns TokensPerVote, MaxVotesPerSigner, MaxQuorums, EpochBlocks, EncodedSlices.
++1
+
+
+epochNumber(): Returns the current epoch number.
+
+
+getQuorum(uint _epoch, uint _quorumId): Returns addresses of the members in a specific quorum.
++1
+
+
+registerSigner(SignerDetail memory _signer, BN254.G1Point memory _signature): Registers a new signer.
+
+2. Wrapped0GBase (0x0000000000000000000000000000000000001002):
+W0G is a wrapped ERC20 token for native 0G supporting quota-based mint/burn functions.
++1
+
+
+mint(address minter, uint256 amount): Mints 0G to WA0GI contract.
+
+
+burn(address minter, uint256 amount): Burns 0G in WA0GI contract.
+
+3. 0G Storage Integration
+0G Storage offers a decentralized storage network that is 95% cheaper than AWS, providing 200 MBPS retrieval speeds. It supports both a Log Layer (Immutable) and a Key-Value Layer (Mutable).
++1
+
+SDK Installation
+
+TypeScript/JavaScript: npm install @0glabs/0g-ts-sdk ethers 
++1
+
+
+Go: go get github.com/0gfoundation/0g-storage-client 
++1
+
+
+Python: pip install 0g-storage-client 
+
+TypeScript SDK Usage 
+
+Initialization:
+
+JavaScript
+import { ZgFile, Indexer, Batcher, KvClient } from '@0glabs/0g-ts-sdk';
+import { ethers } from 'ethers';
+
+const RPC_URL = '[https://evmrpc-testnet.0g.ai](https://evmrpc-testnet.0g.ai)';
+const INDEXER_RPC = '[https://indexer-storage-testnet-turbo.0g.ai](https://indexer-storage-testnet-turbo.0g.ai)';
+const provider = new ethers.JsonRpcProvider(RPC_URL);
+const signer = new ethers.Wallet('YOUR_PRIVATE_KEY', provider);
+const indexer = new Indexer(INDEXER_RPC);
+Upload & Merkle Tree Generation:
+
+JavaScript
+const file = await ZgFile.fromFilePath(filePath);
+const [tree, treeErr] = await file.merkleTree();
+console.log("File Root Hash:", tree?.rootHash()); // Required for downloading
+
+const [tx, uploadErr] = await indexer.upload(file, RPC_URL, signer);
+await file.close();
+Download with Proof Verification:
+
+JavaScript
+// true enables Merkle proof verification
+const err = await indexer.download(rootHash, outputPath, true); 
+Key-Value (KV) Storage:
+
+JavaScript
+// Upload to 0G-KV
+const [nodes, err] = await indexer.selectNodes(1);
+const batcher = new Batcher(1, nodes, flowContractAddress, RPC_URL);
+const keyBytes = Uint8Array.from(Buffer.from(key, 'utf-8'));
+const valueBytes = Uint8Array.from(Buffer.from(value, 'utf-8'));
+batcher.streamDataBuilder.set(streamId, keyBytes, valueBytes);
+const [tx, batchErr] = await batcher.exec();
+
+// Read from 0G-KV
+const kvClient = new KvClient("http://<KV_NODE_IP>:6789");
+const value = await kvClient.getValue(streamId, ethers.encodeBase64(keyBytes));
+CLI Tool Commands (0g-storage-client) 
+
+Upload: 0g-storage-client upload --url <RPC> --key <PK> --indexer <INDEXER> --file <PATH>
+
+Download: 0g-storage-client download --indexer <INDEXER> --root <ROOT_HASH> --file <PATH> --proof
+
+KV Write: 0g-storage-client kv-write --url <RPC> --key <PK> --indexer <INDEXER> --stream-id <ID> --stream-keys "k1,k2" --stream-values "v1,v2"
+
+REST API Gateway: GET /file?root=<MERKLE_ROOT> or GET /file/{txSeq}/path/to/file
+
+4. 0G Compute Network
+0G Compute provides a decentralized GPU marketplace for AI workloads with OpenAI SDK compatibility, 50-100ms inference latency, and smart contract escrow.
+
+Account Management & Funding 
+
+Funds must be managed via a Main Account and Provider Sub-Accounts.
+
+CLI Setup: pnpm add @0glabs/0g-serving-broker -g
+
+Login: 0g-compute-cli login
+
+Deposit to Main Account: 0g-compute-cli deposit --amount 10
+
+Transfer to Provider: 0g-compute-cli transfer-fund --provider <PROVIDER_ADDRESS> --amount 5
+
+Refund Request: 0g-compute-cli retrieve-fund (Subject to a 24-hour lock period for security)
+
+Inference Services (Chatbot, Text-to-Image, Speech-to-Text) 
+
+List Providers: 0g-compute-cli inference list-providers
+
+Acknowledge Provider (Required): 0g-compute-cli inference acknowledge-provider --provider <PROVIDER_ADDRESS>
+
+Get API Key: 0g-compute-cli inference get-secret --provider <PROVIDER_ADDRESS> (Outputs app-sk-<YOUR_SECRET>)
+
+
+OpenAI SDK Integration (Python):
+
+Python
+from openai import OpenAI
+client = OpenAI(
+    base_url="<service_url>/v1/proxy",
+    api_key="app-sk-<YOUR_SECRET>"
+)
+completion = client.chat.completions.create(
+    model="<model_name>",
+    messages=[{"role": "user", "content": "Hello!"}]
+)
+
+TypeScript SDK Streaming & Fee Verification :
+For verifiable TEE services, you must process the response using the ZG-Res-Key header and usage data to maintain proper fee management:
+
+JavaScript
+const chatID = response.headers.get("ZG-Res-Key");
+if (chatID) {
+    const isValid = await broker.inference.processResponse(
+        providerAddress, 
+        chatID, 
+        JSON.stringify(data.usage || {})
+    );
+}
+Fine-Tuning Models 
+
+Customize AI models (e.g., Qwen2.5-0.5B-Instruct, Qwen3-32B) using your own .jsonl datasets.
++1
+
+Transfer Funds Specifically for Fine-Tuning:
+0g-compute-cli transfer-fund --provider <PROVIDER_ADDRESS> --amount 2 --service fine-tuning
+
+Create Task:
+0g-compute-cli fine-tuning create-task --provider <PROVIDER_ADDRESS> --model <MODEL_NAME> --dataset-path <PATH_TO_DATASET> --config-path <PATH_TO_CONFIG_FILE>
+
+Fee Calculation Formula:
+Total Fee = Training Fee + Storage Reserve Fee
+Training Fee = (tokenSize / 1,000,000) × pricePerMillionTokens × trainEpochs
+
+
+Download Model: 0g-compute-cli fine-tuning acknowledge-model --provider <PROVIDER> --task-id <ID> --data-path <PATH> (Must acknowledge within 48 hours to avoid forced settlement )
+
+Decrypt Model: 0g-compute-cli fine-tuning decrypt-model ...
+
+5. 0G DA (Data Availability) & Rollups
+0G DA is highly scalable (50 Gbps throughput) and uses a Verifiable Random Function (VRF) to prevent collusion. It integrates with Rollup-as-a-Service (RaaS) providers and OP Stack/Arbitrum Nitro architectures.
++1
+
+Data Processing Flow 
+
+Data padded with zeros to 32,505,852 bytes.
+
+Sliced into a 1024x1024 matrix (31 bytes per element, padded to 32 bytes).
+
+Expanded to 3072x1024 matrix using redundant erasure coding (finite field F of the BN254 curve).
+
+Submits erasure commitment (KZG commitment) and data root to DA contract.
+
+Running OP Stack on 0G DA 
+
+0G DA runs a da-server sidecar process alongside the OP Stack rollup node.
+
+DA Server Command:
+
+Bash
+./bin/da-server --addr 127.0.0.1 --port 3100 --zg.server 127.0.0.1:51001
+Rollup config (rollup.json) Alt-DA override:
+
+JSON
+"alt_da": {
+  "da_challenge_contract_address": "0x0000000000000000000000000000000000000000",
+  "da_commitment_type": "GenericCommitment",
+  "da_challenge_window": 160,
+  "da_resolve_window": 160
+}
+
+op-node Startup Flags: Add --altda.enabled=true, --altda.da-server=<DA_SERVER_HTTP_URL>, --altda.da-service=true.
+
+Running Arbitrum Nitro on 0G DA 
+
+0G implements the DataAvailabilityProvider interface found in the Nitro codebase to store and retrieve data via 0G instead of EIP-4844 blobs.
+
+6. INFTs (Intelligent NFTs) & ERC-7857
+ERC-7857 extends ERC-721 to support encrypted metadata, specifically designed for tokenizing AI agents.
++1
+
+Architecture 
+
+Encrypted Metadata: AI model weights and configs are stored encrypted on 0G Storage.
+
+Secure Re-encryption: Uses a TEE (Trusted Execution Environment) or ZKP (Zero-Knowledge Proof) Oracle to decrypt the data securely and re-encrypt it with the new owner's public key upon NFT transfer.
+
+Core Contract Methods:
+
+transfer(address from, address to, uint256 tokenId, bytes calldata sealedKey, bytes calldata proof)
+
+clone(address to, uint256 tokenId, bytes calldata sealedKey, bytes calldata proof)
+
+authorizeUsage(uint256 tokenId, address executor, bytes calldata permissions)
+
+Implementation Example 
+
+Solidity
+contract ERC7857 is ERC721, Ownable, ReentrancyGuard {
+    mapping(uint256 => bytes32) private _metadataHashes;
+    mapping(uint256 => string) private _encryptedURIs;
+    address public oracle;
+
+    modifier validProof(bytes calldata proof) {
+        require(IOracle(oracle).verifyProof(proof), "Invalid proof");
+        _;
+    }
+
+    function transfer(
+        address from, address to, uint256 tokenId, 
+        bytes calldata sealedKey, bytes calldata proof
+    ) external nonReentrant validProof(proof) {
+        require(ownerOf(tokenId) == from, "Not owner");
+        // Extracted logic: verify hash from proof, update _metadataHashes & _encryptedURIs
+        _updateMetadataAccess(tokenId, to, sealedKey, proof);
+        _transfer(from, to, tokenId);
+    }
+}
+7. Indexing with Goldsky
+Goldsky provides real-time data indexing for 0G smart contracts .
+
+Subgraphs: GraphQL indexing for querying specific on-chain data.
+
+Mirror: Real-time data streaming directly to databases for advanced analytics or dashboards.
+
+
+이 정리본은 스마트 컨트랙트 배포 설정, Storage SDK 및 KV 연동, Compute 노드 모델 학습 및 인퍼런스 연동 과정, DA를 위한 롤업(Rollup) 세팅, 그리고 AI Agent를 온체인화 하는 INFTs(ERC-7857) 인터페이스까지 **개발자가 실제 도구 및 교육용 키트를 제작할 때 필요한 핵심 레퍼런스**를 모두 담고 있습니다. 
+
+추가로 특정 기능(예: `create-0g-app`과 같은 CLI 도구의 구체적인 파일 구조 등)에 대한 코드 템플릿 작성이 필요하시다면 언제든 말씀해 주세요!

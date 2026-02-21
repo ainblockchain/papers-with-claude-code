@@ -1,0 +1,167 @@
+Gemini said
+This is a great initiative! To build an effective educational tool or quickstart kit for the 0G bounty, you need to strip away the infrastructure-heavy content (like Node Sales, KYC, and deep hardware node-running guides) and focus strictly on developer integration.
+
+Here is the filtered, structured learning content extracted from the documentation, organized into modules that you can use to build your tutorials, scaffolding tools, or "Learn 0G" interactive courses.
+
+🛠️ Module 1: Network Basics & Quickstart
+This module covers the essential network parameters developers need to connect their tools (wallets, Hardhat, Foundry, etc.) to 0G.
+
+Testnet (Galileo)
+
+
+Chain ID: 16602 
+
+
+RPC Endpoint: https://evmrpc-testnet.0g.ai 
+
+
+Faucet: https://faucet.0g.ai (provides 0.1 0G/day) 
+
+
+Block Explorer: https://chainscan-galileo.0g.ai 
+
+Mainnet (Aristotle)
+
+
+Chain ID: 16661 
+
+
+RPC Endpoint: https://evmrpc.0g.ai 
+
+
+Block Explorer: https://chainscan.0g.ai 
+
+⛓️ Module 2: Smart Contract Development
+0G Chain is a high-speed EVM-compatible Layer 1 optimized for AI workloads, achieving 11,000 TPS per Shard with sub-second finality.
+
+
+Tooling Compatibility: Because of full EVM compatibility, developers can use existing tools like Hardhat, Foundry, and Remix without changing their Solidity code.
++1
+
+
+Compilation Requirement: When compiling smart contracts, developers should specify --evm-version cancun to ensure compatibility with the latest EVM upgrades supported by 0G Chain.
+
+Hardhat Configuration Example:
+
+JavaScript
+module.exports = {
+  solidity: {
+    version: "0.8.20",
+    settings: { evmVersion: "cancun" }
+  },
+  networks: {
+    testnet: {
+      url: "https://evmrpc-testnet.0g.ai",
+      chainId: 16602,
+      accounts: ["YOUR_PRIVATE_KEY"]
+    }
+  }
+};
+``` [cite: 4, 5, 394, 397]
+
+Precompiled Contracts: 0G includes native precompiles for advanced features, such as DASigners (0x...1000) for querying Data Availability signatures and Wrapped0GBase (0x...1002) for wrapped native tokens.
++3
+
+💾 Module 3: 0G Storage Integration
+0G Storage is a decentralized network designed for massive AI datasets, offering 95% lower costs than AWS and 200 MBPS retrieval speeds.
+
+
+Storage Types: Supports both an Immutable Log Layer (for ML datasets, archives) and a Mutable Key-Value Layer (for dynamic content, state storage).
++1
+
+
+TypeScript SDK Installation: npm install @0glabs/0g-ts-sdk ethers.
+
+Uploading a File (TypeScript):
+
+JavaScript
+import { ZgFile, Indexer } from "@0glabs/0g-ts-sdk";
+import { ethers } from "ethers";
+
+const provider = new ethers.JsonRpcProvider("https://evmrpc-testnet.0g.ai");
+const signer = new ethers.Wallet("YOUR_PRIVATE_KEY", provider);
+const indexer = new Indexer("https://indexer-storage-testnet-turbo.0g.ai");
+
+const file = await ZgFile.fromFilePath("/path/to/file");
+const [tree, treeErr] = await file.merkleTree();
+console.log("Root Hash:", tree?.rootHash()); // Save this to download later!
+
+const [tx, uploadErr] = await indexer.upload(file, "https://evmrpc-testnet.0g.ai", signer);
+await file.close();
+``` [cite: 11, 787, 792, 793, 794]
+
+Downloading a File: Use the indexer.download(rootHash, outputPath, true) method, where true enables Merkle proof verification.
++1
+
+🧠 Module 4: 0G Compute (Inference & Fine-Tuning)
+0G Compute provides a decentralized GPU marketplace offering 90% cheaper AI workloads. It features pay-per-use pricing and smart contract escrow for trustless payments.
++2
+
+1. Account Funding Flow:
+Before making API calls, developers must fund their accounts.
++1
+
+
+Deposit: Transfer funds from your wallet to your Main Account.
+
+
+Transfer: Move funds from the Main Account to a Provider Sub-Account (specify whether it is for inference or fine-tuning).
++1
+
+2. Inference (OpenAI SDK Compatible):
+0G Compute acts as a drop-in replacement for the OpenAI SDK.
++1
+
+
+CLI Setup: 0g-compute-cli inference get-secret --provider <PROVIDER_ADDRESS> generates a Bearer token (app-sk-<SECRET>).
++1
+
+Python Integration:
+
+Python
+from openai import OpenAI
+# Change base_url to the 0G provider and use the generated secret
+client = OpenAI(
+    api_key="app-sk-<YOUR_SECRET>",
+    base_url="<PROVIDER_URL>/v1/proxy"
+)
+response = client.chat.completions.create(
+    model="<model_name>",
+    messages=[{"role": "user", "content": "Hello!"}]
+)
+``` [cite: 14, 15, 23, 24]
+
+3. Fine-Tuning:
+
+Data must be prepared in .jsonl format (e.g., {"messages": [{"role": "user", "content": "..."}, {"role": "assistant", "content": "..."}]}).
++1
+
+Create a task via CLI: 0g-compute-cli fine-tuning create-task --provider <PROVIDER_ADDRESS> --model <MODEL_NAME> --dataset-path <PATH_TO_DATASET> --config-path <PATH_TO_CONFIG_FILE>.
+
+🤖 Module 5: INFTs (Intelligent NFTs)
+If your learning tool focuses on Web3 gaming or AI Agents, INFTs are a massive differentiator.
+
+
+Concept: Traditional NFTs just point to static metadata, but INFTs (ERC-7857) contain encrypted AI intelligence that transfers with the token.
++1
+
+Privacy-First: The AI model data is stored encrypted via 0G Storage. When the NFT changes hands, a secure oracle (via TEE or ZKP) re-encrypts the key so only the new owner can access the AI agent's logic.
++1
+
+
+Use Cases: AI Trading bots, personal assistants, intelligent gaming NPCs, and AI-as-a-service.
++1
+
+📊 Module 6: 0G DA (Data Availability)
+
+Concept: 0G DA provides infinitely scalable data availability for Rollups and L2s, capable of 50 Gbps throughput.
++1
+
+
+Integration: Primarily used by Rollup-as-a-Service (RaaS) providers or developers building OP Stack / Arbitrum Nitro rollups to store transaction data securely off-Ethereum while maintaining high security.
++2
+
+Next Step Ideas for Your Project:
+You could use this filtered content to build a CLI tool (e.g., create-0g-app) that scaffolds a Next.js frontend, a Foundry smart contract pointing to the 0G Testnet, and a backend route pre-configured with the @0glabs/0g-ts-sdk for storage.
+
+Would you like me to help draft the README.md or a specific code snippet for the create-0g-app scaffold based on this information?
