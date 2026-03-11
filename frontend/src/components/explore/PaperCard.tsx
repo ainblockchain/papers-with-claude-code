@@ -46,7 +46,24 @@ export function PaperCard({ paper }: PaperCardProps) {
   const showThumbnail = paper.thumbnailUrl && !imgError;
 
   return (
-    <article className="flex gap-4 py-5 border-t border-[#E5E7EB] first:border-t-0">
+    <article className="flex gap-4 py-5 border-t border-[#E5E7EB] first:border-t-0 relative overflow-hidden">
+      {/* Card background image */}
+      {(paper.backgroundUrl || paper.id.includes('0g-basic-course')) && (
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage: paper.id.includes('0g-basic-course')
+              ? `url(/assets/basic-bg.png)`
+              : `url(${paper.backgroundUrl})`,
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'right center',
+            backgroundSize: 'auto 100%',
+            opacity: 0.9,
+            zIndex: -1,
+          }}
+        />
+      )}
+
       {/* Thumbnail — HF CDN 이미지 또는 FileText 아이콘 placeholder */}
       <div className="relative flex-shrink-0 w-[160px] h-[200px] rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
         {showThumbnail ? (
@@ -78,7 +95,7 @@ export function PaperCard({ paper }: PaperCardProps) {
         </h3>
 
         {paper.description && (
-          <p className="mt-1.5 text-sm text-[#6B7280] line-clamp-2">{paper.description}</p>
+          <p className="mt-1.5 text-sm text-[#6B7280] line-clamp-3">{paper.description}</p>
         )}
 
         {paper.courseName && (
@@ -153,14 +170,21 @@ export function PaperCard({ paper }: PaperCardProps) {
             </Button>
           </a>
         )}
-        {paper.arxivUrl && (
+        {paper.arxivUrl ? (
           <a href={paper.arxivUrl} target="_blank" rel="noopener noreferrer">
             <Button variant="outline" size="sm" className="w-full text-xs h-8">
               <FileText className="h-3 w-3 mr-1" />
               arXiv
             </Button>
           </a>
-        )}
+        ) : paper.docsUrl ? (
+          <a href={paper.docsUrl} target="_blank" rel="noopener noreferrer">
+            <Button variant="outline" size="sm" className="w-full text-xs h-8">
+              <FileText className="h-3 w-3 mr-1" />
+              Docs
+            </Button>
+          </a>
+        ) : null}
       </div>
     </article>
   );

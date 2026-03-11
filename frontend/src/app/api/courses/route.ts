@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { listCourses, fetchCoursesJson, fetchCourseReadme, fetchPaperJson } from '@/lib/github';
+import { listCourses, fetchCoursesJson, fetchCourseReadme, fetchPaperJson, getRawUrl } from '@/lib/github';
 import type { Paper } from '@/types/paper';
 
 /** Convert slug to title case: "attention-is-all-you-need" → "Attention Is All You Need" */
@@ -58,7 +58,7 @@ function extractDescriptionFromReadme(readme: string): string | null {
 
 // In-memory cache for the full course list response
 let cachedResponse: { data: Paper[]; timestamp: number } | null = null;
-const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+const CACHE_TTL = 2 * 60 * 1000; // 2 minutes
 
 export async function GET() {
   // Return cached response if still fresh
@@ -105,14 +105,34 @@ export async function GET() {
         if (paperJson?.title && title === slugToTitle(entry.paperSlug)) {
           title = paperJson.title;
         }
-        if (paperJson?.description && description.startsWith('Interactive learning course:')) {
+        // 코스별 description: 코스 디렉토리의 paper.json 우선, 없으면 부모 paper.json
+        if (paperJson?.description) {
           description = paperJson.description;
         }
+        let courseBgOverride = '';
+        try {
+          const res = await fetch(getRawUrl(`${entry.paperSlug}/${entry.courseSlug}/paper.json`));
+          if (res.ok) {
+            const courseJson = await res.json();
+            if (courseJson?.description) description = courseJson.description;
+            if (courseJson?.backgroundUrl) {
+              const bg = courseJson.backgroundUrl;
+              courseBgOverride = bg.startsWith('http') ? bg : getRawUrl(`${entry.paperSlug}/${bg}`);
+            }
+          }
+        } catch { /* 코스별 paper.json 없으면 무시 */ }
 
         const arxivId = paperJson?.arxivId || '';
+        const rawThumb = paperJson?.thumbnailUrl || '';
         const thumbnailUrl = arxivId
           ? `https://cdn-thumbnails.huggingface.co/social-thumbnails/papers/${arxivId}.png`
-          : '';
+          : entry.thumbnailPath
+            ? getRawUrl(entry.thumbnailPath)
+            : rawThumb.startsWith('http')
+              ? rawThumb
+              : rawThumb
+                ? getRawUrl(`${entry.paperSlug}/${rawThumb}`)
+                : '';
 
         const authors = paperJson?.authors?.length
           ? paperJson.authors.map((a, i) => ({ id: `${entry.paperSlug}-${i}`, name: a.name }))
@@ -121,6 +141,10 @@ export async function GET() {
         // Append course slug if paper has multiple courses
         const courseLabel = entry.courseSlug !== 'bible' ? ` (${slugToTitle(entry.courseSlug)})` : '';
 
+        const rawBg = paperJson?.backgroundUrl || '';
+        const backgroundUrl = courseBgOverride
+          || (rawBg.startsWith('http') ? rawBg : rawBg ? getRawUrl(`${entry.paperSlug}/${rawBg}`) : '');
+
         const paper: Paper = {
           id: courseId,
           title: title + courseLabel,
@@ -128,7 +152,9 @@ export async function GET() {
           authors,
           publishedAt,
           thumbnailUrl,
+          backgroundUrl: backgroundUrl || undefined,
           arxivUrl: arxivId ? `https://arxiv.org/abs/${arxivId}` : '',
+          docsUrl: paperJson?.docsUrl,
           githubUrl: paperJson?.githubUrl,
           submittedBy: paperJson?.submittedBy || 'papers-kg-builder',
           totalStages,

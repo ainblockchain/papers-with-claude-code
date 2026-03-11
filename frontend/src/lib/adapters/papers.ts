@@ -5,8 +5,9 @@ import { Paper } from '@/types/paper';
 
 const REPO_OWNER = 'ainblockchain';
 const REPO_NAME = 'awesome-papers-with-claude-code';
-const RAW_BASE = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main`;
-const CACHE_TTL_MS = 10 * 60 * 1000; // 10분
+const REPO_BRANCH = process.env.GITHUB_BRANCH || 'feat/0G-developer-course';
+const RAW_BASE = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${REPO_BRANCH}`;
+const CACHE_TTL_MS = 0; // 캐시 비활성화 (디버깅용)
 
 export interface PapersAdapter {
   fetchTrendingPapers(period: 'daily' | 'weekly' | 'monthly'): Promise<Paper[]>;
@@ -27,6 +28,9 @@ interface PaperJsonData {
   publishedAt?: string;
   organization?: { name: string };
   submittedBy?: string;
+  thumbnailUrl?: string;
+  docsUrl?: string;
+  badgeUrl?: string;
 }
 
 // ── 파싱 유틸 ──────────────────────────────────
@@ -97,11 +101,10 @@ function buildPaper(
   paperJson?: PaperJsonData,
 ): Paper {
   const arxivId = paperJson?.arxivId || readmeMeta.arxivId || '';
-  const thumbnailUrl = arxivId
-    ? `https://cdn-thumbnails.huggingface.co/social-thumbnails/papers/${arxivId}.png`
-    : '';
+  const thumbnailUrl = paperJson?.thumbnailUrl
+    || (arxivId ? `https://cdn-thumbnails.huggingface.co/social-thumbnails/papers/${arxivId}.png` : '');
 
-  const courseRepoUrl = `https://github.com/${REPO_OWNER}/${REPO_NAME}/tree/main/${paperSlug}/${courseSlug}`;
+  const courseRepoUrl = `https://github.com/${REPO_OWNER}/${REPO_NAME}/tree/${REPO_BRANCH}/${paperSlug}/${courseSlug}`;
 
   const authors = paperJson?.authors?.length
     ? paperJson.authors.map((a, i) => ({
@@ -117,14 +120,19 @@ function buildPaper(
 
   const statsDescription = `${stats.totalConcepts} concepts · ${stats.totalLessons} lessons across ${readmeMeta.totalModules || 1} module${(readmeMeta.totalModules || 1) > 1 ? 's' : ''}`;
 
+  const COURSE_DESCRIPTIONS: Record<string, string> = {
+    '0g-basic-course': "Meet 0G \u2014 the world's first decentralized AI operating system. With four core services (Chain, Storage, Compute, and DA), 0G is redefining how AI infrastructure works. In this beginner-friendly course, an AI tutor guides you step by step \u2014 from wallet setup to file uploads, AI inference, and building a verifiable AI pipeline. No blockchain experience required: 3 modules, 12 hands-on concepts, and you'll deploy your first app on 0G.",
+    '0g-developer-course': "Unlock the full potential of 0G, the world's first decentralized AI operating system designed for high-performance intelligence. Beyond mere theory, engage with live, runnable TypeScript examples that demonstrate how to leverage data availability (DA) and modular storage for AI scalability.",
+  };
+
   return {
-    id: `${paperSlug}/${courseSlug}`,
+    id: `${paperSlug}--${courseSlug}`,
     title: paperJson?.title || readmeMeta.title || slugToName(paperSlug),
-    description: paperJson?.description || statsDescription,
+    description: COURSE_DESCRIPTIONS[courseSlug] || paperJson?.description || statsDescription,
     authors,
     publishedAt: paperJson?.publishedAt || (readmeMeta.year ? `${readmeMeta.year}-01-01` : ''),
     thumbnailUrl,
-    arxivUrl: arxivId ? `https://arxiv.org/abs/${arxivId}` : '',
+    arxivUrl: paperJson?.docsUrl || (arxivId ? `https://arxiv.org/abs/${arxivId}` : ''),
     githubUrl: paperJson?.githubUrl,
     courseRepoUrl,
     submittedBy: paperJson?.submittedBy || 'community',
@@ -132,6 +140,9 @@ function buildPaper(
     courseName: slugToName(courseSlug),
     organization: paperJson?.organization
       ? { name: paperJson.organization.name, logoUrl: '' }
+      : undefined,
+    badgeUrl: paperJson?.badgeUrl
+      ? `${RAW_BASE}/${paperSlug}/${paperJson.badgeUrl}`
       : undefined,
   };
 }
@@ -141,7 +152,7 @@ function buildPaper(
 async function fetchPapersFromGitHub(): Promise<Paper[]> {
   // 1) Git Trees API로 전체 디렉토리 구조를 한 번에 가져옴 (1 API call)
   const treeRes = await fetch(
-    `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/git/trees/main?recursive=1`,
+    `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/git/trees/${REPO_BRANCH}?recursive=1`,
     { headers: { Accept: 'application/vnd.github.v3+json' } }
   );
 
@@ -154,6 +165,7 @@ async function fetchPapersFromGitHub(): Promise<Paper[]> {
   // 2) 트리에서 코스 및 paper.json 식별
   const courses: { paperSlug: string; courseSlug: string }[] = [];
   const paperJsonSlugs = new Set<string>();
+  const courseJsonKeys = new Set<string>(); // "paperSlug/courseSlug" 형태
 
   for (const item of tree.tree) {
     const courseMatch = item.path.match(/^([^/]+)\/([^/]+)\/README\.md$/);
@@ -163,6 +175,10 @@ async function fetchPapersFromGitHub(): Promise<Paper[]> {
     const paperJsonMatch = item.path.match(/^([^/]+)\/paper\.json$/);
     if (paperJsonMatch) {
       paperJsonSlugs.add(paperJsonMatch[1]);
+    }
+    const courseJsonMatch = item.path.match(/^([^/]+)\/([^/]+)\/paper\.json$/);
+    if (courseJsonMatch) {
+      courseJsonKeys.add(`${courseJsonMatch[1]}/${courseJsonMatch[2]}`);
     }
   }
 
@@ -183,7 +199,22 @@ async function fetchPapersFromGitHub(): Promise<Paper[]> {
       })
   );
 
-  // 4) 각 코스별 Paper 카드 생성 (paper.json 우선, README fallback)
+  // 4) 코스별 paper.json fetch (있는 코스만)
+  const courseJsonCache = new Map<string, PaperJsonData>();
+  await Promise.all(
+    courses
+      .filter(({ paperSlug, courseSlug }) => courseJsonKeys.has(`${paperSlug}/${courseSlug}`))
+      .map(async ({ paperSlug, courseSlug }) => {
+        const raw = await fetchRawFile(`${paperSlug}/${courseSlug}/paper.json`);
+        if (raw) {
+          try {
+            courseJsonCache.set(`${paperSlug}/${courseSlug}`, JSON.parse(raw));
+          } catch { /* malformed JSON */ }
+        }
+      })
+  );
+
+  // 5) 각 코스별 Paper 카드 생성 (코스 paper.json > 부모 paper.json > README fallback)
   const papers = await Promise.all(
     courses.map(async ({ paperSlug, courseSlug }) => {
       const [readme, coursesRaw] = await Promise.all([
@@ -200,7 +231,11 @@ async function fetchPapersFromGitHub(): Promise<Paper[]> {
         } catch { /* malformed JSON */ }
       }
 
-      return buildPaper(paperSlug, courseSlug, meta, stats, paperJsonCache.get(paperSlug));
+      const parentJson = paperJsonCache.get(paperSlug);
+      const courseJson = courseJsonCache.get(`${paperSlug}/${courseSlug}`);
+      const mergedJson = courseJson ? { ...parentJson, ...courseJson } : parentJson;
+
+      return buildPaper(paperSlug, courseSlug, meta, stats, mergedJson);
     })
   );
 

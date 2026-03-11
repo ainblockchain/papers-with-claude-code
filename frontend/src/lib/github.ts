@@ -11,8 +11,9 @@
 
 const GITHUB_OWNER = 'ainblockchain';
 const GITHUB_REPO = 'awesome-papers-with-claude-code';
+const GITHUB_BRANCH = process.env.GITHUB_BRANCH || 'feat/0G-developer-course';
 const GITHUB_API_BASE = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents`;
-const RAW_BASE = `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/main`;
+const RAW_BASE = `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/${GITHUB_BRANCH}`;
 
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -24,6 +25,7 @@ export interface GitHubCourseEntry {
   paperSlug: string;
   courseSlug: string;
   path: string; // e.g. "attention-is-all-you-need/bible/knowledge"
+  thumbnailPath?: string; // e.g. "0g-developer-documentation/0g-basic-course/thumbnail.png"
 }
 
 export interface CoursesJsonLesson {
@@ -204,7 +206,7 @@ export async function listCourses(): Promise<GitHubCourseEntry[]> {
   if (cached) return cached;
 
   // Single API call: Git Trees with recursive to get entire repo structure
-  const treeUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/git/trees/main?recursive=1`;
+  const treeUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/git/trees/${GITHUB_BRANCH}?recursive=1`;
   const response = await fetch(treeUrl, { headers: buildHeaders() });
   if (!response.ok) {
     throw new Error(`GitHub Trees API failed: ${response.status}`);
@@ -213,14 +215,25 @@ export async function listCourses(): Promise<GitHubCourseEntry[]> {
   const tree = await response.json();
   const results: GitHubCourseEntry[] = [];
 
+  // Collect course-level thumbnail paths: {paperSlug}/{courseSlug}/thumbnail.{ext}
+  const thumbnailByKey = new Map<string, string>();
+  for (const item of tree.tree) {
+    const thumbMatch = item.path.match(/^([^/]+)\/([^/]+)\/thumbnail\.(jpg|jpeg|png|webp)$/i);
+    if (thumbMatch && !IGNORED_DIRS.has(thumbMatch[1]) && !thumbMatch[1].startsWith('.')) {
+      thumbnailByKey.set(`${thumbMatch[1]}/${thumbMatch[2]}`, item.path);
+    }
+  }
+
   // Find course directories by matching README.md pattern: {paperSlug}/{courseSlug}/README.md
   for (const item of tree.tree) {
     const match = item.path.match(/^([^/]+)\/([^/]+)\/README\.md$/);
     if (match && !IGNORED_DIRS.has(match[1]) && !match[1].startsWith('.')) {
+      const key = `${match[1]}/${match[2]}`;
       results.push({
         paperSlug: match[1],
         courseSlug: match[2],
         path: `${match[1]}/${match[2]}/knowledge`,
+        thumbnailPath: thumbnailByKey.get(key),
       });
     }
   }
@@ -269,11 +282,19 @@ export interface PaperJsonData {
   title?: string;
   description?: string;
   arxivId?: string;
+  thumbnailUrl?: string;
+  backgroundUrl?: string;
+  docsUrl?: string;
   githubUrl?: string;
   authors?: { name: string }[];
   publishedAt?: string;
   organization?: { name: string };
   submittedBy?: string;
+}
+
+/** Build a URL to a file in the current branch */
+export function getRawUrl(path: string): string {
+  return `${RAW_BASE}/${path}`;
 }
 
 /**

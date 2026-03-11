@@ -18,7 +18,9 @@ export interface Paper {
   authors: Author[];
   publishedAt: string;
   thumbnailUrl: string;
+  backgroundUrl?: string;
   arxivUrl: string;
+  docsUrl?: string;
   githubUrl?: string;
   courseRepoUrl?: string;
   githubStars?: number;
@@ -27,4 +29,5 @@ export interface Paper {
   totalStages: number;
   courseName?: string;
   courses?: CourseInfo[];
+  badgeUrl?: string;
 }

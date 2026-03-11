@@ -1,0 +1,442 @@
+[
+  {
+    "id": "foundations",
+    "title": "Module 1: 0G Foundations",
+    "description": "Essential background for any developer building on 0G: the four-service architecture, network setup, wallet configuration, and critical contract addresses.",
+    "concepts": ["decentralized_ai_os", "zero_g_chain_basics", "network_configuration", "wallet_and_tokens", "smart_contract_addresses"],
+    "lessons": [
+      {
+        "concept_id": "decentralized_ai_os",
+        "title": "What is 0G? The Decentralized AI Operating System",
+        "prerequisites": [],
+        "key_ideas": [
+          "0G is a modular deAIOS with four interoperable services: Chain, Storage, Compute, DA",
+          "Each service solves a real infrastructure problem for AI applications",
+          "Services can be used independently or composed into full-stack AI applications"
+        ],
+        "code_ref": "",
+        "paper_ref": "0G Labs, 2024 — 0G Developer Documentation (docs.0g.ai)",
+        "exercise": "What are the four core services of the 0G decentralized AI operating system?\n1) Chain, Storage, Compute, Identity\n2) Chain, Storage, Compute, DA\n3) Chain, Wallet, Compute, DA\nType the number.",
+        "explanation": "0G Labs describes their platform as a 'decentralized AI operating system' — and the analogy is apt. Just as an operating system provides core services (filesystem, compute, networking) that applications build on, 0G provides AI-native infrastructure that any developer can use without running their own hardware.\n\nThe four services each solve a specific problem:\n\n**0G Chain** is the consensus backbone — an EVM-compatible L1 blockchain achieving 11,000 TPS with sub-second finality. Your smart contracts live here.\n\n**0G Storage** is the filesystem — decentralized, content-addressed storage that's 95% cheaper than AWS S3. Your datasets, model weights, and large files live here.\n\n**0G Compute** is the AI execution layer — a decentralized GPU marketplace 90% cheaper than OpenAI or AWS Bedrock. Your AI inference and fine-tuning runs here.\n\n**0G DA** is the data availability backbone — a 50 Gbps throughput layer that enables rollups to scale. If you're building an L2 or rollup, your blob data goes here.\n\nThink of it like a cloud provider (AWS) but decentralized, permissionless, and purpose-built for AI. You get S3-like storage, Lambda-like compute, and Ethereum-like programmability — all in one stack.",
+        "x402_price": "",
+        "x402_gateway": ""
+      },
+      {
+        "concept_id": "zero_g_chain_basics",
+        "title": "0G Chain: Your Familiar EVM Home",
+        "prerequisites": ["decentralized_ai_os"],
+        "key_ideas": [
+          "Full EVM compatibility — every Ethereum tool works out of the box",
+          "11,000 TPS per shard with sub-second finality via CometBFT consensus",
+          "Modular design separates consensus from execution for independent upgrades"
+        ],
+        "code_ref": "",
+        "paper_ref": "0G Labs, 2024 — 0G Developer Documentation (docs.0g.ai)",
+        "exercise": "What consensus mechanism does 0G Chain use?\n1) Proof of Work (Bitcoin-style mining)\n2) CometBFT (optimized Tendermint)\n3) Proof of Authority (validator whitelist)\nType the number.",
+        "explanation": "0G Labs documented in their technical specification that 0G Chain achieves its performance through an optimized CometBFT consensus — the battle-tested Byzantine Fault Tolerant consensus engine that powers the Cosmos ecosystem, but modified specifically for AI workloads.\n\nFor developers, the most important thing to know is simple: **if it works on Ethereum, it works on 0G Chain**. Your existing Hardhat projects, Foundry scripts, OpenZeppelin contracts, MetaMask wallet, and ethers.js code all work without changes.\n\nThe performance difference is dramatic. Ethereum processes ~15 transactions per second with ~12 second block times. 0G Chain processes 11,000 TPS per shard with sub-second finality. For AI applications where you're recording thousands of on-chain inference proofs or dataset uploads, this matters enormously.\n\nThe modular architecture also means the execution layer (EVM) and consensus layer (CometBFT) can be upgraded independently. When a new EVM version ships (like Cancun with blob transactions), 0G can adopt it without touching the consensus logic.\n\nOne practical implication: when compiling smart contracts, you must specify `evmVersion: 'cancun'` to access the latest opcodes. We'll cover the exact configuration in Module 4.",
+        "x402_price": "",
+        "x402_gateway": ""
+      },
+      {
+        "concept_id": "network_configuration",
+        "title": "Connecting to 0G: Testnet and Mainnet",
+        "prerequisites": ["zero_g_chain_basics"],
+        "key_ideas": [
+          "Testnet Galileo: chainId 16602, RPC https://evmrpc-testnet.0g.ai",
+          "Mainnet Aristotle: chainId 16661, RPC https://evmrpc.0g.ai",
+          "Free testnet tokens available daily at https://faucet.0g.ai"
+        ],
+        "code_ref": "",
+        "paper_ref": "0G Labs, 2024 — 0G Developer Documentation (docs.0g.ai)",
+        "exercise": "What is the Chain ID for the 0G Galileo Testnet?\n1) 1 (same as Ethereum mainnet)\n2) 16602\n3) 16661\nType the number.",
+        "explanation": "0G operates two networks. The documentation provides the following exact parameters:\n\n**Testnet (Galileo) — Use this for development:**\n- Chain ID: `16602`\n- RPC: `https://evmrpc-testnet.0g.ai`\n- Explorer: `https://chainscan-galileo.0g.ai`\n- Faucet: `https://faucet.0g.ai` (0.1 0G/day)\n\n**Mainnet (Aristotle) — Use this for production:**\n- Chain ID: `16661`\n- RPC: `https://evmrpc.0g.ai`\n- Explorer: `https://chainscan.0g.ai`\n\nTo add 0G to MetaMask manually: open MetaMask → Add Network → fill in the Chain ID and RPC URL above. To add programmatically with ethers.js:\n\n```typescript\nconst provider = new ethers.JsonRpcProvider('https://evmrpc-testnet.0g.ai');\n// The chainId is automatically detected from the RPC endpoint\n```\n\nThird-party RPC providers (QuickNode, ThirdWeb, Ankr, dRPC) offer higher rate limits and regional endpoints — useful for production applications that can't afford the latency of the public RPC.\n\n**Important**: The testnet Indexer URL for Storage SDK is different from the RPC: `https://indexer-storage-testnet-turbo.0g.ai`. This is a common source of confusion for new developers.",
+        "x402_price": "",
+        "x402_gateway": ""
+      },
+      {
+        "concept_id": "wallet_and_tokens",
+        "title": "Setting Up Your Wallet and Getting Test Tokens",
+        "prerequisites": ["network_configuration"],
+        "key_ideas": [
+          "Use standard EVM wallet — ethers.Wallet or MetaMask with 0G network",
+          "Never hardcode private keys — use environment variables and .env files",
+          "Faucet at https://faucet.0g.ai provides 0.1 0G/day for testing"
+        ],
+        "code_ref": "",
+        "paper_ref": "0G Labs, 2024 — 0G Developer Documentation (docs.0g.ai)",
+        "exercise": "What is the correct way to initialize a signer for 0G in TypeScript?\n1) const signer = new ethers.Wallet(process.env.PRIVATE_KEY!)\n2) const signer = new ethers.Wallet(process.env.PRIVATE_KEY!, provider)\n3) const signer = new ethers.JsonRpcSigner()\nType the number.",
+        "explanation": "0G uses the same wallet system as Ethereum — any EVM-compatible wallet works. For development, you'll create a wallet via ethers.js:\n\n```typescript\nimport { ethers } from 'ethers';\n\nconst RPC_URL = 'https://evmrpc-testnet.0g.ai';\nconst provider = new ethers.JsonRpcProvider(RPC_URL);\nconst signer = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);\n\nconsole.log('Address:', signer.address);\n```\n\nAlways store your private key in a `.env` file and add `.env` to `.gitignore`. Never commit private keys to version control.\n\n**Getting testnet tokens:**\n1. Go to `https://faucet.0g.ai`\n2. Connect your wallet or paste your address\n3. Request 0.1 0G (refreshes daily)\n\n0G tokens are used for gas fees on 0G Chain. For Storage and Compute, you'll also need to fund those services separately (covered in Modules 2 and 3). The testnet tokens are sufficient for all development and testing — you won't need mainnet tokens until you're ready to deploy to production.",
+        "x402_price": "",
+        "x402_gateway": ""
+      },
+      {
+        "concept_id": "smart_contract_addresses",
+        "title": "The Core Contract Addresses You Need",
+        "prerequisites": ["wallet_and_tokens"],
+        "key_ideas": [
+          "Testnet Flow contract: 0x22E03a6A89B950F1c82ec5e74F8eCa321a105296",
+          "Testnet Compute Ledger: 0xE70830508dAc0A97e6c087c75f402f9Be669E406",
+          "Precompiles at fixed addresses: DASigners 0x1000, WrappedOGBase 0x1001"
+        ],
+        "code_ref": "",
+        "paper_ref": "0G Labs, 2024 — 0G Developer Documentation (docs.0g.ai)",
+        "exercise": "Which contract manages storage data flow and payments on 0G Testnet?\n1) 0xE70830508dAc0A97e6c087c75f402f9Be669E406 (Compute Ledger)\n2) 0x22E03a6A89B950F1c82ec5e74F8eCa321a105296 (Flow)\n3) 0xE75A073dA5bb7b0eC622170Fd268f35E675a957B (DAEntrance)\nType the number.",
+        "explanation": "0G Labs documents the following critical contract addresses. Save these — you'll reference them often in SDK initialization and direct contract calls.\n\n**Testnet (Galileo) Contracts:**\n```\nFlow (Storage payments):  0x22E03a6A89B950F1c82ec5e74F8eCa321a105296\nMine (Mining rewards):    0x00A9E9604b0538e06b268Fb297Df333337f9593b\nReward (Distribution):   0xA97B57b4BdFEA2D0a25e535bd849ad4e6C440A69\nDAEntrance (DA blobs):    0xE75A073dA5bb7b0eC622170Fd268f35E675a957B\nCompute Ledger:           0xE70830508dAc0A97e6c087c75f402f9Be669E406\nCompute Inference:        0xa79F4c8311FF93C06b8CfB403690cc987c93F91E\nCompute FineTuning:       0xaC66eBd174435c04F1449BBa08157a707B6fa7b1\n```\n\n**Precompiles (same address on testnet and mainnet):**\n```\nDASigners:     0x0000000000000000000000000000000000001000\nWrappedOGBase: 0x0000000000000000000000000000000000001001\n```\n\n**Mainnet (Aristotle) Contracts:**\n```\nFlow:           0x62D4144dB0F0a6fBBaeb6296c785C71B3D57C526\nCompute Ledger: 0x2dE54c845Cd948B72D2e32e39586fe89607074E3\n```\n\nThe TypeScript SDK uses these addresses internally when you pass the RPC URL. However, if you're writing smart contracts that interact with these services directly (e.g., verifying storage proofs on-chain), you'll reference these addresses explicitly.",
+        "x402_price": "",
+        "x402_gateway": ""
+      }
+    ]
+  },
+  {
+    "id": "storage_sdk",
+    "title": "Module 2: 0G Storage SDK",
+    "description": "Learn to upload, download, and manage data on 0G Storage — the decentralized alternative to AWS S3 that's 95% cheaper with Merkle proof verification.",
+    "concepts": ["storage_architecture", "ts_sdk_setup", "file_upload_merkle", "file_download_verify", "kv_storage", "storage_pricing"],
+    "lessons": [
+      {
+        "concept_id": "storage_architecture",
+        "title": "Log vs Key-Value: Choosing the Right Storage Layer",
+        "prerequisites": ["smart_contract_addresses"],
+        "key_ideas": [
+          "Log Layer: immutable, append-only — ideal for ML datasets, model checkpoints",
+          "KV Layer: mutable key-value store — ideal for configuration, agent state",
+          "Both layers use Merkle trees for cryptographic data integrity"
+        ],
+        "code_ref": "",
+        "paper_ref": "0G Labs, 2024 — 0G Developer Documentation (docs.0g.ai)",
+        "exercise": "You need to store a 10GB training dataset that should never be modified. Which 0G Storage layer should you use?\n1) Key-Value Layer (KV) — for flexible mutable storage\n2) Log Layer — for immutable, content-addressed storage\n3) Either works equally well\nType the number.",
+        "explanation": "0G Storage provides two fundamentally different storage primitives, designed for different use cases.\n\n**Log Layer (Immutable)**\nThink of this like IPFS content-addressing, but faster and cheaper. When you upload a file, 0G computes its Merkle tree and assigns a `rootHash`. This rootHash is the permanent, content-addressed identifier — like a fingerprint. The data can never be changed (the rootHash would change). This is perfect for:\n- ML training datasets\n- Model weight checkpoints\n- Immutable audit logs\n- Research artifacts that need permanent reference\n\n**Key-Value Layer (Mutable)**\nThink of this like a decentralized Redis. Data is organized by `streamId` (a bytes32 namespace) and you can set/get arbitrary byte arrays. This is perfect for:\n- Agent configuration and state\n- Dynamic metadata\n- Real-time scores or counters\n- User preferences\n\n**Under the hood**, both layers use the same storage network. Data is divided into sectors, erasure-coded with 3x redundancy (tolerates 30% node failures), and distributed across hundreds of nodes using a Proof of Random Access (PoRA) consensus that continuously verifies data is actually stored.\n\nWhen to use each: if the data is final and you need cryptographic proof of its integrity (like a published dataset or model), use the Log Layer. If you need to update values over time (like an AI agent's current state), use the KV Layer.",
+        "x402_price": "",
+        "x402_gateway": ""
+      },
+      {
+        "concept_id": "ts_sdk_setup",
+        "title": "Setting Up the TypeScript SDK",
+        "prerequisites": ["storage_architecture", "wallet_and_tokens"],
+        "key_ideas": [
+          "Install: npm install @0glabs/0g-ts-sdk ethers",
+          "Indexer automatically selects optimal nodes — no manual node management",
+          "Testnet Indexer RPC: https://indexer-storage-testnet-turbo.0g.ai"
+        ],
+        "code_ref": "examples/01-storage-upload.ts",
+        "paper_ref": "0G Labs, 2024 — 0G Developer Documentation (docs.0g.ai)",
+        "exercise": "What does the Indexer in 0G SDK handle automatically?\n1) Encrypting your files before upload\n2) Selecting optimal storage nodes and managing file distribution\n3) Paying gas fees on your behalf\nType the number.",
+        "explanation": "0G Labs designed their TypeScript SDK around the Indexer abstraction — a service that handles the complexity of distributed storage so you don't have to manually select storage nodes, manage replication, or track which nodes have your data.\n\n```typescript\nimport { ZgFile, Indexer, Batcher, KvClient } from '@0glabs/0g-ts-sdk';\nimport { ethers } from 'ethers';\n\n// Network configuration\nconst RPC_URL = 'https://evmrpc-testnet.0g.ai';\nconst INDEXER_RPC = 'https://indexer-storage-testnet-turbo.0g.ai';\n\n// Create signer (requires funded wallet)\nconst provider = new ethers.JsonRpcProvider(RPC_URL);\nconst signer = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);\n\n// Create Indexer — this is your main entry point for storage operations\nconst indexer = new Indexer(INDEXER_RPC);\n\nconsole.log('SDK initialized. Wallet address:', signer.address);\n```\n\nThe four main classes you'll use:\n- **`ZgFile`**: Wraps a file or buffer for upload, computes Merkle tree\n- **`Indexer`**: Manages node selection, upload coordination, and download retrieval\n- **`Batcher`**: Batches multiple KV writes into a single on-chain transaction\n- **`KvClient`**: Reads key-value data from a KV node\n\nThe Indexer connects to a network of storage nodes and uses a gossiping protocol to discover which nodes have capacity and are responsive. When you call `indexer.upload()`, it automatically selects the best nodes, splits your data into sectors, and handles the on-chain payment via the Flow contract.",
+        "x402_price": "",
+        "x402_gateway": ""
+      },
+      {
+        "concept_id": "file_upload_merkle",
+        "title": "Uploading Files: Merkle Trees and Root Hashes",
+        "prerequisites": ["ts_sdk_setup"],
+        "key_ideas": [
+          "ZgFile.fromFilePath() wraps a local file for upload",
+          "file.merkleTree() computes the Merkle tree — rootHash is your file's permanent ID",
+          "Save the rootHash immediately — you need it to download the file later"
+        ],
+        "code_ref": "examples/01-storage-upload.ts",
+        "paper_ref": "0G Labs, 2024 — 0G Developer Documentation (docs.0g.ai)",
+        "exercise": "What happens if you lose the rootHash after uploading a file to 0G Storage?\n1) You can look it up using the filename\n2) You cannot retrieve the file — there is no filename-based lookup\n3) The SDK automatically stores it in a local database\nType the number.",
+        "explanation": "0G Labs implemented content-addressed storage, where each file's identity is determined by its content, not its name. The Merkle tree is the cryptographic foundation of this system.\n\nHere's how it works: your file is divided into fixed-size chunks. Each chunk is hashed. Those hashes are paired and hashed again. This continues up a binary tree until there's one root hash at the top — the `rootHash`. Change even one byte anywhere in the file, and the rootHash changes completely.\n\n```typescript\nimport { ZgFile, Indexer } from '@0glabs/0g-ts-sdk';\nimport { ethers } from 'ethers';\n\nconst RPC_URL = 'https://evmrpc-testnet.0g.ai';\nconst INDEXER_RPC = 'https://indexer-storage-testnet-turbo.0g.ai';\n\nconst provider = new ethers.JsonRpcProvider(RPC_URL);\nconst signer = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);\nconst indexer = new Indexer(INDEXER_RPC);\n\nasync function uploadFile(filePath: string): Promise<string> {\n  // Wrap the file\n  const file = await ZgFile.fromFilePath(filePath);\n\n  // Compute the Merkle tree (this determines the rootHash)\n  const [tree, treeErr] = await file.merkleTree();\n  if (treeErr) throw new Error(`Merkle tree error: ${treeErr}`);\n\n  const rootHash = tree!.rootHash();\n  console.log('Root hash (SAVE THIS):', rootHash);\n\n  // Upload to the network (handles node selection + payment)\n  const [tx, uploadErr] = await indexer.upload(file, RPC_URL, signer);\n  if (uploadErr) throw new Error(`Upload error: ${uploadErr}`);\n\n  console.log('Upload tx:', tx);\n  await file.close(); // Always close to release file handle\n  return rootHash;\n}\n```\n\nThe rootHash is how you reference your file forever. Store it in your database, smart contract, or KV layer. There's no filename-based lookup — 0G is a pure content-addressed system. This is actually a feature: the same file uploaded twice has the same rootHash, enabling deduplication across the entire network.",
+        "x402_price": "",
+        "x402_gateway": ""
+      },
+      {
+        "concept_id": "file_download_verify",
+        "title": "Downloading with Merkle Proof Verification",
+        "prerequisites": ["file_upload_merkle"],
+        "key_ideas": [
+          "indexer.download(rootHash, outputPath, true) — the third arg enables proof verification",
+          "Proof verification ensures you receive exactly what was uploaded",
+          "Passing false skips verification (faster but less secure)"
+        ],
+        "code_ref": "examples/02-storage-download.ts",
+        "paper_ref": "0G Labs, 2024 — 0G Developer Documentation (docs.0g.ai)",
+        "exercise": "Why should you pass true as the third argument to indexer.download()?\n1) To enable compression for faster downloads\n2) To verify the downloaded data matches the original via Merkle proof\n3) To enable parallel downloading from multiple nodes\nType the number.",
+        "explanation": "0G Labs built Merkle proof verification directly into the download API. When you pass `true` as the third argument, the SDK requests a cryptographic proof alongside the data, and verifies that the downloaded bytes match the rootHash you provided.\n\n```typescript\nasync function downloadFile(rootHash: string, outputPath: string): Promise<void> {\n  // true = enable Merkle proof verification\n  const err = await indexer.download(rootHash, outputPath, true);\n\n  if (err) {\n    console.error('Download failed:', err);\n    // Could be: node offline, data not found, proof verification failed\n    return;\n  }\n\n  console.log(`Downloaded to: ${outputPath}`);\n}\n```\n\nThe verification works like this: after downloading all chunks, the SDK reconstructs the Merkle tree from the received data and compares the computed rootHash to the rootHash you provided. If even one byte was corrupted (malicious storage node, network corruption), the rootHash won't match, and the SDK returns an error.\n\nThis is the cryptographic guarantee that makes 0G trustless — you don't need to trust the storage nodes. The math proves the data is correct.\n\n**CLI alternative:**\n```bash\n0g-storage-client download \\\n  --indexer https://indexer-storage-testnet-turbo.0g.ai \\\n  --root 0xABC123... \\\n  --file ./output.json \\\n  --proof\n```\n\n**REST API** (for simple HTTP retrieval without SDK):\n```\nGET https://storage-node.0g.ai/file?root=<MERKLE_ROOT>\n```",
+        "x402_price": "",
+        "x402_gateway": ""
+      },
+      {
+        "concept_id": "kv_storage",
+        "title": "Key-Value Storage: Mutable Data on 0G",
+        "prerequisites": ["ts_sdk_setup"],
+        "key_ideas": [
+          "Each KV namespace identified by a bytes32 streamId",
+          "Batcher batches writes into a single on-chain transaction",
+          "KvClient reads from KV node at http://<KV_NODE_IP>:6789"
+        ],
+        "code_ref": "examples/03-kv-storage.ts",
+        "paper_ref": "0G Labs, 2024 — 0G Developer Documentation (docs.0g.ai)",
+        "exercise": "What is the role of the streamId in 0G KV storage?\n1) It's a unique ID for each individual key-value pair\n2) It's a namespace identifier organizing multiple key-value pairs\n3) It's the same as the rootHash for immutable files\nType the number.",
+        "explanation": "0G Labs designed the KV layer around the concept of streams — namespaced key-value stores. A streamId is a bytes32 value that identifies a particular KV store, similar to a Redis namespace or a database table.\n\n```typescript\nimport { Indexer, Batcher, KvClient } from '@0glabs/0g-ts-sdk';\nimport { ethers } from 'ethers';\n\nconst RPC_URL = 'https://evmrpc-testnet.0g.ai';\nconst FLOW_CONTRACT = '0x22E03a6A89B950F1c82ec5e74F8eCa321a105296';\n// Your stream ID (generate a random bytes32 for your application)\nconst STREAM_ID = '0x' + '00'.repeat(31) + '01'; // Example stream ID\n\n// WRITE: Batch multiple KV operations into one transaction\nasync function kvWrite(key: string, value: string) {\n  const [nodes, err] = await indexer.selectNodes(1);\n  if (err) throw err;\n\n  const batcher = new Batcher(1, nodes, FLOW_CONTRACT, RPC_URL);\n  const keyBytes = Uint8Array.from(Buffer.from(key, 'utf-8'));\n  const valueBytes = Uint8Array.from(Buffer.from(value, 'utf-8'));\n\n  batcher.streamDataBuilder.set(STREAM_ID, keyBytes, valueBytes);\n  const [tx, batchErr] = await batcher.exec();\n  if (batchErr) throw batchErr;\n  return tx;\n}\n\n// READ: Query KV node directly\nasync function kvRead(kvNodeUrl: string, key: string) {\n  const kvClient = new KvClient(kvNodeUrl); // e.g., 'http://kv-node:6789'\n  const keyBytes = Uint8Array.from(Buffer.from(key, 'utf-8'));\n  const value = await kvClient.getValue(STREAM_ID, ethers.encodeBase64(keyBytes));\n  return value;\n}\n```\n\nThe Batcher pattern is elegant: instead of making one on-chain transaction per key-value pair (which would be expensive), you can bundle dozens of writes into a single transaction. Call `batcher.streamDataBuilder.set()` multiple times before calling `batcher.exec()`.",
+        "x402_price": "",
+        "x402_gateway": ""
+      },
+      {
+        "concept_id": "storage_pricing",
+        "title": "Why 0G Storage is 95% Cheaper Than AWS",
+        "prerequisites": ["storage_architecture"],
+        "key_ideas": [
+          "No centralized intermediary — storage miners compete on price",
+          "Prices paid per sector directly to miners via the Flow contract",
+          "No egress fees — 200 MBPS retrieval speed at no extra cost"
+        ],
+        "code_ref": "",
+        "paper_ref": "0G Labs, 2024 — 0G Developer Documentation (docs.0g.ai)",
+        "exercise": "What is the primary reason 0G Storage achieves 95% cost savings over AWS S3?\n1) Lower hardware costs through economies of scale\n2) Eliminating centralized intermediary markup — miners compete directly\n3) Compressing all data before storing it\nType the number.",
+        "explanation": "0G Labs documents a striking cost comparison: 0G Storage is 95% cheaper than AWS S3. Understanding why helps you design your applications to take full advantage.\n\nAWS S3 pricing includes: storage costs, request costs, data transfer (egress) fees, and a significant margin for Amazon's infrastructure, support, and profit. When you pay AWS, you're paying for all of this bundled together.\n\n0G flips this model: hundreds of storage miners compete in an open market. The Flow smart contract handles payments directly to miners based on Proof of Random Access (PoRA) challenges — miners must continuously prove they actually store the data they claim to store.\n\nThe economic effect:\n- **Storage**: Miners set competitive rates based on their actual hardware costs\n- **Egress**: No egress fees. Miners are incentivized to serve data quickly to maintain their reputation and earning potential\n- **Retrieval speed**: 200 MBPS guaranteed even under network congestion, because multiple nodes store each file (erasure coding)\n\nFor AI workloads, this is transformative. Storing a 100GB model dataset on AWS S3 costs ~$2.30/month plus $9/GB for egress when you retrieve it for training. On 0G Storage, you pay a fraction of that with no egress fees.\n\nThe SDK handles all payment logic automatically through the Flow contract — you don't need to worry about calculating miner fees manually.",
+        "x402_price": "",
+        "x402_gateway": ""
+      }
+    ]
+  },
+  {
+    "id": "compute_network",
+    "title": "Module 3: 0G Compute Network",
+    "description": "Run AI inference and fine-tune models on decentralized GPU hardware — 90% cheaper than cloud providers, fully OpenAI SDK compatible.",
+    "concepts": ["compute_architecture", "account_funding_flow", "openai_compatible_inference", "fine_tuning_workflow", "compute_fee_model"],
+    "lessons": [
+      {
+        "concept_id": "compute_architecture",
+        "title": "0G Compute: Decentralized GPU Marketplace",
+        "prerequisites": ["smart_contract_addresses"],
+        "key_ideas": [
+          "GPU providers stake and register services on-chain with custom pricing",
+          "Smart contract escrow: pay upfront, provider proves work via ZK proofs",
+          "OpenAI SDK compatible — 2-line code change from existing OpenAI integrations"
+        ],
+        "code_ref": "",
+        "paper_ref": "0G Labs, 2024 — 0G Developer Documentation (docs.0g.ai)",
+        "exercise": "How does 0G Compute ensure that GPU providers actually perform the work they are paid for?\n1) Trust — providers stake tokens that can be slashed if fraud is detected\n2) ZK proofs submitted on-chain prove computation was performed correctly\n3) Manual verification by 0G Labs reviewers\nType the number.",
+        "explanation": "0G Labs built 0G Compute on a trustless incentive model: GPU providers must cryptographically prove they performed the computation, or they don't get paid.\n\nHere's how the marketplace works:\n\n1. **Provider Registration**: GPU operators register their services on-chain via the Compute Ledger contract. They specify: available models (e.g., Llama-3-8B), pricing (per 1K tokens), hardware specs, and whether they use TEE (Trusted Execution Environment) for verifiable computation.\n\n2. **Client Funding**: You deposit tokens into a smart contract escrow account. When you make an inference request, you're drawing down from this escrow.\n\n3. **Work Proof**: For TEE providers, the computation runs inside a hardware-attested secure enclave. The provider returns a `ZG-Res-Key` header that your client uses to submit a ZK settlement proof on-chain. For non-TEE providers, payment is direct without the cryptographic verification step.\n\n4. **Settlement**: ZK-proof settlement batches hundreds of payments into a single on-chain transaction, reducing gas costs 100x versus per-request settlement.\n\nThe economic result: providers compete on price and quality. With hundreds of GPU operators globally, the market price converges near hardware costs — about 90% cheaper than centralized providers like OpenAI or AWS Bedrock.\n\nThe current supported workloads include: chat completion (text generation), image generation, speech-to-text, text embeddings, and model fine-tuning.",
+        "x402_price": "",
+        "x402_gateway": ""
+      },
+      {
+        "concept_id": "account_funding_flow",
+        "title": "Funding Your Compute Account",
+        "prerequisites": ["compute_architecture"],
+        "key_ideas": [
+          "Two-level system: Main Account → Provider Sub-Accounts",
+          "Must acknowledge provider before making requests",
+          "24-hour security lock period for refunds (anti-fraud)"
+        ],
+        "code_ref": "",
+        "paper_ref": "0G Labs, 2024 — 0G Developer Documentation (docs.0g.ai)",
+        "exercise": "Before making an inference request to a specific provider, what must you do first?\n1) Just deposit funds — inference works immediately\n2) Deposit funds, transfer to provider sub-account, and acknowledge the provider\n3) Download and run a local model first to verify the provider\nType the number.",
+        "explanation": "0G Labs designed a two-level account system for Compute that isolates your risk to specific providers. Here's the complete setup flow:\n\n```bash\n# Step 1: Install the CLI\npnpm add @0glabs/0g-serving-broker -g\n\n# Step 2: Log in (connects to your wallet)\n0g-compute-cli login\n\n# Step 3: Deposit to your Main Account\n0g-compute-cli deposit --amount 10\n\n# Step 4: List available providers\n0g-compute-cli inference list-providers\n\n# Step 5: Transfer funds to a specific provider's sub-account\n0g-compute-cli transfer-fund \\\n  --provider <PROVIDER_ADDRESS> \\\n  --amount 5\n\n# Step 6: Acknowledge the provider (required before first request)\n0g-compute-cli inference acknowledge-provider \\\n  --provider <PROVIDER_ADDRESS>\n\n# Step 7: Get your API secret key for this provider\n0g-compute-cli inference get-secret \\\n  --provider <PROVIDER_ADDRESS>\n# Outputs: app-sk-<YOUR_SECRET>\n```\n\nThe 24-hour refund lock period is a security measure: if you could instantly withdraw funds, you could exploit providers by requesting work and immediately withdrawing before settlement. The lock ensures providers have time to submit their work proofs.\n\nPractical tip: keep a small buffer (10-20% extra) in your provider sub-account. If funds run out mid-request, the request fails. You can fund multiple providers and switch between them in your application code.",
+        "x402_price": "",
+        "x402_gateway": ""
+      },
+      {
+        "concept_id": "openai_compatible_inference",
+        "title": "OpenAI Drop-In: Migrate in 2 Lines",
+        "prerequisites": ["account_funding_flow"],
+        "key_ideas": [
+          "Change baseURL to <PROVIDER_URL>/v1/proxy",
+          "Change apiKey to output of: 0g-compute-cli inference get-secret",
+          "All OpenAI endpoints (chat, embeddings, images) work identically"
+        ],
+        "code_ref": "examples/04-compute-inference.ts",
+        "paper_ref": "0G Labs, 2024 — 0G Developer Documentation (docs.0g.ai)",
+        "exercise": "What two values must you change to migrate existing OpenAI SDK code to 0G Compute?\n1) The model name and the temperature parameter\n2) The baseURL and the apiKey\n3) The SDK package name and the endpoint\nType the number.",
+        "explanation": "0G Labs made a deliberate compatibility decision: their Compute API is a drop-in replacement for the OpenAI API. This means your existing applications can switch to 0G Compute with minimal code changes.\n\n**Before (standard OpenAI):**\n```typescript\nimport OpenAI from 'openai';\n\nconst client = new OpenAI({\n  apiKey: process.env.OPENAI_API_KEY,\n  // baseURL defaults to https://api.openai.com/v1\n});\n\nconst response = await client.chat.completions.create({\n  model: 'gpt-4',\n  messages: [{ role: 'user', content: 'Hello!' }]\n});\n```\n\n**After (0G Compute — only 2 lines change):**\n```typescript\nimport OpenAI from 'openai';\n\nconst client = new OpenAI({\n  apiKey: process.env.ZG_API_KEY,           // was: process.env.OPENAI_API_KEY\n  baseURL: process.env.ZG_PROVIDER_URL + '/v1/proxy', // was: default\n});\n\nconst response = await client.chat.completions.create({\n  model: 'meta-llama/Meta-Llama-3.1-8B-Instruct', // open source models available\n  messages: [{ role: 'user', content: 'Hello!' }]\n});\n\nconsole.log(response.choices[0].message.content);\n```\n\nYou set `ZG_API_KEY` to the output of `0g-compute-cli inference get-secret`, and `ZG_PROVIDER_URL` to the provider's endpoint URL (visible in `0g-compute-cli inference list-providers`).\n\nAvailable open-source models on 0G Compute include: Llama-3.1-8B/70B, Qwen2.5 series, Mistral 7B, and specialized models. Model availability varies by provider.",
+        "x402_price": "",
+        "x402_gateway": ""
+      },
+      {
+        "concept_id": "fine_tuning_workflow",
+        "title": "Fine-Tuning Models on 0G Compute",
+        "prerequisites": ["account_funding_flow"],
+        "key_ideas": [
+          "Dataset format: JSONL with {prompt, response} pairs",
+          "Fee = (tokenSize / 1,000,000) × pricePerMillionTokens × trainEpochs",
+          "Download model within 48 hours of completion"
+        ],
+        "code_ref": "",
+        "paper_ref": "0G Labs, 2024 — 0G Developer Documentation (docs.0g.ai)",
+        "exercise": "After a fine-tuning job completes on 0G Compute, how long do you have to download the model?\n1) 7 days\n2) 48 hours\n3) 30 minutes\nType the number.",
+        "explanation": "0G Compute supports fine-tuning foundation models on your custom datasets. The workflow is streamlined through the CLI:\n\n**Step 1: Prepare your dataset**\n```jsonl\n{\"prompt\": \"What is 0G Storage?\", \"response\": \"0G Storage is a decentralized storage network 95% cheaper than AWS.\"}\n{\"prompt\": \"How do I upload a file?\", \"response\": \"Use ZgFile.fromFilePath() and indexer.upload() from the 0g-ts-sdk.\"}\n```\n\n**Step 2: Transfer funds for fine-tuning specifically**\n```bash\n0g-compute-cli transfer-fund \\\n  --provider <PROVIDER_ADDRESS> \\\n  --amount 2 \\\n  --service fine-tuning\n```\n\n**Step 3: Create the fine-tuning task**\n```bash\n0g-compute-cli fine-tuning create-task \\\n  --provider <PROVIDER_ADDRESS> \\\n  --model Qwen2.5-0.5B-Instruct \\\n  --dataset-path ./my-dataset.jsonl \\\n  --config-path ./training-config.json\n```\n\n**Step 4: Download and decrypt within 48 hours**\n```bash\n# Acknowledge to download (must do within 48 hours)\n0g-compute-cli fine-tuning acknowledge-model \\\n  --provider <PROVIDER> \\\n  --task-id <TASK_ID> \\\n  --data-path ./my-finetuned-model\n\n# Decrypt the model\n0g-compute-cli fine-tuning decrypt-model ...\n```\n\n**Fee calculation:**\n```\nTotal = (tokenSize / 1,000,000) × pricePerMillionTokens × trainEpochs\n```\nFor a 1M token dataset, 3 epochs, at $0.01/1M tokens = $0.03 total — orders of magnitude cheaper than cloud fine-tuning services.",
+        "x402_price": "",
+        "x402_gateway": ""
+      },
+      {
+        "concept_id": "compute_fee_model",
+        "title": "Fee Verification: The ZG-Res-Key Settlement Flow",
+        "prerequisites": ["openai_compatible_inference"],
+        "key_ideas": [
+          "TEE providers return a ZG-Res-Key header after each response",
+          "Call processResponse() with this key to trigger ZK-proof settlement",
+          "Skipping processResponse() leaves funds locked in escrow"
+        ],
+        "code_ref": "examples/04-compute-inference.ts",
+        "paper_ref": "0G Labs, 2024 — 0G Developer Documentation (docs.0g.ai)",
+        "exercise": "What happens if you use a TEE provider but skip calling processResponse() after inference?\n1) Nothing — it's optional and fees are settled automatically\n2) Funds remain locked in escrow and the provider doesn't receive payment\n3) Your next inference request will fail\nType the number.",
+        "explanation": "0G Labs built a two-phase payment system for TEE-verified inference to enable batched ZK-proof settlement:\n\n**Phase 1: Request** — You make an inference request. The provider runs the computation in a TEE (Trusted Execution Environment), which produces a cryptographic attestation of the computation.\n\n**Phase 2: Settlement** — The provider returns a `ZG-Res-Key` header in the response. You must call `processResponse()` with this key to complete the payment settlement on-chain.\n\n```typescript\nimport { createZGServingNetworkBroker } from '@0glabs/0g-serving-broker';\nimport OpenAI from 'openai';\n\n// Initialize broker for fee management\nconst broker = await createZGServingNetworkBroker(signer);\n\nconst response = await fetch(`${providerUrl}/v1/chat/completions`, {\n  method: 'POST',\n  headers: {\n    'Authorization': `Bearer ${apiKey}`,\n    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n    model: 'meta-llama/Meta-Llama-3.1-8B-Instruct',\n    messages: [{ role: 'user', content: 'Hello!' }]\n  })\n});\n\n// Extract the settlement key\nconst chatID = response.headers.get('ZG-Res-Key');\nconst data = await response.json();\n\n// Complete fee settlement (REQUIRED for TEE providers)\nif (chatID) {\n  const isValid = await broker.inference.processResponse(\n    providerAddress,\n    chatID,\n    JSON.stringify(data.usage || {})\n  );\n  console.log('Settlement valid:', isValid);\n}\n```\n\nThe ZK-proof settlement batches hundreds of these payment operations into a single on-chain transaction, achieving 100x gas savings versus per-request settlement. This is what makes micropayment-per-inference economically viable.",
+        "x402_price": "",
+        "x402_gateway": ""
+      }
+    ]
+  },
+  {
+    "id": "chain_contracts",
+    "title": "Module 4: 0G Chain & Smart Contracts",
+    "description": "Deploy smart contracts to 0G Chain, use native precompiles, and integrate the 0G DA layer for rollup applications.",
+    "concepts": ["evm_compatibility_config", "da_signers_precompile", "wrapped_og_base", "data_availability_layer", "rollup_integration"],
+    "lessons": [
+      {
+        "concept_id": "evm_compatibility_config",
+        "title": "Configuring Hardhat and Foundry for 0G",
+        "prerequisites": ["network_configuration"],
+        "key_ideas": [
+          "Critical: evmVersion must be 'cancun' — older versions cause silent failures",
+          "Add both testnet and mainnet to networks config for easy switching",
+          "Foundry: set evm_version = 'cancun' in foundry.toml"
+        ],
+        "code_ref": "",
+        "paper_ref": "0G Labs, 2024 — 0G Developer Documentation (docs.0g.ai)",
+        "exercise": "What happens if you deploy a contract to 0G Chain without setting evmVersion to 'cancun'?\n1) Deployment fails immediately with a clear error\n2) Contract deploys but may use incorrect opcodes, causing silent failures\n3) Nothing — the RPC automatically uses the correct EVM version\nType the number.",
+        "explanation": "0G Labs explicitly specifies in their documentation that contracts must be compiled with `evmVersion: 'cancun'`. This is one of the most common sources of confusion for new developers — missing this setting doesn't always cause an obvious error, but can lead to contracts that compile and deploy successfully yet fail at runtime.\n\n**Hardhat configuration (`hardhat.config.js`):**\n```javascript\nrequire('@nomicfoundation/hardhat-toolbox');\n\nmodule.exports = {\n  solidity: {\n    version: '0.8.19',\n    settings: {\n      evmVersion: 'cancun',  // CRITICAL: must be cancun\n      optimizer: {\n        enabled: true,\n        runs: 200\n      }\n    }\n  },\n  networks: {\n    testnet: {\n      url: 'https://evmrpc-testnet.0g.ai',\n      chainId: 16602,\n      accounts: [process.env.PRIVATE_KEY]\n    },\n    mainnet: {\n      url: 'https://evmrpc.0g.ai',\n      chainId: 16661,\n      accounts: [process.env.PRIVATE_KEY]\n    }\n  }\n};\n```\n\n**Foundry configuration (`foundry.toml`):**\n```toml\n[profile.default]\nevm_version = \"cancun\"\n\n[rpc_endpoints]\n0g_testnet = \"https://evmrpc-testnet.0g.ai\"\n0g_mainnet = \"https://evmrpc.0g.ai\"\n```\n\n**Foundry deploy command:**\n```bash\nforge create --rpc-url https://evmrpc-testnet.0g.ai \\\n  --private-key $PRIVATE_KEY \\\n  --evm-version cancun \\\n  src/MyContract.sol:MyContract\n```\n\n**Remix**: Select 'cancun' from the EVM Version dropdown in the Solidity Compiler tab before compiling.",
+        "x402_price": "",
+        "x402_gateway": ""
+      },
+      {
+        "concept_id": "da_signers_precompile",
+        "title": "DASigners Precompile: Native DA Access",
+        "prerequisites": ["zero_g_chain_basics"],
+        "key_ideas": [
+          "Fixed address: 0x0000000000000000000000000000000000001000",
+          "Query DA quorum membership and epoch numbers from within smart contracts",
+          "registerSigner() allows smart contracts to register new DA signers"
+        ],
+        "code_ref": "",
+        "paper_ref": "0G Labs, 2024 — 0G Developer Documentation (docs.0g.ai)",
+        "exercise": "Where is the DASigners precompile deployed on 0G Chain?\n1) Deployed by 0G Labs and changes with each network upgrade\n2) At fixed address 0x0000000000000000000000000000000000001000\n3) It's not a contract — it's accessed via a special opcode\nType the number.",
+        "explanation": "0G Labs implemented the DASigners precompile as a native contract at a fixed address. Unlike regular smart contracts, precompiles run native Go code instead of EVM bytecode, making them extremely gas-efficient.\n\nThe DASigners precompile manages the registry of validators (signers) that participate in the DA consensus. Your smart contracts can query this registry to verify DA quorum membership without any external calls.\n\n```solidity\n// SPDX-License-Identifier: MIT\npragma solidity ^0.8.19;\n\ninterface IDASigners {\n    struct Params {\n        uint256 tokensPerVote;\n        uint256 maxVotesPerSigner;\n        uint256 maxQuorums;\n        uint256 epochBlocks;\n        uint256 encodedSlices;\n    }\n\n    function params() external view returns (Params memory);\n    function epochNumber() external view returns (uint256);\n    function getQuorum(uint256 epoch, uint256 quorumId) \n        external view returns (address[] memory);\n}\n\ncontract DAVerifier {\n    IDASigners constant DA_SIGNERS = \n        IDASigners(0x0000000000000000000000000000000000001000);\n\n    function currentEpoch() external view returns (uint256) {\n        return DA_SIGNERS.epochNumber();\n    }\n\n    function quorumMembers(uint256 epoch, uint256 quorumId)\n        external view returns (address[] memory) {\n        return DA_SIGNERS.getQuorum(epoch, quorumId);\n    }\n}\n```\n\nThis enables powerful on-chain verification: your smart contract can confirm that a specific set of DA signers participated in a data availability attestation, creating fully on-chain DA proofs.",
+        "x402_price": "",
+        "x402_gateway": ""
+      },
+      {
+        "concept_id": "wrapped_og_base",
+        "title": "WrappedOGBase: ERC20 Wrapping for Native Token",
+        "prerequisites": ["zero_g_chain_basics"],
+        "key_ideas": [
+          "Fixed address: 0x0000000000000000000000000000000000001001",
+          "Wraps native 0G into ERC20 W0G for DeFi protocol compatibility",
+          "mint() and burn() use quota-based mechanism for controlled supply"
+        ],
+        "code_ref": "",
+        "paper_ref": "0G Labs, 2024 — 0G Developer Documentation (docs.0g.ai)",
+        "exercise": "What is the main purpose of the WrappedOGBase precompile?\n1) To mint new native 0G tokens for staking rewards\n2) To wrap native 0G tokens into ERC20 format for DeFi protocol compatibility\n3) To convert 0G tokens to USDC for payment settlement\nType the number.",
+        "explanation": "0G Labs documented the WrappedOGBase precompile as the on-chain mechanism for wrapping the native 0G token into an ERC20-compatible W0G token.\n\nNative tokens (like ETH on Ethereum) can't directly participate in ERC20-based DeFi protocols — you need a wrapped version that conforms to the ERC20 interface. This is why WETH exists on Ethereum. WrappedOGBase is 0G's equivalent.\n\n```solidity\ninterface IWrappedOGBase {\n    // Wrap native 0G into ERC20 W0G\n    function mint(address minter, uint256 amount) external;\n\n    // Unwrap W0G back to native 0G\n    function burn(address minter, uint256 amount) external;\n}\n\n// Fixed address on all 0G networks\nIWrappedOGBase constant WRAPPED_OG = \n    IWrappedOGBase(0x0000000000000000000000000000000000001001);\n```\n\nThe quota-based minting mechanism prevents unconstrained token creation — only authorized contracts can call `mint()` within their allocated quota. This ensures the wrapped token supply accurately reflects the actual native token supply.\n\nFor developers building DeFi protocols, payment systems, or any application that needs to transfer 0G tokens between contracts using the ERC20 interface, this precompile is your entry point. For most application developers (Storage, Compute users), you won't need this directly — the SDK handles token management internally.",
+        "x402_price": "",
+        "x402_gateway": ""
+      },
+      {
+        "concept_id": "data_availability_layer",
+        "title": "0G DA: 50 Gbps Data Availability",
+        "prerequisites": ["zero_g_chain_basics"],
+        "key_ideas": [
+          "50 Gbps demonstrated throughput using KZG commitments + erasure coding",
+          "VRF prevents validator collusion in data sampling",
+          "Data padded to 32MB, erasure-coded into 3072×1024 matrix"
+        ],
+        "code_ref": "",
+        "paper_ref": "0G Labs, 2024 — 0G Developer Documentation (docs.0g.ai)",
+        "exercise": "Why does 0G DA use a Verifiable Random Function (VRF) for data sampling?\n1) To select which users receive storage discounts\n2) To prevent validator collusion by making sampling unpredictable\n3) To generate encryption keys for stored data\nType the number.",
+        "explanation": "0G Labs designed their DA layer to solve a fundamental problem with traditional data availability systems: validator collusion. If validators can predict which data will be sampled, a colluding group could claim data is available without actually storing it.\n\nThe solution is VRF (Verifiable Random Function): validators commit to a random seed before seeing what data they'll be asked to prove. The sampling is unpredictable but verifiable — you can prove the sampling was random without revealing the seed prematurely.\n\n**The data processing pipeline:**\n1. Data is padded to 32,505,852 bytes (≈32MB)\n2. Sliced into a 1024×1024 matrix (31 bytes per element)\n3. **Erasure coding**: expanded to 3072×1024 using the BN254 elliptic curve finite field — this 3x expansion means the original data can be recovered from any 1024 of the 3072 rows (tolerates loss of 2/3 of data)\n4. KZG polynomial commitment computed for each column — provides cryptographic proof that data is correctly encoded\n5. Root hash submitted to the DAEntrance contract on-chain\n\nThe result: any node that wants to verify data availability needs only download 1/3072 of the data (a random sample), yet this sampling provides strong statistical guarantees. At 50 Gbps, this is orders of magnitude above Ethereum's ~1 MB/slot DA capacity.\n\nFor rollup developers, this means you can process dramatically more transactions per second while keeping DA costs minimal.",
+        "x402_price": "",
+        "x402_gateway": ""
+      },
+      {
+        "concept_id": "rollup_integration",
+        "title": "Connecting OP Stack and Arbitrum Nitro to 0G DA",
+        "prerequisites": ["data_availability_layer", "da_signers_precompile"],
+        "key_ideas": [
+          "OP Stack: run da-server sidecar, add --altda.enabled=true to op-node",
+          "Arbitrum Nitro: implement DataAvailabilityProvider interface",
+          "Replaces EIP-4844 blobs — reduces rollup operating costs significantly"
+        ],
+        "code_ref": "",
+        "paper_ref": "0G Labs, 2024 — 0G Developer Documentation (docs.0g.ai)",
+        "exercise": "How does OP Stack integrate with 0G DA?\n1) Replace the op-node binary with a 0G-provided binary\n2) Run a da-server sidecar alongside the standard op-node with --altda flags\n3) Deploy a custom L1 contract that proxies to 0G DA\nType the number.",
+        "explanation": "0G Labs provides integration guides for both major rollup stacks. The integration is designed to be minimally invasive — you keep your existing rollup stack and add 0G DA as a pluggable module.\n\n**OP Stack Integration:**\n\n1. Build and run the `da-server` sidecar:\n```bash\n./bin/da-server --addr 127.0.0.1 --port 3100 --zg.server 127.0.0.1:51001\n```\n\n2. Update your `rollup.json` with Alt-DA config:\n```json\n{\n  \"alt_da\": {\n    \"da_challenge_contract_address\": \"0x0000000000000000000000000000000000000000\",\n    \"da_commitment_type\": \"GenericCommitment\",\n    \"da_challenge_window\": 160,\n    \"da_resolve_window\": 160\n  }\n}\n```\n\n3. Add flags to your `op-node` startup:\n```bash\nop-node \\\n  --altda.enabled=true \\\n  --altda.da-server=http://127.0.0.1:3100 \\\n  --altda.da-service=true \\\n  [... other flags]\n```\n\n**Arbitrum Nitro Integration:**\n\n0G implements the `DataAvailabilityProvider` interface from the Nitro codebase. This replaces the default EIP-4844 blob handling with 0G DA storage and retrieval. The integration is at the code level — you compile a custom Nitro binary with the 0G DA provider.\n\nThe economic impact: EIP-4844 blobs cost ~0.01 ETH per 128KB. 0G DA at 50 Gbps throughput offers orders of magnitude more capacity at a fraction of the cost, enabling rollups that were previously cost-prohibitive.",
+        "x402_price": "",
+        "x402_gateway": ""
+      }
+    ]
+  },
+  {
+    "id": "advanced_patterns",
+    "title": "Module 5: Advanced 0G Patterns",
+    "description": "Frontier techniques: tokenize AI agents as NFTs, build full-stack AI applications, and index on-chain data with Goldsky.",
+    "concepts": ["inft_erc7857", "ai_agent_storage_pattern", "goldsky_indexing", "full_stack_0g_app"],
+    "lessons": [
+      {
+        "concept_id": "inft_erc7857",
+        "title": "INFTs: Tokenizing AI Agents with ERC-7857",
+        "prerequisites": ["storage_architecture", "evm_compatibility_config"],
+        "key_ideas": [
+          "ERC-7857 extends ERC-721: NFT owns encrypted AI model weights on 0G Storage",
+          "Transfer triggers TEE/ZKP re-encryption for the new owner",
+          "authorizeUsage() grants execution rights without ownership transfer"
+        ],
+        "code_ref": "",
+        "paper_ref": "0G Labs, 2024 — 0G Developer Documentation (docs.0g.ai)",
+        "exercise": "What happens to the encrypted AI model when an ERC-7857 INFT is transferred?\n1) The model is deleted and the new owner must retrain it\n2) A TEE/ZKP oracle re-encrypts the model metadata for the new owner's public key\n3) The model becomes public — anyone can download it\nType the number.",
+        "explanation": "0G Labs introduced ERC-7857 as an extension of ERC-721 that solves a fundamental problem in AI ownership: how do you transfer an AI model to a new owner without ever exposing the model weights in plaintext?\n\nThe architecture:\n1. **Storage**: Model weights are stored encrypted on 0G Storage (Log layer). The NFT holds a reference to the encrypted data's rootHash.\n2. **Transfer**: When the NFT changes hands, a TEE (Trusted Execution Environment) or ZKP (Zero-Knowledge Proof) oracle decrypts the model inside a secure enclave and re-encrypts it with the new owner's public key — never exposing the raw weights.\n3. **Usage**: `authorizeUsage()` lets the owner grant inference permissions to other addresses without full ownership transfer.\n\n```solidity\ncontract ERC7857 is ERC721, Ownable, ReentrancyGuard {\n    mapping(uint256 => bytes32) private _metadataHashes;\n    mapping(uint256 => string) private _encryptedURIs;\n    address public oracle; // TEE or ZKP oracle address\n\n    modifier validProof(bytes calldata proof) {\n        require(IOracle(oracle).verifyProof(proof), 'Invalid proof');\n        _;\n    }\n\n    // Transfer ownership + re-encrypt model for new owner\n    function transfer(\n        address from,\n        address to,\n        uint256 tokenId,\n        bytes calldata sealedKey,  // new owner's public key\n        bytes calldata proof       // oracle proof of correct re-encryption\n    ) external nonReentrant validProof(proof) {\n        require(ownerOf(tokenId) == from, 'Not owner');\n        _updateMetadataAccess(tokenId, to, sealedKey, proof);\n        _transfer(from, to, tokenId);\n    }\n\n    // Clone: create a new NFT with copied model (new owner gets copy)\n    function clone(address to, uint256 tokenId,\n        bytes calldata sealedKey, bytes calldata proof)\n        external nonReentrant validProof(proof) { ... }\n\n    // Grant inference rights without ownership transfer\n    function authorizeUsage(uint256 tokenId, address executor,\n        bytes calldata permissions) external { ... }\n}\n```\n\nThis enables a marketplace for AI agents: you can buy, sell, rent, and license AI models on-chain with cryptographic guarantees of privacy and ownership.",
+        "x402_price": "",
+        "x402_gateway": ""
+      },
+      {
+        "concept_id": "ai_agent_storage_pattern",
+        "title": "The AI Agent Storage Pattern",
+        "prerequisites": ["file_upload_merkle", "openai_compatible_inference"],
+        "key_ideas": [
+          "Store model weights on Log layer — immutable, content-addressed",
+          "Serve inference via 0G Compute using the stored model",
+          "Record agent actions on 0G Chain for transparent auditability"
+        ],
+        "code_ref": "examples/05-full-stack.ts",
+        "paper_ref": "0G Labs, 2024 — 0G Developer Documentation (docs.0g.ai)",
+        "exercise": "In the AI Agent Storage Pattern, what is the role of the rootHash from 0G Storage?\n1) It's used as the encryption key for model weights\n2) It's a permanent content-addressed pointer stored in the smart contract\n3) It's only used internally by the SDK and not exposed to developers\nType the number.",
+        "explanation": "0G Labs designed their storage system to enable a powerful pattern for on-chain AI agents. The rootHash acts as a permanent, unforgeable pointer to your model — like a git commit hash but for neural network weights.\n\nHere's the full pattern:\n\n**1. Store the model:**\n```typescript\n// Upload fine-tuned model weights\nconst modelFile = await ZgFile.fromFilePath('./my-model.bin');\nconst [tree] = await modelFile.merkleTree();\nconst modelRootHash = tree!.rootHash();\nawait indexer.upload(modelFile, RPC_URL, signer);\nawait modelFile.close();\n```\n\n**2. Register on-chain:**\n```solidity\n// Store the rootHash as the agent's model reference\ncontract AIAgent {\n    bytes32 public modelRootHash;\n    address public owner;\n\n    function setModel(bytes32 _rootHash) external onlyOwner {\n        modelRootHash = _rootHash;\n        emit ModelUpdated(_rootHash, block.timestamp);\n    }\n\n    function recordAction(string calldata action, bytes32 resultHash)\n        external onlyAgent {\n        emit ActionRecorded(action, resultHash, block.timestamp);\n    }\n}\n```\n\n**3. Serve inference via Compute:**\n```typescript\n// Anyone can verify the agent by checking modelRootHash on-chain\n// and then querying the model via 0G Compute\nconst client = new OpenAI({ apiKey: ZG_API_KEY, baseURL: ZG_PROVIDER_URL });\nconst result = await client.chat.completions.create({ model: modelName, messages });\n\n// Record the action on-chain\nawait agentContract.recordAction(action, resultHash);\n```\n\nThis creates a fully auditable AI agent: anyone can verify which model is running (via the rootHash), see every action the agent took (from on-chain events), and cryptographically verify the model hasn't been changed.",
+        "x402_price": "",
+        "x402_gateway": ""
+      },
+      {
+        "concept_id": "goldsky_indexing",
+        "title": "Indexing 0G Data with Goldsky",
+        "prerequisites": ["evm_compatibility_config"],
+        "key_ideas": [
+          "Subgraphs: GraphQL API over 0G contract events",
+          "Mirror: real-time streaming of events to your database",
+          "Point Goldsky to 0G RPC endpoints and your contract ABIs"
+        ],
+        "code_ref": "",
+        "paper_ref": "0G Labs, 2024 — 0G Developer Documentation (docs.0g.ai)",
+        "exercise": "What is the difference between Goldsky Subgraphs and Goldsky Mirror?\n1) Subgraphs are for testnets, Mirror is for mainnet\n2) Subgraphs provide GraphQL queries; Mirror streams events to external databases\n3) Subgraphs index storage data; Mirror indexes compute data\nType the number.",
+        "explanation": "0G Labs recommends Goldsky as the indexing solution for 0G contract data. Raw on-chain event data is difficult to query efficiently — Goldsky transforms it into queryable APIs and database streams.\n\n**Goldsky Subgraphs:**\nDeploy a GraphQL API over your contract's event history. Query patterns like 'all files uploaded in the last 24 hours' or 'total storage used by address 0x...'.\n\n```graphql\n# Query uploaded files\n{\n  fileUploads(first: 10, orderBy: timestamp, orderDirection: desc) {\n    id\n    uploader\n    rootHash\n    size\n    timestamp\n  }\n}\n```\n\n**Goldsky Mirror:**\nStreams contract events directly to your database in real-time. Perfect for dashboards that need sub-second latency.\n\n```yaml\n# goldsky mirror config\nsources:\n  - type: ethereum\n    name: 0g-storage-events\n    networks:\n      - name: 0g-testnet\n        rpc_url: https://evmrpc-testnet.0g.ai\n        start_block: 0\n    contracts:\n      - address: '0x22E03a6A89B950F1c82ec5e74F8eCa321a105296' # Flow contract\n        abi: ./flow-abi.json\n        events: [FileUploaded, MerkleTreeBuilt]\nsinks:\n  - type: postgres\n    name: my-dashboard-db\n    connection: $DATABASE_URL\n```\n\n**Use Goldsky when you need:**\n- Dashboard showing real-time storage usage\n- Analytics over compute job history\n- Notification system when specific contracts emit events\n- Historical data analysis over 0G chain events\n\nFor simple explorers, you can also use the existing block explorers: `https://chainscan-galileo.0g.ai` (testnet) or `https://storageScan.0g.ai` (storage-specific).",
+        "x402_price": "",
+        "x402_gateway": ""
+      },
+      {
+        "concept_id": "full_stack_0g_app",
+        "title": "Capstone: Building a Full-Stack 0G Application",
+        "prerequisites": ["ai_agent_storage_pattern", "kv_storage", "rollup_integration"],
+        "key_ideas": [
+          "Combine all four services: Chain (contracts) + Storage (data) + Compute (AI) + DA (rollup)",
+          "Storage rootHash as content-addressed data pointer in smart contracts",
+          "Full-stack TypeScript: ethers.js + @0glabs/0g-ts-sdk + openai SDK"
+        ],
+        "code_ref": "examples/05-full-stack.ts",
+        "paper_ref": "0G Labs, 2024 — 0G Developer Documentation (docs.0g.ai)",
+        "exercise": "In a full-stack 0G app, how do smart contracts reference files stored on 0G Storage?\n1) Using the filename string\n2) Using the rootHash (Merkle tree root) as a content-addressed pointer\n3) Using an IPFS CID\nType the number.",
+        "explanation": "0G Labs designed their four services to compose naturally. The rootHash from Storage, addresses from Chain, and provider URLs from Compute can all be referenced from each other, creating a coherent full-stack architecture.\n\nHere's a complete architecture for an on-chain AI model marketplace:\n\n```\nUser Flow:\n1. Developer uploads model weights → Storage (gets rootHash)\n2. Smart contract records rootHash + metadata → Chain\n3. Buyer purchases model NFT → Chain (ERC-7857)\n4. Oracle re-encrypts weights for buyer → off-chain TEE\n5. Buyer runs inference with their model → Compute\n6. Inference results stored for audit → Storage (Log layer)\n7. Usage stats visible in dashboard → Goldsky Mirror\n```\n\n**The composability pattern:**\n```typescript\n// 1. Upload dataset to Storage\nconst dataset = await ZgFile.fromFilePath('./training-data.jsonl');\nconst [tree] = await dataset.merkleTree();\nconst datasetHash = tree!.rootHash();\nawait indexer.upload(dataset, RPC_URL, signer);\n\n// 2. Record on-chain (the rootHash links Storage to Chain)\nawait myContract.recordDataset(datasetHash, { gasLimit: 100000 });\n\n// 3. Trigger fine-tuning job (uses the stored dataset)\n// ... 0g-compute-cli fine-tuning create-task --dataset-root <datasetHash>\n\n// 4. Store fine-tuning results back to Storage\nconst model = await ZgFile.fromFilePath('./finetuned-model.bin');\nconst [modelTree] = await model.merkleTree();\nconst modelHash = modelTree!.rootHash();\nawait indexer.upload(model, RPC_URL, signer);\n\n// 5. Register the trained model on-chain\nawait myContract.publishModel(modelHash, 'my-fine-tuned-llama');\n\n// 6. Other users can now run inference against this model via Compute\nconst client = new OpenAI({ apiKey: ZG_KEY, baseURL: PROVIDER_URL });\nconst result = await client.chat.completions.create({ model: 'my-fine-tuned-llama', messages });\n```\n\nThe key insight: `rootHash` is the universal data identifier that bridges Storage and Chain. Your smart contracts don't need to know anything about how 0G Storage works internally — they just store and verify rootHashes, and the cryptographic properties of Merkle trees guarantee the data integrity.",
+        "x402_price": "",
+        "x402_gateway": ""
+      }
+    ]
+  }
+]
