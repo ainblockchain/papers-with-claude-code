@@ -671,10 +671,10 @@
           },
           {
             "id": 3,
-            "name": "encoder_stack",
+            "name": "what_is_0g",
             "type": "npc",
             "x": 80,
-            "y": 160,
+            "y": 280,
             "width": 40,
             "height": 40,
             "rotation": 0,
@@ -683,21 +683,21 @@
               {
                 "name": "conceptId",
                 "type": "string",
-                "value": "encoder_stack"
+                "value": "what_is_0g"
               },
               {
                 "name": "title",
                 "type": "string",
-                "value": "The Encoder: Understanding the Input"
+                "value": "What is 0G? The Decentralized AI Operating System"
               }
             ]
           },
           {
             "id": 4,
-            "name": "position_wise_ffn",
+            "name": "four_services_overview",
             "type": "npc",
             "x": 240,
-            "y": 160,
+            "y": 280,
             "width": 40,
             "height": 40,
             "rotation": 0,
@@ -706,21 +706,21 @@
               {
                 "name": "conceptId",
                 "type": "string",
-                "value": "position_wise_ffn"
+                "value": "four_services_overview"
               },
               {
                 "name": "title",
                 "type": "string",
-                "value": "Position-wise Feed-Forward Networks"
+                "value": "The Four Services: Chain, Storage, Compute, DA"
               }
             ]
           },
           {
             "id": 5,
-            "name": "masked_attention",
+            "name": "why_decentralized_ai",
             "type": "npc",
             "x": 400,
-            "y": 160,
+            "y": 280,
             "width": 40,
             "height": 40,
             "rotation": 0,
@@ -729,21 +729,21 @@
               {
                 "name": "conceptId",
                 "type": "string",
-                "value": "masked_attention"
+                "value": "why_decentralized_ai"
               },
               {
                 "name": "title",
                 "type": "string",
-                "value": "Masked Self-Attention: No Peeking Ahead"
+                "value": "Why Decentralized AI Infrastructure Matters"
               }
             ]
           },
           {
             "id": 6,
-            "name": "decoder_stack",
+            "name": "0g_ecosystem",
             "type": "npc",
-            "x": 80,
-            "y": 400,
+            "x": 560,
+            "y": 280,
             "width": 40,
             "height": 40,
             "rotation": 0,
@@ -752,35 +752,12 @@
               {
                 "name": "conceptId",
                 "type": "string",
-                "value": "decoder_stack"
+                "value": "0g_ecosystem"
               },
               {
                 "name": "title",
                 "type": "string",
-                "value": "The Decoder: Generating the Output"
-              }
-            ]
-          },
-          {
-            "id": 7,
-            "name": "transformer_architecture",
-            "type": "npc",
-            "x": 240,
-            "y": 400,
-            "width": 40,
-            "height": 40,
-            "rotation": 0,
-            "visible": true,
-            "properties": [
-              {
-                "name": "conceptId",
-                "type": "string",
-                "value": "transformer_architecture"
-              },
-              {
-                "name": "title",
-                "type": "string",
-                "value": "The Complete Transformer"
+                "value": "The 0G Ecosystem: Networks, Tokens, and Resources"
               }
             ]
           }
@@ -837,73 +814,63 @@
     ]
   },
   "stage": {
-    "id": "architecture",
-    "stageNumber": 3,
-    "title": "Building the Transformer",
+    "id": "understanding_0g",
+    "stageNumber": 1,
+    "title": "Module 1: Understanding 0G",
     "roomWidth": 20,
     "roomHeight": 15,
     "concepts": [
       {
-        "id": "encoder_stack",
-        "title": "The Encoder: Understanding the Input",
-        "content": "Key ideas:\n- 6 identical layers stacked\n- Each layer: self-attention → FFN\n- Both sublayers wrapped with residual + LayerNorm\n- Output: contextualized representations for all positions\n\nThe encoder's job: transform input tokens into rich, contextualized representations. It stacks 6 identical layers, each with two sublayers:\n\n1. **Multi-head self-attention**: Each position looks at all positions\n2. **Feed-forward network**: Process each position independently\n\nBoth sublayers are wrapped: output = LayerNorm(x + Sublayer(x))\n\nThink of the encoder as a series of increasingly sophisticated filters. Layer 1 captures local patterns. Layer 6 captures abstract, global relationships. The final encoder output goes to every decoder layer.\n\nWith d_model=512 maintained throughout, the encoder produces 512-dimensional vectors for each input position.",
+        "id": "what_is_0g",
+        "title": "What is 0G? The Decentralized AI Operating System",
+        "content": "Key ideas:\n- 0G is the world's first decentralized AI operating system (deAIOS)\n- It provides infrastructure — storage, compute, data availability — so developers don't build from scratch\n- Purpose-built for AI workloads: high throughput, low cost, trustless guarantees\n\n0G Labs describes 0G as a 'decentralized AI operating system' — and the analogy is intentional. Just as an operating system (Windows, Linux, macOS) provides a foundation that applications build on top of, 0G provides foundational AI infrastructure that any developer or application can use without building their own data centers.\n\nThink about what it takes to build an AI application today:\n- You need a place to store training datasets and model weights (terabytes of data)\n- You need GPUs to train and run inference\n- You need a way to verify that computations happened correctly\n- You need a blockchain for provenance and payments\n\nAll of this typically comes from centralized cloud providers: AWS for storage, OpenAI or Bedrock for inference, Ethereum for on-chain logic. Each provider charges a markup for their infrastructure.\n\n0G replaces this stack with a single, unified, decentralized platform:\n- **Cheaper**: 95% less than AWS for storage, 90% less than OpenAI for inference\n- **Permissionless**: No API keys to request, no accounts to approve\n- **Trustless**: Cryptographic proofs replace trust in any single company\n- **Composable**: The four services work together natively\n\nFor AI applications specifically, 0G removes the infrastructure bottleneck. Developers can focus on building instead of managing cloud services.",
         "position": {
           "x": 2,
-          "y": 4
+          "y": 7
         },
         "type": "text"
       },
       {
-        "id": "position_wise_ffn",
-        "title": "Position-wise Feed-Forward Networks",
-        "content": "Key ideas:\n- Applied to each position independently\n- Two linear transforms with ReLU: FFN(x) = max(0, xW₁+b₁)W₂+b₂\n- Inner dimension d_ff = 2048 (4× d_model)\n- Same across positions, different across layers\n\nAfter attention mixes information across positions, the FFN processes each position independently. It's deceptively simple:\n\n```\nFFN(x) = max(0, x·W₁ + b₁)·W₂ + b₂\n```\n\nThis is just two linear layers with a ReLU in between. The middle expands from 512 to 2048 dimensions, then projects back to 512. Think of it as each position getting to 'think' in a higher-dimensional space.\n\nWhy position-wise? The attention already mixed information. Now each position needs to process what it learned. The weights are shared across positions (like a 1×1 convolution) but different for each of the 6 layers.",
+        "id": "four_services_overview",
+        "title": "The Four Services: Chain, Storage, Compute, DA",
+        "content": "Key ideas:\n- 0G Chain: EVM-compatible L1 blockchain, 11,000 TPS, smart contracts\n- 0G Storage: Decentralized file storage, 95% cheaper than AWS S3\n- 0G Compute: Decentralized GPU marketplace, 90% cheaper than OpenAI\n- 0G DA: Data availability layer, 50 Gbps throughput for rollups\n\n0G has four distinct services, each solving a specific infrastructure problem for AI applications:\n\n**0G Chain — The Programmable Layer**\nThis is an EVM-compatible Layer 1 blockchain. If you know Ethereum, you already know 0G Chain — the same Solidity contracts, MetaMask wallets, and ethers.js code work without modification. It processes 11,000 transactions per second (vs Ethereum's ~15 TPS) with sub-second finality. This is where your smart contracts live, where payments settle, and where data provenance is recorded.\n\n**0G Storage — The File System**\nDecentralized storage for any file type: datasets, model weights, documents, images. Files are content-addressed (identified by their Merkle root hash) and replicated across hundreds of nodes. No single company holds your data. Price: ~5% of AWS S3. Retrieval speed: 200 MBPS. This is where your AI's data lives.\n\n**0G Compute — The Execution Engine**\nA marketplace of GPU providers running AI inference and fine-tuning. The API is OpenAI-compatible — existing apps can switch with two lines of code. Providers compete on price, driving costs 90% below centralized alternatives. This is where your AI thinking happens.\n\n**0G DA — The Data Availability Backbone**\nHigh-throughput data availability for rollups (Layer 2 blockchains). At 50 Gbps, it's orders of magnitude above Ethereum's DA capacity. If you're building a rollup or L2, this is where your transaction data goes for verification without full on-chain storage.\n\nFor most developers getting started, you'll interact with Chain, Storage, and Compute. DA becomes relevant when you're building at L2 scale.",
         "position": {
           "x": 6,
-          "y": 4
+          "y": 7
         },
         "type": "text"
       },
       {
-        "id": "masked_attention",
-        "title": "Masked Self-Attention: No Peeking Ahead",
-        "content": "Key ideas:\n- In decoder, prevent attending to future positions\n- Set future positions to -∞ before softmax\n- Preserves auto-regressive property\n- Position i can only attend to positions ≤ i\n\nDuring generation, the decoder produces tokens one at a time. It can't see the future—that would be cheating! Masked self-attention enforces this.\n\nBefore softmax, we add a mask that sets all 'illegal' attention scores to -∞:\n```\nattention_scores[i, j] = -∞  if j > i\n```\n\nAfter softmax, these become 0. Position 3 can only attend to positions 0, 1, 2, 3—never 4, 5, or beyond.\n\nThis triangular mask ensures the model learns to predict autoregressively: each position only depends on its left context. During training, we can still process all positions in parallel—we just mask the future.",
+        "id": "why_decentralized_ai",
+        "title": "Why Decentralized AI Infrastructure Matters",
+        "content": "Key ideas:\n- Centralized AI creates single points of failure and censorship\n- Decentralization enables permissionless access and verifiable computation\n- Open competition between providers drives costs down dramatically\n\nWhy not just use AWS or OpenAI? This is a fair question, and understanding the answer helps you use 0G more effectively.\n\n**The centralization problem:**\n\nWhen you use AWS S3, you're trusting Amazon to:\n- Keep your data available\n- Not change pricing unexpectedly\n- Not delete or censor your data\n- Not be hacked or go down\n\nWhen you use OpenAI's API, you're trusting OpenAI to:\n- Keep running their service\n- Not rate-limit or ban your application\n- Provide accurate AI responses\n- Not change pricing or terms\n\nFor many applications, this trust is acceptable. But for AI applications that need to operate at scale, across geographies, or in adversarial environments, centralization is a liability.\n\n**The economics of decentralization:**\n\nCentralized providers charge market rates because there's limited competition at scale. AWS S3 pricing includes Amazon's infrastructure costs plus a significant markup for their support, reliability, and profit margin.\n\n0G flips this: hundreds of storage miners and GPU operators compete directly for your work. The Flow smart contract and Compute Ledger act as trustless marketplace coordinators. Competition drives prices to hardware costs — that's why 0G achieves 95% cost reduction for storage and 90% for compute.\n\n**The verifiability advantage:**\n\n0G uses cryptographic proofs to verify that:\n- Your file is actually stored (Proof of Random Access)\n- The AI inference was actually performed correctly (ZK proofs)\n- Data is available for rollup verification (KZG commitments)\n\nYou don't have to trust anyone — the math proves it.",
         "position": {
           "x": 10,
-          "y": 4
+          "y": 7
         },
         "type": "text"
       },
       {
-        "id": "decoder_stack",
-        "title": "The Decoder: Generating the Output",
-        "content": "Key ideas:\n- 6 identical layers stacked\n- Three sublayers per layer: masked self-attn → encoder-decoder attn → FFN\n- Masked attention preserves autoregressive property\n- Encoder-decoder attention reads from encoder output\n\nThe decoder generates output one token at a time, with three sublayers per layer:\n\n1. **Masked self-attention**: Attend to previous outputs only\n2. **Encoder-decoder attention**: Look at the input sequence\n3. **Feed-forward network**: Process independently\n\nEach sublayer has residual connections and layer norm. The decoder is more complex because it needs to:\n- Remember what it has generated (masked self-attention)\n- Know what the input said (encoder-decoder attention)\n- Process that combined information (FFN)\n\nThe encoder output is shared across all 6 decoder layers—computed once, used 6 times.",
+        "id": "0g_ecosystem",
+        "title": "The 0G Ecosystem: Networks, Tokens, and Resources",
+        "content": "Key ideas:\n- Two networks: Testnet (Galileo, chainId 16602) and Mainnet (Aristotle, chainId 16661)\n- Free testnet tokens at https://faucet.0g.ai for development\n- Explorers at chainscan-galileo.0g.ai (testnet) and chainscan.0g.ai (mainnet)\n\nBefore building on 0G, it helps to understand the ecosystem structure.\n\n**Two Networks:**\n\n| Network | Name | Chain ID | RPC |\n|---------|------|----------|-----|\n| Testnet | Galileo | 16602 | https://evmrpc-testnet.0g.ai |\n| Mainnet | Aristotle | 16661 | https://evmrpc.0g.ai |\n\nAlways develop and test on the Testnet first. Testnet tokens are free and have no real value — perfect for experimenting. Mainnet tokens have real value and are used for production applications.\n\n**Getting Testnet Tokens:**\n1. Go to https://faucet.0g.ai\n2. Connect your MetaMask wallet or paste your address\n3. Receive 0.1 0G per day (free)\n\n0G tokens are used for gas fees on 0G Chain. For storage and compute, you'll fund those services separately.\n\n**Key Resources:**\n- **Documentation**: https://docs.0g.ai\n- **Builder Hub**: https://build.0g.ai\n- **Chain Explorer (Testnet)**: https://chainscan-galileo.0g.ai\n- **Chain Explorer (Mainnet)**: https://chainscan.0g.ai\n- **Storage Explorer**: https://storagescan.0g.ai\n- **GitHub**: https://github.com/0gfoundation\n\n**The 0G Token (0G):**\nThe native token is used for gas fees on 0G Chain. For Storage, you pay in 0G tokens to miners via the Flow contract. For Compute, you deposit 0G tokens into an escrow that pays GPU providers. Everything is denominated in the same token, simplifying multi-service applications.",
         "position": {
-          "x": 2,
-          "y": 10
-        },
-        "type": "text"
-      },
-      {
-        "id": "transformer_architecture",
-        "title": "The Complete Transformer",
-        "content": "Key ideas:\n- Encoder-decoder structure without recurrence\n- All attention-based: self-attention + cross-attention\n- Fully parallelizable during training\n- d_model=512, 6 layers, 8 heads in base model\n\nPutting it all together, the Transformer is:\n\n**Input side:**\n- Embed input tokens + add positional encoding\n- Pass through 6 encoder layers\n- Output: contextualized representations for all positions\n\n**Output side:**\n- Embed output tokens + add positional encoding\n- Pass through 6 decoder layers (with encoder-decoder attention)\n- Linear projection + softmax to get next token probabilities\n\nThe key insight: attention is all you need. No RNNs, no convolutions. Just attention layers stacked up. This enables full parallelization during training—all positions computed simultaneously.\n\nThe base model has 65M parameters. Training time on 8 GPUs: 12 hours. Result: new state-of-the-art on translation.",
-        "position": {
-          "x": 6,
-          "y": 10
+          "x": 14,
+          "y": 7
         },
         "type": "text"
       }
     ],
     "quiz": {
-      "id": "quiz-stage-3",
-      "question": "What did the Transformer eliminate compared to previous seq2seq models?",
+      "id": "quiz-stage-1",
+      "question": "Where can you get free 0G tokens to test your application?",
       "type": "multiple-choice",
       "options": [
-        "Attention",
-        "Embeddings",
-        "Recurrence"
+        "You must purchase them on a crypto exchange",
+        "https://faucet.0g.ai — provides 0.1 0G per day for free",
+        "They are automatically airdropped to new wallets"
       ],
-      "correctAnswer": "Recurrence",
+      "correctAnswer": "https://faucet.0g.ai — provides 0.1 0G per day for free",
       "position": {
         "x": 18,
         "y": 7
@@ -917,7 +884,7 @@
       "x": 1,
       "y": 7
     },
-    "nextStage": 4,
-    "previousStage": 2
+    "nextStage": 2,
+    "previousStage": null
   }
 }

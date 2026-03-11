@@ -671,10 +671,10 @@
           },
           {
             "id": 3,
-            "name": "encoder_stack",
+            "name": "inft_erc7857",
             "type": "npc",
             "x": 80,
-            "y": 160,
+            "y": 280,
             "width": 40,
             "height": 40,
             "rotation": 0,
@@ -683,21 +683,21 @@
               {
                 "name": "conceptId",
                 "type": "string",
-                "value": "encoder_stack"
+                "value": "inft_erc7857"
               },
               {
                 "name": "title",
                 "type": "string",
-                "value": "The Encoder: Understanding the Input"
+                "value": "INFTs: Tokenizing AI Agents with ERC-7857"
               }
             ]
           },
           {
             "id": 4,
-            "name": "position_wise_ffn",
+            "name": "ai_agent_storage_pattern",
             "type": "npc",
             "x": 240,
-            "y": 160,
+            "y": 280,
             "width": 40,
             "height": 40,
             "rotation": 0,
@@ -706,21 +706,21 @@
               {
                 "name": "conceptId",
                 "type": "string",
-                "value": "position_wise_ffn"
+                "value": "ai_agent_storage_pattern"
               },
               {
                 "name": "title",
                 "type": "string",
-                "value": "Position-wise Feed-Forward Networks"
+                "value": "The AI Agent Storage Pattern"
               }
             ]
           },
           {
             "id": 5,
-            "name": "masked_attention",
+            "name": "goldsky_indexing",
             "type": "npc",
             "x": 400,
-            "y": 160,
+            "y": 280,
             "width": 40,
             "height": 40,
             "rotation": 0,
@@ -729,21 +729,21 @@
               {
                 "name": "conceptId",
                 "type": "string",
-                "value": "masked_attention"
+                "value": "goldsky_indexing"
               },
               {
                 "name": "title",
                 "type": "string",
-                "value": "Masked Self-Attention: No Peeking Ahead"
+                "value": "Indexing 0G Data with Goldsky"
               }
             ]
           },
           {
             "id": 6,
-            "name": "decoder_stack",
+            "name": "full_stack_0g_app",
             "type": "npc",
-            "x": 80,
-            "y": 400,
+            "x": 560,
+            "y": 280,
             "width": 40,
             "height": 40,
             "rotation": 0,
@@ -752,35 +752,12 @@
               {
                 "name": "conceptId",
                 "type": "string",
-                "value": "decoder_stack"
+                "value": "full_stack_0g_app"
               },
               {
                 "name": "title",
                 "type": "string",
-                "value": "The Decoder: Generating the Output"
-              }
-            ]
-          },
-          {
-            "id": 7,
-            "name": "transformer_architecture",
-            "type": "npc",
-            "x": 240,
-            "y": 400,
-            "width": 40,
-            "height": 40,
-            "rotation": 0,
-            "visible": true,
-            "properties": [
-              {
-                "name": "conceptId",
-                "type": "string",
-                "value": "transformer_architecture"
-              },
-              {
-                "name": "title",
-                "type": "string",
-                "value": "The Complete Transformer"
+                "value": "Capstone: Building a Full-Stack 0G Application"
               }
             ]
           }
@@ -837,73 +814,63 @@
     ]
   },
   "stage": {
-    "id": "architecture",
-    "stageNumber": 3,
-    "title": "Building the Transformer",
+    "id": "advanced_patterns",
+    "stageNumber": 5,
+    "title": "Module 5: Advanced 0G Patterns",
     "roomWidth": 20,
     "roomHeight": 15,
     "concepts": [
       {
-        "id": "encoder_stack",
-        "title": "The Encoder: Understanding the Input",
-        "content": "Key ideas:\n- 6 identical layers stacked\n- Each layer: self-attention → FFN\n- Both sublayers wrapped with residual + LayerNorm\n- Output: contextualized representations for all positions\n\nThe encoder's job: transform input tokens into rich, contextualized representations. It stacks 6 identical layers, each with two sublayers:\n\n1. **Multi-head self-attention**: Each position looks at all positions\n2. **Feed-forward network**: Process each position independently\n\nBoth sublayers are wrapped: output = LayerNorm(x + Sublayer(x))\n\nThink of the encoder as a series of increasingly sophisticated filters. Layer 1 captures local patterns. Layer 6 captures abstract, global relationships. The final encoder output goes to every decoder layer.\n\nWith d_model=512 maintained throughout, the encoder produces 512-dimensional vectors for each input position.",
+        "id": "inft_erc7857",
+        "title": "INFTs: Tokenizing AI Agents with ERC-7857",
+        "content": "Key ideas:\n- ERC-7857 extends ERC-721: NFT owns encrypted AI model weights on 0G Storage\n- Transfer triggers TEE/ZKP re-encryption for the new owner\n- authorizeUsage() grants execution rights without ownership transfer\n\n0G Labs introduced ERC-7857 as an extension of ERC-721 that solves a fundamental problem in AI ownership: how do you transfer an AI model to a new owner without ever exposing the model weights in plaintext?\n\nThe architecture:\n1. **Storage**: Model weights are stored encrypted on 0G Storage (Log layer). The NFT holds a reference to the encrypted data's rootHash.\n2. **Transfer**: When the NFT changes hands, a TEE (Trusted Execution Environment) or ZKP (Zero-Knowledge Proof) oracle decrypts the model inside a secure enclave and re-encrypts it with the new owner's public key — never exposing the raw weights.\n3. **Usage**: `authorizeUsage()` lets the owner grant inference permissions to other addresses without full ownership transfer.\n\n```solidity\ncontract ERC7857 is ERC721, Ownable, ReentrancyGuard {\n    mapping(uint256 => bytes32) private _metadataHashes;\n    mapping(uint256 => string) private _encryptedURIs;\n    address public oracle; // TEE or ZKP oracle address\n\n    modifier validProof(bytes calldata proof) {\n        require(IOracle(oracle).verifyProof(proof), 'Invalid proof');\n        _;\n    }\n\n    // Transfer ownership + re-encrypt model for new owner\n    function transfer(\n        address from,\n        address to,\n        uint256 tokenId,\n        bytes calldata sealedKey,  // new owner's public key\n        bytes calldata proof       // oracle proof of correct re-encryption\n    ) external nonReentrant validProof(proof) {\n        require(ownerOf(tokenId) == from, 'Not owner');\n        _updateMetadataAccess(tokenId, to, sealedKey, proof);\n        _transfer(from, to, tokenId);\n    }\n\n    // Clone: create a new NFT with copied model (new owner gets copy)\n    function clone(address to, uint256 tokenId,\n        bytes calldata sealedKey, bytes calldata proof)\n        external nonReentrant validProof(proof) { ... }\n\n    // Grant inference rights without ownership transfer\n    function authorizeUsage(uint256 tokenId, address executor,\n        bytes calldata permissions) external { ... }\n}\n```\n\nThis enables a marketplace for AI agents: you can buy, sell, rent, and license AI models on-chain with cryptographic guarantees of privacy and ownership.",
         "position": {
           "x": 2,
-          "y": 4
+          "y": 7
         },
         "type": "text"
       },
       {
-        "id": "position_wise_ffn",
-        "title": "Position-wise Feed-Forward Networks",
-        "content": "Key ideas:\n- Applied to each position independently\n- Two linear transforms with ReLU: FFN(x) = max(0, xW₁+b₁)W₂+b₂\n- Inner dimension d_ff = 2048 (4× d_model)\n- Same across positions, different across layers\n\nAfter attention mixes information across positions, the FFN processes each position independently. It's deceptively simple:\n\n```\nFFN(x) = max(0, x·W₁ + b₁)·W₂ + b₂\n```\n\nThis is just two linear layers with a ReLU in between. The middle expands from 512 to 2048 dimensions, then projects back to 512. Think of it as each position getting to 'think' in a higher-dimensional space.\n\nWhy position-wise? The attention already mixed information. Now each position needs to process what it learned. The weights are shared across positions (like a 1×1 convolution) but different for each of the 6 layers.",
+        "id": "ai_agent_storage_pattern",
+        "title": "The AI Agent Storage Pattern",
+        "content": "Key ideas:\n- Store model weights on Log layer — immutable, content-addressed\n- Serve inference via 0G Compute using the stored model\n- Record agent actions on 0G Chain for transparent auditability\n\n0G Labs designed their storage system to enable a powerful pattern for on-chain AI agents. The rootHash acts as a permanent, unforgeable pointer to your model — like a git commit hash but for neural network weights.\n\nHere's the full pattern:\n\n**1. Store the model:**\n```typescript\n// Upload fine-tuned model weights\nconst modelFile = await ZgFile.fromFilePath('./my-model.bin');\nconst [tree] = await modelFile.merkleTree();\nconst modelRootHash = tree!.rootHash();\nawait indexer.upload(modelFile, RPC_URL, signer);\nawait modelFile.close();\n```\n\n**2. Register on-chain:**\n```solidity\n// Store the rootHash as the agent's model reference\ncontract AIAgent {\n    bytes32 public modelRootHash;\n    address public owner;\n\n    function setModel(bytes32 _rootHash) external onlyOwner {\n        modelRootHash = _rootHash;\n        emit ModelUpdated(_rootHash, block.timestamp);\n    }\n\n    function recordAction(string calldata action, bytes32 resultHash)\n        external onlyAgent {\n        emit ActionRecorded(action, resultHash, block.timestamp);\n    }\n}\n```\n\n**3. Serve inference via Compute:**\n```typescript\n// Anyone can verify the agent by checking modelRootHash on-chain\n// and then querying the model via 0G Compute\nconst client = new OpenAI({ apiKey: ZG_API_KEY, baseURL: ZG_PROVIDER_URL });\nconst result = await client.chat.completions.create({ model: modelName, messages });\n\n// Record the action on-chain\nawait agentContract.recordAction(action, resultHash);\n```\n\nThis creates a fully auditable AI agent: anyone can verify which model is running (via the rootHash), see every action the agent took (from on-chain events), and cryptographically verify the model hasn't been changed.",
         "position": {
           "x": 6,
-          "y": 4
+          "y": 7
         },
         "type": "text"
       },
       {
-        "id": "masked_attention",
-        "title": "Masked Self-Attention: No Peeking Ahead",
-        "content": "Key ideas:\n- In decoder, prevent attending to future positions\n- Set future positions to -∞ before softmax\n- Preserves auto-regressive property\n- Position i can only attend to positions ≤ i\n\nDuring generation, the decoder produces tokens one at a time. It can't see the future—that would be cheating! Masked self-attention enforces this.\n\nBefore softmax, we add a mask that sets all 'illegal' attention scores to -∞:\n```\nattention_scores[i, j] = -∞  if j > i\n```\n\nAfter softmax, these become 0. Position 3 can only attend to positions 0, 1, 2, 3—never 4, 5, or beyond.\n\nThis triangular mask ensures the model learns to predict autoregressively: each position only depends on its left context. During training, we can still process all positions in parallel—we just mask the future.",
+        "id": "goldsky_indexing",
+        "title": "Indexing 0G Data with Goldsky",
+        "content": "Key ideas:\n- Subgraphs: GraphQL API over 0G contract events\n- Mirror: real-time streaming of events to your database\n- Point Goldsky to 0G RPC endpoints and your contract ABIs\n\n0G Labs recommends Goldsky as the indexing solution for 0G contract data. Raw on-chain event data is difficult to query efficiently — Goldsky transforms it into queryable APIs and database streams.\n\n**Goldsky Subgraphs:**\nDeploy a GraphQL API over your contract's event history. Query patterns like 'all files uploaded in the last 24 hours' or 'total storage used by address 0x...'.\n\n```graphql\n# Query uploaded files\n{\n  fileUploads(first: 10, orderBy: timestamp, orderDirection: desc) {\n    id\n    uploader\n    rootHash\n    size\n    timestamp\n  }\n}\n```\n\n**Goldsky Mirror:**\nStreams contract events directly to your database in real-time. Perfect for dashboards that need sub-second latency.\n\n```yaml\n# goldsky mirror config\nsources:\n  - type: ethereum\n    name: 0g-storage-events\n    networks:\n      - name: 0g-testnet\n        rpc_url: https://evmrpc-testnet.0g.ai\n        start_block: 0\n    contracts:\n      - address: '0x22E03a6A89B950F1c82ec5e74F8eCa321a105296' # Flow contract\n        abi: ./flow-abi.json\n        events: [FileUploaded, MerkleTreeBuilt]\nsinks:\n  - type: postgres\n    name: my-dashboard-db\n    connection: $DATABASE_URL\n```\n\n**Use Goldsky when you need:**\n- Dashboard showing real-time storage usage\n- Analytics over compute job history\n- Notification system when specific contracts emit events\n- Historical data analysis over 0G chain events\n\nFor simple explorers, you can also use the existing block explorers: `https://chainscan-galileo.0g.ai` (testnet) or `https://storageScan.0g.ai` (storage-specific).",
         "position": {
           "x": 10,
-          "y": 4
+          "y": 7
         },
         "type": "text"
       },
       {
-        "id": "decoder_stack",
-        "title": "The Decoder: Generating the Output",
-        "content": "Key ideas:\n- 6 identical layers stacked\n- Three sublayers per layer: masked self-attn → encoder-decoder attn → FFN\n- Masked attention preserves autoregressive property\n- Encoder-decoder attention reads from encoder output\n\nThe decoder generates output one token at a time, with three sublayers per layer:\n\n1. **Masked self-attention**: Attend to previous outputs only\n2. **Encoder-decoder attention**: Look at the input sequence\n3. **Feed-forward network**: Process independently\n\nEach sublayer has residual connections and layer norm. The decoder is more complex because it needs to:\n- Remember what it has generated (masked self-attention)\n- Know what the input said (encoder-decoder attention)\n- Process that combined information (FFN)\n\nThe encoder output is shared across all 6 decoder layers—computed once, used 6 times.",
+        "id": "full_stack_0g_app",
+        "title": "Capstone: Building a Full-Stack 0G Application",
+        "content": "Key ideas:\n- Combine all four services: Chain (contracts) + Storage (data) + Compute (AI) + DA (rollup)\n- Storage rootHash as content-addressed data pointer in smart contracts\n- Full-stack TypeScript: ethers.js + @0glabs/0g-ts-sdk + openai SDK\n\n0G Labs designed their four services to compose naturally. The rootHash from Storage, addresses from Chain, and provider URLs from Compute can all be referenced from each other, creating a coherent full-stack architecture.\n\nHere's a complete architecture for an on-chain AI model marketplace:\n\n```\nUser Flow:\n1. Developer uploads model weights → Storage (gets rootHash)\n2. Smart contract records rootHash + metadata → Chain\n3. Buyer purchases model NFT → Chain (ERC-7857)\n4. Oracle re-encrypts weights for buyer → off-chain TEE\n5. Buyer runs inference with their model → Compute\n6. Inference results stored for audit → Storage (Log layer)\n7. Usage stats visible in dashboard → Goldsky Mirror\n```\n\n**The composability pattern:**\n```typescript\n// 1. Upload dataset to Storage\nconst dataset = await ZgFile.fromFilePath('./training-data.jsonl');\nconst [tree] = await dataset.merkleTree();\nconst datasetHash = tree!.rootHash();\nawait indexer.upload(dataset, RPC_URL, signer);\n\n// 2. Record on-chain (the rootHash links Storage to Chain)\nawait myContract.recordDataset(datasetHash, { gasLimit: 100000 });\n\n// 3. Trigger fine-tuning job (uses the stored dataset)\n// ... 0g-compute-cli fine-tuning create-task --dataset-root <datasetHash>\n\n// 4. Store fine-tuning results back to Storage\nconst model = await ZgFile.fromFilePath('./finetuned-model.bin');\nconst [modelTree] = await model.merkleTree();\nconst modelHash = modelTree!.rootHash();\nawait indexer.upload(model, RPC_URL, signer);\n\n// 5. Register the trained model on-chain\nawait myContract.publishModel(modelHash, 'my-fine-tuned-llama');\n\n// 6. Other users can now run inference against this model via Compute\nconst client = new OpenAI({ apiKey: ZG_KEY, baseURL: PROVIDER_URL });\nconst result = await client.chat.completions.create({ model: 'my-fine-tuned-llama', messages });\n```\n\nThe key insight: `rootHash` is the universal data identifier that bridges Storage and Chain. Your smart contracts don't need to know anything about how 0G Storage works internally — they just store and verify rootHashes, and the cryptographic properties of Merkle trees guarantee the data integrity.",
         "position": {
-          "x": 2,
-          "y": 10
-        },
-        "type": "text"
-      },
-      {
-        "id": "transformer_architecture",
-        "title": "The Complete Transformer",
-        "content": "Key ideas:\n- Encoder-decoder structure without recurrence\n- All attention-based: self-attention + cross-attention\n- Fully parallelizable during training\n- d_model=512, 6 layers, 8 heads in base model\n\nPutting it all together, the Transformer is:\n\n**Input side:**\n- Embed input tokens + add positional encoding\n- Pass through 6 encoder layers\n- Output: contextualized representations for all positions\n\n**Output side:**\n- Embed output tokens + add positional encoding\n- Pass through 6 decoder layers (with encoder-decoder attention)\n- Linear projection + softmax to get next token probabilities\n\nThe key insight: attention is all you need. No RNNs, no convolutions. Just attention layers stacked up. This enables full parallelization during training—all positions computed simultaneously.\n\nThe base model has 65M parameters. Training time on 8 GPUs: 12 hours. Result: new state-of-the-art on translation.",
-        "position": {
-          "x": 6,
-          "y": 10
+          "x": 14,
+          "y": 7
         },
         "type": "text"
       }
     ],
     "quiz": {
-      "id": "quiz-stage-3",
-      "question": "What did the Transformer eliminate compared to previous seq2seq models?",
+      "id": "quiz-stage-5",
+      "question": "In a full-stack 0G app, how do smart contracts reference files stored on 0G Storage?",
       "type": "multiple-choice",
       "options": [
-        "Attention",
-        "Embeddings",
-        "Recurrence"
+        "Using the filename string",
+        "Using the rootHash (Merkle tree root) as a content-addressed pointer",
+        "Using an IPFS CID"
       ],
-      "correctAnswer": "Recurrence",
+      "correctAnswer": "Using the rootHash (Merkle tree root) as a content-addressed pointer",
       "position": {
         "x": 18,
         "y": 7
@@ -917,7 +884,7 @@
       "x": 1,
       "y": 7
     },
-    "nextStage": 4,
-    "previousStage": 2
+    "nextStage": null,
+    "previousStage": 4
   }
 }
