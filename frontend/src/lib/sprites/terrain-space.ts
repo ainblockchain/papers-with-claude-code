@@ -240,13 +240,14 @@ export function drawSpaceOutpost(
   h: number,
   isActive: boolean,
   title: string,
+  isViewed = false,
 ) {
   // Metal hull body
-  ctx.fillStyle = '#2A2A3E';
+  ctx.fillStyle = isViewed && !isActive ? '#1A2E1A' : '#2A2A3E';
   ctx.fillRect(x - 3, y - 3, w + 6, h + 6);
 
   // Panel lines
-  ctx.strokeStyle = '#3A3A4E';
+  ctx.strokeStyle = isViewed && !isActive ? '#2A4A2A' : '#3A3A4E';
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(x - 3, y + h * 0.33);
@@ -266,7 +267,7 @@ export function drawSpaceOutpost(
   ctx.stroke();
 
   // Antenna tip (blink dot)
-  ctx.fillStyle = isActive ? '#00FFFF' : '#555555';
+  ctx.fillStyle = isActive ? '#00FFFF' : isViewed ? '#10B981' : '#555555';
   ctx.beginPath();
   ctx.arc(x + 3, y - 12, 2, 0, Math.PI * 2);
   ctx.fill();
@@ -289,6 +290,12 @@ export function drawSpaceOutpost(
     for (let i = 0; i < 3; i++) {
       ctx.fillRect(panelX, panelY + panelH * 0.2 * (i + 1), panelW, 1);
     }
+  } else if (isViewed) {
+    ctx.fillStyle = 'rgba(16, 185, 129, 0.10)';
+    ctx.fillRect(panelX, panelY, panelW, panelH);
+    ctx.strokeStyle = '#10B981';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(panelX, panelY, panelW, panelH);
   } else {
     ctx.fillStyle = '#1A1A2E';
     ctx.fillRect(panelX, panelY, panelW, panelH);
@@ -297,12 +304,31 @@ export function drawSpaceOutpost(
     ctx.strokeRect(panelX, panelY, panelW, panelH);
   }
 
-  // Title text
-  ctx.fillStyle = isActive ? '#00FFFF' : '#888899';
-  ctx.font = `bold ${Math.max(h * 0.18, 9)}px sans-serif`;
+  // Title text (word-wrap into multiple lines)
+  const fontSize = 10;
+  ctx.fillStyle = isActive ? '#00FFFF' : isViewed ? '#10B981' : '#888899';
+  ctx.font = `bold ${fontSize}px sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(title, x + w / 2, y + h / 2, w - 12);
+  const maxW = w - 12;
+  const words = title.split(' ');
+  const lines: string[] = [];
+  let cur = '';
+  for (const word of words) {
+    const test = cur ? `${cur} ${word}` : word;
+    if (ctx.measureText(test).width > maxW && cur) {
+      lines.push(cur);
+      cur = word;
+    } else {
+      cur = test;
+    }
+  }
+  if (cur) lines.push(cur);
+  const lineH = fontSize * 1.2;
+  const startY = y + h / 2 - ((lines.length - 1) * lineH) / 2;
+  for (let i = 0; i < lines.length; i++) {
+    ctx.fillText(lines[i], x + w / 2, startY + i * lineH, maxW);
+  }
 }
 
 // ── Tile 10: Decoration — Glowing Crystal / Alien Plant ──

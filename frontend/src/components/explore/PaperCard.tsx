@@ -48,13 +48,11 @@ export function PaperCard({ paper }: PaperCardProps) {
   return (
     <article className="flex gap-4 py-5 border-t border-[#E5E7EB] first:border-t-0 relative overflow-hidden">
       {/* Card background image */}
-      {(paper.backgroundUrl || paper.id.includes('0g-basic-course')) && (
+      {paper.backgroundUrl && (
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
-            backgroundImage: paper.id.includes('0g-basic-course')
-              ? `url(/assets/basic-bg.png)`
-              : `url(${paper.backgroundUrl})`,
+            backgroundImage: `url(${paper.backgroundUrl})`,
             backgroundRepeat: 'no-repeat',
             backgroundPosition: 'right center',
             backgroundSize: 'auto 100%',

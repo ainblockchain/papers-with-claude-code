@@ -671,7 +671,7 @@
           },
           {
             "id": 3,
-            "name": "encoder_stack",
+            "name": "evm_compatibility_config",
             "type": "npc",
             "x": 80,
             "y": 160,
@@ -683,18 +683,18 @@
               {
                 "name": "conceptId",
                 "type": "string",
-                "value": "encoder_stack"
+                "value": "evm_compatibility_config"
               },
               {
                 "name": "title",
                 "type": "string",
-                "value": "The Encoder: Understanding the Input"
+                "value": "Configuring Hardhat and Foundry for 0G"
               }
             ]
           },
           {
             "id": 4,
-            "name": "position_wise_ffn",
+            "name": "da_signers_precompile",
             "type": "npc",
             "x": 240,
             "y": 160,
@@ -706,18 +706,18 @@
               {
                 "name": "conceptId",
                 "type": "string",
-                "value": "position_wise_ffn"
+                "value": "da_signers_precompile"
               },
               {
                 "name": "title",
                 "type": "string",
-                "value": "Position-wise Feed-Forward Networks"
+                "value": "DASigners Precompile: Native DA Access"
               }
             ]
           },
           {
             "id": 5,
-            "name": "masked_attention",
+            "name": "wrapped_og_base",
             "type": "npc",
             "x": 400,
             "y": 160,
@@ -729,18 +729,18 @@
               {
                 "name": "conceptId",
                 "type": "string",
-                "value": "masked_attention"
+                "value": "wrapped_og_base"
               },
               {
                 "name": "title",
                 "type": "string",
-                "value": "Masked Self-Attention: No Peeking Ahead"
+                "value": "WrappedOGBase: ERC20 Wrapping for Native Token"
               }
             ]
           },
           {
             "id": 6,
-            "name": "decoder_stack",
+            "name": "data_availability_layer",
             "type": "npc",
             "x": 80,
             "y": 400,
@@ -752,18 +752,18 @@
               {
                 "name": "conceptId",
                 "type": "string",
-                "value": "decoder_stack"
+                "value": "data_availability_layer"
               },
               {
                 "name": "title",
                 "type": "string",
-                "value": "The Decoder: Generating the Output"
+                "value": "0G DA: 50 Gbps Data Availability"
               }
             ]
           },
           {
             "id": 7,
-            "name": "transformer_architecture",
+            "name": "rollup_integration",
             "type": "npc",
             "x": 240,
             "y": 400,
@@ -775,12 +775,12 @@
               {
                 "name": "conceptId",
                 "type": "string",
-                "value": "transformer_architecture"
+                "value": "rollup_integration"
               },
               {
                 "name": "title",
                 "type": "string",
-                "value": "The Complete Transformer"
+                "value": "Connecting OP Stack and Arbitrum Nitro to 0G DA"
               }
             ]
           }
@@ -837,16 +837,16 @@
     ]
   },
   "stage": {
-    "id": "architecture",
-    "stageNumber": 3,
-    "title": "Building the Transformer",
+    "id": "chain_contracts",
+    "stageNumber": 4,
+    "title": "Module 4: 0G Chain & Smart Contracts",
     "roomWidth": 20,
     "roomHeight": 15,
     "concepts": [
       {
-        "id": "encoder_stack",
-        "title": "The Encoder: Understanding the Input",
-        "content": "Key ideas:\n- 6 identical layers stacked\n- Each layer: self-attention → FFN\n- Both sublayers wrapped with residual + LayerNorm\n- Output: contextualized representations for all positions\n\nThe encoder's job: transform input tokens into rich, contextualized representations. It stacks 6 identical layers, each with two sublayers:\n\n1. **Multi-head self-attention**: Each position looks at all positions\n2. **Feed-forward network**: Process each position independently\n\nBoth sublayers are wrapped: output = LayerNorm(x + Sublayer(x))\n\nThink of the encoder as a series of increasingly sophisticated filters. Layer 1 captures local patterns. Layer 6 captures abstract, global relationships. The final encoder output goes to every decoder layer.\n\nWith d_model=512 maintained throughout, the encoder produces 512-dimensional vectors for each input position.",
+        "id": "evm_compatibility_config",
+        "title": "Configuring Hardhat and Foundry for 0G",
+        "content": "Key ideas:\n- Critical: evmVersion must be 'cancun' — older versions cause silent failures\n- Add both testnet and mainnet to networks config for easy switching\n- Foundry: set evm_version = 'cancun' in foundry.toml\n\n0G Labs explicitly specifies in their documentation that contracts must be compiled with `evmVersion: 'cancun'`. This is one of the most common sources of confusion for new developers — missing this setting doesn't always cause an obvious error, but can lead to contracts that compile and deploy successfully yet fail at runtime.\n\n**Hardhat configuration (`hardhat.config.js`):**\n```javascript\nrequire('@nomicfoundation/hardhat-toolbox');\n\nmodule.exports = {\n  solidity: {\n    version: '0.8.19',\n    settings: {\n      evmVersion: 'cancun',  // CRITICAL: must be cancun\n      optimizer: {\n        enabled: true,\n        runs: 200\n      }\n    }\n  },\n  networks: {\n    testnet: {\n      url: 'https://evmrpc-testnet.0g.ai',\n      chainId: 16602,\n      accounts: [process.env.PRIVATE_KEY]\n    },\n    mainnet: {\n      url: 'https://evmrpc.0g.ai',\n      chainId: 16661,\n      accounts: [process.env.PRIVATE_KEY]\n    }\n  }\n};\n```\n\n**Foundry configuration (`foundry.toml`):**\n```toml\n[profile.default]\nevm_version = \"cancun\"\n\n[rpc_endpoints]\n0g_testnet = \"https://evmrpc-testnet.0g.ai\"\n0g_mainnet = \"https://evmrpc.0g.ai\"\n```\n\n**Foundry deploy command:**\n```bash\nforge create --rpc-url https://evmrpc-testnet.0g.ai \\\n  --private-key $PRIVATE_KEY \\\n  --evm-version cancun \\\n  src/MyContract.sol:MyContract\n```\n\n**Remix**: Select 'cancun' from the EVM Version dropdown in the Solidity Compiler tab before compiling.",
         "position": {
           "x": 2,
           "y": 4
@@ -854,9 +854,9 @@
         "type": "text"
       },
       {
-        "id": "position_wise_ffn",
-        "title": "Position-wise Feed-Forward Networks",
-        "content": "Key ideas:\n- Applied to each position independently\n- Two linear transforms with ReLU: FFN(x) = max(0, xW₁+b₁)W₂+b₂\n- Inner dimension d_ff = 2048 (4× d_model)\n- Same across positions, different across layers\n\nAfter attention mixes information across positions, the FFN processes each position independently. It's deceptively simple:\n\n```\nFFN(x) = max(0, x·W₁ + b₁)·W₂ + b₂\n```\n\nThis is just two linear layers with a ReLU in between. The middle expands from 512 to 2048 dimensions, then projects back to 512. Think of it as each position getting to 'think' in a higher-dimensional space.\n\nWhy position-wise? The attention already mixed information. Now each position needs to process what it learned. The weights are shared across positions (like a 1×1 convolution) but different for each of the 6 layers.",
+        "id": "da_signers_precompile",
+        "title": "DASigners Precompile: Native DA Access",
+        "content": "Key ideas:\n- Fixed address: 0x0000000000000000000000000000000000001000\n- Query DA quorum membership and epoch numbers from within smart contracts\n- registerSigner() allows smart contracts to register new DA signers\n\n0G Labs implemented the DASigners precompile as a native contract at a fixed address. Unlike regular smart contracts, precompiles run native Go code instead of EVM bytecode, making them extremely gas-efficient.\n\nThe DASigners precompile manages the registry of validators (signers) that participate in the DA consensus. Your smart contracts can query this registry to verify DA quorum membership without any external calls.\n\n```solidity\n// SPDX-License-Identifier: MIT\npragma solidity ^0.8.19;\n\ninterface IDASigners {\n    struct Params {\n        uint256 tokensPerVote;\n        uint256 maxVotesPerSigner;\n        uint256 maxQuorums;\n        uint256 epochBlocks;\n        uint256 encodedSlices;\n    }\n\n    function params() external view returns (Params memory);\n    function epochNumber() external view returns (uint256);\n    function getQuorum(uint256 epoch, uint256 quorumId) \n        external view returns (address[] memory);\n}\n\ncontract DAVerifier {\n    IDASigners constant DA_SIGNERS = \n        IDASigners(0x0000000000000000000000000000000000001000);\n\n    function currentEpoch() external view returns (uint256) {\n        return DA_SIGNERS.epochNumber();\n    }\n\n    function quorumMembers(uint256 epoch, uint256 quorumId)\n        external view returns (address[] memory) {\n        return DA_SIGNERS.getQuorum(epoch, quorumId);\n    }\n}\n```\n\nThis enables powerful on-chain verification: your smart contract can confirm that a specific set of DA signers participated in a data availability attestation, creating fully on-chain DA proofs.",
         "position": {
           "x": 6,
           "y": 4
@@ -864,9 +864,9 @@
         "type": "text"
       },
       {
-        "id": "masked_attention",
-        "title": "Masked Self-Attention: No Peeking Ahead",
-        "content": "Key ideas:\n- In decoder, prevent attending to future positions\n- Set future positions to -∞ before softmax\n- Preserves auto-regressive property\n- Position i can only attend to positions ≤ i\n\nDuring generation, the decoder produces tokens one at a time. It can't see the future—that would be cheating! Masked self-attention enforces this.\n\nBefore softmax, we add a mask that sets all 'illegal' attention scores to -∞:\n```\nattention_scores[i, j] = -∞  if j > i\n```\n\nAfter softmax, these become 0. Position 3 can only attend to positions 0, 1, 2, 3—never 4, 5, or beyond.\n\nThis triangular mask ensures the model learns to predict autoregressively: each position only depends on its left context. During training, we can still process all positions in parallel—we just mask the future.",
+        "id": "wrapped_og_base",
+        "title": "WrappedOGBase: ERC20 Wrapping for Native Token",
+        "content": "Key ideas:\n- Fixed address: 0x0000000000000000000000000000000000001001\n- Wraps native 0G into ERC20 W0G for DeFi protocol compatibility\n- mint() and burn() use quota-based mechanism for controlled supply\n\n0G Labs documented the WrappedOGBase precompile as the on-chain mechanism for wrapping the native 0G token into an ERC20-compatible W0G token.\n\nNative tokens (like ETH on Ethereum) can't directly participate in ERC20-based DeFi protocols — you need a wrapped version that conforms to the ERC20 interface. This is why WETH exists on Ethereum. WrappedOGBase is 0G's equivalent.\n\n```solidity\ninterface IWrappedOGBase {\n    // Wrap native 0G into ERC20 W0G\n    function mint(address minter, uint256 amount) external;\n\n    // Unwrap W0G back to native 0G\n    function burn(address minter, uint256 amount) external;\n}\n\n// Fixed address on all 0G networks\nIWrappedOGBase constant WRAPPED_OG = \n    IWrappedOGBase(0x0000000000000000000000000000000000001001);\n```\n\nThe quota-based minting mechanism prevents unconstrained token creation — only authorized contracts can call `mint()` within their allocated quota. This ensures the wrapped token supply accurately reflects the actual native token supply.\n\nFor developers building DeFi protocols, payment systems, or any application that needs to transfer 0G tokens between contracts using the ERC20 interface, this precompile is your entry point. For most application developers (Storage, Compute users), you won't need this directly — the SDK handles token management internally.",
         "position": {
           "x": 10,
           "y": 4
@@ -874,9 +874,9 @@
         "type": "text"
       },
       {
-        "id": "decoder_stack",
-        "title": "The Decoder: Generating the Output",
-        "content": "Key ideas:\n- 6 identical layers stacked\n- Three sublayers per layer: masked self-attn → encoder-decoder attn → FFN\n- Masked attention preserves autoregressive property\n- Encoder-decoder attention reads from encoder output\n\nThe decoder generates output one token at a time, with three sublayers per layer:\n\n1. **Masked self-attention**: Attend to previous outputs only\n2. **Encoder-decoder attention**: Look at the input sequence\n3. **Feed-forward network**: Process independently\n\nEach sublayer has residual connections and layer norm. The decoder is more complex because it needs to:\n- Remember what it has generated (masked self-attention)\n- Know what the input said (encoder-decoder attention)\n- Process that combined information (FFN)\n\nThe encoder output is shared across all 6 decoder layers—computed once, used 6 times.",
+        "id": "data_availability_layer",
+        "title": "0G DA: 50 Gbps Data Availability",
+        "content": "Key ideas:\n- 50 Gbps demonstrated throughput using KZG commitments + erasure coding\n- VRF prevents validator collusion in data sampling\n- Data padded to 32MB, erasure-coded into 3072×1024 matrix\n\n0G Labs designed their DA layer to solve a fundamental problem with traditional data availability systems: validator collusion. If validators can predict which data will be sampled, a colluding group could claim data is available without actually storing it.\n\nThe solution is VRF (Verifiable Random Function): validators commit to a random seed before seeing what data they'll be asked to prove. The sampling is unpredictable but verifiable — you can prove the sampling was random without revealing the seed prematurely.\n\n**The data processing pipeline:**\n1. Data is padded to 32,505,852 bytes (≈32MB)\n2. Sliced into a 1024×1024 matrix (31 bytes per element)\n3. **Erasure coding**: expanded to 3072×1024 using the BN254 elliptic curve finite field — this 3x expansion means the original data can be recovered from any 1024 of the 3072 rows (tolerates loss of 2/3 of data)\n4. KZG polynomial commitment computed for each column — provides cryptographic proof that data is correctly encoded\n5. Root hash submitted to the DAEntrance contract on-chain\n\nThe result: any node that wants to verify data availability needs only download 1/3072 of the data (a random sample), yet this sampling provides strong statistical guarantees. At 50 Gbps, this is orders of magnitude above Ethereum's ~1 MB/slot DA capacity.\n\nFor rollup developers, this means you can process dramatically more transactions per second while keeping DA costs minimal.",
         "position": {
           "x": 2,
           "y": 10
@@ -884,9 +884,9 @@
         "type": "text"
       },
       {
-        "id": "transformer_architecture",
-        "title": "The Complete Transformer",
-        "content": "Key ideas:\n- Encoder-decoder structure without recurrence\n- All attention-based: self-attention + cross-attention\n- Fully parallelizable during training\n- d_model=512, 6 layers, 8 heads in base model\n\nPutting it all together, the Transformer is:\n\n**Input side:**\n- Embed input tokens + add positional encoding\n- Pass through 6 encoder layers\n- Output: contextualized representations for all positions\n\n**Output side:**\n- Embed output tokens + add positional encoding\n- Pass through 6 decoder layers (with encoder-decoder attention)\n- Linear projection + softmax to get next token probabilities\n\nThe key insight: attention is all you need. No RNNs, no convolutions. Just attention layers stacked up. This enables full parallelization during training—all positions computed simultaneously.\n\nThe base model has 65M parameters. Training time on 8 GPUs: 12 hours. Result: new state-of-the-art on translation.",
+        "id": "rollup_integration",
+        "title": "Connecting OP Stack and Arbitrum Nitro to 0G DA",
+        "content": "Key ideas:\n- OP Stack: run da-server sidecar, add --altda.enabled=true to op-node\n- Arbitrum Nitro: implement DataAvailabilityProvider interface\n- Replaces EIP-4844 blobs — reduces rollup operating costs significantly\n\n0G Labs provides integration guides for both major rollup stacks. The integration is designed to be minimally invasive — you keep your existing rollup stack and add 0G DA as a pluggable module.\n\n**OP Stack Integration:**\n\n1. Build and run the `da-server` sidecar:\n```bash\n./bin/da-server --addr 127.0.0.1 --port 3100 --zg.server 127.0.0.1:51001\n```\n\n2. Update your `rollup.json` with Alt-DA config:\n```json\n{\n  \"alt_da\": {\n    \"da_challenge_contract_address\": \"0x0000000000000000000000000000000000000000\",\n    \"da_commitment_type\": \"GenericCommitment\",\n    \"da_challenge_window\": 160,\n    \"da_resolve_window\": 160\n  }\n}\n```\n\n3. Add flags to your `op-node` startup:\n```bash\nop-node \\\n  --altda.enabled=true \\\n  --altda.da-server=http://127.0.0.1:3100 \\\n  --altda.da-service=true \\\n  [... other flags]\n```\n\n**Arbitrum Nitro Integration:**\n\n0G implements the `DataAvailabilityProvider` interface from the Nitro codebase. This replaces the default EIP-4844 blob handling with 0G DA storage and retrieval. The integration is at the code level — you compile a custom Nitro binary with the 0G DA provider.\n\nThe economic impact: EIP-4844 blobs cost ~0.01 ETH per 128KB. 0G DA at 50 Gbps throughput offers orders of magnitude more capacity at a fraction of the cost, enabling rollups that were previously cost-prohibitive.",
         "position": {
           "x": 6,
           "y": 10
@@ -895,15 +895,15 @@
       }
     ],
     "quiz": {
-      "id": "quiz-stage-3",
-      "question": "What did the Transformer eliminate compared to previous seq2seq models?",
+      "id": "quiz-stage-4",
+      "question": "How does OP Stack integrate with 0G DA?",
       "type": "multiple-choice",
       "options": [
-        "Attention",
-        "Embeddings",
-        "Recurrence"
+        "Replace the op-node binary with a 0G-provided binary",
+        "Run a da-server sidecar alongside the standard op-node with --altda flags",
+        "Deploy a custom L1 contract that proxies to 0G DA"
       ],
-      "correctAnswer": "Recurrence",
+      "correctAnswer": "Run a da-server sidecar alongside the standard op-node with --altda flags",
       "position": {
         "x": 18,
         "y": 7
@@ -917,7 +917,7 @@
       "x": 1,
       "y": 7
     },
-    "nextStage": 4,
-    "previousStage": 2
+    "nextStage": 5,
+    "previousStage": 3
   }
 }

@@ -425,6 +425,17 @@ export default function LearnPage() {
               </button>
             </div>
           )}
+          {/* Complete Course button (last stage, door unlocked) */}
+          {isDoorUnlocked && currentStageIndex >= stages.length - 1 && (
+            <div className="absolute bottom-4 right-4 z-10">
+              <button
+                onClick={handleCourseComplete}
+                className="px-4 py-2 bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-lg shadow-lg text-sm font-medium transition-colors"
+              >
+                Complete Course
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Right: Terminal (40%) */}

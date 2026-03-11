@@ -96,6 +96,11 @@ export function PaymentModal() {
     }
   };
 
+  const handleFreeUnlock = () => {
+    setPhase('done');
+    setDoorUnlocked(true);
+  };
+
   const handleClose = () => {
     setPaymentModalOpen(false);
     setPhase('idle');
@@ -209,6 +214,16 @@ export function PaymentModal() {
                     </div>
                   </div>
                 </div>
+              )}
+
+              {/* Free unlock fallback */}
+              {error && (
+                <button
+                  onClick={handleFreeUnlock}
+                  className="mt-2 w-full py-2 text-xs text-gray-500 hover:text-gray-300 underline transition-colors"
+                >
+                  Skip payment and unlock for free
+                </button>
               )}
             </>
           )}

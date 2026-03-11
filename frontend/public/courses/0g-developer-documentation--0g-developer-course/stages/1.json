@@ -671,7 +671,7 @@
           },
           {
             "id": 3,
-            "name": "encoder_stack",
+            "name": "decentralized_ai_os",
             "type": "npc",
             "x": 80,
             "y": 160,
@@ -683,18 +683,18 @@
               {
                 "name": "conceptId",
                 "type": "string",
-                "value": "encoder_stack"
+                "value": "decentralized_ai_os"
               },
               {
                 "name": "title",
                 "type": "string",
-                "value": "The Encoder: Understanding the Input"
+                "value": "What is 0G? The Decentralized AI Operating System"
               }
             ]
           },
           {
             "id": 4,
-            "name": "position_wise_ffn",
+            "name": "zero_g_chain_basics",
             "type": "npc",
             "x": 240,
             "y": 160,
@@ -706,18 +706,18 @@
               {
                 "name": "conceptId",
                 "type": "string",
-                "value": "position_wise_ffn"
+                "value": "zero_g_chain_basics"
               },
               {
                 "name": "title",
                 "type": "string",
-                "value": "Position-wise Feed-Forward Networks"
+                "value": "0G Chain: Your Familiar EVM Home"
               }
             ]
           },
           {
             "id": 5,
-            "name": "masked_attention",
+            "name": "network_configuration",
             "type": "npc",
             "x": 400,
             "y": 160,
@@ -729,18 +729,18 @@
               {
                 "name": "conceptId",
                 "type": "string",
-                "value": "masked_attention"
+                "value": "network_configuration"
               },
               {
                 "name": "title",
                 "type": "string",
-                "value": "Masked Self-Attention: No Peeking Ahead"
+                "value": "Connecting to 0G: Testnet and Mainnet"
               }
             ]
           },
           {
             "id": 6,
-            "name": "decoder_stack",
+            "name": "wallet_and_tokens",
             "type": "npc",
             "x": 80,
             "y": 400,
@@ -752,18 +752,18 @@
               {
                 "name": "conceptId",
                 "type": "string",
-                "value": "decoder_stack"
+                "value": "wallet_and_tokens"
               },
               {
                 "name": "title",
                 "type": "string",
-                "value": "The Decoder: Generating the Output"
+                "value": "Setting Up Your Wallet and Getting Test Tokens"
               }
             ]
           },
           {
             "id": 7,
-            "name": "transformer_architecture",
+            "name": "smart_contract_addresses",
             "type": "npc",
             "x": 240,
             "y": 400,
@@ -775,12 +775,12 @@
               {
                 "name": "conceptId",
                 "type": "string",
-                "value": "transformer_architecture"
+                "value": "smart_contract_addresses"
               },
               {
                 "name": "title",
                 "type": "string",
-                "value": "The Complete Transformer"
+                "value": "The Core Contract Addresses You Need"
               }
             ]
           }
@@ -837,16 +837,16 @@
     ]
   },
   "stage": {
-    "id": "architecture",
-    "stageNumber": 3,
-    "title": "Building the Transformer",
+    "id": "foundations",
+    "stageNumber": 1,
+    "title": "Module 1: 0G Foundations",
     "roomWidth": 20,
     "roomHeight": 15,
     "concepts": [
       {
-        "id": "encoder_stack",
-        "title": "The Encoder: Understanding the Input",
-        "content": "Key ideas:\n- 6 identical layers stacked\n- Each layer: self-attention → FFN\n- Both sublayers wrapped with residual + LayerNorm\n- Output: contextualized representations for all positions\n\nThe encoder's job: transform input tokens into rich, contextualized representations. It stacks 6 identical layers, each with two sublayers:\n\n1. **Multi-head self-attention**: Each position looks at all positions\n2. **Feed-forward network**: Process each position independently\n\nBoth sublayers are wrapped: output = LayerNorm(x + Sublayer(x))\n\nThink of the encoder as a series of increasingly sophisticated filters. Layer 1 captures local patterns. Layer 6 captures abstract, global relationships. The final encoder output goes to every decoder layer.\n\nWith d_model=512 maintained throughout, the encoder produces 512-dimensional vectors for each input position.",
+        "id": "decentralized_ai_os",
+        "title": "What is 0G? The Decentralized AI Operating System",
+        "content": "Key ideas:\n- 0G is a modular deAIOS with four interoperable services: Chain, Storage, Compute, DA\n- Each service solves a real infrastructure problem for AI applications\n- Services can be used independently or composed into full-stack AI applications\n\n0G Labs describes their platform as a 'decentralized AI operating system' — and the analogy is apt. Just as an operating system provides core services (filesystem, compute, networking) that applications build on, 0G provides AI-native infrastructure that any developer can use without running their own hardware.\n\nThe four services each solve a specific problem:\n\n**0G Chain** is the consensus backbone — an EVM-compatible L1 blockchain achieving 11,000 TPS with sub-second finality. Your smart contracts live here.\n\n**0G Storage** is the filesystem — decentralized, content-addressed storage that's 95% cheaper than AWS S3. Your datasets, model weights, and large files live here.\n\n**0G Compute** is the AI execution layer — a decentralized GPU marketplace 90% cheaper than OpenAI or AWS Bedrock. Your AI inference and fine-tuning runs here.\n\n**0G DA** is the data availability backbone — a 50 Gbps throughput layer that enables rollups to scale. If you're building an L2 or rollup, your blob data goes here.\n\nThink of it like a cloud provider (AWS) but decentralized, permissionless, and purpose-built for AI. You get S3-like storage, Lambda-like compute, and Ethereum-like programmability — all in one stack.",
         "position": {
           "x": 2,
           "y": 4
@@ -854,9 +854,9 @@
         "type": "text"
       },
       {
-        "id": "position_wise_ffn",
-        "title": "Position-wise Feed-Forward Networks",
-        "content": "Key ideas:\n- Applied to each position independently\n- Two linear transforms with ReLU: FFN(x) = max(0, xW₁+b₁)W₂+b₂\n- Inner dimension d_ff = 2048 (4× d_model)\n- Same across positions, different across layers\n\nAfter attention mixes information across positions, the FFN processes each position independently. It's deceptively simple:\n\n```\nFFN(x) = max(0, x·W₁ + b₁)·W₂ + b₂\n```\n\nThis is just two linear layers with a ReLU in between. The middle expands from 512 to 2048 dimensions, then projects back to 512. Think of it as each position getting to 'think' in a higher-dimensional space.\n\nWhy position-wise? The attention already mixed information. Now each position needs to process what it learned. The weights are shared across positions (like a 1×1 convolution) but different for each of the 6 layers.",
+        "id": "zero_g_chain_basics",
+        "title": "0G Chain: Your Familiar EVM Home",
+        "content": "Key ideas:\n- Full EVM compatibility — every Ethereum tool works out of the box\n- 11,000 TPS per shard with sub-second finality via CometBFT consensus\n- Modular design separates consensus from execution for independent upgrades\n\n0G Labs documented in their technical specification that 0G Chain achieves its performance through an optimized CometBFT consensus — the battle-tested Byzantine Fault Tolerant consensus engine that powers the Cosmos ecosystem, but modified specifically for AI workloads.\n\nFor developers, the most important thing to know is simple: **if it works on Ethereum, it works on 0G Chain**. Your existing Hardhat projects, Foundry scripts, OpenZeppelin contracts, MetaMask wallet, and ethers.js code all work without changes.\n\nThe performance difference is dramatic. Ethereum processes ~15 transactions per second with ~12 second block times. 0G Chain processes 11,000 TPS per shard with sub-second finality. For AI applications where you're recording thousands of on-chain inference proofs or dataset uploads, this matters enormously.\n\nThe modular architecture also means the execution layer (EVM) and consensus layer (CometBFT) can be upgraded independently. When a new EVM version ships (like Cancun with blob transactions), 0G can adopt it without touching the consensus logic.\n\nOne practical implication: when compiling smart contracts, you must specify `evmVersion: 'cancun'` to access the latest opcodes. We'll cover the exact configuration in Module 4.",
         "position": {
           "x": 6,
           "y": 4
@@ -864,9 +864,9 @@
         "type": "text"
       },
       {
-        "id": "masked_attention",
-        "title": "Masked Self-Attention: No Peeking Ahead",
-        "content": "Key ideas:\n- In decoder, prevent attending to future positions\n- Set future positions to -∞ before softmax\n- Preserves auto-regressive property\n- Position i can only attend to positions ≤ i\n\nDuring generation, the decoder produces tokens one at a time. It can't see the future—that would be cheating! Masked self-attention enforces this.\n\nBefore softmax, we add a mask that sets all 'illegal' attention scores to -∞:\n```\nattention_scores[i, j] = -∞  if j > i\n```\n\nAfter softmax, these become 0. Position 3 can only attend to positions 0, 1, 2, 3—never 4, 5, or beyond.\n\nThis triangular mask ensures the model learns to predict autoregressively: each position only depends on its left context. During training, we can still process all positions in parallel—we just mask the future.",
+        "id": "network_configuration",
+        "title": "Connecting to 0G: Testnet and Mainnet",
+        "content": "Key ideas:\n- Testnet Galileo: chainId 16602, RPC https://evmrpc-testnet.0g.ai\n- Mainnet Aristotle: chainId 16661, RPC https://evmrpc.0g.ai\n- Free testnet tokens available daily at https://faucet.0g.ai\n\n0G operates two networks. The documentation provides the following exact parameters:\n\n**Testnet (Galileo) — Use this for development:**\n- Chain ID: `16602`\n- RPC: `https://evmrpc-testnet.0g.ai`\n- Explorer: `https://chainscan-galileo.0g.ai`\n- Faucet: `https://faucet.0g.ai` (0.1 0G/day)\n\n**Mainnet (Aristotle) — Use this for production:**\n- Chain ID: `16661`\n- RPC: `https://evmrpc.0g.ai`\n- Explorer: `https://chainscan.0g.ai`\n\nTo add 0G to MetaMask manually: open MetaMask → Add Network → fill in the Chain ID and RPC URL above. To add programmatically with ethers.js:\n\n```typescript\nconst provider = new ethers.JsonRpcProvider('https://evmrpc-testnet.0g.ai');\n// The chainId is automatically detected from the RPC endpoint\n```\n\nThird-party RPC providers (QuickNode, ThirdWeb, Ankr, dRPC) offer higher rate limits and regional endpoints — useful for production applications that can't afford the latency of the public RPC.\n\n**Important**: The testnet Indexer URL for Storage SDK is different from the RPC: `https://indexer-storage-testnet-turbo.0g.ai`. This is a common source of confusion for new developers.",
         "position": {
           "x": 10,
           "y": 4
@@ -874,9 +874,9 @@
         "type": "text"
       },
       {
-        "id": "decoder_stack",
-        "title": "The Decoder: Generating the Output",
-        "content": "Key ideas:\n- 6 identical layers stacked\n- Three sublayers per layer: masked self-attn → encoder-decoder attn → FFN\n- Masked attention preserves autoregressive property\n- Encoder-decoder attention reads from encoder output\n\nThe decoder generates output one token at a time, with three sublayers per layer:\n\n1. **Masked self-attention**: Attend to previous outputs only\n2. **Encoder-decoder attention**: Look at the input sequence\n3. **Feed-forward network**: Process independently\n\nEach sublayer has residual connections and layer norm. The decoder is more complex because it needs to:\n- Remember what it has generated (masked self-attention)\n- Know what the input said (encoder-decoder attention)\n- Process that combined information (FFN)\n\nThe encoder output is shared across all 6 decoder layers—computed once, used 6 times.",
+        "id": "wallet_and_tokens",
+        "title": "Setting Up Your Wallet and Getting Test Tokens",
+        "content": "Key ideas:\n- Use standard EVM wallet — ethers.Wallet or MetaMask with 0G network\n- Never hardcode private keys — use environment variables and .env files\n- Faucet at https://faucet.0g.ai provides 0.1 0G/day for testing\n\n0G uses the same wallet system as Ethereum — any EVM-compatible wallet works. For development, you'll create a wallet via ethers.js:\n\n```typescript\nimport { ethers } from 'ethers';\n\nconst RPC_URL = 'https://evmrpc-testnet.0g.ai';\nconst provider = new ethers.JsonRpcProvider(RPC_URL);\nconst signer = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);\n\nconsole.log('Address:', signer.address);\n```\n\nAlways store your private key in a `.env` file and add `.env` to `.gitignore`. Never commit private keys to version control.\n\n**Getting testnet tokens:**\n1. Go to `https://faucet.0g.ai`\n2. Connect your wallet or paste your address\n3. Request 0.1 0G (refreshes daily)\n\n0G tokens are used for gas fees on 0G Chain. For Storage and Compute, you'll also need to fund those services separately (covered in Modules 2 and 3). The testnet tokens are sufficient for all development and testing — you won't need mainnet tokens until you're ready to deploy to production.",
         "position": {
           "x": 2,
           "y": 10
@@ -884,9 +884,9 @@
         "type": "text"
       },
       {
-        "id": "transformer_architecture",
-        "title": "The Complete Transformer",
-        "content": "Key ideas:\n- Encoder-decoder structure without recurrence\n- All attention-based: self-attention + cross-attention\n- Fully parallelizable during training\n- d_model=512, 6 layers, 8 heads in base model\n\nPutting it all together, the Transformer is:\n\n**Input side:**\n- Embed input tokens + add positional encoding\n- Pass through 6 encoder layers\n- Output: contextualized representations for all positions\n\n**Output side:**\n- Embed output tokens + add positional encoding\n- Pass through 6 decoder layers (with encoder-decoder attention)\n- Linear projection + softmax to get next token probabilities\n\nThe key insight: attention is all you need. No RNNs, no convolutions. Just attention layers stacked up. This enables full parallelization during training—all positions computed simultaneously.\n\nThe base model has 65M parameters. Training time on 8 GPUs: 12 hours. Result: new state-of-the-art on translation.",
+        "id": "smart_contract_addresses",
+        "title": "The Core Contract Addresses You Need",
+        "content": "Key ideas:\n- Testnet Flow contract: 0x22E03a6A89B950F1c82ec5e74F8eCa321a105296\n- Testnet Compute Ledger: 0xE70830508dAc0A97e6c087c75f402f9Be669E406\n- Precompiles at fixed addresses: DASigners 0x1000, WrappedOGBase 0x1001\n\n0G Labs documents the following critical contract addresses. Save these — you'll reference them often in SDK initialization and direct contract calls.\n\n**Testnet (Galileo) Contracts:**\n```\nFlow (Storage payments):  0x22E03a6A89B950F1c82ec5e74F8eCa321a105296\nMine (Mining rewards):    0x00A9E9604b0538e06b268Fb297Df333337f9593b\nReward (Distribution):   0xA97B57b4BdFEA2D0a25e535bd849ad4e6C440A69\nDAEntrance (DA blobs):    0xE75A073dA5bb7b0eC622170Fd268f35E675a957B\nCompute Ledger:           0xE70830508dAc0A97e6c087c75f402f9Be669E406\nCompute Inference:        0xa79F4c8311FF93C06b8CfB403690cc987c93F91E\nCompute FineTuning:       0xaC66eBd174435c04F1449BBa08157a707B6fa7b1\n```\n\n**Precompiles (same address on testnet and mainnet):**\n```\nDASigners:     0x0000000000000000000000000000000000001000\nWrappedOGBase: 0x0000000000000000000000000000000000001001\n```\n\n**Mainnet (Aristotle) Contracts:**\n```\nFlow:           0x62D4144dB0F0a6fBBaeb6296c785C71B3D57C526\nCompute Ledger: 0x2dE54c845Cd948B72D2e32e39586fe89607074E3\n```\n\nThe TypeScript SDK uses these addresses internally when you pass the RPC URL. However, if you're writing smart contracts that interact with these services directly (e.g., verifying storage proofs on-chain), you'll reference these addresses explicitly.",
         "position": {
           "x": 6,
           "y": 10
@@ -895,15 +895,15 @@
       }
     ],
     "quiz": {
-      "id": "quiz-stage-3",
-      "question": "What did the Transformer eliminate compared to previous seq2seq models?",
+      "id": "quiz-stage-1",
+      "question": "Which contract manages storage data flow and payments on 0G Testnet?",
       "type": "multiple-choice",
       "options": [
-        "Attention",
-        "Embeddings",
-        "Recurrence"
+        "0xE70830508dAc0A97e6c087c75f402f9Be669E406 (Compute Ledger)",
+        "0x22E03a6A89B950F1c82ec5e74F8eCa321a105296 (Flow)",
+        "0xE75A073dA5bb7b0eC622170Fd268f35E675a957B (DAEntrance)"
       ],
-      "correctAnswer": "Recurrence",
+      "correctAnswer": "0x22E03a6A89B950F1c82ec5e74F8eCa321a105296 (Flow)",
       "position": {
         "x": 18,
         "y": 7
@@ -917,7 +917,7 @@
       "x": 1,
       "y": 7
     },
-    "nextStage": 4,
-    "previousStage": 2
+    "nextStage": 2,
+    "previousStage": null
   }
 }

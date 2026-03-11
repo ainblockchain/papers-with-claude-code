@@ -264,10 +264,29 @@ export function drawBlackboard(
     ctx.fillRect(x + w - 15, y + h - 3, 6, 1)
   }
 
-  // Title text
+  // Title text (word-wrap into multiple lines)
+  const fontSize = 10;
   ctx.fillStyle = '#E0E0E0'
-  ctx.font = `bold ${Math.max(h * 0.18, 9)}px sans-serif`
+  ctx.font = `bold ${fontSize}px sans-serif`
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
-  ctx.fillText(title, x + w / 2, y + h / 2, w - 8)
+  const maxW = w - 8;
+  const words = title.split(' ');
+  const lines: string[] = [];
+  let cur = '';
+  for (const word of words) {
+    const test = cur ? `${cur} ${word}` : word;
+    if (ctx.measureText(test).width > maxW && cur) {
+      lines.push(cur);
+      cur = word;
+    } else {
+      cur = test;
+    }
+  }
+  if (cur) lines.push(cur);
+  const lineH = fontSize * 1.2;
+  const startY = y + h / 2 - ((lines.length - 1) * lineH) / 2;
+  for (let i = 0; i < lines.length; i++) {
+    ctx.fillText(lines[i], x + w / 2, startY + i * lineH, maxW);
+  }
 }

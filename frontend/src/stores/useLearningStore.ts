@@ -26,6 +26,7 @@ interface LearningState {
 
   // Interaction
   activeConceptId: string | null;
+  viewedConceptIds: Set<string>;
   isQuizActive: boolean;
   isQuizPassed: boolean;
   isDoorUnlocked: boolean;
@@ -57,6 +58,7 @@ interface LearningState {
   setPlayerPosition: (pos: PlayerPosition) => void;
   setPlayerDirection: (dir: 'up' | 'down' | 'left' | 'right') => void;
   setActiveConcept: (conceptId: string | null) => void;
+  markConceptViewed: (conceptId: string) => void;
   setQuizActive: (active: boolean) => void;
   setQuizPassed: (passed: boolean) => void;
   setDoorUnlocked: (unlocked: boolean) => void;
@@ -84,6 +86,7 @@ export const useLearningStore = create<LearningState>((set, get) => ({
   playerPosition: initialPlayerPos,
   playerDirection: 'down',
   activeConceptId: null,
+  viewedConceptIds: new Set<string>(),
   isQuizActive: false,
   isQuizPassed: false,
   isDoorUnlocked: false,
@@ -110,6 +113,8 @@ export const useLearningStore = create<LearningState>((set, get) => ({
   setPlayerPosition: (playerPosition) => set({ playerPosition }),
   setPlayerDirection: (playerDirection) => set({ playerDirection }),
   setActiveConcept: (activeConceptId) => set({ activeConceptId }),
+  markConceptViewed: (conceptId) =>
+    set((state) => ({ viewedConceptIds: new Set(state.viewedConceptIds).add(conceptId) })),
   setQuizActive: (isQuizActive) => set({ isQuizActive }),
   setQuizPassed: (isQuizPassed) => set({ isQuizPassed }),
   setDoorUnlocked: (isDoorUnlocked) => set({ isDoorUnlocked }),
@@ -134,6 +139,7 @@ export const useLearningStore = create<LearningState>((set, get) => ({
       playerPosition: initialPlayerPos,
       playerDirection: 'down',
       activeConceptId: null,
+      viewedConceptIds: new Set<string>(),
       isQuizActive: false,
       isQuizPassed: false,
       isDoorUnlocked: false,
