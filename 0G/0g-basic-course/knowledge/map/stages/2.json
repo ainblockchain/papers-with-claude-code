@@ -671,10 +671,10 @@
           },
           {
             "id": 3,
-            "name": "encoder_stack",
+            "name": "wallet_and_network_setup",
             "type": "npc",
             "x": 80,
-            "y": 160,
+            "y": 280,
             "width": 40,
             "height": 40,
             "rotation": 0,
@@ -683,21 +683,21 @@
               {
                 "name": "conceptId",
                 "type": "string",
-                "value": "encoder_stack"
+                "value": "wallet_and_network_setup"
               },
               {
                 "name": "title",
                 "type": "string",
-                "value": "The Encoder: Understanding the Input"
+                "value": "Setting Up Your Wallet for 0G"
               }
             ]
           },
           {
             "id": 4,
-            "name": "position_wise_ffn",
+            "name": "first_storage_upload",
             "type": "npc",
             "x": 240,
-            "y": 160,
+            "y": 280,
             "width": 40,
             "height": 40,
             "rotation": 0,
@@ -706,21 +706,21 @@
               {
                 "name": "conceptId",
                 "type": "string",
-                "value": "position_wise_ffn"
+                "value": "first_storage_upload"
               },
               {
                 "name": "title",
                 "type": "string",
-                "value": "Position-wise Feed-Forward Networks"
+                "value": "Your First File Upload to 0G Storage"
               }
             ]
           },
           {
             "id": 5,
-            "name": "masked_attention",
+            "name": "first_ai_inference",
             "type": "npc",
             "x": 400,
-            "y": 160,
+            "y": 280,
             "width": 40,
             "height": 40,
             "rotation": 0,
@@ -729,21 +729,21 @@
               {
                 "name": "conceptId",
                 "type": "string",
-                "value": "masked_attention"
+                "value": "first_ai_inference"
               },
               {
                 "name": "title",
                 "type": "string",
-                "value": "Masked Self-Attention: No Peeking Ahead"
+                "value": "Your First AI Inference on 0G Compute"
               }
             ]
           },
           {
             "id": 6,
-            "name": "decoder_stack",
+            "name": "reading_chain_data",
             "type": "npc",
-            "x": 80,
-            "y": 400,
+            "x": 560,
+            "y": 280,
             "width": 40,
             "height": 40,
             "rotation": 0,
@@ -752,35 +752,12 @@
               {
                 "name": "conceptId",
                 "type": "string",
-                "value": "decoder_stack"
+                "value": "reading_chain_data"
               },
               {
                 "name": "title",
                 "type": "string",
-                "value": "The Decoder: Generating the Output"
-              }
-            ]
-          },
-          {
-            "id": 7,
-            "name": "transformer_architecture",
-            "type": "npc",
-            "x": 240,
-            "y": 400,
-            "width": 40,
-            "height": 40,
-            "rotation": 0,
-            "visible": true,
-            "properties": [
-              {
-                "name": "conceptId",
-                "type": "string",
-                "value": "transformer_architecture"
-              },
-              {
-                "name": "title",
-                "type": "string",
-                "value": "The Complete Transformer"
+                "value": "Reading Data from 0G Chain"
               }
             ]
           }
@@ -837,73 +814,63 @@
     ]
   },
   "stage": {
-    "id": "architecture",
-    "stageNumber": 3,
-    "title": "Building the Transformer",
+    "id": "getting_started",
+    "stageNumber": 2,
+    "title": "Module 2: Getting Started with 0G",
     "roomWidth": 20,
     "roomHeight": 15,
     "concepts": [
       {
-        "id": "encoder_stack",
-        "title": "The Encoder: Understanding the Input",
-        "content": "Key ideas:\n- 6 identical layers stacked\n- Each layer: self-attention → FFN\n- Both sublayers wrapped with residual + LayerNorm\n- Output: contextualized representations for all positions\n\nThe encoder's job: transform input tokens into rich, contextualized representations. It stacks 6 identical layers, each with two sublayers:\n\n1. **Multi-head self-attention**: Each position looks at all positions\n2. **Feed-forward network**: Process each position independently\n\nBoth sublayers are wrapped: output = LayerNorm(x + Sublayer(x))\n\nThink of the encoder as a series of increasingly sophisticated filters. Layer 1 captures local patterns. Layer 6 captures abstract, global relationships. The final encoder output goes to every decoder layer.\n\nWith d_model=512 maintained throughout, the encoder produces 512-dimensional vectors for each input position.",
+        "id": "wallet_and_network_setup",
+        "title": "Setting Up Your Wallet for 0G",
+        "content": "Key ideas:\n- Use any EVM wallet (MetaMask recommended for beginners)\n- Add 0G Testnet: Chain ID 16602, RPC https://evmrpc-testnet.0g.ai\n- Store private key in .env file — never commit to git\n\nSetting up for 0G development takes about 5 minutes.\n\n**Step 1: Get MetaMask (or any EVM wallet)**\nDownload MetaMask from metamask.io. Create a new account or use an existing one. Copy your wallet address (the 0x... string).\n\n**Step 2: Add 0G Testnet to MetaMask**\nIn MetaMask: Settings → Networks → Add Network → Add manually:\n```\nNetwork Name: 0G Galileo Testnet\nRPC URL:      https://evmrpc-testnet.0g.ai\nChain ID:     16602\nToken Symbol: 0G\nExplorer:     https://chainscan-galileo.0g.ai\n```\n\n**Step 3: Get testnet tokens**\n1. Go to https://faucet.0g.ai\n2. Paste your wallet address\n3. Click 'Request Tokens' — you'll receive 0.1 0G\n\n**Step 4: Set up your development environment**\n```bash\nmkdir my-0g-app && cd my-0g-app\nnpm init -y\nnpm install @0glabs/0g-ts-sdk ethers dotenv\n```\n\nCreate a `.env` file:\n```\nPRIVATE_KEY=your_private_key_here\n```\n\nCreate a `.gitignore` file:\n```\n.env\nnode_modules/\n```\n\n**CRITICAL**: Never share your private key or commit it to version control. The private key controls your wallet. Anyone with it can spend your funds. For testnet development, create a dedicated wallet with no real funds.\n\nVerify your setup:\n```typescript\nimport { ethers } from 'ethers';\nimport * as dotenv from 'dotenv';\ndotenv.config();\n\nconst provider = new ethers.JsonRpcProvider('https://evmrpc-testnet.0g.ai');\nconst signer = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);\n\nconsole.log('Address:', signer.address);\nconsole.log('Balance:', await provider.getBalance(signer.address));\n```",
         "position": {
           "x": 2,
-          "y": 4
+          "y": 7
         },
         "type": "text"
       },
       {
-        "id": "position_wise_ffn",
-        "title": "Position-wise Feed-Forward Networks",
-        "content": "Key ideas:\n- Applied to each position independently\n- Two linear transforms with ReLU: FFN(x) = max(0, xW₁+b₁)W₂+b₂\n- Inner dimension d_ff = 2048 (4× d_model)\n- Same across positions, different across layers\n\nAfter attention mixes information across positions, the FFN processes each position independently. It's deceptively simple:\n\n```\nFFN(x) = max(0, x·W₁ + b₁)·W₂ + b₂\n```\n\nThis is just two linear layers with a ReLU in between. The middle expands from 512 to 2048 dimensions, then projects back to 512. Think of it as each position getting to 'think' in a higher-dimensional space.\n\nWhy position-wise? The attention already mixed information. Now each position needs to process what it learned. The weights are shared across positions (like a 1×1 convolution) but different for each of the 6 layers.",
+        "id": "first_storage_upload",
+        "title": "Your First File Upload to 0G Storage",
+        "content": "Key ideas:\n- ZgFile wraps your file and computes its Merkle root hash\n- The rootHash is your file's permanent content-addressed ID — save it\n- indexer.upload() handles payment and node selection automatically\n\nUploading a file to 0G Storage involves three steps: wrap the file, compute its identity (rootHash), and upload.\n\n```typescript\nimport { ZgFile, Indexer } from '@0glabs/0g-ts-sdk';\nimport { ethers } from 'ethers';\nimport * as dotenv from 'dotenv';\nimport * as fs from 'fs';\ndotenv.config();\n\nconst RPC_URL = 'https://evmrpc-testnet.0g.ai';\nconst INDEXER_URL = 'https://indexer-storage-testnet-turbo.0g.ai';\n\nasync function main() {\n  // Connect wallet\n  const provider = new ethers.JsonRpcProvider(RPC_URL);\n  const signer = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);\n  const indexer = new Indexer(INDEXER_URL);\n\n  // Create a test file\n  fs.writeFileSync('hello.txt', 'Hello, 0G Storage!');\n\n  // Wrap the file\n  const file = await ZgFile.fromFilePath('./hello.txt');\n\n  // Compute Merkle tree (this determines the rootHash)\n  const [tree, treeErr] = await file.merkleTree();\n  if (treeErr) throw treeErr;\n\n  const rootHash = tree!.rootHash();\n  console.log('File identity (rootHash):', rootHash);\n  // ↑ SAVE THIS. It's how you retrieve the file.\n\n  // Upload to 0G Storage (handles payment automatically)\n  const [tx, uploadErr] = await indexer.upload(file, RPC_URL, signer);\n  if (uploadErr) throw uploadErr;\n\n  console.log('Upload complete! Transaction:', tx);\n  await file.close();\n\n  // Now download it back\n  const downloadErr = await indexer.download(rootHash, './hello-downloaded.txt', true);\n  if (downloadErr) throw downloadErr;\n  console.log('Downloaded:', fs.readFileSync('./hello-downloaded.txt', 'utf8'));\n}\n\nmain().catch(console.error);\n```\n\n**Understanding the rootHash:**\nThe rootHash is computed from your file's contents using a Merkle tree — a cryptographic data structure. Change even one byte, and the rootHash changes completely. This means:\n- You can verify a download is correct by checking the rootHash\n- Two identical files have the same rootHash (automatic deduplication)\n- There's no filename-based lookup — the rootHash IS your file's identity\n\n**What the upload does:**\n1. Splits your file into sectors\n2. Pays storage miners via the Flow contract\n3. Distributes data across storage nodes\n4. Returns a transaction hash confirming payment\n\nYou don't need to track individual storage nodes — the Indexer handles discovery and routing automatically.",
         "position": {
           "x": 6,
-          "y": 4
+          "y": 7
         },
         "type": "text"
       },
       {
-        "id": "masked_attention",
-        "title": "Masked Self-Attention: No Peeking Ahead",
-        "content": "Key ideas:\n- In decoder, prevent attending to future positions\n- Set future positions to -∞ before softmax\n- Preserves auto-regressive property\n- Position i can only attend to positions ≤ i\n\nDuring generation, the decoder produces tokens one at a time. It can't see the future—that would be cheating! Masked self-attention enforces this.\n\nBefore softmax, we add a mask that sets all 'illegal' attention scores to -∞:\n```\nattention_scores[i, j] = -∞  if j > i\n```\n\nAfter softmax, these become 0. Position 3 can only attend to positions 0, 1, 2, 3—never 4, 5, or beyond.\n\nThis triangular mask ensures the model learns to predict autoregressively: each position only depends on its left context. During training, we can still process all positions in parallel—we just mask the future.",
+        "id": "first_ai_inference",
+        "title": "Your First AI Inference on 0G Compute",
+        "content": "Key ideas:\n- 0G Compute is OpenAI API compatible — same SDK, 2-line change\n- Must fund account and acknowledge provider before first request\n- Available models include Llama-3, Qwen2.5, Mistral and more\n\n0G Compute uses the same API format as OpenAI, so migration is intentionally simple.\n\n**Setup (one-time):**\n```bash\n# Install the 0G Compute CLI\nnpm install -g @0glabs/0g-serving-broker\n\n# Login with your wallet\n0g-compute-cli login\n\n# Deposit funds\n0g-compute-cli deposit --amount 1\n\n# See available AI providers\n0g-compute-cli inference list-providers\n\n# Fund a specific provider (copy address from list above)\n0g-compute-cli transfer-fund --provider <PROVIDER_ADDRESS> --amount 0.5\n\n# Acknowledge the provider (required before first request)\n0g-compute-cli inference acknowledge-provider --provider <PROVIDER_ADDRESS>\n\n# Get your API key for this provider\n0g-compute-cli inference get-secret --provider <PROVIDER_ADDRESS>\n# → Copy the output: app-sk-xxxx... → set as ZG_API_KEY in .env\n```\n\n**Add to your .env:**\n```\nZG_API_KEY=app-sk-your-secret-here\nZG_PROVIDER_URL=https://provider-url-from-list\n```\n\n**Use it (2-line change from OpenAI):**\n```typescript\nimport OpenAI from 'openai';\nimport * as dotenv from 'dotenv';\ndotenv.config();\n\nconst client = new OpenAI({\n  apiKey: process.env.ZG_API_KEY,                        // was: OPENAI_API_KEY\n  baseURL: process.env.ZG_PROVIDER_URL + '/v1/proxy',   // was: default\n});\n\nconst response = await client.chat.completions.create({\n  model: 'meta-llama/Meta-Llama-3.1-8B-Instruct',\n  messages: [{ role: 'user', content: 'Explain 0G Storage in one sentence.' }]\n});\n\nconsole.log(response.choices[0].message.content);\n```\n\n**What happens behind the scenes:**\n1. Your request goes to the provider's endpoint\n2. The provider runs inference on their GPU hardware\n3. They return a `ZG-Res-Key` header for payment settlement\n4. Tokens are deducted from your escrow account\n\nFor TEE-verified providers, you call `broker.inference.processResponse()` to complete the payment proof. For standard providers, it's fully automatic.",
         "position": {
           "x": 10,
-          "y": 4
+          "y": 7
         },
         "type": "text"
       },
       {
-        "id": "decoder_stack",
-        "title": "The Decoder: Generating the Output",
-        "content": "Key ideas:\n- 6 identical layers stacked\n- Three sublayers per layer: masked self-attn → encoder-decoder attn → FFN\n- Masked attention preserves autoregressive property\n- Encoder-decoder attention reads from encoder output\n\nThe decoder generates output one token at a time, with three sublayers per layer:\n\n1. **Masked self-attention**: Attend to previous outputs only\n2. **Encoder-decoder attention**: Look at the input sequence\n3. **Feed-forward network**: Process independently\n\nEach sublayer has residual connections and layer norm. The decoder is more complex because it needs to:\n- Remember what it has generated (masked self-attention)\n- Know what the input said (encoder-decoder attention)\n- Process that combined information (FFN)\n\nThe encoder output is shared across all 6 decoder layers—computed once, used 6 times.",
+        "id": "reading_chain_data",
+        "title": "Reading Data from 0G Chain",
+        "content": "Key ideas:\n- 0G Chain is EVM-compatible — use ethers.js or viem\n- View transaction history on chainscan-galileo.0g.ai\n- Smart contracts on 0G work identically to Ethereum\n\nBecause 0G Chain is EVM-compatible, you interact with it exactly like Ethereum. All your existing Ethereum knowledge applies directly.\n\n**Reading basic chain data:**\n```typescript\nimport { ethers } from 'ethers';\n\nconst provider = new ethers.JsonRpcProvider('https://evmrpc-testnet.0g.ai');\n\n// Get current block number\nconst blockNumber = await provider.getBlockNumber();\nconsole.log('Current block:', blockNumber);\n\n// Get balance\nconst balance = await provider.getBalance('0xYOUR_ADDRESS');\nconsole.log('Balance:', ethers.formatEther(balance), '0G');\n\n// Get transaction details\nconst tx = await provider.getTransaction('0xTX_HASH');\nconsole.log('Transaction:', tx);\n```\n\n**Calling a smart contract:**\n```typescript\n// The Flow contract manages storage payments\nconst FLOW_ADDRESS = '0x22E03a6A89B950F1c82ec5e74F8eCa321a105296';\n\n// Minimal ABI for reading\nconst abi = ['function numStorageShards() view returns (uint256)'];\nconst flowContract = new ethers.Contract(FLOW_ADDRESS, abi, provider);\n\nconst shards = await flowContract.numStorageShards();\nconsole.log('Storage shards:', shards.toString());\n```\n\n**Using the Block Explorer:**\nGo to https://chainscan-galileo.0g.ai and you can:\n- Search any address, transaction, or block\n- See all transactions for a wallet address\n- Verify smart contract deployments\n- View token transfers and balances\n\nThe explorer works identically to Etherscan on Ethereum. If you've used Etherscan before, chainscan is immediately familiar.",
         "position": {
-          "x": 2,
-          "y": 10
-        },
-        "type": "text"
-      },
-      {
-        "id": "transformer_architecture",
-        "title": "The Complete Transformer",
-        "content": "Key ideas:\n- Encoder-decoder structure without recurrence\n- All attention-based: self-attention + cross-attention\n- Fully parallelizable during training\n- d_model=512, 6 layers, 8 heads in base model\n\nPutting it all together, the Transformer is:\n\n**Input side:**\n- Embed input tokens + add positional encoding\n- Pass through 6 encoder layers\n- Output: contextualized representations for all positions\n\n**Output side:**\n- Embed output tokens + add positional encoding\n- Pass through 6 decoder layers (with encoder-decoder attention)\n- Linear projection + softmax to get next token probabilities\n\nThe key insight: attention is all you need. No RNNs, no convolutions. Just attention layers stacked up. This enables full parallelization during training—all positions computed simultaneously.\n\nThe base model has 65M parameters. Training time on 8 GPUs: 12 hours. Result: new state-of-the-art on translation.",
-        "position": {
-          "x": 6,
-          "y": 10
+          "x": 14,
+          "y": 7
         },
         "type": "text"
       }
     ],
     "quiz": {
-      "id": "quiz-stage-3",
-      "question": "What did the Transformer eliminate compared to previous seq2seq models?",
+      "id": "quiz-stage-2",
+      "question": "How do you interact with smart contracts on 0G Chain?",
       "type": "multiple-choice",
       "options": [
-        "Attention",
-        "Embeddings",
-        "Recurrence"
+        "Using a special 0G SDK — standard Ethereum tools don't work",
+        "Using standard Ethereum tools (ethers.js, viem, web3.js) — 0G is EVM-compatible",
+        "Only through the 0G CLI — no JavaScript SDK"
       ],
-      "correctAnswer": "Recurrence",
+      "correctAnswer": "Using standard Ethereum tools (ethers.js, viem, web3.js) — 0G is EVM-compatible",
       "position": {
         "x": 18,
         "y": 7
@@ -917,7 +884,7 @@
       "x": 1,
       "y": 7
     },
-    "nextStage": 4,
-    "previousStage": 2
+    "nextStage": 3,
+    "previousStage": 1
   }
 }

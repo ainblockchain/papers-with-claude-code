@@ -61,14 +61,14 @@ function parseReadme(content: string) {
 /** courses.json에서 코스 통계 추출 */
 function parseCourseStats(
   data: { concepts?: string[]; lessons?: unknown[] }[]
-): { totalConcepts: number; totalLessons: number } {
+): { totalConcepts: number; totalLessons: number; totalCourses: number } {
   let totalConcepts = 0;
   let totalLessons = 0;
   for (const course of data) {
     totalConcepts += course.concepts?.length || 0;
     totalLessons += course.lessons?.length || 0;
   }
-  return { totalConcepts, totalLessons };
+  return { totalConcepts, totalLessons, totalCourses: data.length };
 }
 
 /** slug → 사람이 읽기 좋은 이름 ("image-recognition" → "Image Recognition") */
@@ -97,7 +97,7 @@ function buildPaper(
   paperSlug: string,
   courseSlug: string,
   readmeMeta: ReturnType<typeof parseReadme>,
-  stats: { totalConcepts: number; totalLessons: number },
+  stats: { totalConcepts: number; totalLessons: number; totalCourses: number },
   paperJson?: PaperJsonData,
 ): Paper {
   const arxivId = paperJson?.arxivId || readmeMeta.arxivId || '';
@@ -136,7 +136,7 @@ function buildPaper(
     githubUrl: paperJson?.githubUrl,
     courseRepoUrl,
     submittedBy: paperJson?.submittedBy || 'community',
-    totalStages: readmeMeta.totalModules || 1,
+    totalStages: stats.totalCourses || readmeMeta.totalModules || 1,
     courseName: slugToName(courseSlug),
     organization: paperJson?.organization
       ? { name: paperJson.organization.name, logoUrl: '' }
@@ -224,7 +224,7 @@ async function fetchPapersFromGitHub(): Promise<Paper[]> {
 
       const meta = parseReadme(readme || '');
 
-      let stats = { totalConcepts: 0, totalLessons: 0 };
+      let stats = { totalConcepts: 0, totalLessons: 0, totalCourses: 0 };
       if (coursesRaw) {
         try {
           stats = parseCourseStats(JSON.parse(coursesRaw));

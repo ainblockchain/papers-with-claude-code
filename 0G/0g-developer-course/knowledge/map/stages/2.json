@@ -671,7 +671,7 @@
           },
           {
             "id": 3,
-            "name": "encoder_stack",
+            "name": "storage_architecture",
             "type": "npc",
             "x": 80,
             "y": 160,
@@ -683,18 +683,18 @@
               {
                 "name": "conceptId",
                 "type": "string",
-                "value": "encoder_stack"
+                "value": "storage_architecture"
               },
               {
                 "name": "title",
                 "type": "string",
-                "value": "The Encoder: Understanding the Input"
+                "value": "Log vs Key-Value: Choosing the Right Storage Layer"
               }
             ]
           },
           {
             "id": 4,
-            "name": "position_wise_ffn",
+            "name": "ts_sdk_setup",
             "type": "npc",
             "x": 240,
             "y": 160,
@@ -706,18 +706,18 @@
               {
                 "name": "conceptId",
                 "type": "string",
-                "value": "position_wise_ffn"
+                "value": "ts_sdk_setup"
               },
               {
                 "name": "title",
                 "type": "string",
-                "value": "Position-wise Feed-Forward Networks"
+                "value": "Setting Up the TypeScript SDK"
               }
             ]
           },
           {
             "id": 5,
-            "name": "masked_attention",
+            "name": "file_upload_merkle",
             "type": "npc",
             "x": 400,
             "y": 160,
@@ -729,18 +729,18 @@
               {
                 "name": "conceptId",
                 "type": "string",
-                "value": "masked_attention"
+                "value": "file_upload_merkle"
               },
               {
                 "name": "title",
                 "type": "string",
-                "value": "Masked Self-Attention: No Peeking Ahead"
+                "value": "Uploading Files: Merkle Trees and Root Hashes"
               }
             ]
           },
           {
             "id": 6,
-            "name": "decoder_stack",
+            "name": "file_download_verify",
             "type": "npc",
             "x": 80,
             "y": 400,
@@ -752,18 +752,18 @@
               {
                 "name": "conceptId",
                 "type": "string",
-                "value": "decoder_stack"
+                "value": "file_download_verify"
               },
               {
                 "name": "title",
                 "type": "string",
-                "value": "The Decoder: Generating the Output"
+                "value": "Downloading with Merkle Proof Verification"
               }
             ]
           },
           {
             "id": 7,
-            "name": "transformer_architecture",
+            "name": "kv_storage",
             "type": "npc",
             "x": 240,
             "y": 400,
@@ -775,12 +775,35 @@
               {
                 "name": "conceptId",
                 "type": "string",
-                "value": "transformer_architecture"
+                "value": "kv_storage"
               },
               {
                 "name": "title",
                 "type": "string",
-                "value": "The Complete Transformer"
+                "value": "Key-Value Storage: Mutable Data on 0G"
+              }
+            ]
+          },
+          {
+            "id": 8,
+            "name": "storage_pricing",
+            "type": "npc",
+            "x": 400,
+            "y": 400,
+            "width": 40,
+            "height": 40,
+            "rotation": 0,
+            "visible": true,
+            "properties": [
+              {
+                "name": "conceptId",
+                "type": "string",
+                "value": "storage_pricing"
+              },
+              {
+                "name": "title",
+                "type": "string",
+                "value": "Why 0G Storage is 95% Cheaper Than AWS"
               }
             ]
           }
@@ -837,16 +860,16 @@
     ]
   },
   "stage": {
-    "id": "architecture",
-    "stageNumber": 3,
-    "title": "Building the Transformer",
+    "id": "storage_sdk",
+    "stageNumber": 2,
+    "title": "Module 2: 0G Storage SDK",
     "roomWidth": 20,
     "roomHeight": 15,
     "concepts": [
       {
-        "id": "encoder_stack",
-        "title": "The Encoder: Understanding the Input",
-        "content": "Key ideas:\n- 6 identical layers stacked\n- Each layer: self-attention → FFN\n- Both sublayers wrapped with residual + LayerNorm\n- Output: contextualized representations for all positions\n\nThe encoder's job: transform input tokens into rich, contextualized representations. It stacks 6 identical layers, each with two sublayers:\n\n1. **Multi-head self-attention**: Each position looks at all positions\n2. **Feed-forward network**: Process each position independently\n\nBoth sublayers are wrapped: output = LayerNorm(x + Sublayer(x))\n\nThink of the encoder as a series of increasingly sophisticated filters. Layer 1 captures local patterns. Layer 6 captures abstract, global relationships. The final encoder output goes to every decoder layer.\n\nWith d_model=512 maintained throughout, the encoder produces 512-dimensional vectors for each input position.",
+        "id": "storage_architecture",
+        "title": "Log vs Key-Value: Choosing the Right Storage Layer",
+        "content": "Key ideas:\n- Log Layer: immutable, append-only — ideal for ML datasets, model checkpoints\n- KV Layer: mutable key-value store — ideal for configuration, agent state\n- Both layers use Merkle trees for cryptographic data integrity\n\n0G Storage provides two fundamentally different storage primitives, designed for different use cases.\n\n**Log Layer (Immutable)**\nThink of this like IPFS content-addressing, but faster and cheaper. When you upload a file, 0G computes its Merkle tree and assigns a `rootHash`. This rootHash is the permanent, content-addressed identifier — like a fingerprint. The data can never be changed (the rootHash would change). This is perfect for:\n- ML training datasets\n- Model weight checkpoints\n- Immutable audit logs\n- Research artifacts that need permanent reference\n\n**Key-Value Layer (Mutable)**\nThink of this like a decentralized Redis. Data is organized by `streamId` (a bytes32 namespace) and you can set/get arbitrary byte arrays. This is perfect for:\n- Agent configuration and state\n- Dynamic metadata\n- Real-time scores or counters\n- User preferences\n\n**Under the hood**, both layers use the same storage network. Data is divided into sectors, erasure-coded with 3x redundancy (tolerates 30% node failures), and distributed across hundreds of nodes using a Proof of Random Access (PoRA) consensus that continuously verifies data is actually stored.\n\nWhen to use each: if the data is final and you need cryptographic proof of its integrity (like a published dataset or model), use the Log Layer. If you need to update values over time (like an AI agent's current state), use the KV Layer.",
         "position": {
           "x": 2,
           "y": 4
@@ -854,9 +877,9 @@
         "type": "text"
       },
       {
-        "id": "position_wise_ffn",
-        "title": "Position-wise Feed-Forward Networks",
-        "content": "Key ideas:\n- Applied to each position independently\n- Two linear transforms with ReLU: FFN(x) = max(0, xW₁+b₁)W₂+b₂\n- Inner dimension d_ff = 2048 (4× d_model)\n- Same across positions, different across layers\n\nAfter attention mixes information across positions, the FFN processes each position independently. It's deceptively simple:\n\n```\nFFN(x) = max(0, x·W₁ + b₁)·W₂ + b₂\n```\n\nThis is just two linear layers with a ReLU in between. The middle expands from 512 to 2048 dimensions, then projects back to 512. Think of it as each position getting to 'think' in a higher-dimensional space.\n\nWhy position-wise? The attention already mixed information. Now each position needs to process what it learned. The weights are shared across positions (like a 1×1 convolution) but different for each of the 6 layers.",
+        "id": "ts_sdk_setup",
+        "title": "Setting Up the TypeScript SDK",
+        "content": "Key ideas:\n- Install: npm install @0glabs/0g-ts-sdk ethers\n- Indexer automatically selects optimal nodes — no manual node management\n- Testnet Indexer RPC: https://indexer-storage-testnet-turbo.0g.ai\n\n0G Labs designed their TypeScript SDK around the Indexer abstraction — a service that handles the complexity of distributed storage so you don't have to manually select storage nodes, manage replication, or track which nodes have your data.\n\n```typescript\nimport { ZgFile, Indexer, Batcher, KvClient } from '@0glabs/0g-ts-sdk';\nimport { ethers } from 'ethers';\n\n// Network configuration\nconst RPC_URL = 'https://evmrpc-testnet.0g.ai';\nconst INDEXER_RPC = 'https://indexer-storage-testnet-turbo.0g.ai';\n\n// Create signer (requires funded wallet)\nconst provider = new ethers.JsonRpcProvider(RPC_URL);\nconst signer = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);\n\n// Create Indexer — this is your main entry point for storage operations\nconst indexer = new Indexer(INDEXER_RPC);\n\nconsole.log('SDK initialized. Wallet address:', signer.address);\n```\n\nThe four main classes you'll use:\n- **`ZgFile`**: Wraps a file or buffer for upload, computes Merkle tree\n- **`Indexer`**: Manages node selection, upload coordination, and download retrieval\n- **`Batcher`**: Batches multiple KV writes into a single on-chain transaction\n- **`KvClient`**: Reads key-value data from a KV node\n\nThe Indexer connects to a network of storage nodes and uses a gossiping protocol to discover which nodes have capacity and are responsive. When you call `indexer.upload()`, it automatically selects the best nodes, splits your data into sectors, and handles the on-chain payment via the Flow contract.",
         "position": {
           "x": 6,
           "y": 4
@@ -864,9 +887,9 @@
         "type": "text"
       },
       {
-        "id": "masked_attention",
-        "title": "Masked Self-Attention: No Peeking Ahead",
-        "content": "Key ideas:\n- In decoder, prevent attending to future positions\n- Set future positions to -∞ before softmax\n- Preserves auto-regressive property\n- Position i can only attend to positions ≤ i\n\nDuring generation, the decoder produces tokens one at a time. It can't see the future—that would be cheating! Masked self-attention enforces this.\n\nBefore softmax, we add a mask that sets all 'illegal' attention scores to -∞:\n```\nattention_scores[i, j] = -∞  if j > i\n```\n\nAfter softmax, these become 0. Position 3 can only attend to positions 0, 1, 2, 3—never 4, 5, or beyond.\n\nThis triangular mask ensures the model learns to predict autoregressively: each position only depends on its left context. During training, we can still process all positions in parallel—we just mask the future.",
+        "id": "file_upload_merkle",
+        "title": "Uploading Files: Merkle Trees and Root Hashes",
+        "content": "Key ideas:\n- ZgFile.fromFilePath() wraps a local file for upload\n- file.merkleTree() computes the Merkle tree — rootHash is your file's permanent ID\n- Save the rootHash immediately — you need it to download the file later\n\n0G Labs implemented content-addressed storage, where each file's identity is determined by its content, not its name. The Merkle tree is the cryptographic foundation of this system.\n\nHere's how it works: your file is divided into fixed-size chunks. Each chunk is hashed. Those hashes are paired and hashed again. This continues up a binary tree until there's one root hash at the top — the `rootHash`. Change even one byte anywhere in the file, and the rootHash changes completely.\n\n```typescript\nimport { ZgFile, Indexer } from '@0glabs/0g-ts-sdk';\nimport { ethers } from 'ethers';\n\nconst RPC_URL = 'https://evmrpc-testnet.0g.ai';\nconst INDEXER_RPC = 'https://indexer-storage-testnet-turbo.0g.ai';\n\nconst provider = new ethers.JsonRpcProvider(RPC_URL);\nconst signer = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);\nconst indexer = new Indexer(INDEXER_RPC);\n\nasync function uploadFile(filePath: string): Promise<string> {\n  // Wrap the file\n  const file = await ZgFile.fromFilePath(filePath);\n\n  // Compute the Merkle tree (this determines the rootHash)\n  const [tree, treeErr] = await file.merkleTree();\n  if (treeErr) throw new Error(`Merkle tree error: ${treeErr}`);\n\n  const rootHash = tree!.rootHash();\n  console.log('Root hash (SAVE THIS):', rootHash);\n\n  // Upload to the network (handles node selection + payment)\n  const [tx, uploadErr] = await indexer.upload(file, RPC_URL, signer);\n  if (uploadErr) throw new Error(`Upload error: ${uploadErr}`);\n\n  console.log('Upload tx:', tx);\n  await file.close(); // Always close to release file handle\n  return rootHash;\n}\n```\n\nThe rootHash is how you reference your file forever. Store it in your database, smart contract, or KV layer. There's no filename-based lookup — 0G is a pure content-addressed system. This is actually a feature: the same file uploaded twice has the same rootHash, enabling deduplication across the entire network.",
         "position": {
           "x": 10,
           "y": 4
@@ -874,9 +897,9 @@
         "type": "text"
       },
       {
-        "id": "decoder_stack",
-        "title": "The Decoder: Generating the Output",
-        "content": "Key ideas:\n- 6 identical layers stacked\n- Three sublayers per layer: masked self-attn → encoder-decoder attn → FFN\n- Masked attention preserves autoregressive property\n- Encoder-decoder attention reads from encoder output\n\nThe decoder generates output one token at a time, with three sublayers per layer:\n\n1. **Masked self-attention**: Attend to previous outputs only\n2. **Encoder-decoder attention**: Look at the input sequence\n3. **Feed-forward network**: Process independently\n\nEach sublayer has residual connections and layer norm. The decoder is more complex because it needs to:\n- Remember what it has generated (masked self-attention)\n- Know what the input said (encoder-decoder attention)\n- Process that combined information (FFN)\n\nThe encoder output is shared across all 6 decoder layers—computed once, used 6 times.",
+        "id": "file_download_verify",
+        "title": "Downloading with Merkle Proof Verification",
+        "content": "Key ideas:\n- indexer.download(rootHash, outputPath, true) — the third arg enables proof verification\n- Proof verification ensures you receive exactly what was uploaded\n- Passing false skips verification (faster but less secure)\n\n0G Labs built Merkle proof verification directly into the download API. When you pass `true` as the third argument, the SDK requests a cryptographic proof alongside the data, and verifies that the downloaded bytes match the rootHash you provided.\n\n```typescript\nasync function downloadFile(rootHash: string, outputPath: string): Promise<void> {\n  // true = enable Merkle proof verification\n  const err = await indexer.download(rootHash, outputPath, true);\n\n  if (err) {\n    console.error('Download failed:', err);\n    // Could be: node offline, data not found, proof verification failed\n    return;\n  }\n\n  console.log(`Downloaded to: ${outputPath}`);\n}\n```\n\nThe verification works like this: after downloading all chunks, the SDK reconstructs the Merkle tree from the received data and compares the computed rootHash to the rootHash you provided. If even one byte was corrupted (malicious storage node, network corruption), the rootHash won't match, and the SDK returns an error.\n\nThis is the cryptographic guarantee that makes 0G trustless — you don't need to trust the storage nodes. The math proves the data is correct.\n\n**CLI alternative:**\n```bash\n0g-storage-client download \\\n  --indexer https://indexer-storage-testnet-turbo.0g.ai \\\n  --root 0xABC123... \\\n  --file ./output.json \\\n  --proof\n```\n\n**REST API** (for simple HTTP retrieval without SDK):\n```\nGET https://storage-node.0g.ai/file?root=<MERKLE_ROOT>\n```",
         "position": {
           "x": 2,
           "y": 10
@@ -884,26 +907,36 @@
         "type": "text"
       },
       {
-        "id": "transformer_architecture",
-        "title": "The Complete Transformer",
-        "content": "Key ideas:\n- Encoder-decoder structure without recurrence\n- All attention-based: self-attention + cross-attention\n- Fully parallelizable during training\n- d_model=512, 6 layers, 8 heads in base model\n\nPutting it all together, the Transformer is:\n\n**Input side:**\n- Embed input tokens + add positional encoding\n- Pass through 6 encoder layers\n- Output: contextualized representations for all positions\n\n**Output side:**\n- Embed output tokens + add positional encoding\n- Pass through 6 decoder layers (with encoder-decoder attention)\n- Linear projection + softmax to get next token probabilities\n\nThe key insight: attention is all you need. No RNNs, no convolutions. Just attention layers stacked up. This enables full parallelization during training—all positions computed simultaneously.\n\nThe base model has 65M parameters. Training time on 8 GPUs: 12 hours. Result: new state-of-the-art on translation.",
+        "id": "kv_storage",
+        "title": "Key-Value Storage: Mutable Data on 0G",
+        "content": "Key ideas:\n- Each KV namespace identified by a bytes32 streamId\n- Batcher batches writes into a single on-chain transaction\n- KvClient reads from KV node at http://<KV_NODE_IP>:6789\n\n0G Labs designed the KV layer around the concept of streams — namespaced key-value stores. A streamId is a bytes32 value that identifies a particular KV store, similar to a Redis namespace or a database table.\n\n```typescript\nimport { Indexer, Batcher, KvClient } from '@0glabs/0g-ts-sdk';\nimport { ethers } from 'ethers';\n\nconst RPC_URL = 'https://evmrpc-testnet.0g.ai';\nconst FLOW_CONTRACT = '0x22E03a6A89B950F1c82ec5e74F8eCa321a105296';\n// Your stream ID (generate a random bytes32 for your application)\nconst STREAM_ID = '0x' + '00'.repeat(31) + '01'; // Example stream ID\n\n// WRITE: Batch multiple KV operations into one transaction\nasync function kvWrite(key: string, value: string) {\n  const [nodes, err] = await indexer.selectNodes(1);\n  if (err) throw err;\n\n  const batcher = new Batcher(1, nodes, FLOW_CONTRACT, RPC_URL);\n  const keyBytes = Uint8Array.from(Buffer.from(key, 'utf-8'));\n  const valueBytes = Uint8Array.from(Buffer.from(value, 'utf-8'));\n\n  batcher.streamDataBuilder.set(STREAM_ID, keyBytes, valueBytes);\n  const [tx, batchErr] = await batcher.exec();\n  if (batchErr) throw batchErr;\n  return tx;\n}\n\n// READ: Query KV node directly\nasync function kvRead(kvNodeUrl: string, key: string) {\n  const kvClient = new KvClient(kvNodeUrl); // e.g., 'http://kv-node:6789'\n  const keyBytes = Uint8Array.from(Buffer.from(key, 'utf-8'));\n  const value = await kvClient.getValue(STREAM_ID, ethers.encodeBase64(keyBytes));\n  return value;\n}\n```\n\nThe Batcher pattern is elegant: instead of making one on-chain transaction per key-value pair (which would be expensive), you can bundle dozens of writes into a single transaction. Call `batcher.streamDataBuilder.set()` multiple times before calling `batcher.exec()`.",
         "position": {
           "x": 6,
+          "y": 10
+        },
+        "type": "text"
+      },
+      {
+        "id": "storage_pricing",
+        "title": "Why 0G Storage is 95% Cheaper Than AWS",
+        "content": "Key ideas:\n- No centralized intermediary — storage miners compete on price\n- Prices paid per sector directly to miners via the Flow contract\n- No egress fees — 200 MBPS retrieval speed at no extra cost\n\n0G Labs documents a striking cost comparison: 0G Storage is 95% cheaper than AWS S3. Understanding why helps you design your applications to take full advantage.\n\nAWS S3 pricing includes: storage costs, request costs, data transfer (egress) fees, and a significant margin for Amazon's infrastructure, support, and profit. When you pay AWS, you're paying for all of this bundled together.\n\n0G flips this model: hundreds of storage miners compete in an open market. The Flow smart contract handles payments directly to miners based on Proof of Random Access (PoRA) challenges — miners must continuously prove they actually store the data they claim to store.\n\nThe economic effect:\n- **Storage**: Miners set competitive rates based on their actual hardware costs\n- **Egress**: No egress fees. Miners are incentivized to serve data quickly to maintain their reputation and earning potential\n- **Retrieval speed**: 200 MBPS guaranteed even under network congestion, because multiple nodes store each file (erasure coding)\n\nFor AI workloads, this is transformative. Storing a 100GB model dataset on AWS S3 costs ~$2.30/month plus $9/GB for egress when you retrieve it for training. On 0G Storage, you pay a fraction of that with no egress fees.\n\nThe SDK handles all payment logic automatically through the Flow contract — you don't need to worry about calculating miner fees manually.",
+        "position": {
+          "x": 10,
           "y": 10
         },
         "type": "text"
       }
     ],
     "quiz": {
-      "id": "quiz-stage-3",
-      "question": "What did the Transformer eliminate compared to previous seq2seq models?",
+      "id": "quiz-stage-2",
+      "question": "What is the primary reason 0G Storage achieves 95% cost savings over AWS S3?",
       "type": "multiple-choice",
       "options": [
-        "Attention",
-        "Embeddings",
-        "Recurrence"
+        "Lower hardware costs through economies of scale",
+        "Eliminating centralized intermediary markup — miners compete directly",
+        "Compressing all data before storing it"
       ],
-      "correctAnswer": "Recurrence",
+      "correctAnswer": "Eliminating centralized intermediary markup — miners compete directly",
       "position": {
         "x": 18,
         "y": 7
@@ -917,7 +950,7 @@
       "x": 1,
       "y": 7
     },
-    "nextStage": 4,
-    "previousStage": 2
+    "nextStage": 3,
+    "previousStage": 1
   }
 }

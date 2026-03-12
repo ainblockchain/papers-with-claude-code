@@ -673,7 +673,7 @@
             "id": 3,
             "name": "scaled_dot_product_attention",
             "type": "npc",
-            "x": 120,
+            "x": 80,
             "y": 160,
             "width": 40,
             "height": 40,
@@ -719,7 +719,7 @@
             "id": 5,
             "name": "self_attention",
             "type": "npc",
-            "x": 360,
+            "x": 400,
             "y": 160,
             "width": 40,
             "height": 40,
@@ -742,7 +742,7 @@
             "id": 6,
             "name": "encoder_decoder_attention",
             "type": "npc",
-            "x": 120,
+            "x": 80,
             "y": 400,
             "width": 40,
             "height": 40,
@@ -848,7 +848,7 @@
         "title": "Scaled Dot-Product Attention",
         "content": "Key ideas:\n- Attention(Q,K,V) = softmax(QK^T / √d_k) × V\n- Queries ask 'what am I looking for?'\n- Keys answer 'what do I contain?'\n- Values are 'what do I actually output?'\n- Scaling by √d_k prevents softmax saturation\n\nVaswani et al. formalized attention with three components: Queries (Q), Keys (K), and Values (V). Think of a library: queries are your search terms, keys are book titles, and values are the book contents.\n\nThe formula is elegant:\n```\nAttention(Q,K,V) = softmax(QK^T / √d_k) × V\n```\n\n1. Compute similarity: QK^T gives a score for each query-key pair\n2. Scale: divide by √d_k (here, √64 = 8) to keep values manageable\n3. Normalize: softmax turns scores into probabilities\n4. Aggregate: weighted sum of values\n\nWhy scale? If d_k is large, dot products can be huge, pushing softmax into regions where gradients vanish. Scaling keeps things in a happy range.",
         "position": {
-          "x": 3,
+          "x": 2,
           "y": 4
         },
         "type": "text"
@@ -868,7 +868,7 @@
         "title": "Self-Attention: Relating Positions Within a Sequence",
         "content": "Key ideas:\n- Q, K, V all derived from the same sequence\n- Every position can attend to every other position\n- Captures dependencies regardless of distance\n- Path length between any two positions: O(1)\n\nSelf-attention is where the magic happens. Unlike cross-attention (where one sequence attends to another), self-attention lets a sequence attend to itself.\n\nGiven input X, we compute Q = XW^Q, K = XW^K, V = XW^V. Each position asks: 'What other positions in my own sequence should I pay attention to?'\n\nThis is revolutionary because any position can directly attend to any other—no passing through intermediate steps. In 'The cat sat on the mat because it was tired', 'it' can directly attend to 'cat' in one step, not through a chain of hidden states.\n\nThis O(1) path length is why Transformers capture long-range dependencies so well.",
         "position": {
-          "x": 9,
+          "x": 10,
           "y": 4
         },
         "type": "text"
@@ -878,7 +878,7 @@
         "title": "Encoder-Decoder Attention: Bridging the Gap",
         "content": "Key ideas:\n- Queries come from decoder, keys/values from encoder\n- Every decoder position attends to all encoder positions\n- This is where translation alignment happens\n- Mimics the attention mechanism in seq2seq\n\nSelf-attention lets each side understand itself, but translation requires the decoder to 'see' the encoder. That's encoder-decoder attention.\n\nIn each decoder layer, after masked self-attention, there's a cross-attention sublayer:\n- Queries: from decoder's current state\n- Keys & Values: from encoder's final output\n\nThis is where 'le chat' learns to look at 'the cat'. The decoder asks: 'Given what I've generated so far, which parts of the input should I focus on now?'\n\nIt's the same multi-head attention mechanism, just with Q from one side and K,V from the other.",
         "position": {
-          "x": 3,
+          "x": 2,
           "y": 10
         },
         "type": "text"

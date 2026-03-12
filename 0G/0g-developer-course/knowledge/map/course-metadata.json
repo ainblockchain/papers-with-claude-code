@@ -1,0 +1,24 @@
+{
+  "courseId": "0g-developer-documentation--0g-developer-course",
+  "paperId": "0g-developer-documentation--0g-developer-course",
+  "title": "0G Developer Course",
+  "description": "A comprehensive developer course covering the 0G decentralized AI operating system. Master Storage SDK, Compute Network, smart contracts, DA layer, and advanced patterns like INFT and AI agent storage.",
+  "authors": [
+    { "id": "1", "name": "0G Labs", "avatarUrl": null }
+  ],
+  "publishedAt": "2024-01-01",
+  "arxivUrl": "https://docs.0g.ai",
+  "githubUrl": "https://github.com/0gfoundation",
+  "githubStars": null,
+  "organization": { "name": "0G Labs", "logoUrl": null },
+  "color": "#7B61FF",
+  "plotPosition": { "col": 1, "row": 0 },
+  "entrance": { "x": 7, "y": 4, "width": 4, "height": 3 },
+  "stages": [
+    { "stageNumber": 1, "title": "Module 1: 0G Foundations", "conceptCount": 5, "hasQuiz": true, "roomWidth": 20, "roomHeight": 15 },
+    { "stageNumber": 2, "title": "Module 2: 0G Storage SDK", "conceptCount": 6, "hasQuiz": true, "roomWidth": 20, "roomHeight": 15 },
+    { "stageNumber": 3, "title": "Module 3: 0G Compute Network", "conceptCount": 5, "hasQuiz": true, "roomWidth": 20, "roomHeight": 15 },
+    { "stageNumber": 4, "title": "Module 4: 0G Chain & Smart Contracts", "conceptCount": 5, "hasQuiz": true, "roomWidth": 20, "roomHeight": 15 },
+    { "stageNumber": 5, "title": "Module 5: Advanced 0G Patterns", "conceptCount": 4, "hasQuiz": true, "roomWidth": 20, "roomHeight": 15 }
+  ]
+}
