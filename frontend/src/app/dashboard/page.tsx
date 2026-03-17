@@ -9,6 +9,7 @@ import { Fingerprint } from 'lucide-react';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { progressAdapter } from '@/lib/adapters/progress';
 import { papersAdapter } from '@/lib/adapters/papers';
+import { calculateStreak, extractActivityTimestamps, getStreakStyle } from '@/lib/utils/streak';
 import { Paper } from '@/types/paper';
 import { UserProgress } from '@/types/learning';
 
@@ -19,6 +20,7 @@ interface ProgressWithPaper extends UserProgress {
 export default function DashboardPage() {
   const { user, passkeyInfo } = useAuthStore();
   const [progressList, setProgressList] = useState<ProgressWithPaper[]>([]);
+  const [streak, setStreak] = useState(0);
 
   useEffect(() => {
     async function load() {
@@ -36,10 +38,13 @@ export default function DashboardPage() {
         })
       );
       setProgressList(withPapers);
+      const timestamps = extractActivityTimestamps(withPapers);
+      setStreak(calculateStreak(timestamps));
     }
     load();
   }, [user, passkeyInfo]);
 
+  const streakStyle = getStreakStyle(streak);
   const totalStagesCleared = progressList.reduce(
     (sum, p) => sum + p.completedStages.length,
     0
@@ -82,10 +87,15 @@ export default function DashboardPage() {
         </div>
         <div className="p-4 bg-white border border-[#E5E7EB] rounded-lg">
           <div className="flex items-center gap-2 text-[#6B7280] text-sm mb-1">
-            <Flame className="h-4 w-4" />
+            <Flame
+              className={`h-4 w-4 transition-all duration-300 ${streakStyle.animate ? 'animate-[pulse_2s_ease-in-out_infinite]' : ''}`}
+              style={{ color: streakStyle.color, ...streakStyle.iconStyle }}
+            />
             Current Streak
           </div>
-          <p className="text-2xl font-bold text-[#111827]">1 day</p>
+          <p className="text-2xl font-bold transition-colors duration-300" style={{ color: streakStyle.color }}>
+            {streak} {streak === 1 ? 'day' : 'days'}
+          </p>
         </div>
       </div>
 
