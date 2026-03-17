@@ -1,4 +1,5 @@
-import { create } from 'zustand';
+import { create, type StateCreator } from 'zustand';
+import { persist } from 'zustand/middleware';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { multiChainAdapter } from '@/lib/payment/multi-chain-adapter';
 import {
@@ -6,6 +7,8 @@ import {
   PAYMENT_CHAINS,
   getDefaultChain,
 } from '@/lib/payment/chains';
+import { ainAdapter } from '@/lib/adapters/ain-blockchain';
+import { normalizePaperId } from '@/lib/adapters/papers';
 import type { Paper } from '@/types/paper';
 
 export type CourseAccessStatus = 'owned' | 'purchased' | 'available';
@@ -35,12 +38,14 @@ interface PurchaseState {
   setAccessStatus: (paperId: string, status: CourseAccessStatus) => void;
   /** Initialize access map from paper list. Marks papers as 'owned' if submittedBy matches current user. */
   initializeAccess: (papers: Paper[]) => void;
+  /** Restore purchase records from AIN blockchain */
+  restoreFromBlockchain: () => Promise<void>;
   /** Execute purchase via selected payment chain. Returns true on success. */
   purchaseCourse: (paperId: string) => Promise<boolean>;
   clearPurchaseError: () => void;
 }
 
-export const usePurchaseStore = create<PurchaseState>((set, get) => ({
+const storeConfig: StateCreator<PurchaseState> = (set, get) => ({
   accessMap: {},
   purchaseModalPaperId: null,
   purchaseModalPaper: null,
@@ -59,11 +64,11 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
 
   setSelectedChain: (chain) => set({ selectedChain: chain }),
 
-  getAccessStatus: (paperId) => get().accessMap[paperId] ?? 'available',
+  getAccessStatus: (paperId) => get().accessMap[normalizePaperId(paperId)] ?? 'available',
 
   setAccessStatus: (paperId, status) =>
     set((state) => ({
-      accessMap: { ...state.accessMap, [paperId]: status },
+      accessMap: { ...state.accessMap, [normalizePaperId(paperId)]: status },
     })),
 
   initializeAccess: (papers) => {
@@ -72,16 +77,61 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
     const newMap: Record<string, CourseAccessStatus> = { ...get().accessMap };
 
     for (const paper of papers) {
+      const id = normalizePaperId(paper.id);
       // Already purchased → keep that status
-      if (newMap[paper.id] === 'purchased') continue;
+      if (newMap[id] === 'purchased') continue;
       // Published by current user → owned
       if (currentUsername && paper.submittedBy === currentUsername) {
-        newMap[paper.id] = 'owned';
-      } else if (!newMap[paper.id]) {
-        newMap[paper.id] = 'available';
+        newMap[id] = 'owned';
+      } else if (!newMap[id]) {
+        newMap[id] = 'available';
       }
     }
     set({ accessMap: newMap });
+  },
+
+  restoreFromBlockchain: async () => {
+    const { passkeyInfo } = useAuthStore.getState();
+    if (!passkeyInfo?.ainAddress) return;
+
+    try {
+      // Explorations are written under the server's AIN address, not the user's passkey address.
+      // Query the server address, then filter entries by the user's buyer tag.
+      const { address: serverAddress } = await ainAdapter.getAccountInfo();
+      const progress = await ainAdapter.getProgress(serverAddress);
+      const buyerTag = `buyer:${passkeyInfo.ainAddress}`;
+
+      // Collect purchased IDs from blockchain data
+      const purchasedIds: string[] = [];
+
+      for (const topic of progress.topics) {
+        if (!topic.topicPath.startsWith('courses/')) continue;
+        const paperId = normalizePaperId(topic.topicPath.replace('courses/', ''));
+        const hasUserEntry = topic.entries?.some(
+          (entry: any) => Array.isArray(entry.tags) && entry.tags.includes(buyerTag)
+        );
+        if (hasUserEntry) purchasedIds.push(paperId);
+      }
+
+      for (const purchase of progress.purchases) {
+        if (!purchase.topicPath.startsWith('courses/')) continue;
+        const paperId = normalizePaperId(purchase.topicPath.replace('courses/', ''));
+        purchasedIds.push(paperId);
+      }
+
+      // Use updater to merge with latest state (avoids race with persist hydration)
+      if (purchasedIds.length > 0) {
+        set((state) => {
+          const newMap = { ...state.accessMap };
+          for (const id of purchasedIds) {
+            if (newMap[id] !== 'owned') newMap[id] = 'purchased';
+          }
+          return { accessMap: newMap };
+        });
+      }
+    } catch (err) {
+      console.error('[PurchaseStore] restoreFromBlockchain failed:', err);
+    }
   },
 
   purchaseCourse: async (paperId) => {
@@ -96,7 +146,7 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
       if (result.success) {
         const chainConfig = PAYMENT_CHAINS[selectedChain];
         set((state) => ({
-          accessMap: { ...state.accessMap, [paperId]: 'purchased' },
+          accessMap: { ...state.accessMap, [normalizePaperId(paperId)]: 'purchased' },
           isPurchasing: false,
           lastPurchaseReceipt: {
             amount: String(chainConfig.amounts.coursePurchase),
@@ -124,4 +174,18 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
   },
 
   clearPurchaseError: () => set({ purchaseError: null }),
-}));
+});
+
+export const usePurchaseStore = create<PurchaseState>()(
+  persist(storeConfig, {
+    name: 'purchase-store',
+    partialize: (state) => ({ accessMap: state.accessMap }),
+    merge: (persistedState, currentState) => ({
+      ...currentState,
+      accessMap: {
+        ...currentState.accessMap,
+        ...(persistedState as any)?.accessMap,
+      },
+    }),
+  }),
+);

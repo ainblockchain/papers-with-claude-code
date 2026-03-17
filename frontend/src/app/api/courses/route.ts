@@ -69,6 +69,12 @@ export async function GET() {
   try {
     const entries = await listCourses();
 
+    // Pre-compute course count per paper (for courseLabel logic)
+    const courseCountByPaper = new Map<string, number>();
+    for (const entry of entries) {
+      courseCountByPaper.set(entry.paperSlug, (courseCountByPaper.get(entry.paperSlug) || 0) + 1);
+    }
+
     // Fetch details for each course in parallel
     const papers = await Promise.all(
       entries.map(async (entry) => {
@@ -114,6 +120,7 @@ export async function GET() {
           const res = await fetch(getRawUrl(`${entry.paperSlug}/${entry.courseSlug}/paper.json`));
           if (res.ok) {
             const courseJson = await res.json();
+            if (courseJson?.title) title = courseJson.title;
             if (courseJson?.description) description = courseJson.description;
             if (courseJson?.backgroundUrl) {
               const bg = courseJson.backgroundUrl;
@@ -138,8 +145,9 @@ export async function GET() {
           ? paperJson.authors.map((a, i) => ({ id: `${entry.paperSlug}-${i}`, name: a.name }))
           : [];
 
-        // Append course slug if paper has multiple courses
-        const courseLabel = entry.courseSlug !== 'bible' ? ` (${slugToTitle(entry.courseSlug)})` : '';
+        // Append course slug only when the paper has multiple courses
+        const courseLabel = (courseCountByPaper.get(entry.paperSlug) || 0) > 1
+          ? ` (${slugToTitle(entry.courseSlug)})` : '';
 
         const rawBg = paperJson?.backgroundUrl || '';
         const backgroundUrl = courseBgOverride

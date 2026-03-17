@@ -10,6 +10,7 @@ import { trackEvent } from '@/lib/ain/event-tracker';
 import type { Paper } from '@/types/paper';
 import type { CourseLocation } from '@/lib/ain/location-types';
 import { assignCoursesToGrid, generateCourseLocations } from '@/lib/tmj/village-generator';
+import { normalizePaperId } from '@/lib/adapters/papers';
 
 const HEARTBEAT_MS = 300_000; // 5 minutes
 const COURSE_COLORS = ['#8B4513', '#4A5568', '#2D3748', '#553C9A', '#2B6CB0', '#276749', '#9B2C2C'];
@@ -76,7 +77,7 @@ export function useLocationSync(courses?: Paper[]) {
             if (myLocation.scene === 'course' && myLocation.paperId) {
               // Returning from a course — spawn at course building entrance
               const course = courseLocationsList.find(
-                (cl) => cl.paperId === myLocation.paperId,
+                (cl) => normalizePaperId(cl.paperId) === normalizePaperId(myLocation.paperId!),
               );
               if (course) {
                 const entranceX = course.x + Math.floor(course.width / 2);

@@ -9,8 +9,8 @@ import { Fingerprint } from 'lucide-react';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { progressAdapter } from '@/lib/adapters/progress';
 import { papersAdapter } from '@/lib/adapters/papers';
-import { UserProgress } from '@/types/learning';
 import { Paper } from '@/types/paper';
+import { UserProgress } from '@/types/learning';
 
 interface ProgressWithPaper extends UserProgress {
   paper?: Paper;
@@ -23,17 +23,22 @@ export default function DashboardPage() {
   useEffect(() => {
     async function load() {
       if (!user) return;
-      const allProgress = await progressAdapter.loadAllProgress(user.id);
+
+      const allProgress = await progressAdapter.loadMergedProgress(user.id, passkeyInfo?.ainAddress);
       const withPapers = await Promise.all(
         allProgress.map(async (p) => {
           const paper = await papersAdapter.getPaperById(p.paperId);
-          return { ...p, paper: paper ?? undefined };
+          return {
+            ...p,
+            paper: paper ?? undefined,
+            totalStages: paper?.totalStages ?? p.totalStages,
+          };
         })
       );
       setProgressList(withPapers);
     }
     load();
-  }, [user]);
+  }, [user, passkeyInfo]);
 
   const totalStagesCleared = progressList.reduce(
     (sum, p) => sum + p.completedStages.length,

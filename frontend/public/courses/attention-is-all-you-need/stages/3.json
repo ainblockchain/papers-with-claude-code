@@ -673,7 +673,7 @@
             "id": 3,
             "name": "encoder_stack",
             "type": "npc",
-            "x": 120,
+            "x": 80,
             "y": 160,
             "width": 40,
             "height": 40,
@@ -719,7 +719,7 @@
             "id": 5,
             "name": "masked_attention",
             "type": "npc",
-            "x": 360,
+            "x": 400,
             "y": 160,
             "width": 40,
             "height": 40,
@@ -742,7 +742,7 @@
             "id": 6,
             "name": "decoder_stack",
             "type": "npc",
-            "x": 120,
+            "x": 80,
             "y": 400,
             "width": 40,
             "height": 40,
@@ -848,7 +848,7 @@
         "title": "The Encoder: Understanding the Input",
         "content": "Key ideas:\n- 6 identical layers stacked\n- Each layer: self-attention → FFN\n- Both sublayers wrapped with residual + LayerNorm\n- Output: contextualized representations for all positions\n\nThe encoder's job: transform input tokens into rich, contextualized representations. It stacks 6 identical layers, each with two sublayers:\n\n1. **Multi-head self-attention**: Each position looks at all positions\n2. **Feed-forward network**: Process each position independently\n\nBoth sublayers are wrapped: output = LayerNorm(x + Sublayer(x))\n\nThink of the encoder as a series of increasingly sophisticated filters. Layer 1 captures local patterns. Layer 6 captures abstract, global relationships. The final encoder output goes to every decoder layer.\n\nWith d_model=512 maintained throughout, the encoder produces 512-dimensional vectors for each input position.",
         "position": {
-          "x": 3,
+          "x": 2,
           "y": 4
         },
         "type": "text"
@@ -868,7 +868,7 @@
         "title": "Masked Self-Attention: No Peeking Ahead",
         "content": "Key ideas:\n- In decoder, prevent attending to future positions\n- Set future positions to -∞ before softmax\n- Preserves auto-regressive property\n- Position i can only attend to positions ≤ i\n\nDuring generation, the decoder produces tokens one at a time. It can't see the future—that would be cheating! Masked self-attention enforces this.\n\nBefore softmax, we add a mask that sets all 'illegal' attention scores to -∞:\n```\nattention_scores[i, j] = -∞  if j > i\n```\n\nAfter softmax, these become 0. Position 3 can only attend to positions 0, 1, 2, 3—never 4, 5, or beyond.\n\nThis triangular mask ensures the model learns to predict autoregressively: each position only depends on its left context. During training, we can still process all positions in parallel—we just mask the future.",
         "position": {
-          "x": 9,
+          "x": 10,
           "y": 4
         },
         "type": "text"
@@ -878,7 +878,7 @@
         "title": "The Decoder: Generating the Output",
         "content": "Key ideas:\n- 6 identical layers stacked\n- Three sublayers per layer: masked self-attn → encoder-decoder attn → FFN\n- Masked attention preserves autoregressive property\n- Encoder-decoder attention reads from encoder output\n\nThe decoder generates output one token at a time, with three sublayers per layer:\n\n1. **Masked self-attention**: Attend to previous outputs only\n2. **Encoder-decoder attention**: Look at the input sequence\n3. **Feed-forward network**: Process independently\n\nEach sublayer has residual connections and layer norm. The decoder is more complex because it needs to:\n- Remember what it has generated (masked self-attention)\n- Know what the input said (encoder-decoder attention)\n- Process that combined information (FFN)\n\nThe encoder output is shared across all 6 decoder layers—computed once, used 6 times.",
         "position": {
-          "x": 3,
+          "x": 2,
           "y": 10
         },
         "type": "text"

@@ -2,6 +2,17 @@
 // paper.json이 있으면 해당 메타데이터 우선 사용, 없으면 README 파싱으로 fallback
 import { Paper } from '@/types/paper';
 
+/**
+ * Normalize paperId to canonical double-dash format ("slug--course").
+ * The system uses two formats interchangeably:
+ *   - double-dash: "slug--course" (paper.id, accessMap keys)
+ *   - slash: "slug/course" (URL routes, blockchain topicPath)
+ * This function ensures consistent key matching everywhere.
+ */
+export function normalizePaperId(id: string): string {
+  return id.includes('/') ? id.replace('/', '--') : id;
+}
+
 
 const REPO_OWNER = 'ainblockchain';
 const REPO_NAME = 'awesome-papers-with-claude-code';
@@ -37,8 +48,10 @@ interface PaperJsonData {
 
 /** README.md에서 논문 메타데이터를 파싱 */
 function parseReadme(content: string) {
-  const titleMatch = content.match(/^#\s+(.+?)\s+Learning Path/m);
-  const title = titleMatch?.[1]?.trim() || '';
+  const titleMatch = content.match(/^#\s+(.+)/m);
+  const title = titleMatch?.[1]
+    ?.replace(/\s+(Learning Path|Course|Tutorial)$/i, '')
+    .trim() || '';
 
   const metaMatch = content.match(
     /based on\s*\n?\s*"(.+?)"\s+by\s+(.+?),\s+(\d{4})/
@@ -61,14 +74,14 @@ function parseReadme(content: string) {
 /** courses.json에서 코스 통계 추출 */
 function parseCourseStats(
   data: { concepts?: string[]; lessons?: unknown[] }[]
-): { totalConcepts: number; totalLessons: number } {
+): { totalConcepts: number; totalLessons: number; totalCourses: number } {
   let totalConcepts = 0;
   let totalLessons = 0;
   for (const course of data) {
     totalConcepts += course.concepts?.length || 0;
     totalLessons += course.lessons?.length || 0;
   }
-  return { totalConcepts, totalLessons };
+  return { totalConcepts, totalLessons, totalCourses: data.length };
 }
 
 /** slug → 사람이 읽기 좋은 이름 ("image-recognition" → "Image Recognition") */
@@ -97,8 +110,9 @@ function buildPaper(
   paperSlug: string,
   courseSlug: string,
   readmeMeta: ReturnType<typeof parseReadme>,
-  stats: { totalConcepts: number; totalLessons: number },
+  stats: { totalConcepts: number; totalLessons: number; totalCourses: number },
   paperJson?: PaperJsonData,
+  hasMultipleCourses = false,
 ): Paper {
   const arxivId = paperJson?.arxivId || readmeMeta.arxivId || '';
   const thumbnailUrl = paperJson?.thumbnailUrl
@@ -125,9 +139,12 @@ function buildPaper(
     '0g-developer-course': "Unlock the full potential of 0G, the world's first decentralized AI operating system designed for high-performance intelligence. Beyond mere theory, engage with live, runnable TypeScript examples that demonstrate how to leverage data availability (DA) and modular storage for AI scalability.",
   };
 
+  const baseTitle = readmeMeta.title || paperJson?.title || slugToName(paperSlug);
+  const courseLabel = hasMultipleCourses ? ` (${slugToName(courseSlug)})` : '';
+
   return {
     id: `${paperSlug}--${courseSlug}`,
-    title: paperJson?.title || readmeMeta.title || slugToName(paperSlug),
+    title: baseTitle + courseLabel,
     description: COURSE_DESCRIPTIONS[courseSlug] || paperJson?.description || statsDescription,
     authors,
     publishedAt: paperJson?.publishedAt || (readmeMeta.year ? `${readmeMeta.year}-01-01` : ''),
@@ -136,7 +153,7 @@ function buildPaper(
     githubUrl: paperJson?.githubUrl,
     courseRepoUrl,
     submittedBy: paperJson?.submittedBy || 'community',
-    totalStages: readmeMeta.totalModules || 1,
+    totalStages: stats.totalCourses || readmeMeta.totalModules || 1,
     courseName: slugToName(courseSlug),
     organization: paperJson?.organization
       ? { name: paperJson.organization.name, logoUrl: '' }
@@ -214,7 +231,13 @@ async function fetchPapersFromGitHub(): Promise<Paper[]> {
       })
   );
 
-  // 5) 각 코스별 Paper 카드 생성 (코스 paper.json > 부모 paper.json > README fallback)
+  // 5) paperSlug별 코스 수 계산 (복수 코스인 경우에만 courseLabel 표시)
+  const courseCountByPaper = new Map<string, number>();
+  for (const c of courses) {
+    courseCountByPaper.set(c.paperSlug, (courseCountByPaper.get(c.paperSlug) || 0) + 1);
+  }
+
+  // 6) 각 코스별 Paper 카드 생성 (코스 paper.json > 부모 paper.json > README fallback)
   const papers = await Promise.all(
     courses.map(async ({ paperSlug, courseSlug }) => {
       const [readme, coursesRaw] = await Promise.all([
@@ -224,7 +247,7 @@ async function fetchPapersFromGitHub(): Promise<Paper[]> {
 
       const meta = parseReadme(readme || '');
 
-      let stats = { totalConcepts: 0, totalLessons: 0 };
+      let stats = { totalConcepts: 0, totalLessons: 0, totalCourses: 0 };
       if (coursesRaw) {
         try {
           stats = parseCourseStats(JSON.parse(coursesRaw));
@@ -235,7 +258,8 @@ async function fetchPapersFromGitHub(): Promise<Paper[]> {
       const courseJson = courseJsonCache.get(`${paperSlug}/${courseSlug}`);
       const mergedJson = courseJson ? { ...parentJson, ...courseJson } : parentJson;
 
-      return buildPaper(paperSlug, courseSlug, meta, stats, mergedJson);
+      const multipleCourses = (courseCountByPaper.get(paperSlug) || 0) > 1;
+      return buildPaper(paperSlug, courseSlug, meta, stats, mergedJson, multipleCourses);
     })
   );
 
@@ -291,19 +315,30 @@ class GitHubPapersAdapter implements PapersAdapter {
   }
 
   async getPaperById(id: string): Promise<Paper | null> {
-    // Normalize: /api/courses uses "slug--course" but this adapter uses "slug/course"
-    const normalized = id.includes('--') ? id.replace('--', '/') : id;
+    // Normalize both directions: "slug--course" ↔ "slug/course"
+    const withSlash = id.includes('--') ? id.replace('--', '/') : id;
+    const withDash = id.includes('/') ? id.replace('/', '--') : id;
+    const match = (p: Paper) => p.id === id || p.id === withSlash || p.id === withDash;
     try {
       const papers = await this.getPapers();
-      return papers.find((p) => p.id === id || p.id === normalized) ?? null;
+      const exact = papers.find(match);
+      if (exact) return exact;
+      // Fuzzy fallback: match by course slug suffix (handles renamed paper slugs)
+      const courseSuffix = (withDash.split('--')[1] || '').toLowerCase();
+      if (courseSuffix) {
+        const fuzzy = papers.find((p) => p.id.toLowerCase().endsWith(`--${courseSuffix}`));
+        if (fuzzy) return fuzzy;
+      }
+      return null;
     } catch {
-      return this.cachedPapers.find((p) => p.id === id || p.id === normalized) ?? null;
+      return this.cachedPapers.find(match) ?? null;
     }
   }
 
   getPaperByIdSync(id: string): Paper | null {
-    const normalized = id.includes('--') ? id.replace('--', '/') : id;
-    return this.cachedPapers.find((p) => p.id === id || p.id === normalized) ?? null;
+    const withSlash = id.includes('--') ? id.replace('--', '/') : id;
+    const withDash = id.includes('/') ? id.replace('/', '--') : id;
+    return this.cachedPapers.find((p) => p.id === id || p.id === withSlash || p.id === withDash) ?? null;
   }
 }
 

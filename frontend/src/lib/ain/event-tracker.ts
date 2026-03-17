@@ -7,6 +7,7 @@
  */
 
 import { ainAdapter } from '@/lib/adapters/ain-blockchain';
+import { loadPasskeyInfo } from './passkey';
 import type { UserLocation } from './location-types';
 import type { ExplorationInput } from './types';
 import type { LocationEvent, EventType } from './event-types';
@@ -37,6 +38,11 @@ function eventTitle(type: EventType, event: LocationEvent): string {
   return type;
 }
 
+function getBuyerTag(): string[] {
+  const info = loadPasskeyInfo();
+  return info?.ainAddress ? [`buyer:${info.ainAddress}`] : [];
+}
+
 function toExplorationInput(event: LocationEvent & { paperId: string }): ExplorationInput {
   const stageIndex = 'stageIndex' in event ? event.stageIndex : 0;
   return {
@@ -51,7 +57,7 @@ function toExplorationInput(event: LocationEvent & { paperId: string }): Explora
     }),
     summary: `${event.type} in course ${event.paperId}, stage ${stageIndex}`,
     depth: event.type === 'course_complete' ? 3 : event.type === 'stage_complete' ? 2 : 1,
-    tags: [event.type, event.paperId],
+    tags: [event.type, event.paperId, ...getBuyerTag()],
   };
 }
 

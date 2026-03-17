@@ -31,9 +31,11 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
     activeConceptId,
     setActiveConcept,
     isDoorUnlocked,
+    setDoorUnlocked,
     isQuizPassed,
     setQuizActive,
     setPaymentModalOpen,
+    viewedConceptIds,
   } = useLearningStore();
 
   // Animation state
@@ -84,7 +86,7 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
   // Mark dirty on state change
   useEffect(() => {
     dirtyRef.current = true;
-  }, [playerPosition, playerDirection, activeConceptId, isDoorUnlocked, stage]);
+  }, [playerPosition, playerDirection, activeConceptId, isDoorUnlocked, stage, viewedConceptIds]);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -119,7 +121,8 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
           // Interaction
           const concept = stage.concepts.find(
             (c) =>
-              Math.abs(c.position.x - playerPosition.x) <= 1 &&
+              playerPosition.x >= c.position.x &&
+              playerPosition.x <= c.position.x + 2 &&
               Math.abs(c.position.y - playerPosition.y) <= 1
           );
           if (concept) {
@@ -144,7 +147,12 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
             if (!isQuizPassed) {
               setQuizActive(true);
             } else if (!isDoorUnlocked) {
-              setPaymentModalOpen(true);
+              const isLastStage = useLearningStore.getState().currentStageIndex >= useLearningStore.getState().stages.length - 1;
+              if (isLastStage) {
+                setDoorUnlocked(true);
+              } else {
+                setPaymentModalOpen(true);
+              }
             }
           }
           return;
@@ -166,6 +174,7 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
       setActiveConcept,
       doorPosition,
       isDoorUnlocked,
+      setDoorUnlocked,
       isQuizPassed,
       setQuizActive,
       setPaymentModalOpen,
@@ -287,28 +296,31 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
       }
 
       // ── Concepts ──
+      const viewedIds = useLearningStore.getState().viewedConceptIds;
       stage.concepts.forEach((concept) => {
         const isActive = activeConceptId === concept.id;
+        const isViewed = viewedIds.has(concept.id);
         const cx = concept.position.x * TILE_SIZE;
         const cy = concept.position.y * TILE_SIZE;
-        const bbW = TILE_SIZE * 2;
-        const bbH = TILE_SIZE * 1.5;
+        const bbW = TILE_SIZE * 3;
+        const bbH = TILE_SIZE * 2;
 
         if (isSpaceTheme) {
-          drawSpaceOutpost(ctx, cx, cy, bbW, bbH, isActive, concept.title);
+          drawSpaceOutpost(ctx, cx, cy, bbW, bbH, isActive, concept.title, isViewed);
         } else {
           drawBlackboard(ctx, cx, cy, bbW, bbH, isActive, concept.title);
         }
 
         // Interaction hint
         const isNear =
-          Math.abs(concept.position.x - playerPosition.x) <= 1 &&
+          playerPosition.x >= concept.position.x &&
+          playerPosition.x <= concept.position.x + 2 &&
           Math.abs(concept.position.y - playerPosition.y) <= 1;
         if (isNear && !isActive) {
           ctx.fillStyle = isSpaceTheme ? '#00FFFF' : '#FF9D00';
           ctx.font = `${TILE_SIZE * 0.25}px sans-serif`;
           ctx.textAlign = 'center';
-          ctx.fillText('Press E', cx + TILE_SIZE, cy - 8);
+          ctx.fillText('Press E', cx + TILE_SIZE * 1.5, cy - 8);
         }
       });
 

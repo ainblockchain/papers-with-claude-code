@@ -673,7 +673,7 @@
             "id": 3,
             "name": "embedding_scaling",
             "type": "npc",
-            "x": 120,
+            "x": 80,
             "y": 160,
             "width": 40,
             "height": 40,
@@ -719,7 +719,7 @@
             "id": 5,
             "name": "dropout_regularization",
             "type": "npc",
-            "x": 360,
+            "x": 400,
             "y": 160,
             "width": 40,
             "height": 40,
@@ -742,7 +742,7 @@
             "id": 6,
             "name": "label_smoothing",
             "type": "npc",
-            "x": 480,
+            "x": 560,
             "y": 160,
             "width": 40,
             "height": 40,
@@ -765,7 +765,7 @@
             "id": 7,
             "name": "adam_optimizer",
             "type": "npc",
-            "x": 120,
+            "x": 80,
             "y": 400,
             "width": 40,
             "height": 40,
@@ -811,7 +811,7 @@
             "id": 9,
             "name": "model_parallelism",
             "type": "npc",
-            "x": 360,
+            "x": 400,
             "y": 400,
             "width": 40,
             "height": 40,
@@ -894,7 +894,7 @@
         "title": "Embedding Scaling",
         "content": "Key ideas:\n- Multiply embeddings by √d_model (√512 ≈ 22.6)\n- Balances embedding magnitude with positional encoding\n- Positional encodings have magnitude ~1\n- Scaled embeddings have similar magnitude\n\nA subtle but important detail: the paper multiplies token embeddings by √512 ≈ 22.6. Why?\n\nEmbeddings are typically initialized with small values (std ≈ 0.02). After scaling, they have magnitude ≈ 0.02 × 22.6 ≈ 0.45. Positional encodings are sines/cosines with magnitude ≈ 1.\n\nWithout scaling, positional information would dominate the token information. With scaling, they're roughly balanced, allowing both to contribute meaningfully.\n\nThink of it like mixing audio tracks: you want both the vocals (embeddings) and the beat (positions) to be audible, not one drowning out the other.",
         "position": {
-          "x": 3,
+          "x": 2,
           "y": 4
         },
         "type": "text"
@@ -914,7 +914,7 @@
         "title": "Dropout: Preventing Overfitting",
         "content": "Key ideas:\n- P_drop = 0.1 in base model\n- Applied to: sublayer outputs, attention weights, embedding sums\n- Forces redundancy in learned representations\n- Essential for generalization\n\nDropout randomly zeros out neurons during training, preventing co-adaptation. The Transformer applies it liberally:\n\n- After each sublayer (before residual addition)\n- To attention weights (after softmax)\n- To the sum of embeddings + positional encoding\n\nWith P=0.1, 10% of values become zero on each forward pass. This forces the model to learn redundant representations—no single neuron can be critical.\n\nThink of it like training with random team members absent. The team learns to function without relying on any one person. During inference, no dropout—the full team works together.",
         "position": {
-          "x": 9,
+          "x": 10,
           "y": 4
         },
         "type": "text"
@@ -924,7 +924,7 @@
         "title": "Label Smoothing: Embracing Uncertainty",
         "content": "Key ideas:\n- ε = 0.1 smoothing\n- Target: (1-ε) on correct class, ε/(V-1) on others\n- Hurts perplexity, improves BLEU\n- Prevents overconfident predictions\n\nStandard training pushes the model to output 1.0 probability for the correct answer and 0.0 for everything else. But this can make the model overconfident.\n\nLabel smoothing softens targets. Instead of [0, 0, 1, 0], use [0.033, 0.033, 0.9, 0.033] (with ε=0.1). The model learns 'pretty confident, but not absolutely certain.'\n\nInterestingly, this hurts perplexity (the model never predicts with 100% confidence) but improves BLEU score (translations are actually better). The lesson: maximizing the training metric isn't always the goal.",
         "position": {
-          "x": 12,
+          "x": 14,
           "y": 4
         },
         "type": "text"
@@ -934,7 +934,7 @@
         "title": "Adam with Warmup: A Custom Learning Rate",
         "content": "Key ideas:\n- Adam optimizer with β₁=0.9, β₂=0.98, ε=10⁻⁹\n- Linear warmup for first 4000 steps\n- Then decay proportional to step^(-0.5)\n- lr = d_model^(-0.5) × min(step^(-0.5), step × warmup_steps^(-1.5))\n\nThe Transformer's learning rate schedule is carefully designed:\n\n```\nlr = d_model^(-0.5) × min(step^(-0.5), step × warmup^(-1.5))\n```\n\n**Phase 1 (warmup)**: Learning rate increases linearly for 4000 steps. This prevents early instability—gradients are noisy initially, so take small steps.\n\n**Phase 2 (decay)**: Learning rate decreases with inverse square root of step number. As training progresses, make increasingly fine adjustments.\n\nWith d_model=512, the peak learning rate is about 0.0014 at step 4000. Think of it like heating metal: warm up slowly, then gradually cool for refined shaping.",
         "position": {
-          "x": 3,
+          "x": 2,
           "y": 10
         },
         "type": "text"
@@ -954,7 +954,7 @@
         "title": "Multi-GPU Training",
         "content": "Key ideas:\n- Trained on 8 NVIDIA P100 GPUs\n- Base model: 100K steps in 12 hours\n- Big model: 300K steps in 3.5 days\n- Massive speedup vs recurrent models\n\nThe Transformer's parallelizability translates to dramatically faster training:\n\n**Base model (65M params):** 100K steps × ~0.4s/step = 12 hours on 8 P100 GPUs\n\n**Big model (213M params):** 300K steps = 3.5 days\n\nFor comparison, recurrent models trained for weeks or months. The secret: with no sequential dependencies, all positions compute simultaneously. 8 GPUs process 8 different batches, gradients are synchronized.\n\nThis speed advantage extends to inference too—though autoregressive generation is still sequential, each step is faster without recurrence overhead.",
         "position": {
-          "x": 9,
+          "x": 10,
           "y": 10
         },
         "type": "text"

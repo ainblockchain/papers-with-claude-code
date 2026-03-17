@@ -14,6 +14,8 @@ export function QuizOverlay() {
     isQuizActive,
     setQuizActive,
     setQuizPassed,
+    setPaymentModalOpen,
+    setDoorUnlocked,
   } = useLearningStore();
   const { recordExploration } = useAinStore();
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
@@ -47,6 +49,15 @@ export function QuizOverlay() {
         setQuizActive(false);
         setSelectedOption(null);
         setShowResult(false);
+        const { stages: s, currentStageIndex: idx } = useLearningStore.getState();
+        const isLastStage = idx >= s.length - 1;
+        if (isLastStage) {
+          // Last stage: unlock door directly (no payment needed)
+          setDoorUnlocked(true);
+        } else {
+          // Auto-open payment modal after quiz pass
+          setPaymentModalOpen(true);
+        }
       }, 1500);
     }
   };

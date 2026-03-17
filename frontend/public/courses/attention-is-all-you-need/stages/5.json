@@ -673,8 +673,8 @@
             "id": 3,
             "name": "computational_complexity",
             "type": "npc",
-            "x": 120,
-            "y": 240,
+            "x": 80,
+            "y": 280,
             "width": 40,
             "height": 40,
             "rotation": 0,
@@ -697,7 +697,7 @@
             "name": "attention_visualization",
             "type": "npc",
             "x": 240,
-            "y": 240,
+            "y": 280,
             "width": 40,
             "height": 40,
             "rotation": 0,
@@ -719,8 +719,8 @@
             "id": 5,
             "name": "constituency_parsing",
             "type": "npc",
-            "x": 360,
-            "y": 240,
+            "x": 400,
+            "y": 280,
             "width": 40,
             "height": 40,
             "rotation": 0,
@@ -742,8 +742,8 @@
             "id": 6,
             "name": "future_directions",
             "type": "npc",
-            "x": 480,
-            "y": 240,
+            "x": 560,
+            "y": 280,
             "width": 40,
             "height": 40,
             "rotation": 0,
@@ -825,8 +825,8 @@
         "title": "Complexity Analysis: Why Self-Attention Wins",
         "content": "Key ideas:\n- Self-attention: O(n² · d) per layer\n- Recurrent: O(n · d²) per layer\n- Self-attention faster when n < d (typical for NLP)\n- Constant O(1) path length vs O(n) for RNNs\n\nLet's break down the complexity:\n\n**Self-attention per layer:** O(n² · d)\n- Each position attends to all n positions: n² comparisons\n- Each comparison involves d-dimensional vectors\n\n**Recurrent per layer:** O(n · d²)\n- n sequential steps (can't parallelize!)\n- Each step: matrix multiply with d² operations\n\nWith d=512 and typical sentence n≈30, self-attention wins: 30² × 512 < 30 × 512².\n\nBut the real win is parallelization. Self-attention: all positions computed at once. RNN: strictly sequential. And path length between any positions: O(1) for attention vs O(n) for RNN—crucial for learning long-range dependencies.",
         "position": {
-          "x": 3,
-          "y": 6
+          "x": 2,
+          "y": 7
         },
         "type": "text"
       },
@@ -836,7 +836,7 @@
         "content": "Key ideas:\n- Different heads learn different linguistic patterns\n- Some heads track syntactic structure\n- Others handle coreference and long-range dependencies\n- Attention maps provide interpretability\n\nThe paper includes fascinating attention visualizations. Different heads specialize:\n\n- **Syntactic heads**: Track subject-verb relationships across clauses\n- **Positional heads**: Attend to adjacent positions (like n-gram features)\n- **Coreference heads**: Link pronouns to their referents\n\nOne example: given 'The animal didn't cross the street because it was too tired', a head correctly links 'it' to 'animal' (not 'street').\n\nThis specialization emerges automatically from training. No one designed heads for specific purposes—they discovered useful patterns. This provides interpretability: we can visualize what the model 'pays attention to' at each layer.",
         "position": {
           "x": 6,
-          "y": 6
+          "y": 7
         },
         "type": "text"
       },
@@ -845,8 +845,8 @@
         "title": "Transformers for Parsing",
         "content": "Key ideas:\n- Applied Transformer to English constituency parsing\n- 91.3 F1 on WSJ benchmark\n- Outperformed all prior single models\n- Demonstrates architecture generalizability\n\nTranslation wasn't enough—could Transformers generalize? The authors tested on English constituency parsing (breaking sentences into grammatical phrases).\n\nTreating parsing as sequence-to-sequence (sentence → linearized tree), the Transformer achieved 91.3 F1 on the Wall Street Journal benchmark. This beat all prior single models, including task-specific architectures designed specifically for parsing.\n\nThe kicker: they used minimal task-specific modifications. The same architecture that translates languages can parse sentences. This generalizability hinted at the future: GPT, BERT, and the entire modern NLP landscape.",
         "position": {
-          "x": 9,
-          "y": 6
+          "x": 10,
+          "y": 7
         },
         "type": "text"
       },
@@ -855,8 +855,8 @@
         "title": "The Future the Paper Predicted",
         "content": "Key ideas:\n- Apply to images, audio, video (now Vision Transformers)\n- Restricted attention for very long sequences (now sparse attention)\n- Less sequential generation (now parallel decoding research)\n- The foundation for modern AI\n\nThe paper's future work section was remarkably prescient:\n\n**'Apply to images, audio, video'** → Vision Transformer (ViT), Whisper, DALL-E. Images are patches, audio is frames—all become sequences for Transformers.\n\n**'Restricted attention for long sequences'** → Sparse attention (Longformer), linear attention (Performer), sliding window (Mistral). The n² cost motivated years of research.\n\n**'Less sequential generation'** → Non-autoregressive translation, diffusion models for text. Still active research.\n\nIn 2017, this was one paper about translation. By 2024, Transformers power GPT-4, Claude, Gemini, Stable Diffusion, and essentially all frontier AI. The title was prophetic: attention really was all you need.",
         "position": {
-          "x": 12,
-          "y": 6
+          "x": 14,
+          "y": 7
         },
         "type": "text"
       }

@@ -105,6 +105,7 @@ export interface LearnerProgress {
       depth: number;
       summary: string;
       price: string | null;
+      tags?: string[];
       createdAt: number;
       connections?: Array<{ nodeId: string; type: string }>;
     }>;

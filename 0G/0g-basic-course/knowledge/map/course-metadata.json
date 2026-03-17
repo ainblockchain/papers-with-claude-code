@@ -1,0 +1,22 @@
+{
+  "courseId": "0g-developer-documentation--0g-basic-course",
+  "paperId": "0g-developer-documentation--0g-basic-course",
+  "title": "0G Basic Course",
+  "description": "A beginner-friendly introduction to building on the 0G decentralized AI operating system. Learn the four core services, set up your wallet, and build your first 0G application.",
+  "authors": [
+    { "id": "1", "name": "0G Labs", "avatarUrl": null }
+  ],
+  "publishedAt": "2024-01-01",
+  "arxivUrl": "https://docs.0g.ai",
+  "githubUrl": "https://github.com/0gfoundation",
+  "githubStars": null,
+  "organization": { "name": "0G Labs", "logoUrl": null },
+  "color": "#00D4AA",
+  "plotPosition": { "col": 0, "row": 0 },
+  "entrance": { "x": 7, "y": 4, "width": 4, "height": 3 },
+  "stages": [
+    { "stageNumber": 1, "title": "Module 1: Understanding 0G", "conceptCount": 4, "hasQuiz": true, "roomWidth": 20, "roomHeight": 15 },
+    { "stageNumber": 2, "title": "Module 2: Getting Started with 0G", "conceptCount": 4, "hasQuiz": true, "roomWidth": 20, "roomHeight": 15 },
+    { "stageNumber": 3, "title": "Module 3: Building Your First 0G App", "conceptCount": 4, "hasQuiz": true, "roomWidth": 20, "roomHeight": 15 }
+  ]
+}

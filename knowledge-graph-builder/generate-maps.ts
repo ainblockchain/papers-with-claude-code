@@ -269,7 +269,7 @@ function parseExercise(
  * Distributes N concepts across the stage room.
  * For ≤4 concepts: single row at y=6.
  * For 5-8 concepts: two rows at y=4 and y=10.
- * x starts at 3, increments by 3 per column (max 4 columns: 3,6,9,12).
+ * x starts at 2, increments by 4 per column to fit 3-tile-wide outposts.
  */
 function computeConceptPositions(count: number): ConceptPosition[] {
   const positions: ConceptPosition[] = [];
@@ -277,17 +277,17 @@ function computeConceptPositions(count: number): ConceptPosition[] {
   if (count <= 4) {
     // Single row, centered vertically
     for (let i = 0; i < count; i++) {
-      positions.push({ x: 3 + i * 3, y: 6 });
+      positions.push({ x: 2 + i * 4, y: 7 });
     }
   } else {
     // Two rows
     const topCount = Math.ceil(count / 2);
     const botCount = count - topCount;
     for (let i = 0; i < topCount; i++) {
-      positions.push({ x: 3 + i * 3, y: 4 });
+      positions.push({ x: 2 + i * 4, y: 4 });
     }
     for (let i = 0; i < botCount; i++) {
-      positions.push({ x: 3 + i * 3, y: 10 });
+      positions.push({ x: 2 + i * 4, y: 10 });
     }
   }
 
