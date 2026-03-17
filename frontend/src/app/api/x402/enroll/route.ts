@@ -5,9 +5,10 @@ import {
   createWrappedHandler,
   getExplorerUrl,
 } from '../_lib/x402-nextjs';
+import { getAinClient } from '@/lib/ain/client';
 
 async function handleEnroll(req: NextRequest): Promise<NextResponse> {
-  let body: { paperId?: string; passkeyPublicKey?: string };
+  let body: { paperId?: string; passkeyPublicKey?: string; buyerAddress?: string };
   try {
     body = await req.json();
   } catch {
@@ -17,7 +18,7 @@ async function handleEnroll(req: NextRequest): Promise<NextResponse> {
     );
   }
 
-  const { paperId } = body;
+  const { paperId, buyerAddress } = body;
   if (!paperId || typeof paperId !== 'string') {
     return NextResponse.json(
       { error: 'invalid_params', message: 'paperId is required' },
@@ -28,20 +29,27 @@ async function handleEnroll(req: NextRequest): Promise<NextResponse> {
   const chain = req.nextUrl.searchParams.get('chain') || 'kite';
 
   // Payment has already been verified and settled by withX402 middleware.
-  // Record enrollment on AIN blockchain via event tracker.
+  // Record enrollment on AIN blockchain directly via SDK (not HTTP adapter).
   try {
-    const { trackEvent } = await import('@/lib/ain/event-tracker');
-    await trackEvent({
-      type: 'course_enter',
-      paperId,
-      timestamp: Date.now(),
-      x: 0,
-      y: 0,
-      direction: 'down',
-      scene: 'village',
+    const ain = getAinClient();
+    const tags = ['course_enter', paperId];
+    if (buyerAddress) tags.push(`buyer:${buyerAddress}`);
+
+    await ain.knowledge.explore({
+      topicPath: `courses/${paperId}`,
+      title: `course_enter in ${paperId}`,
+      content: JSON.stringify({
+        eventType: 'course_enter',
+        paperId,
+        buyerAddress: buyerAddress || null,
+        timestamp: Date.now(),
+      }),
+      summary: `Enrolled in course ${paperId}`,
+      depth: 1,
+      tags,
     });
   } catch (err) {
-    console.error('[x402/enroll] AIN tracking failed (non-fatal):', err);
+    console.error('[x402/enroll] AIN exploration write failed (non-fatal):', err);
   }
 
   return NextResponse.json({

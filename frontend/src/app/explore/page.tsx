@@ -10,7 +10,7 @@ import { useCourses } from '@/hooks/useCourses';
 
 export default function ExplorePage() {
   const { filteredPapers, setPapers, setLoading, isLoading } = useExploreStore();
-  const { initializeAccess } = usePurchaseStore();
+  const { initializeAccess, restoreFromBlockchain } = usePurchaseStore();
   const { data: courses, isLoading: coursesLoading } = useCourses();
 
   useEffect(() => {
@@ -21,8 +21,9 @@ export default function ExplorePage() {
     if (courses && courses.length > 0) {
       setPapers(courses);
       initializeAccess(courses);
+      restoreFromBlockchain();
     }
-  }, [courses, setPapers, initializeAccess]);
+  }, [courses, setPapers, initializeAccess, restoreFromBlockchain]);
 
   return (
     <div className="mx-auto max-w-[1280px] px-4 py-8">

@@ -51,6 +51,7 @@ class MultiChainPaymentAdapter {
       const requestBody = {
         paperId: params.paperId,
         passkeyPublicKey: passkeyInfo?.publicKey || '',
+        buyerAddress: passkeyInfo?.ainAddress || '',
       };
 
       let res = await fetch('/api/x402/enroll', {
@@ -129,12 +130,14 @@ class MultiChainPaymentAdapter {
       return { success: false, error: 'Register passkey first to pay on Base.', errorCode: 'no_passkey' };
     }
     try {
+      const basePasskeyInfo = loadPasskeyInfo();
       const res = await x402Fetch('/api/x402/enroll?chain=base', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           paperId: params.paperId,
-          passkeyPublicKey: loadPasskeyInfo()?.publicKey || '',
+          passkeyPublicKey: basePasskeyInfo?.publicKey || '',
+          buyerAddress: basePasskeyInfo?.ainAddress || '',
         }),
       });
 

@@ -10,7 +10,7 @@ import { trackEvent } from '@/lib/ain/event-tracker';
 import type { Paper } from '@/types/paper';
 import { renderTileLayer, type Viewport } from '@/lib/tmj/renderer';
 import { usePurchaseStore } from '@/stores/usePurchaseStore';
-import { papersAdapter } from '@/lib/adapters/papers';
+import { papersAdapter, normalizePaperId } from '@/lib/adapters/papers';
 import { PLOT_WIDTH, PLOT_HEIGHT } from '@/lib/tmj/village-generator';
 import { drawGrassTile, drawPathTile, drawTree } from '@/lib/sprites/terrain';
 import { drawBuilding, drawCogitoBuilding } from '@/lib/sprites/buildings';
@@ -376,7 +376,7 @@ export function VillageCanvas() {
       // ── Interaction hint near course entrance ──
       const nearPaper = checkCourseEntry(pos.x, pos.y);
       if (nearPaper) {
-        const nearAccess = usePurchaseStore.getState().accessMap[nearPaper];
+        const nearAccess = usePurchaseStore.getState().getAccessStatus(nearPaper);
         const canEnter = nearAccess === 'owned' || nearAccess === 'purchased';
         ctx.fillStyle = canEnter ? '#FF9D00' : '#7C3AED';
         ctx.font = 'bold 13px sans-serif';

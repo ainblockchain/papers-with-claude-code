@@ -54,6 +54,7 @@ export async function GET(request: NextRequest) {
             depth: entry.depth || 0,
             summary: entry.summary || '',
             price: entry.price || null,
+            tags: entry.tags || [],
             createdAt: entry.created_at || 0,
             connections,
           });

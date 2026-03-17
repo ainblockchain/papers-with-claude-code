@@ -19,13 +19,14 @@ import {
 export default function VillagePage() {
   const { setFriends } = useVillageStore();
   const { addNotification, setLeaderboard } = useSocialStore();
-  const { initializeAccess } = usePurchaseStore();
+  const { initializeAccess, restoreFromBlockchain } = usePurchaseStore();
 
   useEffect(() => {
     papersAdapter.fetchTrendingPapers('daily').then((papers) => {
       initializeAccess(papers);
+      restoreFromBlockchain();
     });
-  }, [initializeAccess]);
+  }, [initializeAccess, restoreFromBlockchain]);
 
   useEffect(() => {
     const unsubFriends = friendPresenceAdapter.subscribeToFriendPositions(setFriends);

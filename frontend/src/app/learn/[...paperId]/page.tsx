@@ -119,10 +119,17 @@ export default function LearnPage() {
       const stageData = await loadStages(paperId, paper.title, paper.totalStages);
       setStages(stageData);
 
-      // Load progress
+      // Load progress — prefer blockchain, fallback to localStorage
       let initialStageIdx = 0;
       if (user) {
-        const progress = await progressAdapter.loadProgress(user.id, paperId);
+        let progress = null;
+        const walletAddress = useAuthStore.getState().passkeyInfo?.ainAddress;
+        if (walletAddress) {
+          progress = await progressAdapter.loadProgressByAddress(walletAddress, paperId);
+        }
+        if (!progress) {
+          progress = await progressAdapter.loadProgress(user.id, paperId);
+        }
         if (progress && !cancelledRef.current) {
           setProgress(progress);
           initialStageIdx = Math.min(progress.currentStage, stageData.length - 1);
@@ -236,6 +243,7 @@ export default function LearnPage() {
           paperId,
           stageNumber,
           completedAt: new Date().toISOString(),
+          totalStages: stages.length,
         });
       }
 
@@ -266,6 +274,7 @@ export default function LearnPage() {
         paperId: currentPaper.id,
         stageNumber: stages.length,
         completedAt: new Date().toISOString(),
+        totalStages: stages.length,
       });
     }
 
@@ -307,6 +316,7 @@ export default function LearnPage() {
           paperId: currentPaper.id,
           stageNumber: newIdx,
           completedAt: new Date().toISOString(),
+          totalStages: stages.length,
         });
       }
 
