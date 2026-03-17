@@ -58,6 +58,44 @@ export function calculateStreak(timestamps: number[]): number {
   return streak;
 }
 
+export interface StreakStyle {
+  color: string;
+  iconStyle: React.CSSProperties;
+  animate: boolean;
+}
+
+/**
+ * Get visual style for streak badge using continuous interpolation (0–100).
+ * - Color: HSL hue 120 (green) → 0 (red), linear over streak 1–100
+ * - Scale: 1.0 → 1.5, applied via transform (no layout shift)
+ * - Glow: drop-shadow blur 0px → 10px, proportional to streak
+ * - Pulse animation: enabled at streak >= 5
+ */
+export function getStreakStyle(streak: number): StreakStyle {
+  if (streak === 0) {
+    return {
+      color: 'hsl(0, 0%, 64%)',
+      iconStyle: { transform: 'scale(1)' },
+      animate: false,
+    };
+  }
+
+  const t = Math.min(streak, 100) / 100; // 0..1
+  const hue = Math.round(120 * (1 - t));  // 120 (green) → 0 (red)
+  const color = `hsl(${hue}, 70%, 50%)`;
+  const scale = 1 + t * 0.5;              // 1.0 → 1.5
+  const blur = Math.round(2 + t * 8);     // 2px → 10px
+
+  return {
+    color,
+    iconStyle: {
+      transform: `scale(${scale})`,
+      filter: `drop-shadow(0 0 ${blur}px ${color})`,
+    },
+    animate: streak >= 5,
+  };
+}
+
 /**
  * Extract activity timestamps (ms) from UserProgress[].
  * Only includes stage completions (stage_complete / quiz_pass events are recorded as completedStages).
