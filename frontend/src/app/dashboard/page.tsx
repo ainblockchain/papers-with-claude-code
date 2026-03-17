@@ -9,6 +9,7 @@ import { Fingerprint } from 'lucide-react';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { progressAdapter } from '@/lib/adapters/progress';
 import { papersAdapter } from '@/lib/adapters/papers';
+import { calculateStreak, extractActivityTimestamps } from '@/lib/utils/streak';
 import { Paper } from '@/types/paper';
 import { UserProgress } from '@/types/learning';
 
@@ -19,6 +20,7 @@ interface ProgressWithPaper extends UserProgress {
 export default function DashboardPage() {
   const { user, passkeyInfo } = useAuthStore();
   const [progressList, setProgressList] = useState<ProgressWithPaper[]>([]);
+  const [streak, setStreak] = useState(0);
 
   useEffect(() => {
     async function load() {
@@ -36,6 +38,8 @@ export default function DashboardPage() {
         })
       );
       setProgressList(withPapers);
+      const timestamps = extractActivityTimestamps(withPapers);
+      setStreak(calculateStreak(timestamps));
     }
     load();
   }, [user, passkeyInfo]);
@@ -85,7 +89,7 @@ export default function DashboardPage() {
             <Flame className="h-4 w-4" />
             Current Streak
           </div>
-          <p className="text-2xl font-bold text-[#111827]">1 day</p>
+          <p className="text-2xl font-bold text-[#111827]">{streak} {streak === 1 ? 'day' : 'days'}</p>
         </div>
       </div>
 
