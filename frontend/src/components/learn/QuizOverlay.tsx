@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { X, CheckCircle2, XCircle } from 'lucide-react';
 import { useLearningStore } from '@/stores/useLearningStore';
 import { useAinStore } from '@/stores/useAinStore';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { cn } from '@/lib/utils';
 
 export function QuizOverlay() {
@@ -40,6 +41,7 @@ export function QuizOverlay() {
           summary: `Passed quiz for ${currentStage.title}`,
           depth: currentStage.stageNumber,
           tags: [currentPaper.id, `stage-${currentStage.stageNumber}`],
+          passkeyPublicKey: useAuthStore.getState().passkeyInfo?.publicKey,
         }).catch(() => {
           // Non-blocking: exploration recording failure shouldn't block learning flow
         });

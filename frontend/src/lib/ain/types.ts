@@ -18,6 +18,8 @@ export interface ExplorationInput {
   summary: string;
   depth: number;
   tags: string[];
+  /** Passkey public key — when provided, the server writes under the user's derived address */
+  passkeyPublicKey?: string;
   parentEntry?: {
     ownerAddress: string;
     topicPath: string;

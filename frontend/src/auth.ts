@@ -14,20 +14,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   callbacks: {
     jwt({ token, user, profile, account }) {
-      if (user?.id) {
-        token.id = user.id
-      }
       if (account?.provider) {
         token.provider = account.provider as "github" | "kite-passport"
       }
       if (profile) {
         if (token.provider === "github") {
+          // Use GitHub's stable numeric ID, not NextAuth's random UUID
+          token.id = String((profile as { id?: number }).id ?? user?.id ?? "")
           token.username = (profile as { login?: string }).login ?? user?.name ?? ""
           token.avatarUrl = (profile as { avatar_url?: string }).avatar_url ?? user?.image ?? ""
         } else {
+          if (user?.id) token.id = user.id
           token.username = user?.name ?? profile.name ?? "Kite User"
           token.avatarUrl = ""
         }
+      } else if (user?.id && !token.id) {
+        token.id = user.id
       }
       return token
     },

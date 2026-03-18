@@ -51,11 +51,13 @@ const STORAGE_KEY = 'ain_passkey_info';
 
 /** Persist passkey info to localStorage */
 export function savePasskeyInfo(info: PasskeyInfo): void {
+  if (typeof window === 'undefined') return;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(info));
 }
 
 /** Load passkey info from localStorage (auto-migrates legacy data without evmAddress) */
 export function loadPasskeyInfo(): PasskeyInfo | null {
+  if (typeof window === 'undefined') return null;
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (!stored) return null;
@@ -73,6 +75,7 @@ export function loadPasskeyInfo(): PasskeyInfo | null {
 
 /** Clear passkey info from localStorage */
 export function clearPasskeyInfo(): void {
+  if (typeof window === 'undefined') return;
   localStorage.removeItem(STORAGE_KEY);
 }
 
@@ -490,14 +493,34 @@ function constantTimeEqual(a: Uint8Array, b: Uint8Array): boolean {
   return result === 0;
 }
 
-// ─── Internal helpers ───────────────────────────────────────────────
+// ─── Address derivation (exported for identity recovery) ────────────
 
 /** Derive AIN address from public key bytes: SHA-256 → last 20 bytes → 0x prefix */
-async function deriveAinAddress(publicKeyBytes: ArrayBuffer): Promise<string> {
+export async function deriveAinAddress(publicKeyBytes: ArrayBuffer): Promise<string> {
   const hash = await crypto.subtle.digest('SHA-256', publicKeyBytes);
   const hex = bytesToHex(new Uint8Array(hash));
   return '0x' + hex.slice(-40);
 }
+
+/**
+ * Reconstruct PasskeyInfo from a publicKey hex string (no WebAuthn needed).
+ * Used when recovering identity from blockchain mapping on a new device.
+ */
+export async function reconstructPasskeyInfo(publicKeyHex: string): Promise<PasskeyInfo> {
+  const publicKeyBytes = hexToBytes(publicKeyHex);
+  const ainAddress = await deriveAinAddress(publicKeyBytes.buffer as ArrayBuffer);
+  const evmAddress = deriveEvmAddress(publicKeyHex);
+  const info: PasskeyInfo = {
+    credentialId: '',
+    publicKey: publicKeyHex,
+    ainAddress,
+    evmAddress,
+  };
+  savePasskeyInfo(info);
+  return info;
+}
+
+// ─── Internal helpers ───────────────────────────────────────────────
 
 /** Extract raw P256 public key (65 bytes, uncompressed) from WebAuthn attestation */
 function extractPublicKeyFromAttestation(

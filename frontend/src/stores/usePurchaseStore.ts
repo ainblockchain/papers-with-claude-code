@@ -92,25 +92,21 @@ const storeConfig: StateCreator<PurchaseState> = (set, get) => ({
 
   restoreFromBlockchain: async () => {
     const { passkeyInfo } = useAuthStore.getState();
-    if (!passkeyInfo?.ainAddress) return;
+    if (!passkeyInfo?.evmAddress) return;
 
     try {
-      // Explorations are written under the server's AIN address, not the user's passkey address.
-      // Query the server address, then filter entries by the user's buyer tag.
-      const { address: serverAddress } = await ainAdapter.getAccountInfo();
-      const progress = await ainAdapter.getProgress(serverAddress);
-      const buyerTag = `buyer:${passkeyInfo.ainAddress}`;
+      const progress = await ainAdapter.getProgress(passkeyInfo.evmAddress);
 
-      // Collect purchased IDs from blockchain data
       const purchasedIds: string[] = [];
 
       for (const topic of progress.topics) {
         if (!topic.topicPath.startsWith('courses/')) continue;
         const paperId = normalizePaperId(topic.topicPath.replace('courses/', ''));
-        const hasUserEntry = topic.entries?.some(
-          (entry: any) => Array.isArray(entry.tags) && entry.tags.includes(buyerTag)
+        // Any course_enter entry under the user's address means they enrolled
+        const hasEnrollment = topic.entries?.some(
+          (entry: any) => entry.depth === 1
         );
-        if (hasUserEntry) purchasedIds.push(paperId);
+        if (hasEnrollment) purchasedIds.push(paperId);
       }
 
       for (const purchase of progress.purchases) {
@@ -119,7 +115,6 @@ const storeConfig: StateCreator<PurchaseState> = (set, get) => ({
         purchasedIds.push(paperId);
       }
 
-      // Use updater to merge with latest state (avoids race with persist hydration)
       if (purchasedIds.length > 0) {
         set((state) => {
           const newMap = { ...state.accessMap };

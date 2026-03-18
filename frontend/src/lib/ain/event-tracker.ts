@@ -7,7 +7,7 @@
  */
 
 import { ainAdapter } from '@/lib/adapters/ain-blockchain';
-import { loadPasskeyInfo } from './passkey';
+import { useAuthStore } from '@/stores/useAuthStore';
 import type { UserLocation } from './location-types';
 import type { ExplorationInput } from './types';
 import type { LocationEvent, EventType } from './event-types';
@@ -38,13 +38,10 @@ function eventTitle(type: EventType, event: LocationEvent): string {
   return type;
 }
 
-function getBuyerTag(): string[] {
-  const info = loadPasskeyInfo();
-  return info?.ainAddress ? [`buyer:${info.ainAddress}`] : [];
-}
-
-function toExplorationInput(event: LocationEvent & { paperId: string }): ExplorationInput {
+function toExplorationInput(event: LocationEvent & { paperId: string }, passkeyPublicKey?: string): ExplorationInput {
   const stageIndex = 'stageIndex' in event ? event.stageIndex : 0;
+  // Use explicitly passed key first; fall back to auth store (client-side only)
+  const pubKey = passkeyPublicKey ?? useAuthStore.getState().passkeyInfo?.publicKey;
   return {
     topicPath: `courses/${event.paperId}`,
     title: eventTitle(event.type, event),
@@ -57,12 +54,14 @@ function toExplorationInput(event: LocationEvent & { paperId: string }): Explora
     }),
     summary: `${event.type} in course ${event.paperId}, stage ${stageIndex}`,
     depth: event.type === 'course_complete' ? 3 : event.type === 'stage_complete' ? 2 : 1,
-    tags: [event.type, event.paperId, ...getBuyerTag()],
+    tags: [event.type, event.paperId],
+    passkeyPublicKey: pubKey,
   };
 }
 
-/** Fire-and-forget event tracking. Errors are logged, never thrown. */
-export async function trackEvent(event: LocationEvent): Promise<void> {
+/** Fire-and-forget event tracking. Errors are logged, never thrown.
+ *  Pass passkeyPublicKey explicitly when calling from server-side (no localStorage). */
+export async function trackEvent(event: LocationEvent, passkeyPublicKey?: string): Promise<void> {
   // 1. Always update location on AIN chain
   try {
     await ainAdapter.updateLocation(toUserLocation(event));
@@ -74,7 +73,7 @@ export async function trackEvent(event: LocationEvent): Promise<void> {
   if (LEARNING_EVENT_TYPES.includes(event.type) && 'paperId' in event) {
     try {
       await ainAdapter.recordExploration(
-        toExplorationInput(event as LocationEvent & { paperId: string }),
+        toExplorationInput(event as LocationEvent & { paperId: string }, passkeyPublicKey),
       );
     } catch (err) {
       console.error(`[event-tracker] exploration write failed for ${event.type}:`, err);

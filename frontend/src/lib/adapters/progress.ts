@@ -170,30 +170,10 @@ class MockProgressAdapter implements ProgressAdapter {
 }
 
 class AinProgressAdapter extends MockProgressAdapter {
-  /**
-   * Load progress from blockchain.
-   * Exploration data is written under the SERVER wallet address, not the user's.
-   * We query the server address, find topics where the user enrolled (has buyer tag),
-   * then include ALL entries from those topics for progress calculation.
-   */
-  private async loadServerProgress(userAddress: string): Promise<LearnerProgress> {
-    const { address: serverAddress } = await ainAdapter.getAccountInfo();
-    const progress = await ainAdapter.getProgress(serverAddress);
-    const buyerTag = `buyer:${userAddress}`;
-
-    // Include topics where at least one entry has this user's buyer tag (enrollment entry)
-    const userTopics = progress.topics.filter((topic) =>
-      topic.entries?.some(
-        (entry: any) => Array.isArray(entry.tags) && entry.tags.includes(buyerTag)
-      )
-    );
-
-    return { ...progress, topics: userTopics };
-  }
-
+  /** Load progress from blockchain by querying the user's own derived address. */
   async loadProgressByAddress(address: string, paperId: string): Promise<UserProgress | null> {
     try {
-      const progress = await this.loadServerProgress(address);
+      const progress = await ainAdapter.getProgress(address);
       const allProgress = await convertLearnerProgress(progress);
       const normalized = normalizePaperId(paperId);
       return allProgress.find(p => normalizePaperId(p.paperId) === normalized) ?? null;
@@ -205,7 +185,7 @@ class AinProgressAdapter extends MockProgressAdapter {
 
   async loadAllProgressByAddress(address: string): Promise<UserProgress[]> {
     try {
-      const progress = await this.loadServerProgress(address);
+      const progress = await ainAdapter.getProgress(address);
       return await convertLearnerProgress(progress);
     } catch (err) {
       console.error('[AinProgressAdapter] loadAllProgressByAddress failed:', err);

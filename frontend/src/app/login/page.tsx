@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useRef, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { Github, Fingerprint, Loader2, ShieldCheck, ArrowRight, LogIn, KeyRound } from 'lucide-react';
@@ -13,6 +13,7 @@ import {
   authenticatePasskey,
   isPasskeySupported,
   loadPasskeyInfo,
+  reconstructPasskeyInfo,
   type PasskeyInfo,
 } from '@/lib/ain/passkey';
 
@@ -153,9 +154,68 @@ function LoginContent() {
   const [error, setError] = useState<string | null>(null);
   const [passkeyDone, setPasskeyDone] = useState(false);
   const [mockAuthActive, setMockAuthActive] = useState(false);
+  const [identityChecking, setIdentityChecking] = useState(false);
+  const identityChecked = useRef(false);
 
   const fromOAuth = searchParams.get('from') === 'oauth';
   const existingPasskey = typeof window !== 'undefined' ? loadPasskeyInfo() : null;
+
+  // ── Identity sync: recover from blockchain OR save existing passkey mapping ──
+  const inLoginFlow = fromOAuth || mockAuthActive;
+  useEffect(() => {
+    if (!isAuthenticated || !user || !inLoginFlow) return;
+    if (identityChecked.current) return;
+
+    identityChecked.current = true;
+    let cancelled = false;
+    setIdentityChecking(true);
+
+    async function syncIdentity() {
+      try {
+        console.log('[identity-sync] Looking up identity for userId:', user!.id);
+        const res = await fetch(`/api/ain/identity?userId=${encodeURIComponent(user!.id)}`);
+        const json = await res.json();
+        if (cancelled) { console.log('[identity-sync] Cancelled after fetch'); return; }
+
+        if (json.ok && json.data?.publicKey) {
+          console.log('[identity-sync] Found mapping on blockchain, recovering wallet...');
+          const localPasskey = loadPasskeyInfo();
+          if (!localPasskey || localPasskey.publicKey !== json.data.publicKey) {
+            console.log('[identity-sync] Reconstructing PasskeyInfo from blockchain publicKey');
+            const info = await reconstructPasskeyInfo(json.data.publicKey);
+            setPasskeyInfo(info);
+            console.log('[identity-sync] Recovered AIN address:', info.ainAddress);
+          } else {
+            console.log('[identity-sync] Local passkey matches blockchain, no change needed');
+          }
+          setPasskeyDone(true);
+          return;
+        }
+
+        console.log('[identity-sync] No mapping found on blockchain');
+        // No mapping on blockchain → save current passkey if we have one
+        const localPasskey = loadPasskeyInfo();
+        if (localPasskey?.publicKey) {
+          console.log('[identity-sync] Saving local passkey to blockchain');
+          await saveIdentityMapping(localPasskey.publicKey);
+          if (cancelled) return;
+          setPasskeyDone(true);
+          return;
+        }
+        console.log('[identity-sync] No local passkey either, showing registration UI');
+      } catch (err) {
+        console.error('[identity-sync] Error:', err);
+      } finally {
+        if (!cancelled) setIdentityChecking(false);
+      }
+    }
+    syncIdentity();
+    return () => {
+      cancelled = true;
+      identityChecked.current = false;
+      setIdentityChecking(false);
+    };
+  }, [isAuthenticated, user, inLoginFlow]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Redirect logic ──
   useEffect(() => {
@@ -191,6 +251,24 @@ function LoginContent() {
     }
   };
 
+  /** Save identity mapping to blockchain (fire-and-forget, 409 = already exists = OK) */
+  const saveIdentityMapping = async (publicKey: string) => {
+    if (!user) return;
+    try {
+      await fetch('/api/ain/identity', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          publicKey,
+          provider: user.provider ?? 'github',
+        }),
+      });
+    } catch {
+      // Best effort — mapping will be created on next login if this fails
+    }
+  };
+
   const handleRegisterPasskey = async () => {
     if (!user) return;
     setProcessing(true);
@@ -198,6 +276,7 @@ function LoginContent() {
     try {
       const info = await registerPasskey(user.id, user.username || user.email);
       setPasskeyInfo(info);
+      await saveIdentityMapping(info.publicKey);
       setPasskeyDone(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Passkey registration failed');
@@ -213,6 +292,7 @@ function LoginContent() {
     try {
       const info = await authenticatePasskey(existingPasskey.credentialId);
       setPasskeyInfo(info);
+      await saveIdentityMapping(info.publicKey);
       setPasskeyDone(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Passkey verification failed');
@@ -222,7 +302,7 @@ function LoginContent() {
   };
 
   // ── Loading ──
-  if (isLoading) {
+  if (isLoading || identityChecking) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <Loader2 className="h-8 w-8 animate-spin text-[#6B7280]" />
@@ -231,7 +311,6 @@ function LoginContent() {
   }
 
   // ── Step 2: Passkey (authenticated via OAuth or mock) ──
-  const inLoginFlow = fromOAuth || mockAuthActive;
   if (isAuthenticated && user && inLoginFlow && !passkeyDone) {
     return (
       <PasskeyStep

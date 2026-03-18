@@ -1,7 +1,7 @@
 // Multi-chain payment adapter — delegates to x402Adapter for Kite and client-side x402 for Base
 
 import { x402Adapter, type PaymentResult } from '@/lib/adapters/x402';
-import { loadPasskeyInfo } from '@/lib/ain/passkey';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { type PaymentChainId, PAYMENT_CHAINS } from './chains';
 import { createBaseX402Fetch } from './base-x402-client';
 
@@ -47,11 +47,9 @@ class MultiChainPaymentAdapter {
     params: ChainPaymentParams
   ): Promise<PaymentResult> {
     try {
-      const passkeyInfo = loadPasskeyInfo();
       const requestBody = {
         paperId: params.paperId,
-        passkeyPublicKey: passkeyInfo?.publicKey || '',
-        buyerAddress: passkeyInfo?.ainAddress || '',
+        passkeyPublicKey: useAuthStore.getState().passkeyInfo?.publicKey || '',
       };
 
       let res = await fetch('/api/x402/enroll', {
@@ -130,14 +128,12 @@ class MultiChainPaymentAdapter {
       return { success: false, error: 'Register passkey first to pay on Base.', errorCode: 'no_passkey' };
     }
     try {
-      const basePasskeyInfo = loadPasskeyInfo();
       const res = await x402Fetch('/api/x402/enroll?chain=base', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           paperId: params.paperId,
-          passkeyPublicKey: basePasskeyInfo?.publicKey || '',
-          buyerAddress: basePasskeyInfo?.ainAddress || '',
+          passkeyPublicKey: useAuthStore.getState().passkeyInfo?.publicKey || '',
         }),
       });
 
@@ -208,7 +204,7 @@ class MultiChainPaymentAdapter {
           stageId: params.stageId,
           stageNum: params.stageNum ?? 0,
           score: params.score ?? 0,
-          passkeyPublicKey: loadPasskeyInfo()?.publicKey || '',
+          passkeyPublicKey: useAuthStore.getState().passkeyInfo?.publicKey || '',
         }),
       });
 

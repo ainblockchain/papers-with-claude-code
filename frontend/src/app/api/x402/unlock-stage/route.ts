@@ -23,7 +23,7 @@ async function handleUnlockStage(req: NextRequest): Promise<NextResponse> {
     );
   }
 
-  const { paperId, stageNum, score } = body;
+  const { paperId, stageNum, score, passkeyPublicKey } = body;
 
   if (!paperId || typeof paperId !== 'string') {
     return NextResponse.json(
@@ -59,7 +59,7 @@ async function handleUnlockStage(req: NextRequest): Promise<NextResponse> {
       y: 0,
       direction: 'down',
       scene: 'course',
-    });
+    }, passkeyPublicKey);
 
     // If score >= 70 (passing), also record quiz pass
     if (score >= 70) {
@@ -72,7 +72,7 @@ async function handleUnlockStage(req: NextRequest): Promise<NextResponse> {
         y: 0,
         direction: 'down',
         scene: 'course',
-      });
+      }, passkeyPublicKey);
     }
   } catch (err) {
     console.error('[x402/unlock-stage] AIN tracking failed (non-fatal):', err);

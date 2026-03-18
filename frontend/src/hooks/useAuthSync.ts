@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { loadPasskeyInfo } from '@/lib/ain/passkey';
 
@@ -39,6 +39,16 @@ export function AuthSyncEffect() {
     setLoading(false);
 
     if (status === 'authenticated' && session?.user) {
+      // Migration: stale GitHub tokens have UUID-style IDs (pre stable-ID fix).
+      // GitHub numeric IDs are purely digits; force re-auth to get the correct ID.
+      if (
+        session.user.provider === 'github' &&
+        session.user.id &&
+        !/^\d+$/.test(session.user.id)
+      ) {
+        signOut({ redirectTo: '/login' });
+        return;
+      }
       login({
         id: session.user.id,
         username: session.user.username || session.user.name || '',

@@ -1,7 +1,7 @@
 // 🔌 ADAPTER 🔗 CROSS-TEAM — x402 protocol payment integration
 // KiteX402Adapter for real Kite Chain payments, MockX402Adapter as fallback
 
-import { loadPasskeyInfo } from '@/lib/ain/passkey';
+import { useAuthStore } from '@/stores/useAuthStore';
 
 export interface PaymentResult {
   success: boolean;
@@ -45,13 +45,12 @@ class KiteX402Adapter implements X402PaymentAdapter {
     score?: number;
   }): Promise<PaymentResult> {
     try {
-      const passkeyInfo = loadPasskeyInfo();
       const requestBody = {
         paperId: params.paperId,
         stageId: params.stageId,
         stageNum: params.stageNum ?? 0,
         score: params.score ?? 0,
-        passkeyPublicKey: passkeyInfo?.publicKey || '',
+        passkeyPublicKey: useAuthStore.getState().passkeyInfo?.publicKey || '',
       };
 
       let res = await fetch('/api/x402/unlock-stage', {

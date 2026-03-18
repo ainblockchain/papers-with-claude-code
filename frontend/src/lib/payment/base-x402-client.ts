@@ -7,7 +7,8 @@ import { privateKeyToAccount } from 'viem/accounts';
 import type { ClientEvmSigner } from '@x402/evm';
 import { ExactEvmScheme } from '@x402/evm/exact/client';
 import { wrapFetchWithPayment, x402Client } from '@x402/fetch';
-import { deriveEvmPrivateKey, loadPasskeyInfo } from '@/lib/ain/passkey';
+import { deriveEvmPrivateKey } from '@/lib/ain/passkey';
+import { useAuthStore } from '@/stores/useAuthStore';
 
 // USDC on Base Mainnet (6 decimals)
 const BASE_USDC = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as const;
@@ -24,7 +25,7 @@ const basePublicClient = createPublicClient({
  * Returns null if no passkey is registered (caller should handle gracefully).
  */
 export function createBaseX402Fetch(): typeof fetch | null {
-  const info = loadPasskeyInfo();
+  const info = useAuthStore.getState().passkeyInfo;
   if (!info?.publicKey) return null;
 
   const evmPrivateKey = deriveEvmPrivateKey(info.publicKey) as `0x${string}`;
@@ -52,7 +53,7 @@ export async function getBaseUsdcBalance(): Promise<{
   formatted: string;
   address: `0x${string}`;
 } | null> {
-  const info = loadPasskeyInfo();
+  const info = useAuthStore.getState().passkeyInfo;
   if (!info?.evmAddress) return null;
 
   const address = info.evmAddress as `0x${string}`;

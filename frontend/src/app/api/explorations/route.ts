@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAinClient } from '@/lib/ain/client';
+import { getAinClient, getUserAinClient } from '@/lib/ain/client';
 
 export async function GET(request: NextRequest) {
   try {
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { topicPath, title, content, summary, depth, tags, parentEntry, relatedEntries } = body;
+    const { topicPath, title, content, summary, depth, tags, parentEntry, relatedEntries, passkeyPublicKey } = body;
 
     if (!topicPath || !title || !content) {
       return NextResponse.json(
@@ -37,7 +37,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const ain = getAinClient();
+    // Use per-user client if passkey public key is provided, otherwise fall back to service wallet
+    const ain = passkeyPublicKey ? getUserAinClient(passkeyPublicKey) : getAinClient();
     const result = await ain.knowledge.explore({
       topicPath,
       title,

@@ -5,10 +5,10 @@ import {
   createWrappedHandler,
   getExplorerUrl,
 } from '../_lib/x402-nextjs';
-import { getAinClient } from '@/lib/ain/client';
+import { getAinClient, getUserAinClient } from '@/lib/ain/client';
 
 async function handleEnroll(req: NextRequest): Promise<NextResponse> {
-  let body: { paperId?: string; passkeyPublicKey?: string; buyerAddress?: string };
+  let body: { paperId?: string; passkeyPublicKey?: string };
   try {
     body = await req.json();
   } catch {
@@ -18,7 +18,7 @@ async function handleEnroll(req: NextRequest): Promise<NextResponse> {
     );
   }
 
-  const { paperId, buyerAddress } = body;
+  const { paperId, passkeyPublicKey } = body;
   if (!paperId || typeof paperId !== 'string') {
     return NextResponse.json(
       { error: 'invalid_params', message: 'paperId is required' },
@@ -29,11 +29,10 @@ async function handleEnroll(req: NextRequest): Promise<NextResponse> {
   const chain = req.nextUrl.searchParams.get('chain') || 'kite';
 
   // Payment has already been verified and settled by withX402 middleware.
-  // Record enrollment on AIN blockchain directly via SDK (not HTTP adapter).
+  // Record enrollment on AIN blockchain using per-user client (if passkey provided).
   try {
-    const ain = getAinClient();
+    const ain = passkeyPublicKey ? getUserAinClient(passkeyPublicKey) : getAinClient();
     const tags = ['course_enter', paperId];
-    if (buyerAddress) tags.push(`buyer:${buyerAddress}`);
 
     await ain.knowledge.explore({
       topicPath: `courses/${paperId}`,
@@ -41,7 +40,6 @@ async function handleEnroll(req: NextRequest): Promise<NextResponse> {
       content: JSON.stringify({
         eventType: 'course_enter',
         paperId,
-        buyerAddress: buyerAddress || null,
         timestamp: Date.now(),
       }),
       summary: `Enrolled in course ${paperId}`,

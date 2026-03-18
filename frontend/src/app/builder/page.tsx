@@ -77,7 +77,7 @@ export default function CourseBuilderPage() {
       // Cleanup stale sessions first
       await terminalSessionAdapter.cleanupStaleSessions();
 
-      const walletAddress = passkeyInfo?.ainAddress;
+      const walletAddress = passkeyInfo?.evmAddress;
       const session = await terminalSessionAdapter.createSession({
         userId: walletAddress || user?.id,
         mode: 'generator',

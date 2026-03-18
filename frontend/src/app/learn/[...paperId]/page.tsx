@@ -123,7 +123,7 @@ export default function LearnPage() {
       let initialStageIdx = 0;
       if (user) {
         let progress = null;
-        const walletAddress = useAuthStore.getState().passkeyInfo?.ainAddress;
+        const walletAddress = useAuthStore.getState().passkeyInfo?.evmAddress;
         if (walletAddress) {
           progress = await progressAdapter.loadProgressByAddress(walletAddress, paperId);
         }
@@ -158,8 +158,8 @@ export default function LearnPage() {
         // Clean up any leftover terminated sessions from previous visits
         await terminalSessionAdapter.cleanupStaleSessions();
         try {
-          // Use AIN wallet address as userId (recommended by integration doc)
-          const walletAddress = useAuthStore.getState().passkeyInfo?.ainAddress;
+          // Use EVM wallet address as userId for consistency with per-user data storage
+          const walletAddress = useAuthStore.getState().passkeyInfo?.evmAddress;
           const session = await terminalSessionAdapter.createSession({
             courseUrl: paper.courseRepoUrl || paper.githubUrl,
             userId: walletAddress || user?.id,

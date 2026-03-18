@@ -26,7 +26,7 @@ export default function DashboardPage() {
     async function load() {
       if (!user) return;
 
-      const allProgress = await progressAdapter.loadMergedProgress(user.id, passkeyInfo?.ainAddress);
+      const allProgress = await progressAdapter.loadMergedProgress(user.id, passkeyInfo?.evmAddress);
       const withPapers = await Promise.all(
         allProgress.map(async (p) => {
           const paper = await papersAdapter.getPaperById(p.paperId);

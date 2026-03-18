@@ -5,7 +5,7 @@ import { useVillageStore } from '@/stores/useVillageStore';
 import { X, Send, Loader2, Brain, AlertTriangle, Wallet, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { createBaseX402Fetch, getBaseUsdcBalance } from '@/lib/payment/base-x402-client';
-import { loadPasskeyInfo } from '@/lib/ain/passkey';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { formatChainAmount } from '@/lib/payment/chains';
 
 interface AgentCard {
@@ -54,7 +54,7 @@ export function CogitoDialog() {
   // Check passkey on open
   useEffect(() => {
     if (!cogitoDialogOpen) return;
-    setHasPasskey(!!loadPasskeyInfo()?.publicKey);
+    setHasPasskey(!!useAuthStore.getState().passkeyInfo?.publicKey);
   }, [cogitoDialogOpen]);
 
   // Fetch A2A agent card via our API proxy (avoids CORS)
