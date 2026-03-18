@@ -39,13 +39,15 @@ export async function POST(request: NextRequest) {
 
     // Use per-user client if passkey public key is provided, otherwise fall back to service wallet
     const ain = passkeyPublicKey ? getUserAinClient(passkeyPublicKey) : getAinClient();
+    // AIN blockchain expects tags as a comma-separated string, not an array
+    const tagsStr = Array.isArray(tags) ? tags.join(',') : (tags ?? '');
     const result = await ain.knowledge.explore({
       topicPath,
       title,
       content,
       summary: summary ?? '',
       depth: depth ?? 1,
-      tags: tags ?? [],
+      tags: tagsStr,
       ...(parentEntry ? { parentEntry } : {}),
       ...(relatedEntries ? { relatedEntries } : {}),
     });

@@ -247,11 +247,10 @@ export default function LearnPage() {
         });
       }
 
-      // Track stage_complete event
+      // Track stage_complete and quiz_pass events
       const { playerPosition: pos, playerDirection: dir } = useLearningStore.getState();
-      trackEvent({
-        type: 'stage_complete',
-        scene: 'course',
+      const eventBase = {
+        scene: 'course' as const,
         paperId,
         stageIndex: stageIdx >= 0 ? stageIdx : stageNumber - 1,
         stageTitle: stageIdx >= 0 ? stages[stageIdx]?.title : undefined,
@@ -259,7 +258,9 @@ export default function LearnPage() {
         y: pos.y,
         direction: dir,
         timestamp: Date.now(),
-      });
+      };
+      trackEvent({ type: 'stage_complete', ...eventBase });
+      trackEvent({ type: 'quiz_pass', ...eventBase });
     },
     [stages, user, paperId],
   );
@@ -304,6 +305,21 @@ export default function LearnPage() {
 
   const handleNextStage = () => {
     if (currentStageIndex < stages.length - 1) {
+      // Track completion of the current stage before advancing
+      const { playerPosition: pos, playerDirection: dir } = useLearningStore.getState();
+      const completionBase = {
+        scene: 'course' as const,
+        paperId: currentPaper.id,
+        stageIndex: currentStageIndex,
+        stageTitle: stages[currentStageIndex]?.title,
+        x: pos.x,
+        y: pos.y,
+        direction: dir,
+        timestamp: Date.now(),
+      };
+      trackEvent({ type: 'stage_complete', ...completionBase });
+      trackEvent({ type: 'quiz_pass', ...completionBase });
+
       clearTerminalMessages();
       setPlayerPosition({ x: 3, y: 10 });
       const newIdx = currentStageIndex + 1;
