@@ -26,8 +26,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ok: true, data: null });
     }
 
-    const publicKey = decryptPublicKey(stored.encryptedPublicKey);
-    return NextResponse.json({ ok: true, data: { publicKey } });
+    try {
+      const publicKey = decryptPublicKey(stored.encryptedPublicKey);
+      return NextResponse.json({ ok: true, data: { publicKey } });
+    } catch {
+      // Encrypted with a different key (e.g. AUTH_SECRET changed) — treat as missing
+      console.log(`[identity] Cannot decrypt identity for userId=${userId}, treating as missing`);
+      return NextResponse.json({ ok: true, data: null });
+    }
   } catch (error: any) {
     return NextResponse.json(
       { ok: false, error: error.message ?? 'Failed to look up identity' },
@@ -50,13 +56,20 @@ export async function POST(request: NextRequest) {
 
     const ain = getAinClient();
 
-    // Check if mapping already exists
+    // Check if mapping already exists and is still readable
     const existing = await ain.db.ref(`${IDENTITY_PATH}/${userId}`).getValue();
     if (existing && existing.encryptedPublicKey) {
-      return NextResponse.json(
-        { ok: false, error: 'Identity mapping already exists' },
-        { status: 409 },
-      );
+      try {
+        // If we can decrypt it, the identity is valid — don't overwrite
+        decryptPublicKey(existing.encryptedPublicKey);
+        return NextResponse.json(
+          { ok: false, error: 'Identity mapping already exists' },
+          { status: 409 },
+        );
+      } catch {
+        // Existing data encrypted with a different key — allow overwrite
+        console.log(`[identity] Overwriting unreadable identity for userId=${userId}`);
+      }
     }
 
     const encryptedPublicKey = encryptPublicKey(publicKey);
