@@ -671,9 +671,9 @@
           },
           {
             "id": 3,
-            "name": "decentralized_ai_os",
+            "name": "architecture_deep_dive",
             "type": "npc",
-            "x": 80,
+            "x": 200,
             "y": 160,
             "width": 40,
             "height": 40,
@@ -683,20 +683,20 @@
               {
                 "name": "conceptId",
                 "type": "string",
-                "value": "decentralized_ai_os"
+                "value": "architecture_deep_dive"
               },
               {
                 "name": "title",
                 "type": "string",
-                "value": "What is 0G? The Decentralized AI Operating System"
+                "value": "Architecture Deep Dive: How 0G's Four Services Interconnect"
               }
             ]
           },
           {
             "id": 4,
-            "name": "zero_g_chain_basics",
+            "name": "data_flow_model",
             "type": "npc",
-            "x": 240,
+            "x": 360,
             "y": 160,
             "width": 40,
             "height": 40,
@@ -706,20 +706,20 @@
               {
                 "name": "conceptId",
                 "type": "string",
-                "value": "zero_g_chain_basics"
+                "value": "data_flow_model"
               },
               {
                 "name": "title",
                 "type": "string",
-                "value": "0G Chain: Your Familiar EVM Home"
+                "value": "Data Flow: Content-Addressing, rootHash, and Merkle Proofs"
               }
             ]
           },
           {
             "id": 5,
-            "name": "network_configuration",
+            "name": "tokenomics_and_gas",
             "type": "npc",
-            "x": 400,
+            "x": 520,
             "y": 160,
             "width": 40,
             "height": 40,
@@ -729,20 +729,20 @@
               {
                 "name": "conceptId",
                 "type": "string",
-                "value": "network_configuration"
+                "value": "tokenomics_and_gas"
               },
               {
                 "name": "title",
                 "type": "string",
-                "value": "Connecting to 0G: Testnet and Mainnet"
+                "value": "Tokenomics: Gas Fees, Storage Pricing, and Compute Escrow"
               }
             ]
           },
           {
             "id": 6,
-            "name": "wallet_and_tokens",
+            "name": "security_model",
             "type": "npc",
-            "x": 80,
+            "x": 280,
             "y": 400,
             "width": 40,
             "height": 40,
@@ -752,20 +752,20 @@
               {
                 "name": "conceptId",
                 "type": "string",
-                "value": "wallet_and_tokens"
+                "value": "security_model"
               },
               {
                 "name": "title",
                 "type": "string",
-                "value": "Setting Up Your Wallet and Getting Test Tokens"
+                "value": "Security: Proof of Random Access, TEE, and ZK Proofs"
               }
             ]
           },
           {
             "id": 7,
-            "name": "smart_contract_addresses",
+            "name": "developer_tooling",
             "type": "npc",
-            "x": 240,
+            "x": 440,
             "y": 400,
             "width": 40,
             "height": 40,
@@ -775,12 +775,12 @@
               {
                 "name": "conceptId",
                 "type": "string",
-                "value": "smart_contract_addresses"
+                "value": "developer_tooling"
               },
               {
                 "name": "title",
                 "type": "string",
-                "value": "The Core Contract Addresses You Need"
+                "value": "Developer Tooling: SDK, CLI, Explorers, and Builder Hub"
               }
             ]
           }
@@ -837,58 +837,58 @@
     ]
   },
   "stage": {
-    "id": "foundations",
+    "id": "0g_foundations",
     "stageNumber": 1,
     "title": "Module 1: 0G Foundations",
     "roomWidth": 20,
     "roomHeight": 15,
     "concepts": [
       {
-        "id": "decentralized_ai_os",
-        "title": "What is 0G? The Decentralized AI Operating System",
-        "content": "Key ideas:\n- 0G is a modular deAIOS with four interoperable services: Chain, Storage, Compute, DA\n- Each service solves a real infrastructure problem for AI applications\n- Services can be used independently or composed into full-stack AI applications\n\n0G Labs describes their platform as a 'decentralized AI operating system' — and the analogy is apt. Just as an operating system provides core services (filesystem, compute, networking) that applications build on, 0G provides AI-native infrastructure that any developer can use without running their own hardware.\n\nThe four services each solve a specific problem:\n\n**0G Chain** is the consensus backbone — an EVM-compatible L1 blockchain achieving 11,000 TPS with sub-second finality. Your smart contracts live here.\n\n**0G Storage** is the filesystem — decentralized, content-addressed storage that's 95% cheaper than AWS S3. Your datasets, model weights, and large files live here.\n\n**0G Compute** is the AI execution layer — a decentralized GPU marketplace 90% cheaper than OpenAI or AWS Bedrock. Your AI inference and fine-tuning runs here.\n\n**0G DA** is the data availability backbone — a 50 Gbps throughput layer that enables rollups to scale. If you're building an L2 or rollup, your blob data goes here.\n\nThink of it like a cloud provider (AWS) but decentralized, permissionless, and purpose-built for AI. You get S3-like storage, Lambda-like compute, and Ethereum-like programmability — all in one stack.",
+        "id": "architecture_deep_dive",
+        "title": "Architecture Deep Dive: How 0G's Four Services Interconnect",
+        "content": "Key ideas:\n- 0G Chain is an EVM-compatible L1 (11,000 TPS) that coordinates Storage, Compute, and DA\n- 0G Storage uses a two-layer design: Log (immutable files) and KV (mutable key-value pairs)\n- 0G Compute is a decentralized GPU marketplace with OpenAI-compatible API\n- 0G DA provides 50 Gbps data availability for rollups via KZG commitments\n\n0G is not a monolithic platform — it's four specialized services that compose through on-chain coordination.\n\n**The four services and their roles:**\n\n```\n┌─────────────────────────────────────────────┐\n│                 0G Chain (L1)                │\n│  EVM-compatible, 11K TPS, sub-second final  │\n│  Coordinates payments, provenance, access    │\n├─────────────┬──────────────┬────────────────┤\n│ 0G Storage  │ 0G Compute   │    0G DA       │\n│ Log + KV    │ GPU market   │ 50 Gbps        │\n│ File store  │ AI inference │ Rollup data    │\n│ 95% cheaper │ 90% cheaper  │ KZG proofs     │\n└─────────────┴──────────────┴────────────────┘\n```\n\n**How they interconnect:**\n\n1. **Chain → Storage**: The Flow smart contract on 0G Chain manages storage payments. When you upload a file, your wallet pays storage miners through the Flow contract.\n\n2. **Chain → Compute**: The Compute Ledger smart contract on 0G Chain manages GPU provider escrow. You deposit tokens, providers draw from escrow per inference request.\n\n3. **Storage → Compute**: You store datasets or model weights in 0G Storage, then reference them by rootHash when sending compute jobs.\n\n4. **DA → Chain**: Rollups (L2s) post transaction data to 0G DA instead of Ethereum's expensive EIP-4844 blobs. DA proofs are verified on 0G Chain.\n\nThe key insight: **0G Chain is the coordination layer**. It doesn't store files or run AI — it manages the economics and verification that make the other services trustless.",
         "position": {
-          "x": 2,
+          "x": 5,
           "y": 4
         },
         "type": "text"
       },
       {
-        "id": "zero_g_chain_basics",
-        "title": "0G Chain: Your Familiar EVM Home",
-        "content": "Key ideas:\n- Full EVM compatibility — every Ethereum tool works out of the box\n- 11,000 TPS per shard with sub-second finality via CometBFT consensus\n- Modular design separates consensus from execution for independent upgrades\n\n0G Labs documented in their technical specification that 0G Chain achieves its performance through an optimized CometBFT consensus — the battle-tested Byzantine Fault Tolerant consensus engine that powers the Cosmos ecosystem, but modified specifically for AI workloads.\n\nFor developers, the most important thing to know is simple: **if it works on Ethereum, it works on 0G Chain**. Your existing Hardhat projects, Foundry scripts, OpenZeppelin contracts, MetaMask wallet, and ethers.js code all work without changes.\n\nThe performance difference is dramatic. Ethereum processes ~15 transactions per second with ~12 second block times. 0G Chain processes 11,000 TPS per shard with sub-second finality. For AI applications where you're recording thousands of on-chain inference proofs or dataset uploads, this matters enormously.\n\nThe modular architecture also means the execution layer (EVM) and consensus layer (CometBFT) can be upgraded independently. When a new EVM version ships (like Cancun with blob transactions), 0G can adopt it without touching the consensus logic.\n\nOne practical implication: when compiling smart contracts, you must specify `evmVersion: 'cancun'` to access the latest opcodes. We'll cover the exact configuration in Module 4.",
+        "id": "data_flow_model",
+        "title": "Data Flow: Content-Addressing, rootHash, and Merkle Proofs",
+        "content": "Key ideas:\n- Files are identified by rootHash — the Merkle tree root of their content, not by filename\n- Changing one byte changes the rootHash entirely — cryptographic integrity guarantee\n- Merkle proofs allow verifying any chunk of a file without downloading the whole file\n- The rootHash is the universal connector between Storage, Chain, and Compute\n\nContent-addressing is the foundation of 0G Storage's data model.\n\n**How it works:**\n\n1. Your file is split into fixed-size chunks (sectors)\n2. Each chunk is hashed individually\n3. Hashes are combined into a Merkle tree — a binary tree where each parent node is the hash of its children\n4. The root of this tree is the **rootHash** — your file's unique, content-derived identity\n\n```\n          rootHash\n         /        \\\n      h(0,1)     h(2,3)\n      /    \\     /    \\\n   h(0)  h(1)  h(2)  h(3)    ← chunk hashes\n    |      |     |      |\n  chunk0 chunk1 chunk2 chunk3  ← file data\n```\n\n**Why this matters for developers:**\n\n- **No filename collisions**: Two different files always have different rootHashes\n- **Automatic deduplication**: Two identical files have the same rootHash — stored once\n- **Integrity verification**: Download a file, recompute its Merkle tree, compare rootHash — if they match, the data is unmodified\n- **Partial verification**: Merkle proofs let you verify any single chunk without downloading the entire file — critical for large datasets\n\n**The rootHash as universal connector:**\n\n```typescript\n// Upload: get rootHash\nconst [tree] = await file.merkleTree();\nconst rootHash = tree!.rootHash();  // e.g. \"0x1a2b3c...\"\n\n// Store on-chain: provenance record\nawait contract.recordUpload(rootHash, modelName, timestamp);\n\n// Download: retrieve by rootHash\nawait indexer.download(rootHash, './output.bin', true);\n\n// Compute: reference in AI job\nawait compute.analyze({ dataRef: rootHash });\n```\n\nThe rootHash links your data across all 0G services. Lose it, and you lose access to your file. **Always save it immediately after computing the Merkle tree.**",
         "position": {
-          "x": 6,
+          "x": 9,
           "y": 4
         },
         "type": "text"
       },
       {
-        "id": "network_configuration",
-        "title": "Connecting to 0G: Testnet and Mainnet",
-        "content": "Key ideas:\n- Testnet Galileo: chainId 16602, RPC https://evmrpc-testnet.0g.ai\n- Mainnet Aristotle: chainId 16661, RPC https://evmrpc.0g.ai\n- Free testnet tokens available daily at https://faucet.0g.ai\n\n0G operates two networks. The documentation provides the following exact parameters:\n\n**Testnet (Galileo) — Use this for development:**\n- Chain ID: `16602`\n- RPC: `https://evmrpc-testnet.0g.ai`\n- Explorer: `https://chainscan-galileo.0g.ai`\n- Faucet: `https://faucet.0g.ai` (0.1 0G/day)\n\n**Mainnet (Aristotle) — Use this for production:**\n- Chain ID: `16661`\n- RPC: `https://evmrpc.0g.ai`\n- Explorer: `https://chainscan.0g.ai`\n\nTo add 0G to MetaMask manually: open MetaMask → Add Network → fill in the Chain ID and RPC URL above. To add programmatically with ethers.js:\n\n```typescript\nconst provider = new ethers.JsonRpcProvider('https://evmrpc-testnet.0g.ai');\n// The chainId is automatically detected from the RPC endpoint\n```\n\nThird-party RPC providers (QuickNode, ThirdWeb, Ankr, dRPC) offer higher rate limits and regional endpoints — useful for production applications that can't afford the latency of the public RPC.\n\n**Important**: The testnet Indexer URL for Storage SDK is different from the RPC: `https://indexer-storage-testnet-turbo.0g.ai`. This is a common source of confusion for new developers.",
+        "id": "tokenomics_and_gas",
+        "title": "Tokenomics: Gas Fees, Storage Pricing, and Compute Escrow",
+        "content": "Key ideas:\n- 0G token is used for gas on Chain, payment for Storage miners, and escrow for Compute providers\n- Storage pricing: ~5% of AWS S3 — pay per sector, per storage epoch\n- Compute pricing: escrow-based — deposit tokens, providers draw per inference request\n- Testnet tokens are free from faucet.0g.ai (0.1 0G/day)\n\nUnderstanding 0G's economics helps you estimate costs and design efficient applications.\n\n**Gas on 0G Chain:**\nSame model as Ethereum — every transaction costs gas, paid in 0G tokens. At 11,000 TPS, gas prices are consistently low. A typical contract call costs ~0.001 0G.\n\n**Storage pricing:**\nStorage payment flows through the Flow smart contract:\n1. You call `indexer.upload()` which submits a transaction to the Flow contract\n2. The Flow contract calculates the price based on file size and storage duration\n3. Payment is distributed to storage miners who store your data\n4. Pricing is ~5% of equivalent AWS S3 costs\n\nFor a 1MB file on testnet, the cost is negligible (< 0.01 0G).\n\n**Compute escrow model:**\n```bash\n# Step 1: Deposit tokens into your compute account\n0g-compute-cli deposit --amount 1\n\n# Step 2: Fund a specific provider\n0g-compute-cli transfer-fund --provider <ADDR> --amount 0.5\n\n# Each inference request draws from this balance\n# Pricing varies by model and provider — check with:\n0g-compute-cli inference list-providers\n```\n\nThe escrow model means:\n- No per-call billing setup needed\n- Providers compete on price\n- Unused deposits can be withdrawn\n- For TEE-verified providers, payment is settled via cryptographic proof\n\n**Testnet tokens:**\nVisit https://faucet.0g.ai — receive 0.1 0G per day for free. This is enough for hundreds of storage uploads and compute requests during development.",
         "position": {
-          "x": 10,
+          "x": 13,
           "y": 4
         },
         "type": "text"
       },
       {
-        "id": "wallet_and_tokens",
-        "title": "Setting Up Your Wallet and Getting Test Tokens",
-        "content": "Key ideas:\n- Use standard EVM wallet — ethers.Wallet or MetaMask with 0G network\n- Never hardcode private keys — use environment variables and .env files\n- Faucet at https://faucet.0g.ai provides 0.1 0G/day for testing\n\n0G uses the same wallet system as Ethereum — any EVM-compatible wallet works. For development, you'll create a wallet via ethers.js:\n\n```typescript\nimport { ethers } from 'ethers';\n\nconst RPC_URL = 'https://evmrpc-testnet.0g.ai';\nconst provider = new ethers.JsonRpcProvider(RPC_URL);\nconst signer = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);\n\nconsole.log('Address:', signer.address);\n```\n\nAlways store your private key in a `.env` file and add `.env` to `.gitignore`. Never commit private keys to version control.\n\n**Getting testnet tokens:**\n1. Go to `https://faucet.0g.ai`\n2. Connect your wallet or paste your address\n3. Request 0.1 0G (refreshes daily)\n\n0G tokens are used for gas fees on 0G Chain. For Storage and Compute, you'll also need to fund those services separately (covered in Modules 2 and 3). The testnet tokens are sufficient for all development and testing — you won't need mainnet tokens until you're ready to deploy to production.",
+        "id": "security_model",
+        "title": "Security: Proof of Random Access, TEE, and ZK Proofs",
+        "content": "Key ideas:\n- Proof of Random Access (PoRA) ensures storage miners actually store your data, not just claim to\n- TEE (Trusted Execution Environment) verification for compute providers — hardware-level integrity\n- KZG commitments for DA — cryptographic proof that data was made available\n- Zero-knowledge proofs for verifiable computation without revealing input data\n\nDecentralized systems replace trust with math. 0G uses three complementary verification mechanisms.\n\n**Proof of Random Access (PoRA) — Storage:**\nThe Mine contract periodically challenges storage miners to prove they actually hold your data:\n1. A random chunk index is selected (unpredictable)\n2. The miner must return that chunk and a Merkle proof showing it belongs to the file\n3. If the proof is valid, the miner earns rewards. If not, they're penalized.\n\nThis makes it economically irrational to claim storage without actually storing the data.\n\n**TEE Verification — Compute:**\nSome GPU providers run inside a Trusted Execution Environment (Intel SGX, ARM TrustZone). This means:\n- The computation happens in a hardware-isolated enclave\n- Even the provider operator can't see or modify the computation\n- The result includes a cryptographic attestation from the TEE hardware\n\nFor TEE-verified inference:\n```typescript\n// The provider returns a ZG-Res-Key header\n// Use the broker SDK to verify the attestation\nawait broker.inference.processResponse(providerAddress, content, metadata);\n```\n\n**KZG Commitments — DA:**\n0G DA uses KZG polynomial commitments (same scheme as Ethereum's EIP-4844). Data is encoded as polynomial evaluations, and a compact commitment proves data availability without requiring everyone to download the full data.\n\n**ZK Proofs — Cross-service:**\nZero-knowledge proofs allow proving a computation was performed correctly without revealing the input data. This is used for:\n- Verifiable AI inference (prove the model produced a specific output)\n- Private data processing (analyze data without exposing it)\n- Cross-chain verification",
         "position": {
-          "x": 2,
+          "x": 7,
           "y": 10
         },
         "type": "text"
       },
       {
-        "id": "smart_contract_addresses",
-        "title": "The Core Contract Addresses You Need",
-        "content": "Key ideas:\n- Testnet Flow contract: 0x22E03a6A89B950F1c82ec5e74F8eCa321a105296\n- Testnet Compute Ledger: 0xE70830508dAc0A97e6c087c75f402f9Be669E406\n- Precompiles at fixed addresses: DASigners 0x1000, WrappedOGBase 0x1001\n\n0G Labs documents the following critical contract addresses. Save these — you'll reference them often in SDK initialization and direct contract calls.\n\n**Testnet (Galileo) Contracts:**\n```\nFlow (Storage payments):  0x22E03a6A89B950F1c82ec5e74F8eCa321a105296\nMine (Mining rewards):    0x00A9E9604b0538e06b268Fb297Df333337f9593b\nReward (Distribution):   0xA97B57b4BdFEA2D0a25e535bd849ad4e6C440A69\nDAEntrance (DA blobs):    0xE75A073dA5bb7b0eC622170Fd268f35E675a957B\nCompute Ledger:           0xE70830508dAc0A97e6c087c75f402f9Be669E406\nCompute Inference:        0xa79F4c8311FF93C06b8CfB403690cc987c93F91E\nCompute FineTuning:       0xaC66eBd174435c04F1449BBa08157a707B6fa7b1\n```\n\n**Precompiles (same address on testnet and mainnet):**\n```\nDASigners:     0x0000000000000000000000000000000000001000\nWrappedOGBase: 0x0000000000000000000000000000000000001001\n```\n\n**Mainnet (Aristotle) Contracts:**\n```\nFlow:           0x62D4144dB0F0a6fBBaeb6296c785C71B3D57C526\nCompute Ledger: 0x2dE54c845Cd948B72D2e32e39586fe89607074E3\n```\n\nThe TypeScript SDK uses these addresses internally when you pass the RPC URL. However, if you're writing smart contracts that interact with these services directly (e.g., verifying storage proofs on-chain), you'll reference these addresses explicitly.",
+        "id": "developer_tooling",
+        "title": "Developer Tooling: SDK, CLI, Explorers, and Builder Hub",
+        "content": "Key ideas:\n- @0glabs/0g-ts-sdk — TypeScript SDK for Storage (Log + KV) and utility functions\n- 0g-compute-cli — CLI for Compute provider management and inference setup\n- Block explorers at chainscan-galileo.0g.ai (testnet) and chainscan.0g.ai (mainnet)\n- Builder Hub at build.0g.ai — documentation, SDKs, and grants\n\n0G provides a focused set of developer tools. Here's what each does:\n\n**@0glabs/0g-ts-sdk (TypeScript SDK):**\n```bash\nnpm install @0glabs/0g-ts-sdk\n```\nUsed for:\n- `ZgFile` — wrap files for upload, compute Merkle trees\n- `Indexer` — upload/download files, select storage nodes\n- `Batcher` — batch KV storage writes\n- `KvClient` — read KV storage values\n\n**0g-compute-cli (Compute CLI):**\n```bash\nnpm install -g @0glabs/0g-serving-broker\n```\nUsed for:\n- `login` — connect wallet\n- `deposit` — fund compute account\n- `inference list-providers` — discover GPU providers\n- `transfer-fund` — fund specific provider\n- `inference acknowledge-provider` — required before first request\n- `inference get-secret` — get API key\n\n**Ethereum-compatible tools:**\nBecause 0G Chain is EVM-compatible, all standard tools work:\n- `ethers.js` / `viem` — chain interaction\n- Hardhat / Foundry — smart contract development\n- MetaMask — wallet management\n\n**Block Explorers:**\n- Testnet: https://chainscan-galileo.0g.ai\n- Mainnet: https://chainscan.0g.ai\n- Storage: https://storagescan.0g.ai\n\nIdentical to Etherscan — search addresses, transactions, contracts, and events.\n\n**Builder Hub:**\nhttps://build.0g.ai — centralizes documentation, SDK downloads, example code, and grant applications.",
         "position": {
-          "x": 6,
+          "x": 11,
           "y": 10
         },
         "type": "text"
@@ -896,14 +896,14 @@
     ],
     "quiz": {
       "id": "quiz-stage-1",
-      "question": "Which contract manages storage data flow and payments on 0G Testnet?",
+      "question": "Which tool do you use to manage GPU providers and set up AI inference on 0G?",
       "type": "multiple-choice",
       "options": [
-        "0xE70830508dAc0A97e6c087c75f402f9Be669E406 (Compute Ledger)",
-        "0x22E03a6A89B950F1c82ec5e74F8eCa321a105296 (Flow)",
-        "0xE75A073dA5bb7b0eC622170Fd268f35E675a957B (DAEntrance)"
+        "@0glabs/0g-ts-sdk — the TypeScript SDK",
+        "0g-compute-cli — the Compute CLI",
+        "ethers.js — standard Ethereum library"
       ],
-      "correctAnswer": "0x22E03a6A89B950F1c82ec5e74F8eCa321a105296 (Flow)",
+      "correctAnswer": "0g-compute-cli — the Compute CLI",
       "position": {
         "x": 18,
         "y": 7

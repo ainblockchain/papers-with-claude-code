@@ -673,7 +673,7 @@
             "id": 3,
             "name": "storage_architecture",
             "type": "npc",
-            "x": 80,
+            "x": 200,
             "y": 160,
             "width": 40,
             "height": 40,
@@ -688,15 +688,15 @@
               {
                 "name": "title",
                 "type": "string",
-                "value": "Log vs Key-Value: Choosing the Right Storage Layer"
+                "value": "Storage Architecture: Log Layer vs KV Layer"
               }
             ]
           },
           {
             "id": 4,
-            "name": "ts_sdk_setup",
+            "name": "log_storage_upload",
             "type": "npc",
-            "x": 240,
+            "x": 360,
             "y": 160,
             "width": 40,
             "height": 40,
@@ -706,20 +706,20 @@
               {
                 "name": "conceptId",
                 "type": "string",
-                "value": "ts_sdk_setup"
+                "value": "log_storage_upload"
               },
               {
                 "name": "title",
                 "type": "string",
-                "value": "Setting Up the TypeScript SDK"
+                "value": "Log Storage Upload: ZgFile, Merkle Trees, and Indexer"
               }
             ]
           },
           {
             "id": 5,
-            "name": "file_upload_merkle",
+            "name": "log_storage_download",
             "type": "npc",
-            "x": 400,
+            "x": 520,
             "y": 160,
             "width": 40,
             "height": 40,
@@ -729,20 +729,20 @@
               {
                 "name": "conceptId",
                 "type": "string",
-                "value": "file_upload_merkle"
+                "value": "log_storage_download"
               },
               {
                 "name": "title",
                 "type": "string",
-                "value": "Uploading Files: Merkle Trees and Root Hashes"
+                "value": "Log Storage Download: Retrieval and Merkle Proof Verification"
               }
             ]
           },
           {
             "id": 6,
-            "name": "file_download_verify",
+            "name": "kv_storage_write",
             "type": "npc",
-            "x": 80,
+            "x": 200,
             "y": 400,
             "width": 40,
             "height": 40,
@@ -752,20 +752,20 @@
               {
                 "name": "conceptId",
                 "type": "string",
-                "value": "file_download_verify"
+                "value": "kv_storage_write"
               },
               {
                 "name": "title",
                 "type": "string",
-                "value": "Downloading with Merkle Proof Verification"
+                "value": "KV Storage Write: Batcher API, Stream IDs, and Write Patterns"
               }
             ]
           },
           {
             "id": 7,
-            "name": "kv_storage",
+            "name": "kv_storage_read",
             "type": "npc",
-            "x": 240,
+            "x": 360,
             "y": 400,
             "width": 40,
             "height": 40,
@@ -775,20 +775,20 @@
               {
                 "name": "conceptId",
                 "type": "string",
-                "value": "kv_storage"
+                "value": "kv_storage_read"
               },
               {
                 "name": "title",
                 "type": "string",
-                "value": "Key-Value Storage: Mutable Data on 0G"
+                "value": "KV Storage Read: KvClient, getValue, and Consistency"
               }
             ]
           },
           {
             "id": 8,
-            "name": "storage_pricing",
+            "name": "storage_production_patterns",
             "type": "npc",
-            "x": 400,
+            "x": 520,
             "y": 400,
             "width": 40,
             "height": 40,
@@ -798,12 +798,12 @@
               {
                 "name": "conceptId",
                 "type": "string",
-                "value": "storage_pricing"
+                "value": "storage_production_patterns"
               },
               {
                 "name": "title",
                 "type": "string",
-                "value": "Why 0G Storage is 95% Cheaper Than AWS"
+                "value": "Production Storage Patterns: Error Handling, Retries, and Large Files"
               }
             ]
           }
@@ -868,60 +868,60 @@
     "concepts": [
       {
         "id": "storage_architecture",
-        "title": "Log vs Key-Value: Choosing the Right Storage Layer",
-        "content": "Key ideas:\n- Log Layer: immutable, append-only — ideal for ML datasets, model checkpoints\n- KV Layer: mutable key-value store — ideal for configuration, agent state\n- Both layers use Merkle trees for cryptographic data integrity\n\n0G Storage provides two fundamentally different storage primitives, designed for different use cases.\n\n**Log Layer (Immutable)**\nThink of this like IPFS content-addressing, but faster and cheaper. When you upload a file, 0G computes its Merkle tree and assigns a `rootHash`. This rootHash is the permanent, content-addressed identifier — like a fingerprint. The data can never be changed (the rootHash would change). This is perfect for:\n- ML training datasets\n- Model weight checkpoints\n- Immutable audit logs\n- Research artifacts that need permanent reference\n\n**Key-Value Layer (Mutable)**\nThink of this like a decentralized Redis. Data is organized by `streamId` (a bytes32 namespace) and you can set/get arbitrary byte arrays. This is perfect for:\n- Agent configuration and state\n- Dynamic metadata\n- Real-time scores or counters\n- User preferences\n\n**Under the hood**, both layers use the same storage network. Data is divided into sectors, erasure-coded with 3x redundancy (tolerates 30% node failures), and distributed across hundreds of nodes using a Proof of Random Access (PoRA) consensus that continuously verifies data is actually stored.\n\nWhen to use each: if the data is final and you need cryptographic proof of its integrity (like a published dataset or model), use the Log Layer. If you need to update values over time (like an AI agent's current state), use the KV Layer.",
+        "title": "Storage Architecture: Log Layer vs KV Layer",
+        "content": "Key ideas:\n- Log layer: immutable, append-only file storage — content-addressed by rootHash\n- KV layer: mutable key-value store built on top of Log layer — uses stream IDs\n- Erasure coding: data is split and redundantly encoded across multiple nodes\n- Data sharding: files are divided into sectors and distributed for parallel retrieval\n\n0G Storage has two distinct layers, each optimized for different access patterns.\n\n**Log Layer (Immutable):**\n- Store any file (text, binary, model weights, datasets)\n- Content-addressed: identified by rootHash (Merkle root)\n- Immutable: once stored, data never changes\n- Use cases: datasets, model weights, documents, images, audit records\n\n**KV Layer (Mutable):**\n- Key-value pairs grouped by stream ID\n- Mutable: values can be updated, keys can be overwritten\n- Built on top of the Log layer (KV writes become Log entries)\n- Use cases: AI agent state, configuration, user profiles, session data\n\n**When to use which:**\n\n| Use Case | Layer | Why |\n|----------|-------|-----|\n| Upload a training dataset | Log | Immutable, content-addressed |\n| Store model weights | Log | Large binary, immutable once trained |\n| AI agent conversation history | KV | Updates frequently |\n| Application configuration | KV | Needs to be mutable |\n| Audit trail records | Log | Must be tamper-proof |\n| User session state | KV | Changes per interaction |\n\n**Under the hood:**\nBoth layers use erasure coding — data is encoded with redundancy so that any k-of-n storage nodes can reconstruct the original. This means your data survives even if some nodes go offline. Data is also sharded across multiple nodes for parallel upload and download, achieving ~200 MBPS retrieval speed.",
         "position": {
-          "x": 2,
+          "x": 5,
           "y": 4
         },
         "type": "text"
       },
       {
-        "id": "ts_sdk_setup",
-        "title": "Setting Up the TypeScript SDK",
-        "content": "Key ideas:\n- Install: npm install @0glabs/0g-ts-sdk ethers\n- Indexer automatically selects optimal nodes — no manual node management\n- Testnet Indexer RPC: https://indexer-storage-testnet-turbo.0g.ai\n\n0G Labs designed their TypeScript SDK around the Indexer abstraction — a service that handles the complexity of distributed storage so you don't have to manually select storage nodes, manage replication, or track which nodes have your data.\n\n```typescript\nimport { ZgFile, Indexer, Batcher, KvClient } from '@0glabs/0g-ts-sdk';\nimport { ethers } from 'ethers';\n\n// Network configuration\nconst RPC_URL = 'https://evmrpc-testnet.0g.ai';\nconst INDEXER_RPC = 'https://indexer-storage-testnet-turbo.0g.ai';\n\n// Create signer (requires funded wallet)\nconst provider = new ethers.JsonRpcProvider(RPC_URL);\nconst signer = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);\n\n// Create Indexer — this is your main entry point for storage operations\nconst indexer = new Indexer(INDEXER_RPC);\n\nconsole.log('SDK initialized. Wallet address:', signer.address);\n```\n\nThe four main classes you'll use:\n- **`ZgFile`**: Wraps a file or buffer for upload, computes Merkle tree\n- **`Indexer`**: Manages node selection, upload coordination, and download retrieval\n- **`Batcher`**: Batches multiple KV writes into a single on-chain transaction\n- **`KvClient`**: Reads key-value data from a KV node\n\nThe Indexer connects to a network of storage nodes and uses a gossiping protocol to discover which nodes have capacity and are responsive. When you call `indexer.upload()`, it automatically selects the best nodes, splits your data into sectors, and handles the on-chain payment via the Flow contract.",
+        "id": "log_storage_upload",
+        "title": "Log Storage Upload: ZgFile, Merkle Trees, and Indexer",
+        "content": "Key ideas:\n- ZgFile.fromFilePath() wraps a local file for 0G Storage operations\n- file.merkleTree() computes the rootHash — SAVE IT IMMEDIATELY\n- indexer.upload() handles payment (Flow contract) and node selection automatically\n- The Indexer URL is NOT the same as the RPC URL — common mistake\n\nHere's the complete upload flow with proper error handling:\n\n```typescript\nimport { ZgFile, Indexer } from '@0glabs/0g-ts-sdk';\nimport { ethers } from 'ethers';\nimport * as dotenv from 'dotenv';\ndotenv.config();\n\nconst RPC_URL = 'https://evmrpc-testnet.0g.ai';\nconst INDEXER_URL = 'https://indexer-storage-testnet-turbo.0g.ai';\n\nasync function upload(filePath: string): Promise<string> {\n  // 1. Connect to 0G\n  const provider = new ethers.JsonRpcProvider(RPC_URL);\n  const signer = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);\n  const indexer = new Indexer(INDEXER_URL);\n\n  // 2. Wrap the file\n  const file = await ZgFile.fromFilePath(filePath);\n\n  // 3. Compute Merkle tree → get rootHash\n  const [tree, treeErr] = await file.merkleTree();\n  if (treeErr) {\n    await file.close();\n    throw new Error(`Merkle tree computation failed: ${treeErr}`);\n  }\n\n  const rootHash = tree!.rootHash();\n  console.log('rootHash:', rootHash);\n  // ↑↑↑ SAVE THIS. Without it, you CANNOT retrieve your file.\n\n  // 4. Upload via indexer (handles Flow contract payment)\n  const [tx, uploadErr] = await indexer.upload(file, RPC_URL, signer);\n  if (uploadErr) {\n    await file.close();\n    throw new Error(`Upload failed: ${uploadErr}`);\n  }\n\n  console.log('Upload TX:', tx);\n  await file.close();\n  return rootHash;\n}\n```\n\n**What happens during upload:**\n1. SDK computes the Merkle tree locally (CPU-bound, ~1 second for small files)\n2. A transaction is sent to the Flow contract on 0G Chain (pays storage miners)\n3. File data is sent to the Indexer, which selects optimal storage nodes\n4. Storage nodes replicate the data with erasure coding\n5. Upload is confirmed when sufficient nodes acknowledge receipt\n\n**Common mistakes:**\n- Using `RPC_URL` where `INDEXER_URL` is needed (or vice versa)\n- Not saving rootHash before the upload call\n- Forgetting `await file.close()` — leaks file handles\n- Uploading files that are too small (< 256 bytes may fail on some indexers)",
         "position": {
-          "x": 6,
+          "x": 9,
           "y": 4
         },
         "type": "text"
       },
       {
-        "id": "file_upload_merkle",
-        "title": "Uploading Files: Merkle Trees and Root Hashes",
-        "content": "Key ideas:\n- ZgFile.fromFilePath() wraps a local file for upload\n- file.merkleTree() computes the Merkle tree — rootHash is your file's permanent ID\n- Save the rootHash immediately — you need it to download the file later\n\n0G Labs implemented content-addressed storage, where each file's identity is determined by its content, not its name. The Merkle tree is the cryptographic foundation of this system.\n\nHere's how it works: your file is divided into fixed-size chunks. Each chunk is hashed. Those hashes are paired and hashed again. This continues up a binary tree until there's one root hash at the top — the `rootHash`. Change even one byte anywhere in the file, and the rootHash changes completely.\n\n```typescript\nimport { ZgFile, Indexer } from '@0glabs/0g-ts-sdk';\nimport { ethers } from 'ethers';\n\nconst RPC_URL = 'https://evmrpc-testnet.0g.ai';\nconst INDEXER_RPC = 'https://indexer-storage-testnet-turbo.0g.ai';\n\nconst provider = new ethers.JsonRpcProvider(RPC_URL);\nconst signer = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);\nconst indexer = new Indexer(INDEXER_RPC);\n\nasync function uploadFile(filePath: string): Promise<string> {\n  // Wrap the file\n  const file = await ZgFile.fromFilePath(filePath);\n\n  // Compute the Merkle tree (this determines the rootHash)\n  const [tree, treeErr] = await file.merkleTree();\n  if (treeErr) throw new Error(`Merkle tree error: ${treeErr}`);\n\n  const rootHash = tree!.rootHash();\n  console.log('Root hash (SAVE THIS):', rootHash);\n\n  // Upload to the network (handles node selection + payment)\n  const [tx, uploadErr] = await indexer.upload(file, RPC_URL, signer);\n  if (uploadErr) throw new Error(`Upload error: ${uploadErr}`);\n\n  console.log('Upload tx:', tx);\n  await file.close(); // Always close to release file handle\n  return rootHash;\n}\n```\n\nThe rootHash is how you reference your file forever. Store it in your database, smart contract, or KV layer. There's no filename-based lookup — 0G is a pure content-addressed system. This is actually a feature: the same file uploaded twice has the same rootHash, enabling deduplication across the entire network.",
+        "id": "log_storage_download",
+        "title": "Log Storage Download: Retrieval and Merkle Proof Verification",
+        "content": "Key ideas:\n- indexer.download(rootHash, outputPath, withProof) retrieves files by rootHash\n- Setting withProof=true verifies Merkle proof integrity on download\n- Downloads are served from the nearest available storage node (~200 MBPS)\n- If rootHash is lost, there is NO way to recover the file\n\nDownloading from 0G Storage is simpler than uploading — you just need the rootHash.\n\n```typescript\nimport { Indexer } from '@0glabs/0g-ts-sdk';\n\nconst INDEXER_URL = 'https://indexer-storage-testnet-turbo.0g.ai';\nconst indexer = new Indexer(INDEXER_URL);\n\nasync function download(rootHash: string, outputPath: string) {\n  // Download with Merkle proof verification\n  const err = await indexer.download(rootHash, outputPath, true);\n  if (err) {\n    throw new Error(`Download failed: ${err}`);\n  }\n  console.log(`File downloaded to ${outputPath}`);\n}\n\n// Usage:\nawait download('0x1a2b3c...your-root-hash', './downloaded-file.txt');\n```\n\n**The third parameter: withProof**\n\nWhen `withProof = true`:\n1. Each chunk is downloaded with its Merkle proof (sibling hashes up to the root)\n2. The SDK recomputes the Merkle root from the downloaded chunks\n3. If the recomputed root matches the requested rootHash, data is intact\n4. If any chunk was tampered with, the proof fails and an error is thrown\n\nThis is the cryptographic guarantee: you can verify the downloaded data is exactly what was uploaded, without trusting any intermediary.\n\nWhen `withProof = false`:\n- Faster download (no proof verification overhead)\n- Suitable for non-critical data or when you'll verify integrity separately\n\n**Performance:**\n- Download speed: ~200 MBPS from nearest storage node\n- The Indexer automatically selects the fastest available node\n- Large files are downloaded in parallel chunks\n\n**Recovery if rootHash is lost:**\nThere is none. 0G Storage is purely content-addressed. There's no filename index, no account-based file listing, no way to enumerate your files. If you recorded the rootHash on-chain (via a provenance contract), you can retrieve it from the blockchain. This is why Module 4 covers provenance contracts.",
         "position": {
-          "x": 10,
+          "x": 13,
           "y": 4
         },
         "type": "text"
       },
       {
-        "id": "file_download_verify",
-        "title": "Downloading with Merkle Proof Verification",
-        "content": "Key ideas:\n- indexer.download(rootHash, outputPath, true) — the third arg enables proof verification\n- Proof verification ensures you receive exactly what was uploaded\n- Passing false skips verification (faster but less secure)\n\n0G Labs built Merkle proof verification directly into the download API. When you pass `true` as the third argument, the SDK requests a cryptographic proof alongside the data, and verifies that the downloaded bytes match the rootHash you provided.\n\n```typescript\nasync function downloadFile(rootHash: string, outputPath: string): Promise<void> {\n  // true = enable Merkle proof verification\n  const err = await indexer.download(rootHash, outputPath, true);\n\n  if (err) {\n    console.error('Download failed:', err);\n    // Could be: node offline, data not found, proof verification failed\n    return;\n  }\n\n  console.log(`Downloaded to: ${outputPath}`);\n}\n```\n\nThe verification works like this: after downloading all chunks, the SDK reconstructs the Merkle tree from the received data and compares the computed rootHash to the rootHash you provided. If even one byte was corrupted (malicious storage node, network corruption), the rootHash won't match, and the SDK returns an error.\n\nThis is the cryptographic guarantee that makes 0G trustless — you don't need to trust the storage nodes. The math proves the data is correct.\n\n**CLI alternative:**\n```bash\n0g-storage-client download \\\n  --indexer https://indexer-storage-testnet-turbo.0g.ai \\\n  --root 0xABC123... \\\n  --file ./output.json \\\n  --proof\n```\n\n**REST API** (for simple HTTP retrieval without SDK):\n```\nGET https://storage-node.0g.ai/file?root=<MERKLE_ROOT>\n```",
+        "id": "kv_storage_write",
+        "title": "KV Storage Write: Batcher API, Stream IDs, and Write Patterns",
+        "content": "Key ideas:\n- KV writes use the Batcher API — batch multiple key-value writes into one transaction\n- Stream IDs are 66-character hex strings (0x + 64 hex digits) that namespace your data\n- Keys and values are byte arrays — encode strings as UTF-8 buffers\n- Batched writes are atomic — all succeed or all fail\n\nKV Storage lets you store and update mutable key-value pairs — ideal for application state.\n\n```typescript\nimport { Batcher } from '@0glabs/0g-ts-sdk';\nimport { ethers } from 'ethers';\nimport * as dotenv from 'dotenv';\ndotenv.config();\n\nconst RPC_URL = 'https://evmrpc-testnet.0g.ai';\nconst INDEXER_URL = 'https://indexer-storage-testnet-turbo.0g.ai';\n\n// Stream ID: your application's namespace\n// Convention: use a descriptive hex ID\nconst STREAM_ID = '0x' + '0'.repeat(63) + '1';  // Stream #1\n\nasync function writeKV() {\n  const provider = new ethers.JsonRpcProvider(RPC_URL);\n  const signer = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);\n\n  // Create a batcher — batches multiple writes into one transaction\n  const batcher = new Batcher(1, [{ url: INDEXER_URL }], RPC_URL, signer);\n\n  // Encode key-value pairs as buffers\n  const key = Buffer.from('user:alice:name', 'utf8');\n  const value = Buffer.from('Alice Nakamoto', 'utf8');\n\n  // Queue the write\n  batcher.streamDataBuilder.set(STREAM_ID, key, value);\n\n  // You can queue multiple writes before executing\n  batcher.streamDataBuilder.set(\n    STREAM_ID,\n    Buffer.from('user:alice:level', 'utf8'),\n    Buffer.from('42', 'utf8')\n  );\n\n  // Execute all writes atomically\n  await batcher.exec();\n  console.log('KV writes committed');\n}\n```\n\n**Stream ID design:**\n- A stream ID is a 66-character hex string: `0x` followed by 64 hex digits\n- Think of it as a database name or table name\n- Each stream is independent — keys in different streams don't collide\n- Your application should use a consistent stream ID convention\n\n**Key design patterns:**\n- Use `:` delimiters for hierarchical keys: `user:alice:settings`\n- Keep keys short — they're stored with every version\n- Values can be any binary data — JSON, protobuf, raw bytes\n\n**Batching:**\nThe Batcher collects multiple writes and submits them as a single on-chain transaction. This is more gas-efficient than individual writes and provides atomicity.",
         "position": {
-          "x": 2,
+          "x": 5,
           "y": 10
         },
         "type": "text"
       },
       {
-        "id": "kv_storage",
-        "title": "Key-Value Storage: Mutable Data on 0G",
-        "content": "Key ideas:\n- Each KV namespace identified by a bytes32 streamId\n- Batcher batches writes into a single on-chain transaction\n- KvClient reads from KV node at http://<KV_NODE_IP>:6789\n\n0G Labs designed the KV layer around the concept of streams — namespaced key-value stores. A streamId is a bytes32 value that identifies a particular KV store, similar to a Redis namespace or a database table.\n\n```typescript\nimport { Indexer, Batcher, KvClient } from '@0glabs/0g-ts-sdk';\nimport { ethers } from 'ethers';\n\nconst RPC_URL = 'https://evmrpc-testnet.0g.ai';\nconst FLOW_CONTRACT = '0x22E03a6A89B950F1c82ec5e74F8eCa321a105296';\n// Your stream ID (generate a random bytes32 for your application)\nconst STREAM_ID = '0x' + '00'.repeat(31) + '01'; // Example stream ID\n\n// WRITE: Batch multiple KV operations into one transaction\nasync function kvWrite(key: string, value: string) {\n  const [nodes, err] = await indexer.selectNodes(1);\n  if (err) throw err;\n\n  const batcher = new Batcher(1, nodes, FLOW_CONTRACT, RPC_URL);\n  const keyBytes = Uint8Array.from(Buffer.from(key, 'utf-8'));\n  const valueBytes = Uint8Array.from(Buffer.from(value, 'utf-8'));\n\n  batcher.streamDataBuilder.set(STREAM_ID, keyBytes, valueBytes);\n  const [tx, batchErr] = await batcher.exec();\n  if (batchErr) throw batchErr;\n  return tx;\n}\n\n// READ: Query KV node directly\nasync function kvRead(kvNodeUrl: string, key: string) {\n  const kvClient = new KvClient(kvNodeUrl); // e.g., 'http://kv-node:6789'\n  const keyBytes = Uint8Array.from(Buffer.from(key, 'utf-8'));\n  const value = await kvClient.getValue(STREAM_ID, ethers.encodeBase64(keyBytes));\n  return value;\n}\n```\n\nThe Batcher pattern is elegant: instead of making one on-chain transaction per key-value pair (which would be expensive), you can bundle dozens of writes into a single transaction. Call `batcher.streamDataBuilder.set()` multiple times before calling `batcher.exec()`.",
+        "id": "kv_storage_read",
+        "title": "KV Storage Read: KvClient, getValue, and Consistency",
+        "content": "Key ideas:\n- KvClient connects to a KV node to read values by stream ID + key\n- Reads are eventually consistent — writes may take a few seconds to propagate\n- getValue returns the latest value for a key, or null if not found\n- KV nodes run on port 6789 by default\n\nReading from KV Storage uses the KvClient, which connects to a KV storage node.\n\n```typescript\nimport { KvClient } from '@0glabs/0g-ts-sdk';\n\nconst KV_NODE_URL = 'http://kv-node-url:6789';  // KV node endpoint\nconst STREAM_ID = '0x' + '0'.repeat(63) + '1';\n\nasync function readKV() {\n  const kvClient = new KvClient(KV_NODE_URL);\n\n  // Read a single value\n  const key = Buffer.from('user:alice:name', 'utf8');\n  const value = await kvClient.getValue(STREAM_ID, key);\n\n  if (value) {\n    console.log('Value:', Buffer.from(value).toString('utf8'));\n  } else {\n    console.log('Key not found');\n  }\n}\n```\n\n**Consistency model:**\n\nKV Storage is **eventually consistent**:\n- After a Batcher write succeeds, the data is committed on-chain\n- KV nodes need time to index the new data from the chain\n- Typical propagation delay: 2-5 seconds\n- For read-after-write patterns, add a small delay or retry with exponential backoff\n\n```typescript\n// Read-after-write with retry\nasync function readWithRetry(\n  kvClient: KvClient,\n  streamId: string,\n  key: Buffer,\n  maxRetries = 5\n): Promise<Buffer | null> {\n  for (let i = 0; i < maxRetries; i++) {\n    const value = await kvClient.getValue(streamId, key);\n    if (value) return Buffer.from(value);\n    await new Promise(r => setTimeout(r, 1000 * (i + 1)));  // backoff\n  }\n  return null;\n}\n```\n\n**Key operations:**\n- `getValue(streamId, key)` — get latest value\n- `getNext(streamId, key)` — iterate to next key (lexicographic order)\n- Values are returned as byte arrays — decode according to your encoding (UTF-8, JSON, etc.)\n\n**Node discovery:**\nKV nodes are typically listed alongside storage nodes. For testnet development, use the indexer's KV endpoint. For production, run your own KV node or use a trusted provider.",
         "position": {
-          "x": 6,
+          "x": 9,
           "y": 10
         },
         "type": "text"
       },
       {
-        "id": "storage_pricing",
-        "title": "Why 0G Storage is 95% Cheaper Than AWS",
-        "content": "Key ideas:\n- No centralized intermediary — storage miners compete on price\n- Prices paid per sector directly to miners via the Flow contract\n- No egress fees — 200 MBPS retrieval speed at no extra cost\n\n0G Labs documents a striking cost comparison: 0G Storage is 95% cheaper than AWS S3. Understanding why helps you design your applications to take full advantage.\n\nAWS S3 pricing includes: storage costs, request costs, data transfer (egress) fees, and a significant margin for Amazon's infrastructure, support, and profit. When you pay AWS, you're paying for all of this bundled together.\n\n0G flips this model: hundreds of storage miners compete in an open market. The Flow smart contract handles payments directly to miners based on Proof of Random Access (PoRA) challenges — miners must continuously prove they actually store the data they claim to store.\n\nThe economic effect:\n- **Storage**: Miners set competitive rates based on their actual hardware costs\n- **Egress**: No egress fees. Miners are incentivized to serve data quickly to maintain their reputation and earning potential\n- **Retrieval speed**: 200 MBPS guaranteed even under network congestion, because multiple nodes store each file (erasure coding)\n\nFor AI workloads, this is transformative. Storing a 100GB model dataset on AWS S3 costs ~$2.30/month plus $9/GB for egress when you retrieve it for training. On 0G Storage, you pay a fraction of that with no egress fees.\n\nThe SDK handles all payment logic automatically through the Flow contract — you don't need to worry about calculating miner fees manually.",
+        "id": "storage_production_patterns",
+        "title": "Production Storage Patterns: Error Handling, Retries, and Large Files",
+        "content": "Key ideas:\n- Always wrap uploads in try/catch with file.close() in finally block\n- Implement exponential backoff for transient network errors\n- Large files (>100MB) may need custom chunking and progress tracking\n- Save rootHash to both local file and on-chain for redundancy\n\nProduction 0G Storage code needs to handle real-world failure modes.\n\n**Robust upload with error handling:**\n\n```typescript\nimport { ZgFile, Indexer } from '@0glabs/0g-ts-sdk';\nimport * as fs from 'fs';\n\nconst MAX_RETRIES = 3;\nconst RETRY_DELAY_MS = 2000;\n\nasync function robustUpload(\n  filePath: string,\n  indexer: Indexer,\n  rpcUrl: string,\n  signer: ethers.Wallet\n): Promise<string> {\n  let file: ZgFile | null = null;\n\n  try {\n    file = await ZgFile.fromFilePath(filePath);\n    const [tree, treeErr] = await file.merkleTree();\n    if (treeErr) throw new Error(`Merkle tree: ${treeErr}`);\n\n    const rootHash = tree!.rootHash();\n\n    // Save rootHash immediately (before upload attempt)\n    fs.appendFileSync('root-hashes.log', `${rootHash} ${filePath} ${new Date().toISOString()}\\n`);\n\n    // Upload with retry\n    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {\n      const [tx, err] = await indexer.upload(file, rpcUrl, signer);\n      if (!err) {\n        console.log(`Upload succeeded (attempt ${attempt}):`, tx);\n        return rootHash;\n      }\n      console.warn(`Upload attempt ${attempt} failed: ${err}`);\n      if (attempt < MAX_RETRIES) {\n        await new Promise(r => setTimeout(r, RETRY_DELAY_MS * attempt));\n      }\n    }\n    throw new Error(`Upload failed after ${MAX_RETRIES} attempts`);\n  } finally {\n    if (file) await file.close();\n  }\n}\n```\n\n**Large file strategies:**\n- Files > 100MB: monitor progress via SDK events\n- Files > 1GB: consider splitting into multiple uploads and linking rootHashes\n- Always check available balance before large uploads\n\n**rootHash management best practices:**\n1. Save to local file immediately after `merkleTree()` (before upload)\n2. Record on-chain in a provenance contract (Module 4) for permanent backup\n3. Index in your application database for queryability\n4. Never rely on a single storage location for rootHashes\n\n**Common production errors:**\n- `Insufficient balance` — check wallet balance and Flow contract allowance\n- `File too small` — minimum file size varies by indexer (typically 256 bytes)\n- `Indexer unavailable` — implement failover to backup indexer URLs\n- `Transaction underpriced` — gas price spikes; implement dynamic gas pricing",
         "position": {
-          "x": 10,
+          "x": 13,
           "y": 10
         },
         "type": "text"
@@ -929,14 +929,14 @@
     ],
     "quiz": {
       "id": "quiz-stage-2",
-      "question": "What is the primary reason 0G Storage achieves 95% cost savings over AWS S3?",
+      "question": "What's the best practice for managing rootHashes in a production 0G application?",
       "type": "multiple-choice",
       "options": [
-        "Lower hardware costs through economies of scale",
-        "Eliminating centralized intermediary markup — miners compete directly",
-        "Compressing all data before storing it"
+        "Keep them only in application memory — they're easy to recompute",
+        "Save to a local file only — blockchain storage is too expensive",
+        "Save to both a local file and on-chain (smart contract) for redundancy"
       ],
-      "correctAnswer": "Eliminating centralized intermediary markup — miners compete directly",
+      "correctAnswer": "Save to both a local file and on-chain (smart contract) for redundancy",
       "position": {
         "x": 18,
         "y": 7

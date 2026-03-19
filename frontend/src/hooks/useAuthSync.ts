@@ -12,14 +12,36 @@ const MOCK_USER = {
   email: 'dev@example.com',
 };
 
-/** Restore passkey info from localStorage on mount */
+/** Restore passkey info from localStorage, falling back to blockchain identity recovery */
 function usePasskeyRestore() {
   const setPasskeyInfo = useAuthStore((s) => s.setPasskeyInfo);
+  const user = useAuthStore((s) => s.user);
 
   useEffect(() => {
     const info = loadPasskeyInfo();
-    if (info) setPasskeyInfo(info);
-  }, [setPasskeyInfo]);
+    if (info) {
+      setPasskeyInfo(info);
+      return;
+    }
+    if (!user) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/ain/identity?userId=${encodeURIComponent(user.id)}`);
+        const json = await res.json();
+        if (cancelled) return;
+        if (json.ok && json.data?.publicKey) {
+          const { reconstructPasskeyInfo } = await import('@/lib/ain/passkey');
+          const recovered = await reconstructPasskeyInfo(json.data.publicKey);
+          if (!cancelled) setPasskeyInfo(recovered);
+        }
+      } catch {
+        // blockchain unavailable — keep current local-only behavior
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [setPasskeyInfo, user]);
 }
 
 /** Syncs NextAuth session → Zustand store. Must be inside SessionProvider. */

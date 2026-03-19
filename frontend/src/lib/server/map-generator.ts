@@ -25,6 +25,7 @@ export interface Lesson {
   title: string;
   key_ideas: string[];
   exercise: string;
+  answer?: string;
   explanation: string;
   prerequisites: string[];
 }
@@ -116,10 +117,11 @@ export const DOOR_Y = 7;
 
 /**
  * Parse a lesson's exercise text into quiz data.
- * Without correct-answers.json, correctAnswer defaults to "" (empty string).
+ * Uses lesson.answer for correctAnswer if available.
  */
 function parseExercise(lesson: Lesson, quizId: string): QuizData {
   const exercise = lesson.exercise ?? '';
+  const answer = lesson.answer ?? '';
   const doorPos = { x: DOOR_X, y: DOOR_Y };
 
   // True / False format
@@ -138,7 +140,7 @@ function parseExercise(lesson: Lesson, quizId: string): QuizData {
       question: questionLine,
       type: 'multiple-choice',
       options: ['True', 'False'],
-      correctAnswer: '',
+      correctAnswer: answer,
       position: doorPos,
     };
   }
@@ -159,7 +161,7 @@ function parseExercise(lesson: Lesson, quizId: string): QuizData {
     question,
     type: 'multiple-choice',
     options: options.length >= 2 ? options : ['True', 'False'],
-    correctAnswer: '',
+    correctAnswer: answer,
     position: doorPos,
   };
 }
@@ -168,26 +170,42 @@ function parseExercise(lesson: Lesson, quizId: string): QuizData {
 
 /**
  * Distributes N concepts across the stage room.
- * For <=4 concepts: single row at y=6.
- * For 5-8 concepts: two rows at y=4 and y=10.
- * x starts at 3, increments by 3 per column (max 4 columns: 3,6,9,12).
+ *
+ * Blackboards are 3 tiles wide × 2 tiles tall (rendered in CourseCanvas),
+ * so we need at least 4 tiles of horizontal spacing to avoid overlap.
+ *
+ * Layout strategy:
+ * - Usable x range: 2 .. ROOM_WIDTH - 4 (leave room for walls + door area)
+ * - For <=4 concepts: single row at y=6, evenly spaced.
+ * - For 5-8 concepts: two rows at y=4 and y=10, evenly spaced.
  */
 function computeConceptPositions(count: number): ConceptPosition[] {
   const positions: ConceptPosition[] = [];
+  const minX = 2;
+  const maxX = ROOM_WIDTH - 4; // leave room for 3-wide board + wall
+  const BB_WIDTH = 3; // blackboard width in tiles
+
+  function distributeRow(n: number, y: number) {
+    if (n === 1) {
+      positions.push({ x: Math.floor((minX + maxX) / 2), y });
+      return;
+    }
+    const totalSpace = maxX - minX;
+    const spacing = BB_WIDTH + 1; // 1 tile gap between blackboards
+    const totalWidth = spacing * (n - 1);
+    const startX = Math.max(minX, Math.floor((minX + maxX - totalWidth) / 2));
+    for (let i = 0; i < n; i++) {
+      positions.push({ x: startX + i * spacing, y });
+    }
+  }
 
   if (count <= 4) {
-    for (let i = 0; i < count; i++) {
-      positions.push({ x: 3 + i * 3, y: 6 });
-    }
+    distributeRow(count, 6);
   } else {
     const topCount = Math.ceil(count / 2);
     const botCount = count - topCount;
-    for (let i = 0; i < topCount; i++) {
-      positions.push({ x: 3 + i * 3, y: 4 });
-    }
-    for (let i = 0; i < botCount; i++) {
-      positions.push({ x: 3 + i * 3, y: 10 });
-    }
+    distributeRow(topCount, 4);
+    distributeRow(botCount, 10);
   }
 
   return positions;

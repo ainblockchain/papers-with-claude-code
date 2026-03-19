@@ -19,7 +19,13 @@ export default function ExplorePage() {
 
   useEffect(() => {
     if (courses && courses.length > 0) {
-      setPapers(courses);
+      // TEMP: pin web3-ojt-course to top (rollback later)
+      const sorted = [...courses].sort((a, b) => {
+        const aPin = a.id?.includes('comcom-ojt-web3-blockchain-ai') ? 1 : 0;
+        const bPin = b.id?.includes('comcom-ojt-web3-blockchain-ai') ? 1 : 0;
+        return bPin - aPin;
+      });
+      setPapers(sorted);
       initializeAccess(courses);
       restoreFromBlockchain();
     }

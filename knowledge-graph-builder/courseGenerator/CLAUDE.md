@@ -248,6 +248,7 @@ Generate lessons for all concepts in each course. **Lesson schema**:
   "code_ref": "",
   "paper_ref": "Authors, Year — Paper Title",
   "exercise": "Quiz question (see format below)",
+  "answer": "The correct answer text (must exactly match one of the options)",
   "explanation": "Paper-first style explanation",
   "x402_price": "",
   "x402_gateway": ""
@@ -270,6 +271,7 @@ Why are there multiple "heads" in multi-head attention?
 3) To save memory
 Answer with a number.
 ```
+→ `"answer": "To simultaneously learn attention patterns from different perspectives"`
 
 ### Step 5. Output Folder Scaffolding
 
@@ -402,6 +404,40 @@ After creating all files, print a completion message:
 To start learning:
   cd ./awesome-papers-with-claude-code/<paper-slug>/<course-name-slug>
   claude
+```
+
+### Step 5.5. Generate Frontend Stage Files
+
+After saving all course files, generate the frontend stage JSON files that the learning UI consumes.
+**This step is mandatory** — without it, the frontend will show placeholder content instead of real quiz and concept data.
+
+Run from the `frontend/` directory:
+
+```bash
+cd ../../frontend
+npx tsx scripts/generate-course-stages.ts <paper-slug> <course-name-slug>
+```
+
+This reads `knowledge/courses.json` and outputs stage files to:
+```
+frontend/public/courses/<paper-slug>--<course-name-slug>/stages/1.json
+frontend/public/courses/<paper-slug>--<course-name-slug>/stages/2.json
+...
+```
+
+Each stage file contains:
+- TMJ map data (floor, collision, objects layers)
+- Concept data (id, title, content from lesson key_ideas + explanation)
+- Quiz data (question, options, correctAnswer from lesson exercise + answer)
+- Room layout (spawn, door, NPC positions)
+
+Verify the output:
+```
+✅ Stage 1: <title> (<N> concepts)
+✅ Stage 2: <title> (<N> concepts)
+...
+📁 Output: public/courses/<paper-slug>--<course-name-slug>/stages/
+🎯 Total: <M> stages generated
 ```
 
 ### Step 6. Register Knowledge Graph on Blockchain
@@ -938,6 +974,7 @@ courses.json structure:
         "code_ref": "",
         "paper_ref": "Author et al., Year — Title",
         "exercise": "Quiz question...\n1) A\n2) B\n3) C\nType the number.",
+        "answer": "B",
         "explanation": "Paper-first explanation with analogy...",
         "x402_price": "",
         "x402_gateway": ""

@@ -11,7 +11,7 @@
 
 const GITHUB_OWNER = 'ainblockchain';
 const GITHUB_REPO = 'awesome-papers-with-claude-code';
-const GITHUB_BRANCH = process.env.GITHUB_BRANCH || 'feat/0G-developer-course';
+const GITHUB_BRANCH = process.env.GITHUB_BRANCH || 'main';
 const GITHUB_API_BASE = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents`;
 const RAW_BASE = `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/${GITHUB_BRANCH}`;
 

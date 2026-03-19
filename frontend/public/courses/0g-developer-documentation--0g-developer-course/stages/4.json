@@ -671,9 +671,9 @@
           },
           {
             "id": 3,
-            "name": "evm_compatibility_config",
+            "name": "evm_deployment",
             "type": "npc",
-            "x": 80,
+            "x": 200,
             "y": 160,
             "width": 40,
             "height": 40,
@@ -683,20 +683,20 @@
               {
                 "name": "conceptId",
                 "type": "string",
-                "value": "evm_compatibility_config"
+                "value": "evm_deployment"
               },
               {
                 "name": "title",
                 "type": "string",
-                "value": "Configuring Hardhat and Foundry for 0G"
+                "value": "EVM Deployment: The Critical evmVersion: 'cancun' Requirement"
               }
             ]
           },
           {
             "id": 4,
-            "name": "da_signers_precompile",
+            "name": "provenance_contracts",
             "type": "npc",
-            "x": 240,
+            "x": 360,
             "y": 160,
             "width": 40,
             "height": 40,
@@ -706,20 +706,20 @@
               {
                 "name": "conceptId",
                 "type": "string",
-                "value": "da_signers_precompile"
+                "value": "provenance_contracts"
               },
               {
                 "name": "title",
                 "type": "string",
-                "value": "DASigners Precompile: Native DA Access"
+                "value": "Provenance Contracts: On-Chain Audit Trails"
               }
             ]
           },
           {
             "id": 5,
-            "name": "wrapped_og_base",
+            "name": "da_layer_integration",
             "type": "npc",
-            "x": 400,
+            "x": 520,
             "y": 160,
             "width": 40,
             "height": 40,
@@ -729,20 +729,20 @@
               {
                 "name": "conceptId",
                 "type": "string",
-                "value": "wrapped_og_base"
+                "value": "da_layer_integration"
               },
               {
                 "name": "title",
                 "type": "string",
-                "value": "WrappedOGBase: ERC20 Wrapping for Native Token"
+                "value": "DA Layer: Data Availability for Rollups"
               }
             ]
           },
           {
             "id": 6,
-            "name": "data_availability_layer",
+            "name": "rollup_patterns",
             "type": "npc",
-            "x": 80,
+            "x": 280,
             "y": 400,
             "width": 40,
             "height": 40,
@@ -752,20 +752,20 @@
               {
                 "name": "conceptId",
                 "type": "string",
-                "value": "data_availability_layer"
+                "value": "rollup_patterns"
               },
               {
                 "name": "title",
                 "type": "string",
-                "value": "0G DA: 50 Gbps Data Availability"
+                "value": "Rollup Patterns: OP Stack and Arbitrum Nitro on 0G"
               }
             ]
           },
           {
             "id": 7,
-            "name": "rollup_integration",
+            "name": "precompile_contracts",
             "type": "npc",
-            "x": 240,
+            "x": 440,
             "y": 400,
             "width": 40,
             "height": 40,
@@ -775,12 +775,12 @@
               {
                 "name": "conceptId",
                 "type": "string",
-                "value": "rollup_integration"
+                "value": "precompile_contracts"
               },
               {
                 "name": "title",
                 "type": "string",
-                "value": "Connecting OP Stack and Arbitrum Nitro to 0G DA"
+                "value": "Precompile Contracts: DASigners and WrappedOGBase"
               }
             ]
           }
@@ -837,58 +837,58 @@
     ]
   },
   "stage": {
-    "id": "chain_contracts",
+    "id": "chain_smart_contracts",
     "stageNumber": 4,
     "title": "Module 4: 0G Chain & Smart Contracts",
     "roomWidth": 20,
     "roomHeight": 15,
     "concepts": [
       {
-        "id": "evm_compatibility_config",
-        "title": "Configuring Hardhat and Foundry for 0G",
-        "content": "Key ideas:\n- Critical: evmVersion must be 'cancun' — older versions cause silent failures\n- Add both testnet and mainnet to networks config for easy switching\n- Foundry: set evm_version = 'cancun' in foundry.toml\n\n0G Labs explicitly specifies in their documentation that contracts must be compiled with `evmVersion: 'cancun'`. This is one of the most common sources of confusion for new developers — missing this setting doesn't always cause an obvious error, but can lead to contracts that compile and deploy successfully yet fail at runtime.\n\n**Hardhat configuration (`hardhat.config.js`):**\n```javascript\nrequire('@nomicfoundation/hardhat-toolbox');\n\nmodule.exports = {\n  solidity: {\n    version: '0.8.19',\n    settings: {\n      evmVersion: 'cancun',  // CRITICAL: must be cancun\n      optimizer: {\n        enabled: true,\n        runs: 200\n      }\n    }\n  },\n  networks: {\n    testnet: {\n      url: 'https://evmrpc-testnet.0g.ai',\n      chainId: 16602,\n      accounts: [process.env.PRIVATE_KEY]\n    },\n    mainnet: {\n      url: 'https://evmrpc.0g.ai',\n      chainId: 16661,\n      accounts: [process.env.PRIVATE_KEY]\n    }\n  }\n};\n```\n\n**Foundry configuration (`foundry.toml`):**\n```toml\n[profile.default]\nevm_version = \"cancun\"\n\n[rpc_endpoints]\n0g_testnet = \"https://evmrpc-testnet.0g.ai\"\n0g_mainnet = \"https://evmrpc.0g.ai\"\n```\n\n**Foundry deploy command:**\n```bash\nforge create --rpc-url https://evmrpc-testnet.0g.ai \\\n  --private-key $PRIVATE_KEY \\\n  --evm-version cancun \\\n  src/MyContract.sol:MyContract\n```\n\n**Remix**: Select 'cancun' from the EVM Version dropdown in the Solidity Compiler tab before compiling.",
+        "id": "evm_deployment",
+        "title": "EVM Deployment: The Critical evmVersion: 'cancun' Requirement",
+        "content": "Key ideas:\n- 0G Chain requires evmVersion: 'cancun' in Hardhat/Foundry config\n- Without this setting, deployment fails with cryptic bytecode errors\n- All standard Solidity features work — same compiler, same tools\n- Deploy to testnet first (chainId 16602), then mainnet (16661)\n\nDeploying smart contracts to 0G Chain is nearly identical to Ethereum — with one critical difference.\n\n**Hardhat setup:**\n\n```javascript\n// hardhat.config.js\nrequire('@nomicfoundation/hardhat-toolbox');\nrequire('dotenv').config();\n\nmodule.exports = {\n  solidity: {\n    version: '0.8.19',\n    settings: {\n      evmVersion: 'cancun',  // ←←← REQUIRED for 0G Chain\n      optimizer: { enabled: true, runs: 200 },\n    },\n  },\n  networks: {\n    '0g-testnet': {\n      url: 'https://evmrpc-testnet.0g.ai',\n      chainId: 16602,\n      accounts: [process.env.PRIVATE_KEY],\n    },\n    '0g-mainnet': {\n      url: 'https://evmrpc.0g.ai',\n      chainId: 16661,\n      accounts: [process.env.PRIVATE_KEY],\n    },\n  },\n};\n```\n\n**Why `evmVersion: 'cancun'`?**\n0G Chain supports EVM opcodes up to the Cancun upgrade (EIP-4844, transient storage, etc.). Without this flag, the Solidity compiler may generate bytecode using post-Cancun opcodes that 0G doesn't support, or it may not use Cancun-specific optimizations that 0G expects.\n\n**Foundry equivalent:**\n```toml\n# foundry.toml\n[profile.default]\nsrc = \"src\"\nout = \"out\"\nlibs = [\"lib\"]\nevm_version = \"cancun\"\n\n[rpc_endpoints]\n0g-testnet = \"https://evmrpc-testnet.0g.ai\"\n```\n\n**Deploy:**\n```bash\n# Hardhat\nnpx hardhat run scripts/deploy.js --network 0g-testnet\n\n# Foundry\nforge create src/MyContract.sol:MyContract \\\n  --rpc-url https://evmrpc-testnet.0g.ai \\\n  --private-key $PRIVATE_KEY\n```\n\n**Verify on explorer:**\nAfter deployment, check https://chainscan-galileo.0g.ai with your contract address.",
         "position": {
-          "x": 2,
+          "x": 5,
           "y": 4
         },
         "type": "text"
       },
       {
-        "id": "da_signers_precompile",
-        "title": "DASigners Precompile: Native DA Access",
-        "content": "Key ideas:\n- Fixed address: 0x0000000000000000000000000000000000001000\n- Query DA quorum membership and epoch numbers from within smart contracts\n- registerSigner() allows smart contracts to register new DA signers\n\n0G Labs implemented the DASigners precompile as a native contract at a fixed address. Unlike regular smart contracts, precompiles run native Go code instead of EVM bytecode, making them extremely gas-efficient.\n\nThe DASigners precompile manages the registry of validators (signers) that participate in the DA consensus. Your smart contracts can query this registry to verify DA quorum membership without any external calls.\n\n```solidity\n// SPDX-License-Identifier: MIT\npragma solidity ^0.8.19;\n\ninterface IDASigners {\n    struct Params {\n        uint256 tokensPerVote;\n        uint256 maxVotesPerSigner;\n        uint256 maxQuorums;\n        uint256 epochBlocks;\n        uint256 encodedSlices;\n    }\n\n    function params() external view returns (Params memory);\n    function epochNumber() external view returns (uint256);\n    function getQuorum(uint256 epoch, uint256 quorumId) \n        external view returns (address[] memory);\n}\n\ncontract DAVerifier {\n    IDASigners constant DA_SIGNERS = \n        IDASigners(0x0000000000000000000000000000000000001000);\n\n    function currentEpoch() external view returns (uint256) {\n        return DA_SIGNERS.epochNumber();\n    }\n\n    function quorumMembers(uint256 epoch, uint256 quorumId)\n        external view returns (address[] memory) {\n        return DA_SIGNERS.getQuorum(epoch, quorumId);\n    }\n}\n```\n\nThis enables powerful on-chain verification: your smart contract can confirm that a specific set of DA signers participated in a data availability attestation, creating fully on-chain DA proofs.",
+        "id": "provenance_contracts",
+        "title": "Provenance Contracts: On-Chain Audit Trails",
+        "content": "Key ideas:\n- Store rootHashes on-chain to create a tamper-proof provenance trail\n- Events are the cheapest way to store provenance data on-chain\n- Link input rootHash → model used → output rootHash for full AI pipeline verification\n- Anyone can independently verify the pipeline by reading on-chain events + Storage data\n\nProvenance contracts link your Storage data to an immutable on-chain record.\n\n**Minimal provenance contract:**\n```solidity\n// SPDX-License-Identifier: MIT\npragma solidity ^0.8.19;\n\ncontract AIPipeline {\n    event PipelineRecorded(\n        bytes32 indexed inputHash,\n        bytes32 indexed outputHash,\n        string modelUsed,\n        address indexed submitter,\n        uint256 timestamp\n    );\n\n    function recordPipeline(\n        bytes32 inputHash,\n        bytes32 outputHash,\n        string calldata modelUsed\n    ) external {\n        emit PipelineRecorded(\n            inputHash,\n            outputHash,\n            modelUsed,\n            msg.sender,\n            block.timestamp\n        );\n    }\n}\n```\n\n**Call from TypeScript:**\n```typescript\nconst abi = [\n  'function recordPipeline(bytes32 inputHash, bytes32 outputHash, string modelUsed)',\n  'event PipelineRecorded(bytes32 indexed inputHash, bytes32 indexed outputHash, string modelUsed, address indexed submitter, uint256 timestamp)'\n];\n\nconst contract = new ethers.Contract(CONTRACT_ADDR, abi, signer);\n\n// After Storage upload + Compute inference:\nconst tx = await contract.recordPipeline(\n  inputRootHash,   // bytes32 from 0G Storage upload\n  outputRootHash,  // bytes32 from storing AI result\n  'meta-llama/Meta-Llama-3.1-8B-Instruct'\n);\nawait tx.wait();\n```\n\n**Query provenance (read events):**\n```typescript\nconst filter = contract.filters.PipelineRecorded(inputRootHash);\nconst events = await contract.queryFilter(filter);\n\nfor (const event of events) {\n  console.log('Output:', event.args.outputHash);\n  console.log('Model:', event.args.modelUsed);\n  console.log('Submitter:', event.args.submitter);\n  console.log('Timestamp:', new Date(Number(event.args.timestamp) * 1000));\n}\n```\n\n**Why events over storage:**\n- Events cost ~5x less gas than storage writes\n- Events are indexed and searchable via `queryFilter`\n- For provenance, you typically write once and read rarely — events are ideal\n- Use storage mappings only when you need on-chain reads (e.g., access control)",
         "position": {
-          "x": 6,
+          "x": 9,
           "y": 4
         },
         "type": "text"
       },
       {
-        "id": "wrapped_og_base",
-        "title": "WrappedOGBase: ERC20 Wrapping for Native Token",
-        "content": "Key ideas:\n- Fixed address: 0x0000000000000000000000000000000000001001\n- Wraps native 0G into ERC20 W0G for DeFi protocol compatibility\n- mint() and burn() use quota-based mechanism for controlled supply\n\n0G Labs documented the WrappedOGBase precompile as the on-chain mechanism for wrapping the native 0G token into an ERC20-compatible W0G token.\n\nNative tokens (like ETH on Ethereum) can't directly participate in ERC20-based DeFi protocols — you need a wrapped version that conforms to the ERC20 interface. This is why WETH exists on Ethereum. WrappedOGBase is 0G's equivalent.\n\n```solidity\ninterface IWrappedOGBase {\n    // Wrap native 0G into ERC20 W0G\n    function mint(address minter, uint256 amount) external;\n\n    // Unwrap W0G back to native 0G\n    function burn(address minter, uint256 amount) external;\n}\n\n// Fixed address on all 0G networks\nIWrappedOGBase constant WRAPPED_OG = \n    IWrappedOGBase(0x0000000000000000000000000000000000001001);\n```\n\nThe quota-based minting mechanism prevents unconstrained token creation — only authorized contracts can call `mint()` within their allocated quota. This ensures the wrapped token supply accurately reflects the actual native token supply.\n\nFor developers building DeFi protocols, payment systems, or any application that needs to transfer 0G tokens between contracts using the ERC20 interface, this precompile is your entry point. For most application developers (Storage, Compute users), you won't need this directly — the SDK handles token management internally.",
+        "id": "da_layer_integration",
+        "title": "DA Layer: Data Availability for Rollups",
+        "content": "Key ideas:\n- 0G DA provides 50 Gbps data availability — orders of magnitude above Ethereum\n- DASigners precompile (0x1000) manages the DA signer set on 0G Chain\n- KZG polynomial commitments prove data availability without full download\n- Rollups post transaction data to 0G DA instead of expensive Ethereum blobs\n\nData Availability (DA) is the infrastructure layer that rollups need to operate.\n\n**What rollups need DA for:**\nRollups (Layer 2 blockchains like Optimism, Arbitrum, etc.) execute transactions off the main chain but need to post transaction data somewhere so that anyone can verify the rollup's state. This \"data availability\" is the bottleneck for rollup scalability.\n\n**Ethereum vs 0G DA:**\n\n| Metric | Ethereum (EIP-4844) | 0G DA |\n|--------|-------------------|-------|\n| Throughput | ~1 MB/s | 50 Gbps |\n| Cost | ~$0.01/KB | Fraction of Ethereum |\n| Proof system | KZG | KZG (same) |\n| Finality | ~12 seconds | Sub-second |\n\n**How 0G DA works:**\n1. Rollup sequencer prepares a batch of transactions\n2. Data is encoded as polynomial evaluations\n3. A KZG commitment is computed (compact proof)\n4. Data + commitment posted to 0G DA nodes\n5. DA nodes sign availability attestations\n6. The commitment + signatures are posted to the rollup's settlement layer\n\n**DASigners precompile:**\nThe DASigners contract at `0x0000000000000000000000000000000000001000` is a precompiled contract (built into 0G Chain at the protocol level). It manages:\n- The set of DA signers (validators who attest data availability)\n- Signature aggregation for efficiency\n- Epoch-based signer rotation\n\n```solidity\n// Reading DASigners info\nIDASigners daSigners = IDASigners(0x0000000000000000000000000000000000001000);\nuint256 epoch = daSigners.epochNumber();\naddress[] memory signers = daSigners.getSigners(epoch);\n```\n\n**When to use DA:**\nDA is relevant if you're building a rollup or L2 chain. For most application developers, Chain + Storage + Compute cover all use cases.",
         "position": {
-          "x": 10,
+          "x": 13,
           "y": 4
         },
         "type": "text"
       },
       {
-        "id": "data_availability_layer",
-        "title": "0G DA: 50 Gbps Data Availability",
-        "content": "Key ideas:\n- 50 Gbps demonstrated throughput using KZG commitments + erasure coding\n- VRF prevents validator collusion in data sampling\n- Data padded to 32MB, erasure-coded into 3072×1024 matrix\n\n0G Labs designed their DA layer to solve a fundamental problem with traditional data availability systems: validator collusion. If validators can predict which data will be sampled, a colluding group could claim data is available without actually storing it.\n\nThe solution is VRF (Verifiable Random Function): validators commit to a random seed before seeing what data they'll be asked to prove. The sampling is unpredictable but verifiable — you can prove the sampling was random without revealing the seed prematurely.\n\n**The data processing pipeline:**\n1. Data is padded to 32,505,852 bytes (≈32MB)\n2. Sliced into a 1024×1024 matrix (31 bytes per element)\n3. **Erasure coding**: expanded to 3072×1024 using the BN254 elliptic curve finite field — this 3x expansion means the original data can be recovered from any 1024 of the 3072 rows (tolerates loss of 2/3 of data)\n4. KZG polynomial commitment computed for each column — provides cryptographic proof that data is correctly encoded\n5. Root hash submitted to the DAEntrance contract on-chain\n\nThe result: any node that wants to verify data availability needs only download 1/3072 of the data (a random sample), yet this sampling provides strong statistical guarantees. At 50 Gbps, this is orders of magnitude above Ethereum's ~1 MB/slot DA capacity.\n\nFor rollup developers, this means you can process dramatically more transactions per second while keeping DA costs minimal.",
+        "id": "rollup_patterns",
+        "title": "Rollup Patterns: OP Stack and Arbitrum Nitro on 0G",
+        "content": "Key ideas:\n- OP Stack rollups can replace Ethereum DA with 0G DA for cost reduction\n- Arbitrum Nitro rollups can use 0G DA via the DAC (Data Availability Committee) pattern\n- 0G DA supports both optimistic and ZK rollup architectures\n- Integration requires modifying the rollup's batcher/sequencer configuration\n\n0G DA integrates with existing rollup frameworks — you don't need to build from scratch.\n\n**OP Stack integration:**\nOptimism's OP Stack uses a batcher that posts transaction data. To integrate 0G DA:\n\n1. Configure the batcher to use 0G DA as the data destination\n2. The DA commitment is posted to the settlement layer (Ethereum or 0G Chain)\n3. Fraud proofs reference 0G DA data for dispute resolution\n\n```yaml\n# op-batcher configuration\nda_type: \"0g\"\n0g_da_endpoint: \"https://da-endpoint.0g.ai\"\n0g_da_contract: \"0xE75A073dA5bb7b0eC622170Fd268f35E675a957B\"\n```\n\n**Arbitrum Nitro integration:**\nArbitrum uses a Data Availability Committee (DAC) pattern:\n\n1. The sequencer sends batch data to the DAC\n2. DAC members store data and sign availability certificates\n3. Certificates are posted on-chain for verification\n4. 0G DA nodes act as DAC members\n\n**Benefits of 0G DA for rollups:**\n- **Cost**: Orders of magnitude cheaper than Ethereum blobs\n- **Throughput**: 50 Gbps supports even the highest-volume rollups\n- **Finality**: Sub-second availability confirmation\n- **Security**: Same KZG proof system as Ethereum — verified by 0G Chain validators\n\n**ZK rollup support:**\nZK rollups (zkSync, Scroll, etc.) need DA for proof verification. 0G DA provides:\n- State diff publishing (what changed between batches)\n- Proof data storage (ZK proofs are stored alongside state data)\n- Historical data access for re-execution\n\n**When to consider 0G DA:**\n- You're launching a new rollup/appchain\n- Your existing rollup's DA costs are a bottleneck\n- You need throughput beyond what Ethereum DA supports",
         "position": {
-          "x": 2,
+          "x": 7,
           "y": 10
         },
         "type": "text"
       },
       {
-        "id": "rollup_integration",
-        "title": "Connecting OP Stack and Arbitrum Nitro to 0G DA",
-        "content": "Key ideas:\n- OP Stack: run da-server sidecar, add --altda.enabled=true to op-node\n- Arbitrum Nitro: implement DataAvailabilityProvider interface\n- Replaces EIP-4844 blobs — reduces rollup operating costs significantly\n\n0G Labs provides integration guides for both major rollup stacks. The integration is designed to be minimally invasive — you keep your existing rollup stack and add 0G DA as a pluggable module.\n\n**OP Stack Integration:**\n\n1. Build and run the `da-server` sidecar:\n```bash\n./bin/da-server --addr 127.0.0.1 --port 3100 --zg.server 127.0.0.1:51001\n```\n\n2. Update your `rollup.json` with Alt-DA config:\n```json\n{\n  \"alt_da\": {\n    \"da_challenge_contract_address\": \"0x0000000000000000000000000000000000000000\",\n    \"da_commitment_type\": \"GenericCommitment\",\n    \"da_challenge_window\": 160,\n    \"da_resolve_window\": 160\n  }\n}\n```\n\n3. Add flags to your `op-node` startup:\n```bash\nop-node \\\n  --altda.enabled=true \\\n  --altda.da-server=http://127.0.0.1:3100 \\\n  --altda.da-service=true \\\n  [... other flags]\n```\n\n**Arbitrum Nitro Integration:**\n\n0G implements the `DataAvailabilityProvider` interface from the Nitro codebase. This replaces the default EIP-4844 blob handling with 0G DA storage and retrieval. The integration is at the code level — you compile a custom Nitro binary with the 0G DA provider.\n\nThe economic impact: EIP-4844 blobs cost ~0.01 ETH per 128KB. 0G DA at 50 Gbps throughput offers orders of magnitude more capacity at a fraction of the cost, enabling rollups that were previously cost-prohibitive.",
+        "id": "precompile_contracts",
+        "title": "Precompile Contracts: DASigners and WrappedOGBase",
+        "content": "Key ideas:\n- Precompiles are contracts built into the 0G Chain protocol — not deployed by users\n- DASigners (0x1000) manages the DA signer set and epoch rotation\n- WrappedOGBase (0x1001) wraps the native 0G token for ERC-20 compatibility\n- Precompiles are gas-efficient — implemented in native code, not EVM bytecode\n\nPrecompile contracts are special contracts built directly into the 0G Chain protocol.\n\n**DASigners (0x0000000000000000000000000000000000001000):**\n\nManages the data availability signer set:\n```solidity\ninterface IDASigners {\n    // Get current epoch number\n    function epochNumber() external view returns (uint256);\n\n    // Get signers for a specific epoch\n    function getSigners(uint256 epoch) external view returns (address[] memory);\n\n    // Get quorum count (minimum signatures needed)\n    function getQuorum(uint256 epoch) external view returns (uint256);\n\n    // Register as a DA signer (validators only)\n    function registerSigner(bytes calldata blsPubKey) external;\n}\n```\n\nUseful for:\n- Monitoring DA health (how many signers are active)\n- Building DA-aware applications\n- Validators registering for DA duties\n\n**WrappedOGBase (0x0000000000000000000000000000000000001001):**\n\nWraps the native 0G token as an ERC-20:\n```solidity\ninterface IWrappedOGBase {\n    // Standard ERC-20 interface\n    function balanceOf(address) external view returns (uint256);\n    function transfer(address to, uint256 amount) external returns (bool);\n    function approve(address spender, uint256 amount) external returns (bool);\n\n    // Wrap native 0G → ERC-20\n    function deposit() external payable;\n\n    // Unwrap ERC-20 → native 0G\n    function withdraw(uint256 amount) external;\n}\n```\n\nUseful for:\n- DeFi integrations that require ERC-20 tokens\n- Smart contracts that need to hold and transfer 0G tokens\n- DEX liquidity pools\n\n**Why precompiles matter:**\n- Fixed addresses: always at the same address on every 0G Chain network\n- Gas-efficient: implemented in native Go code, not EVM bytecode\n- Protocol-guaranteed: can't be modified or destroyed by users\n- Trust-minimized: behavior is defined by the protocol, not by a deployer",
         "position": {
-          "x": 6,
+          "x": 11,
           "y": 10
         },
         "type": "text"
@@ -896,14 +896,14 @@
     ],
     "quiz": {
       "id": "quiz-stage-4",
-      "question": "How does OP Stack integrate with 0G DA?",
+      "question": "What is a precompile contract on 0G Chain?",
       "type": "multiple-choice",
       "options": [
-        "Replace the op-node binary with a 0G-provided binary",
-        "Run a da-server sidecar alongside the standard op-node with --altda flags",
-        "Deploy a custom L1 contract that proxies to 0G DA"
+        "A smart contract deployed by 0G Labs that has special permissions",
+        "A contract built into the protocol at a fixed address — more gas-efficient than EVM contracts",
+        "A contract that compiles Solidity faster than standard tools"
       ],
-      "correctAnswer": "Run a da-server sidecar alongside the standard op-node with --altda flags",
+      "correctAnswer": "A contract built into the protocol at a fixed address — more gas-efficient than EVM contracts",
       "position": {
         "x": 18,
         "y": 7

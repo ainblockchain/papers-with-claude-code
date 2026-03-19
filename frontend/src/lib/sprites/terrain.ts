@@ -244,29 +244,45 @@ export function drawBlackboard(
   h: number,
   isActive: boolean,
   title: string,
+  isViewed = false,
 ) {
   // Wooden frame
-  ctx.fillStyle = '#8B6914'
+  ctx.fillStyle = isViewed && !isActive ? '#2E6B14' : '#8B6914'
   ctx.fillRect(x - 3, y - 3, w + 6, h + 6)
 
   // Board surface
-  ctx.fillStyle = isActive ? '#1B3A1B' : '#1A2332'
+  ctx.fillStyle = isActive ? '#1B3A1B' : isViewed ? '#1A2E1A' : '#1A2332'
   ctx.fillRect(x, y, w, h)
 
   // Chalk tray
-  ctx.fillStyle = '#6B5514'
+  ctx.fillStyle = isViewed && !isActive ? '#3B6B14' : '#6B5514'
   ctx.fillRect(x, y + h, w, 4)
 
   // Chalk marks
-  if (isActive) {
+  if (isActive || isViewed) {
     ctx.fillStyle = 'rgba(255, 255, 255, 0.3)'
     ctx.fillRect(x + 5, y + h - 2, 8, 1)
     ctx.fillRect(x + w - 15, y + h - 3, 6, 1)
   }
 
+  // Checkmark for viewed
+  if (isViewed && !isActive) {
+    ctx.fillStyle = 'rgba(16, 185, 129, 0.15)'
+    ctx.fillRect(x, y, w, h)
+    ctx.strokeStyle = '#10B981'
+    ctx.lineWidth = 2
+    const cx = x + w - 12
+    const cy = y + 8
+    ctx.beginPath()
+    ctx.moveTo(cx - 4, cy)
+    ctx.lineTo(cx - 1, cy + 3)
+    ctx.lineTo(cx + 4, cy - 3)
+    ctx.stroke()
+  }
+
   // Title text (word-wrap into multiple lines)
   const fontSize = 10;
-  ctx.fillStyle = '#E0E0E0'
+  ctx.fillStyle = isViewed && !isActive ? '#A0E8C0' : '#E0E0E0'
   ctx.font = `bold ${fontSize}px sans-serif`
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'

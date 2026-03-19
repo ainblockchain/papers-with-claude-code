@@ -308,7 +308,7 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
         if (isSpaceTheme) {
           drawSpaceOutpost(ctx, cx, cy, bbW, bbH, isActive, concept.title, isViewed);
         } else {
-          drawBlackboard(ctx, cx, cy, bbW, bbH, isActive, concept.title);
+          drawBlackboard(ctx, cx, cy, bbW, bbH, isActive, concept.title, isViewed);
         }
 
         // Interaction hint
