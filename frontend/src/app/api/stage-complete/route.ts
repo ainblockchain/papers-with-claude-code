@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAinClient, getUserAinClient } from '@/lib/ain/client';
 
 /**
- * Record stage_complete on AIN blockchain (no payment required).
- * Used for the last stage of a course where x402 payment is not needed.
+ * Record stage_complete on AIN blockchain.
+ * Uses AIN SDK directly instead of going through trackEvent → ainAdapter
+ * (which would make a server→server self-referencing fetch that can fail).
  */
 export async function POST(req: NextRequest) {
   let body: {
@@ -35,17 +37,21 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { trackEvent } = await import('@/lib/ain/event-tracker');
-    await trackEvent({
-      type: 'stage_complete',
-      paperId,
-      stageIndex: stageNum,
-      timestamp: Date.now(),
-      x: 0,
-      y: 0,
-      direction: 'down',
-      scene: 'course',
-    }, passkeyPublicKey);
+    const ain = passkeyPublicKey ? getUserAinClient(passkeyPublicKey) : getAinClient();
+    const tagsStr = `stage_complete,${paperId}`;
+    await ain.knowledge.explore({
+      topicPath: `courses/${paperId}`,
+      title: `stage_complete: stage ${stageNum}`,
+      content: JSON.stringify({
+        eventType: 'stage_complete',
+        paperId,
+        stageIndex: stageNum,
+        timestamp: Date.now(),
+      }),
+      summary: `stage_complete in course ${paperId}, stage ${stageNum}`,
+      depth: 2,
+      tags: tagsStr,
+    });
 
     return NextResponse.json({
       success: true,

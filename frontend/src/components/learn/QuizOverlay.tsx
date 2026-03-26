@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { X, CheckCircle2, XCircle } from 'lucide-react';
 import { useLearningStore } from '@/stores/useLearningStore';
 import { useAuthStore } from '@/stores/useAuthStore';
+import { progressAdapter } from '@/lib/adapters/progress';
 import { cn } from '@/lib/utils';
 
 export function QuizOverlay() {
@@ -40,6 +41,18 @@ export function QuizOverlay() {
           passkeyPublicKey: useAuthStore.getState().passkeyInfo?.publicKey,
         }),
       }).catch(err => console.error('[QuizOverlay] stage_complete failed:', err));
+
+      // Save to localStorage so dashboard reflects completion immediately
+      const authUser = useAuthStore.getState().user;
+      if (authUser && currentPaper) {
+        progressAdapter.saveCheckpoint({
+          userId: authUser.id,
+          paperId: currentPaper.id,
+          stageNumber: currentStageIndex,
+          completedAt: new Date().toISOString(),
+          totalStages: stages.length,
+        });
+      }
 
       setTimeout(() => {
         setQuizPassed(true);

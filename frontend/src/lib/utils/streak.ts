@@ -98,7 +98,8 @@ export function getStreakStyle(streak: number): StreakStyle {
 
 /**
  * Extract activity timestamps (ms) from UserProgress[].
- * Only includes stage completions (stage_complete events recorded as completedStages).
+ * Includes stage completions and lastAccessedAt as fallback
+ * (so streak reflects any learning activity, not just recorded completions).
  */
 export function extractActivityTimestamps(progressList: UserProgress[]): number[] {
   const timestamps: number[] = [];
@@ -107,6 +108,10 @@ export function extractActivityTimestamps(progressList: UserProgress[]): number[
       if (stage.completedAt) {
         timestamps.push(new Date(stage.completedAt).getTime());
       }
+    }
+    if (progress.lastAccessedAt) {
+      const t = new Date(progress.lastAccessedAt).getTime();
+      if (t > 0) timestamps.push(t);
     }
   }
   return timestamps;

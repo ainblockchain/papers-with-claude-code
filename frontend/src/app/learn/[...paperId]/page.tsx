@@ -253,20 +253,10 @@ export default function LearnPage() {
 
   const handleCourseComplete = useCallback(() => {
     setCourseComplete(true);
-
-    const effectivePaperId = currentPaper?.id ?? paperId;
-
-    // Save final progress (stage_complete already recorded by QuizOverlay)
-    if (user && currentPaper) {
-      progressAdapter.saveCheckpoint({
-        userId: user.id,
-        paperId: effectivePaperId,
-        stageNumber: stages.length,
-        completedAt: new Date().toISOString(),
-        totalStages: stages.length,
-      });
-    }
-  }, [setCourseComplete, user, currentPaper, stages.length, paperId]);
+    // No saveCheckpoint here — QuizOverlay already recorded the last stage completion.
+    // Calling saveCheckpoint with stageNumber=stages.length would create a phantom
+    // extra entry beyond the actual stage range (e.g., stageNumber=3 for a 3-stage course).
+  }, [setCourseComplete]);
 
   const currentStage = stages[currentStageIndex];
 
@@ -299,7 +289,7 @@ export default function LearnPage() {
       const newIdx = currentStageIndex + 1;
       setCurrentStageIndex(newIdx);
 
-      // Save checkpoint
+      // Save current position (don't mark as completed — QuizOverlay handles that)
       if (user) {
         progressAdapter.saveCheckpoint({
           userId: user.id,
@@ -307,6 +297,7 @@ export default function LearnPage() {
           stageNumber: newIdx,
           completedAt: new Date().toISOString(),
           totalStages: stages.length,
+          markCompleted: false,
         });
       }
 

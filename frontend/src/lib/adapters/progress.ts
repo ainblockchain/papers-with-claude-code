@@ -12,6 +12,9 @@ export interface ProgressAdapter {
     completedAt: string;
     quizScore?: number;
     totalStages?: number;
+    /** When false, only update currentStage/lastAccessedAt without adding to completedStages.
+     *  Defaults to true. Use false for stage_enter (navigating to a stage not yet completed). */
+    markCompleted?: boolean;
   }): Promise<void>;
   loadProgress(userId: string, paperId: string): Promise<UserProgress | null>;
   loadAllProgress(userId: string): Promise<UserProgress[]>;
@@ -97,6 +100,7 @@ class MockProgressAdapter implements ProgressAdapter {
     completedAt: string;
     quizScore?: number;
     totalStages?: number;
+    markCompleted?: boolean;
   }): Promise<void> {
     if (typeof window === 'undefined') return;
     const key = this.getKey(data.userId, data.paperId);
@@ -111,7 +115,7 @@ class MockProgressAdapter implements ProgressAdapter {
 
     progress.currentStage = data.stageNumber;
     progress.lastAccessedAt = data.completedAt;
-    if (!progress.completedStages.find(s => s.stageNumber === data.stageNumber)) {
+    if (data.markCompleted !== false && !progress.completedStages.find(s => s.stageNumber === data.stageNumber)) {
       progress.completedStages.push({
         stageNumber: data.stageNumber,
         completedAt: data.completedAt,
