@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { BookOpen, Trophy, Flame, Play } from 'lucide-react';
+import { BookOpen, Trophy, Flame, Play, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Fingerprint } from 'lucide-react';
@@ -22,27 +22,37 @@ export default function DashboardPage() {
   const [progressList, setProgressList] = useState<ProgressWithPaper[]>([]);
   const [streak, setStreak] = useState(0);
 
+  const loadingRef = useRef(false);
+
   useEffect(() => {
     async function load() {
-      if (!user) return;
+      if (!user || loadingRef.current) return;
+      loadingRef.current = true;
 
-      const allProgress = await progressAdapter.loadMergedProgress(user.id, passkeyInfo?.evmAddress);
-      const withPapers = await Promise.all(
-        allProgress.map(async (p) => {
-          const paper = await papersAdapter.getPaperById(p.paperId);
-          return {
-            ...p,
-            paper: paper ?? undefined,
-            totalStages: paper?.totalStages ?? p.totalStages,
-          };
-        })
-      );
-      setProgressList(withPapers);
-      const timestamps = extractActivityTimestamps(withPapers);
-      setStreak(calculateStreak(timestamps));
+      try {
+        const allProgress = await progressAdapter.loadMergedProgress(user.id, passkeyInfo?.evmAddress);
+        const withPapers = await Promise.all(
+          allProgress.map(async (p) => {
+            const paper = await papersAdapter.getPaperById(p.paperId);
+            return {
+              ...p,
+              paper: paper ?? undefined,
+              totalStages: paper?.totalStages ?? p.totalStages,
+            };
+          })
+        );
+        setProgressList(withPapers);
+        const timestamps = extractActivityTimestamps(withPapers);
+        setStreak(calculateStreak(timestamps));
+      } finally {
+        loadingRef.current = false;
+      }
     }
     load();
   }, [user, passkeyInfo]);
+
+  const activeCourses = progressList.filter(p => p.completedStages.length < p.totalStages);
+  const completedCourses = progressList.filter(p => p.completedStages.length >= p.totalStages);
 
   const streakStyle = getStreakStyle(streak);
   const totalStagesCleared = progressList.reduce(
@@ -100,8 +110,15 @@ export default function DashboardPage() {
       </div>
 
       {/* Active Courses */}
-      <h2 className="text-lg font-bold text-[#111827] mb-4">Active Courses</h2>
-      {progressList.length === 0 ? (
+      <h2 className="text-lg font-bold text-[#111827] mb-4 flex items-center gap-2">
+        Active Courses
+        {activeCourses.length > 0 && (
+          <span className="text-xs font-medium text-[#FF9D00] bg-[#FF9D00]/10 px-2 py-0.5 rounded-full">
+            {activeCourses.length}
+          </span>
+        )}
+      </h2>
+      {activeCourses.length === 0 && completedCourses.length === 0 ? (
         <div className="text-center py-12 bg-white border border-[#E5E7EB] rounded-lg">
           <BookOpen className="h-10 w-10 text-gray-300 mx-auto mb-3" />
           <p className="text-[#6B7280] text-sm">No courses started yet.</p>
@@ -111,9 +128,18 @@ export default function DashboardPage() {
             </Button>
           </Link>
         </div>
+      ) : activeCourses.length === 0 ? (
+        <div className="text-center py-6 bg-white border border-[#E5E7EB] rounded-lg">
+          <p className="text-[#6B7280] text-sm">No active courses.</p>
+          <Link href="/explore">
+            <Button className="mt-3 bg-[#FF9D00] hover:bg-[#FF9D00]/90 text-white" size="sm">
+              Explore Papers
+            </Button>
+          </Link>
+        </div>
       ) : (
         <div className="space-y-3">
-          {progressList.map((p) => (
+          {activeCourses.map((p) => (
             <div
               key={p.paperId}
               className="flex items-center gap-4 p-4 bg-white border border-[#E5E7EB] rounded-lg"
@@ -133,7 +159,7 @@ export default function DashboardPage() {
                 </div>
               </div>
               <Link href={`/learn/${p.paperId}`}>
-                <Button size="sm" className="bg-[#FF9D00] hover:bg-[#FF9D00]/90 text-white">
+                <Button size="sm" className="bg-[#FF9D00] hover:bg-[#FF9D00]/90 text-white w-[100px] justify-center">
                   <Play className="h-3.5 w-3.5 mr-1" />
                   Continue
                 </Button>
@@ -141,6 +167,45 @@ export default function DashboardPage() {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Completed Courses */}
+      {completedCourses.length > 0 && (
+        <>
+          <h2 className="text-lg font-bold text-[#111827] mb-4 mt-8 flex items-center gap-2">
+            Completed Courses
+            <span className="text-xs font-medium text-[#059669] bg-[#059669]/10 px-2 py-0.5 rounded-full">
+              {completedCourses.length}
+            </span>
+          </h2>
+          <div className="space-y-3">
+            {completedCourses.map((p) => (
+              <div
+                key={p.paperId}
+                className="flex items-center gap-4 p-4 bg-[#FCFEFC] border border-[#E5E7EB] rounded-lg"
+              >
+                <CheckCircle2 className="h-5 w-5 text-[#059669] shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-medium text-sm text-[#111827] truncate">
+                    {p.paper?.title || p.paperId}
+                  </h3>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Progress value={100} className="h-2 flex-1 [&>[data-slot=progress-indicator]]:bg-[#059669] bg-[#D1FAE5]" />
+                    <span className="text-xs text-[#6B7280] whitespace-nowrap">
+                      {p.totalStages} {p.totalStages === 1 ? 'stage' : 'stages'}
+                    </span>
+                  </div>
+                </div>
+                <Link href={`/learn/${p.paperId}`}>
+                  <Button size="sm" className="bg-[#059669] hover:bg-[#059669]/90 text-white w-[100px] justify-center">
+                    <Trophy className="h-3.5 w-3.5 mr-1" />
+                    Review
+                  </Button>
+                </Link>
+              </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

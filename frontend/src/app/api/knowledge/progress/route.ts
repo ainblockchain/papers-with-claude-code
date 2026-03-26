@@ -34,29 +34,14 @@ export async function GET(request: NextRequest) {
         for (const [entryId, entry] of Object.entries(entries as Record<string, any>)) {
           if (!entry || typeof entry !== 'object') continue;
 
-          const nodeId = ain.knowledge.buildNodeId(address, topicPath, entryId);
-          let connections: Array<{ nodeId: string; type: string }> = [];
-          try {
-            const edges = await ain.knowledge.getNodeEdges(nodeId);
-            if (edges) {
-              for (const [targetNodeId, edge] of Object.entries(edges as Record<string, any>)) {
-                connections.push({ nodeId: targetNodeId, type: edge.type || 'related' });
-              }
-            }
-          } catch {
-            // edges may not exist
-          }
-
           entryList.push({
             entryId,
-            nodeId,
             title: entry.title || '',
             depth: entry.depth || 0,
             summary: entry.summary || '',
             price: entry.price || null,
             tags: entry.tags || [],
             createdAt: entry.created_at || 0,
-            connections,
           });
           if (entry.depth > maxDepth) maxDepth = entry.depth;
         }
