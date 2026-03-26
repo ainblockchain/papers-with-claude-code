@@ -833,8 +833,9 @@
       "question": "When stacking many layers in a neural network, what problem do skip connections (residual paths) help solve? (1) Reduce memory (2) Prevent vanishing gradients (3) Speed up inference.",
       "type": "multiple-choice",
       "options": [
-        "True",
-        "False"
+        "Reduce memory",
+        "Prevent vanishing gradients",
+        "Speed up inference"
       ],
       "correctAnswer": "Prevent vanishing gradients",
       "position": {

@@ -800,8 +800,9 @@
       "question": "Responsible AI development includes: 1) Hiding limitations from users, 2) Clear documentation of capabilities and limitations, 3) Only using proprietary models",
       "type": "multiple-choice",
       "options": [
-        "True",
-        "False"
+        "Hiding limitations from users",
+        "Clear documentation of capabilities and limitations",
+        "Only using proprietary models"
       ],
       "correctAnswer": "Clear documentation of capabilities and limitations",
       "position": {

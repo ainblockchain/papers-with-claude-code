@@ -866,8 +866,9 @@
       "question": "Llama 2 was pretrained on approximately: 1) 100 billion tokens, 2) 500 billion tokens, 3) 2 trillion tokens. Which?",
       "type": "multiple-choice",
       "options": [
-        "True",
-        "False"
+        "100 billion tokens",
+        "500 billion tokens",
+        "2 trillion tokens"
       ],
       "correctAnswer": "2 trillion tokens",
       "position": {

@@ -13,10 +13,12 @@ export function QuizOverlay() {
     currentStageIndex,
     currentPaper,
     isQuizActive,
+    progress: userProgress,
     setQuizActive,
     setQuizPassed,
     setPaymentModalOpen,
     setDoorUnlocked,
+    setProgress,
   } = useLearningStore();
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [showResult, setShowResult] = useState(false);
@@ -44,14 +46,33 @@ export function QuizOverlay() {
 
       // Save to localStorage so dashboard reflects completion immediately
       const authUser = useAuthStore.getState().user;
+      const completedAt = new Date().toISOString();
       if (authUser && currentPaper) {
         progressAdapter.saveCheckpoint({
           userId: authUser.id,
           paperId: currentPaper.id,
           stageNumber: currentStageIndex,
-          completedAt: new Date().toISOString(),
+          completedAt,
           totalStages: stages.length,
         });
+
+        // Sync Zustand store so StageProgressBar updates immediately
+        const alreadyCompleted = userProgress?.completedStages?.some(
+          s => s.stageNumber === currentStageIndex
+        );
+        if (!alreadyCompleted) {
+          const updatedStages = [
+            ...(userProgress?.completedStages ?? []),
+            { stageNumber: currentStageIndex, completedAt },
+          ];
+          setProgress({
+            paperId: currentPaper.id,
+            currentStage: currentStageIndex,
+            totalStages: stages.length,
+            completedStages: updatedStages,
+            lastAccessedAt: completedAt,
+          });
+        }
       }
 
       setTimeout(() => {

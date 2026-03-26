@@ -932,8 +932,9 @@
       "question": "How many relationships does self-attention compute for a 10-token sequence? A) 10 B) 100 C) 1024",
       "type": "multiple-choice",
       "options": [
-        "True",
-        "False"
+        "10",
+        "100",
+        "1024"
       ],
       "correctAnswer": "100",
       "position": {

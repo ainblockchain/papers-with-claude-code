@@ -151,7 +151,31 @@ function parseExercise(lesson: Lesson, quizId: string): QuizData {
   const questionLines = lines.filter(
     (l) => !/^\d+[).]/.test(l.trim()) && !l.trim().startsWith('Type'),
   );
-  const options = optionLines.map((l) => l.replace(/^\d+[).]\s*/, '').trim());
+  let options = optionLines.map((l) => l.replace(/^\d+[).]\s*/, '').trim());
+
+  // Inline choices: "... 1) A, 2) B, 3) C" or "(1) A (2) B" or "A) X B) Y"
+  if (options.length < 2) {
+    // Pattern: N) or (N) with comma separators
+    const numInline = exercise.search(/\(?\d+\)/);
+    if (numInline !== -1) {
+      const segments = exercise.slice(numInline).split(/[,.]?\s*(?=\(?\d+\))/);
+      const inlineOpts = segments
+        .map((s) => s.replace(/^\(?\d+\)\s*/, '').replace(/\.?\s*(Type|Which).*$/i, '').trim())
+        .filter(Boolean);
+      if (inlineOpts.length >= 2) options = inlineOpts;
+    }
+    // Pattern: A) X B) Y C) Z (letter-based)
+    if (options.length < 2) {
+      const letterInline = exercise.search(/[A-C]\)\s/);
+      if (letterInline !== -1) {
+        const segments = exercise.slice(letterInline).split(/\s*(?=[A-Z]\)\s)/);
+        const inlineOpts = segments
+          .map((s) => s.replace(/^[A-Z]\)\s*/, '').trim())
+          .filter(Boolean);
+        if (inlineOpts.length >= 2) options = inlineOpts;
+      }
+    }
+  }
 
   const question =
     questionLines.join(' ').trim() || exercise.split('\n')[0].trim();

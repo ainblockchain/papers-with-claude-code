@@ -767,8 +767,9 @@
       "question": "RNNs process sequences token-by-token (slow). Transformers process all tokens in parallel. What enables this parallelization? (1) Self-attention (2) GPUs (3) Positional encoding.",
       "type": "multiple-choice",
       "options": [
-        "True",
-        "False"
+        "Self-attention",
+        "GPUs",
+        "Positional encoding"
       ],
       "correctAnswer": "Self-attention",
       "position": {

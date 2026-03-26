@@ -866,8 +866,9 @@
       "question": "Quantization is: 1) Making the model bigger, 2) Reducing precision of weights for speed, 3) Changing the training objective",
       "type": "multiple-choice",
       "options": [
-        "True",
-        "False"
+        "Making the model bigger",
+        "Reducing precision of weights for speed",
+        "Changing the training objective"
       ],
       "correctAnswer": "Reducing precision of weights for speed",
       "position": {

@@ -833,8 +833,9 @@
       "question": "What is the primary advantage of Transformer over RNNs? A) Higher accuracy only B) Faster training while maintaining accuracy C) Smaller model size",
       "type": "multiple-choice",
       "options": [
-        "True",
-        "False"
+        "Higher accuracy only",
+        "Faster training while maintaining accuracy",
+        "Smaller model size"
       ],
       "correctAnswer": "Faster training while maintaining accuracy",
       "position": {

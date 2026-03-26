@@ -899,8 +899,9 @@
       "question": "Llama 2's context length is 4K tokens. This means: 1) It can only read 4 words, 2) It can read ~3,000 words at once, 3) It can read infinite text",
       "type": "multiple-choice",
       "options": [
-        "True",
-        "False"
+        "It can only read 4 words",
+        "It can read ~3,000 words at once",
+        "It can read infinite text"
       ],
       "correctAnswer": "It can read ~3,000 words at once",
       "position": {

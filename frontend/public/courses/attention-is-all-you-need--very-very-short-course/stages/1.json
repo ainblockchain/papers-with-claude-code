@@ -767,8 +767,9 @@
       "question": "Why is parallel processing important for modern deep learning? A) It makes code simpler B) It enables faster training on GPUs C) It reduces memory usage",
       "type": "multiple-choice",
       "options": [
-        "True",
-        "False"
+        "It makes code simpler",
+        "It enables faster training on GPUs",
+        "It reduces memory usage"
       ],
       "correctAnswer": "It enables faster training on GPUs",
       "position": {

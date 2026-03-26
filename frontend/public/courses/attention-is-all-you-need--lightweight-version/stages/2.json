@@ -866,8 +866,9 @@
       "question": "The encoder and decoder each have 6 layers. Why is the encoder's output bottlenecked before the decoder reads it? (1) Save memory (2) Force compression of key information (3) Reduce latency.",
       "type": "multiple-choice",
       "options": [
-        "True",
-        "False"
+        "Save memory",
+        "Force compression of key information",
+        "Reduce latency"
       ],
       "correctAnswer": "Force compression of key information",
       "position": {
