@@ -66,24 +66,25 @@ export async function GET(request: NextRequest) {
 
     const totalUsers = stageCounts.length;
 
-    if (totalUsers <= 1 || userStages === 0) {
+    if (userStages === 0) {
       return NextResponse.json({
         ok: true,
-        data: { totalUsers, userRank: totalUsers > 0 ? 1 : 0, percentile: null, stagesCleared: userStages },
+        data: { totalUsers, userRank: 0, percentile: null, stagesCleared: 0 },
       });
     }
-
-    // Percentile: percentage of users with fewer stages
-    const usersWithFewer = stageCounts.filter(c => c < userStages).length;
-    const percentile = Math.round((usersWithFewer / totalUsers) * 100);
 
     // Rank: 1-based position (1 = most stages)
     stageCounts.sort((a, b) => b - a);
     const userRank = stageCounts.indexOf(userStages) + 1;
 
+    // Top percent: what bracket the user falls in (1% = best)
+    const topPercent = totalUsers <= 1
+      ? 1
+      : Math.max(1, Math.round((userRank / totalUsers) * 100));
+
     return NextResponse.json({
       ok: true,
-      data: { totalUsers, userRank, percentile, stagesCleared: userStages },
+      data: { totalUsers, userRank, topPercent, stagesCleared: userStages },
     });
   } catch (error: any) {
     return NextResponse.json(

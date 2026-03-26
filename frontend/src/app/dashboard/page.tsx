@@ -21,7 +21,7 @@ export default function DashboardPage() {
   const { user, passkeyInfo } = useAuthStore();
   const [progressList, setProgressList] = useState<ProgressWithPaper[]>([]);
   const [streak, setStreak] = useState(0);
-  const [ranking, setRanking] = useState<{ percentile: number | null; totalUsers: number } | null>(null);
+  const [ranking, setRanking] = useState<{ topPercent: number | null; userRank: number; totalUsers: number } | null>(null);
 
   const loadingRef = useRef(false);
 
@@ -51,7 +51,7 @@ export default function DashboardPage() {
           try {
             const res = await fetch(`/api/knowledge/ranking?address=${encodeURIComponent(passkeyInfo.evmAddress)}`);
             const json = await res.json();
-            if (json.ok) setRanking({ percentile: json.data.percentile, totalUsers: json.data.totalUsers });
+            if (json.ok) setRanking({ topPercent: json.data.topPercent, userRank: json.data.userRank, totalUsers: json.data.totalUsers });
           } catch {
             // ranking unavailable
           }
@@ -104,19 +104,25 @@ export default function DashboardPage() {
           </div>
           <p className="text-2xl font-bold text-[#111827]">{progressList.length}</p>
         </div>
-        <div className="p-4 bg-white border border-[#E5E7EB] rounded-lg">
-          <div className="flex items-center gap-2 text-[#6B7280] text-sm mb-1">
-            <Trophy className="h-4 w-4" />
-            Stages Cleared
-          </div>
-          <div className="flex items-center justify-between">
+        <div className="p-4 bg-white border border-[#E5E7EB] rounded-lg flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2 text-[#6B7280] text-sm mb-1">
+              <Trophy className="h-4 w-4" />
+              Stages Cleared
+            </div>
             <p className="text-2xl font-bold text-[#111827]">{totalStagesCleared}</p>
-            {ranking?.percentile !== null && ranking?.percentile !== undefined && ranking.totalUsers > 1 && (
-              <span className="text-xs font-semibold text-[#FF9D00] bg-[#FF9D00]/10 px-2 py-0.5 rounded-full">
-                Top {100 - ranking.percentile}%
-              </span>
-            )}
           </div>
+          {ranking?.topPercent != null && ranking.userRank != null && (
+            ranking.userRank <= 3 ? (
+              <span className="text-xs font-semibold text-white bg-[#FF9D00] px-2 py-0.5 rounded-full">
+                Rank {ranking.userRank} {ranking.userRank === 1 ? '🥇' : ranking.userRank === 2 ? '🥈' : '🥉'}
+              </span>
+            ) : (
+              <span className="text-xs font-semibold text-[#FF9D00] bg-[#FF9D00]/10 px-2 py-0.5 rounded-full">
+                Top {ranking.topPercent}%
+              </span>
+            )
+          )}
         </div>
         <div className="p-4 bg-white border border-[#E5E7EB] rounded-lg">
           <div className="flex items-center gap-2 text-[#6B7280] text-sm mb-1">
