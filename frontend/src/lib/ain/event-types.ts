@@ -5,9 +5,7 @@ export type EventType =
   | 'course_enter'
   | 'stage_enter'
   | 'stage_complete'
-  | 'course_complete'
   | 'concept_view'
-  | 'quiz_pass'
   | 'heartbeat';
 
 interface BaseEvent {
@@ -30,7 +28,7 @@ export interface CourseEnterEvent extends BaseEvent {
 }
 
 export interface CourseEvent extends BaseEvent {
-  type: 'stage_enter' | 'stage_complete' | 'course_complete' | 'concept_view' | 'quiz_pass';
+  type: 'stage_enter' | 'stage_complete' | 'concept_view';
   scene: 'course';
   paperId: string;
   stageIndex: number;
@@ -45,7 +43,5 @@ export const LEARNING_EVENT_TYPES: EventType[] = [
   'course_enter',
   'stage_enter',
   'concept_view',
-  'quiz_pass',
   'stage_complete',
-  'course_complete',
 ];

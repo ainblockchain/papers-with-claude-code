@@ -26,10 +26,9 @@ interface XtermTerminalProps {
   sessionId: string;
   wsUrl: string;
   onStageComplete?: (stageNumber: number) => void;
-  onCourseComplete?: () => void;
 }
 
-export function XtermTerminal({ sessionId, wsUrl, onStageComplete, onCourseComplete }: XtermTerminalProps) {
+export function XtermTerminal({ sessionId, wsUrl, onStageComplete }: XtermTerminalProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<InstanceType<typeof import('@xterm/xterm').Terminal> | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
@@ -147,9 +146,6 @@ export function XtermTerminal({ sessionId, wsUrl, onStageComplete, onCourseCompl
           if (msg.type === 'stage_complete' && onStageComplete) {
             onStageComplete(msg.stageNumber);
           }
-          if (msg.type === 'course_complete' && onCourseComplete) {
-            onCourseComplete();
-          }
           // pong is ignored
         } catch {
           // Raw terminal output
@@ -226,7 +222,7 @@ export function XtermTerminal({ sessionId, wsUrl, onStageComplete, onCourseCompl
       initPromise.then((observerCleanup) => observerCleanup?.());
       cleanup();
     };
-  }, [sessionId, wsUrl, onStageComplete, onCourseComplete, cleanup]);
+  }, [sessionId, wsUrl, onStageComplete, cleanup]);
 
   return (
     <div className="flex flex-col h-full bg-[#1a1a2e]">

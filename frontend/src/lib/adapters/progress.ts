@@ -32,20 +32,18 @@ async function convertLearnerProgress(progress: LearnerProgress): Promise<UserPr
 
     const paperId = normalizePaperId(topic.topicPath.replace('courses/', ''));
 
-    // Extract completed stages from entries with depth >= 2 (stage_complete)
+    // Extract completed stages (depth=2) and track latest stage_enter (depth=1)
     const completedStages: { stageNumber: number; completedAt: string; quizScore?: number }[] = [];
     let lastAccessedAt = '';
+    let maxStageEnterIndex = 0;
 
     for (const entry of topic.entries) {
-      // Extract stageIndex from summary field
-      // event-tracker stores: "stage_complete in course {paperId}, stage {stageIndex}"
       let stageIndex = 0;
       const stageMatch = entry.summary.match(/stage\s+(\d+)/i);
       if (stageMatch) {
         stageIndex = parseInt(stageMatch[1], 10);
       }
 
-      // depth 2 = stage_complete (exclude depth 3 = course_complete)
       if (entry.depth === 2) {
         if (!completedStages.find(s => s.stageNumber === stageIndex)) {
           completedStages.push({
@@ -55,17 +53,11 @@ async function convertLearnerProgress(progress: LearnerProgress): Promise<UserPr
         }
       }
 
-      // quiz_pass (depth=1) = stage completion evidence (historical data compat)
-      if (entry.depth === 1 && entry.summary.startsWith('quiz_pass')) {
-        if (!completedStages.find(s => s.stageNumber === stageIndex)) {
-          completedStages.push({
-            stageNumber: stageIndex,
-            completedAt: new Date(entry.createdAt).toISOString(),
-          });
-        }
+      // Track highest stage_enter index for currentStage restoration
+      if (entry.depth === 1 && entry.summary.startsWith('stage_enter')) {
+        maxStageEnterIndex = Math.max(maxStageEnterIndex, stageIndex);
       }
 
-      // Track latest activity
       const entryTime = new Date(entry.createdAt).toISOString();
       if (!lastAccessedAt || entryTime > lastAccessedAt) {
         lastAccessedAt = entryTime;
@@ -83,7 +75,7 @@ async function convertLearnerProgress(progress: LearnerProgress): Promise<UserPr
 
     results.push({
       paperId,
-      currentStage: completedStages.length,
+      currentStage: maxStageEnterIndex > 0 ? maxStageEnterIndex : completedStages.length,
       totalStages,
       completedStages: completedStages.sort((a, b) => a.stageNumber - b.stageNumber),
       lastAccessedAt,

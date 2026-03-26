@@ -98,7 +98,7 @@ export function getStreakStyle(streak: number): StreakStyle {
 
 /**
  * Extract activity timestamps (ms) from UserProgress[].
- * Only includes stage completions (stage_complete / quiz_pass events are recorded as completedStages).
+ * Only includes stage completions (stage_complete events recorded as completedStages).
  */
 export function extractActivityTimestamps(progressList: UserProgress[]): number[] {
   const timestamps: number[] = [];

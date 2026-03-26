@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { X, CheckCircle2, XCircle } from 'lucide-react';
 import { useLearningStore } from '@/stores/useLearningStore';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { cn } from '@/lib/utils';
 
 export function QuizOverlay() {
@@ -29,6 +30,17 @@ export function QuizOverlay() {
     if (!selectedOption) return;
     setShowResult(true);
     if (selectedOption === quiz.correctAnswer) {
+      // Record stage_complete on server (fire-and-forget)
+      fetch('/api/stage-complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paperId: currentPaper?.id,
+          stageNum: currentStageIndex,
+          passkeyPublicKey: useAuthStore.getState().passkeyInfo?.publicKey,
+        }),
+      }).catch(err => console.error('[QuizOverlay] stage_complete failed:', err));
+
       setTimeout(() => {
         setQuizPassed(true);
         setQuizActive(false);

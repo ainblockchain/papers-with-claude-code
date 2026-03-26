@@ -53,7 +53,7 @@ function toExplorationInput(event: LocationEvent & { paperId: string }, passkeyP
       timestamp: event.timestamp,
     }),
     summary: `${event.type} in course ${event.paperId}, stage ${stageIndex}`,
-    depth: event.type === 'course_complete' ? 3 : event.type === 'stage_complete' ? 2 : 1,
+    depth: event.type === 'stage_complete' ? 2 : 1,
     tags: [event.type, event.paperId],
     passkeyPublicKey: pubKey,
   };

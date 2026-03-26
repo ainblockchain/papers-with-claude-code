@@ -12,7 +12,6 @@ async function handleUnlockStage(req: NextRequest): Promise<NextResponse> {
     stageId?: string;
     stageNum?: number;
     score?: number;
-    passkeyPublicKey?: string;
   };
   try {
     body = await req.json();
@@ -23,7 +22,7 @@ async function handleUnlockStage(req: NextRequest): Promise<NextResponse> {
     );
   }
 
-  const { paperId, stageNum, score, passkeyPublicKey } = body;
+  const { paperId, stageNum, score } = body;
 
   if (!paperId || typeof paperId !== 'string') {
     return NextResponse.json(
@@ -47,38 +46,10 @@ async function handleUnlockStage(req: NextRequest): Promise<NextResponse> {
   const chain = req.nextUrl.searchParams.get('chain') || 'kite';
 
   // Payment has already been verified and settled by withX402 middleware.
-  // Record stage completion on AIN blockchain via event tracker.
-  try {
-    const { trackEvent } = await import('@/lib/ain/event-tracker');
-    await trackEvent({
-      type: 'stage_complete',
-      paperId,
-      stageIndex: stageNum,
-      timestamp: Date.now(),
-      x: 0,
-      y: 0,
-      direction: 'down',
-      scene: 'course',
-    }, passkeyPublicKey);
+  // stage_complete is recorded at quiz pass time (QuizOverlay → /api/stage-complete),
+  // so this endpoint only handles payment verification.
 
-    // If score >= 70 (passing), also record quiz pass
-    if (score >= 70) {
-      await trackEvent({
-        type: 'quiz_pass',
-        paperId,
-        stageIndex: stageNum,
-        timestamp: Date.now(),
-        x: 0,
-        y: 0,
-        direction: 'down',
-        scene: 'course',
-      }, passkeyPublicKey);
-    }
-  } catch (err) {
-    console.error('[x402/unlock-stage] AIN tracking failed (non-fatal):', err);
-  }
-
-  // Generate attestation hash for the completion
+  // Generate attestation hash for the payment
   const crypto = await import('crypto');
   const attestationHash = crypto
     .createHash('sha256')
@@ -95,7 +66,7 @@ async function handleUnlockStage(req: NextRequest): Promise<NextResponse> {
       completedAt: new Date().toISOString(),
     },
     explorerUrl: getExplorerUrl(chain),
-    message: 'Stage unlocked. Payment settled via x402 protocol. Progress recorded on AIN blockchain.',
+    message: 'Stage unlocked. Payment settled via x402 protocol.',
   });
 }
 

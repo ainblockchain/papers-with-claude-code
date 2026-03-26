@@ -149,7 +149,7 @@ export default function LearnPage() {
           y: 10,
           direction: 'right',
           timestamp: Date.now(),
-        });
+        }, passkeyInfo?.publicKey);
       }
 
       // Create backend session if TERMINAL_API_URL is configured
@@ -230,6 +230,7 @@ export default function LearnPage() {
   const handleStageComplete = useCallback(
     (stageNumber: number) => {
       // Update store when backend signals stage completion
+      // stage_complete is recorded server-side (unlock-stage API), so no trackEvent here
       const stageIdx = stages.findIndex((s) => s.stageNumber === stageNumber);
       if (stageIdx >= 0) {
         useLearningStore.getState().setQuizPassed(true);
@@ -246,21 +247,6 @@ export default function LearnPage() {
           totalStages: stages.length,
         });
       }
-
-      // Track stage_complete and quiz_pass events
-      const { playerPosition: pos, playerDirection: dir } = useLearningStore.getState();
-      const eventBase = {
-        scene: 'course' as const,
-        paperId,
-        stageIndex: stageIdx >= 0 ? stageIdx : stageNumber - 1,
-        stageTitle: stageIdx >= 0 ? stages[stageIdx]?.title : undefined,
-        x: pos.x,
-        y: pos.y,
-        direction: dir,
-        timestamp: Date.now(),
-      };
-      trackEvent({ type: 'stage_complete', ...eventBase });
-      trackEvent({ type: 'quiz_pass', ...eventBase });
     },
     [stages, user, paperId],
   );
@@ -268,32 +254,34 @@ export default function LearnPage() {
   const handleCourseComplete = useCallback(() => {
     setCourseComplete(true);
 
-    // Save final progress
+    const effectivePaperId = currentPaper?.id ?? paperId;
+
+    // Save final progress (stage_complete already recorded by QuizOverlay)
     if (user && currentPaper) {
       progressAdapter.saveCheckpoint({
         userId: user.id,
-        paperId: currentPaper.id,
+        paperId: effectivePaperId,
         stageNumber: stages.length,
         completedAt: new Date().toISOString(),
         totalStages: stages.length,
       });
     }
-
-    // Track course_complete event
-    const { playerPosition: pos, playerDirection: dir } = useLearningStore.getState();
-    trackEvent({
-      type: 'course_complete',
-      scene: 'course',
-      paperId: currentPaper?.id ?? paperId,
-      stageIndex: stages.length - 1,
-      x: pos.x,
-      y: pos.y,
-      direction: dir,
-      timestamp: Date.now(),
-    });
   }, [setCourseComplete, user, currentPaper, stages.length, paperId]);
 
   const currentStage = stages[currentStageIndex];
+
+  // Passkey guard: require login (passkey) to learn
+  if (!user || !passkeyInfo) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-[#0a0a1a] gap-4">
+        <AlertTriangle className="h-10 w-10 text-[#FF9D00]" />
+        <p className="text-white text-lg font-medium">Login required to start learning</p>
+        <Link href="/login" className="px-4 py-2 bg-[#FF9D00] hover:bg-[#FF9D00]/90 text-white rounded-lg text-sm font-medium">
+          Go to Login
+        </Link>
+      </div>
+    );
+  }
 
   if (!currentPaper || !currentStage) {
     return (
@@ -305,21 +293,7 @@ export default function LearnPage() {
 
   const handleNextStage = () => {
     if (currentStageIndex < stages.length - 1) {
-      // Track completion of the current stage before advancing
-      const { playerPosition: pos, playerDirection: dir } = useLearningStore.getState();
-      const completionBase = {
-        scene: 'course' as const,
-        paperId: currentPaper.id,
-        stageIndex: currentStageIndex,
-        stageTitle: stages[currentStageIndex]?.title,
-        x: pos.x,
-        y: pos.y,
-        direction: dir,
-        timestamp: Date.now(),
-      };
-      trackEvent({ type: 'stage_complete', ...completionBase });
-      trackEvent({ type: 'quiz_pass', ...completionBase });
-
+      // stage_complete is recorded server-side (unlock-stage API after payment)
       clearTerminalMessages();
       setPlayerPosition({ x: 3, y: 10 });
       const newIdx = currentStageIndex + 1;
@@ -347,7 +321,7 @@ export default function LearnPage() {
         y: 10,
         direction: 'right',
         timestamp: Date.now(),
-      });
+      }, passkeyInfo?.publicKey);
     }
   };
 
@@ -417,7 +391,7 @@ export default function LearnPage() {
                 sessionId={sessionId}
                 wsUrl={terminalSessionAdapter.getWebSocketUrl(sessionId)}
                 onStageComplete={handleStageComplete}
-                onCourseComplete={handleCourseComplete}
+
               />
             ) : (
               <ClaudeTerminal />
@@ -475,7 +449,6 @@ export default function LearnPage() {
               sessionId={sessionId}
               wsUrl={terminalSessionAdapter.getWebSocketUrl(sessionId)}
               onStageComplete={handleStageComplete}
-              onCourseComplete={handleCourseComplete}
             />
           ) : (
             <ClaudeTerminal />
