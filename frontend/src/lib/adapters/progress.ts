@@ -34,7 +34,6 @@ async function convertLearnerProgress(progress: LearnerProgress): Promise<UserPr
 
     // Extract completed stages from entries with depth >= 2 (stage_complete)
     const completedStages: { stageNumber: number; completedAt: string; quizScore?: number }[] = [];
-    let maxStage = 0;
     let lastAccessedAt = '';
 
     for (const entry of topic.entries) {
@@ -46,16 +45,24 @@ async function convertLearnerProgress(progress: LearnerProgress): Promise<UserPr
         stageIndex = parseInt(stageMatch[1], 10);
       }
 
-      // depth 2 = stage_complete, depth 3 = course_complete
-      if (entry.depth >= 2) {
-        const stageNumber = stageIndex || entry.depth;
-        if (!completedStages.find(s => s.stageNumber === stageNumber)) {
+      // depth 2 = stage_complete (exclude depth 3 = course_complete)
+      if (entry.depth === 2) {
+        if (!completedStages.find(s => s.stageNumber === stageIndex)) {
           completedStages.push({
-            stageNumber,
+            stageNumber: stageIndex,
             completedAt: new Date(entry.createdAt).toISOString(),
           });
         }
-        if (stageNumber > maxStage) maxStage = stageNumber;
+      }
+
+      // quiz_pass (depth=1) = stage completion evidence (historical data compat)
+      if (entry.depth === 1 && entry.summary.startsWith('quiz_pass')) {
+        if (!completedStages.find(s => s.stageNumber === stageIndex)) {
+          completedStages.push({
+            stageNumber: stageIndex,
+            completedAt: new Date(entry.createdAt).toISOString(),
+          });
+        }
       }
 
       // Track latest activity
@@ -76,7 +83,7 @@ async function convertLearnerProgress(progress: LearnerProgress): Promise<UserPr
 
     results.push({
       paperId,
-      currentStage: maxStage,
+      currentStage: completedStages.length,
       totalStages,
       completedStages: completedStages.sort((a, b) => a.stageNumber - b.stageNumber),
       lastAccessedAt,
