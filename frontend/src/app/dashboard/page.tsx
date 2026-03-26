@@ -76,9 +76,13 @@ export default function DashboardPage() {
     <div className="mx-auto max-w-[1280px] px-4 py-8">
       {/* Profile */}
       <div className="flex items-center gap-4 mb-8">
-        <div className="h-16 w-16 rounded-full bg-[#FF9D00] flex items-center justify-center text-white text-2xl font-bold">
-          {user?.username[0].toUpperCase() || '?'}
-        </div>
+        {user?.avatarUrl ? (
+          <img src={user.avatarUrl} alt={user.username} className="h-16 w-16 rounded-full" />
+        ) : (
+          <div className="h-16 w-16 rounded-full bg-[#FF9D00] flex items-center justify-center text-white text-2xl font-bold">
+            {user?.username[0].toUpperCase() || '?'}
+          </div>
+        )}
         <div>
           <h1 className="text-2xl font-bold text-[#111827]">{user?.username || 'User'}</h1>
           <p className="text-sm text-[#6B7280]">{user?.email}</p>
