@@ -48,12 +48,10 @@ async function convertLearnerProgress(progress: LearnerProgress): Promise<UserPr
       }
 
       if (entry.depth === 2) {
-        if (!completedStages.find(s => s.stageNumber === stageIndex)) {
-          completedStages.push({
-            stageNumber: stageIndex,
-            completedAt: new Date(entry.createdAt).toISOString(),
-          });
-        }
+        completedStages.push({
+          stageNumber: stageIndex,
+          completedAt: new Date(entry.createdAt).toISOString(),
+        });
       }
 
       // Track highest stage_enter index for currentStage restoration
@@ -164,10 +162,10 @@ class MockProgressAdapter implements ProgressAdapter {
       }
     }
 
-    // Merge: localStorage wins on conflicts (has accurate stage data)
+    // Merge: blockchain wins on conflicts (source of truth)
     const progressMap = new Map<string, UserProgress>();
-    for (const p of chainProgress) progressMap.set(p.paperId, p);
     for (const p of localProgress) progressMap.set(p.paperId, p);
+    for (const p of chainProgress) progressMap.set(p.paperId, p);
     return Array.from(progressMap.values());
   }
 }

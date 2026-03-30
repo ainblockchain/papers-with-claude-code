@@ -33,16 +33,21 @@ export function QuizOverlay() {
     if (!selectedOption) return;
     setShowResult(true);
     if (selectedOption === quiz.correctAnswer) {
-      // Record stage_complete on server (fire-and-forget)
-      fetch('/api/stage-complete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          paperId: currentPaper?.id,
-          stageNum: currentStageIndex,
-          passkeyPublicKey: useAuthStore.getState().passkeyInfo?.publicKey,
-        }),
-      }).catch(err => console.error('[QuizOverlay] stage_complete failed:', err));
+      // Record stage_complete on server (skip if already completed)
+      const alreadyDone = userProgress?.completedStages?.some(
+        s => s.stageNumber === currentStageIndex
+      );
+      if (!alreadyDone) {
+        fetch('/api/stage-complete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            paperId: currentPaper?.id,
+            stageNum: currentStageIndex,
+            passkeyPublicKey: useAuthStore.getState().passkeyInfo?.publicKey,
+          }),
+        }).catch(err => console.error('[QuizOverlay] stage_complete failed:', err));
+      }
 
       // Save to localStorage so dashboard reflects completion immediately
       const authUser = useAuthStore.getState().user;

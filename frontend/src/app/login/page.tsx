@@ -162,8 +162,9 @@ function LoginContent() {
 
   // ── Identity sync: recover from blockchain OR save existing passkey mapping ──
   const inLoginFlow = fromOAuth || mockAuthActive;
+  const needsIdentitySync = inLoginFlow || (isRealAuth && isAuthenticated && !!user && !passkeyInfo && !existingPasskey);
   useEffect(() => {
-    if (!isAuthenticated || !user || !inLoginFlow) return;
+    if (!isAuthenticated || !user || !needsIdentitySync) return;
     if (identityChecked.current) return;
 
     identityChecked.current = true;
@@ -215,7 +216,7 @@ function LoginContent() {
       identityChecked.current = false;
       setIdentityChecking(false);
     };
-  }, [isAuthenticated, user, inLoginFlow]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, user, needsIdentitySync]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Redirect logic ──
   useEffect(() => {
@@ -311,7 +312,7 @@ function LoginContent() {
   }
 
   // ── Step 2: Passkey (authenticated via OAuth or mock) ──
-  if (isAuthenticated && user && inLoginFlow && !passkeyDone) {
+  if (isAuthenticated && user && needsIdentitySync && !passkeyDone) {
     return (
       <PasskeyStep
         user={user}

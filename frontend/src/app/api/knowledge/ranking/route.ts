@@ -3,7 +3,7 @@ import { getAinClient } from '@/lib/ain/client';
 
 /** Count completed stages for a single user's exploration data */
 function countStagesForUser(topics: Record<string, any>): number {
-  const completedStages = new Set<string>();
+  let count = 0;
 
   for (const [topicKey, entries] of Object.entries(topics)) {
     if (!topicKey.startsWith('courses|')) continue;
@@ -11,19 +11,16 @@ function countStagesForUser(topics: Record<string, any>): number {
 
     for (const [, entry] of Object.entries(entries as Record<string, any>)) {
       if (!entry || typeof entry !== 'object') continue;
-      const summary: string = entry.summary || '';
       const depth: number = entry.depth || 0;
 
-      // stage_complete (depth=2)
+      // stage_complete (depth=2) — no duplicates guaranteed by client-side guard
       if (depth === 2) {
-        const stageMatch = summary.match(/stage\s+(\d+)/i);
-        const stageIndex = stageMatch ? parseInt(stageMatch[1], 10) : 0;
-        completedStages.add(`${topicKey}:${stageIndex}`);
+        count++;
       }
     }
   }
 
-  return completedStages.size;
+  return count;
 }
 
 export async function GET(request: NextRequest) {

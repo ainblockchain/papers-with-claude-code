@@ -36,6 +36,7 @@ export default function LearnPage() {
   const sessionCleanupRef = useRef<string | null>(null);
   // Track whether effect has been cancelled (unmount / re-run)
   const cancelledRef = useRef(false);
+  const enteredStagesRef = useRef(new Set<number>());
 
   const { user, passkeyInfo } = useAuthStore();
   const {
@@ -137,8 +138,9 @@ export default function LearnPage() {
         }
       }
 
-      // Track stage_enter event for the initial stage
-      if (!cancelledRef.current) {
+      // Track stage_enter event for the initial stage (skip if already entered)
+      if (!cancelledRef.current && !enteredStagesRef.current.has(initialStageIdx)) {
+        enteredStagesRef.current.add(initialStageIdx);
         trackEvent({
           type: 'stage_enter',
           scene: 'course',
@@ -301,18 +303,21 @@ export default function LearnPage() {
         });
       }
 
-      // Track stage_enter event for the new stage
-      trackEvent({
-        type: 'stage_enter',
-        scene: 'course',
-        paperId: currentPaper.id,
-        stageIndex: newIdx,
-        stageTitle: stages[newIdx]?.title,
-        x: 3,
-        y: 10,
-        direction: 'right',
-        timestamp: Date.now(),
-      }, passkeyInfo?.publicKey);
+      // Track stage_enter event for the new stage (skip if already entered)
+      if (!enteredStagesRef.current.has(newIdx)) {
+        enteredStagesRef.current.add(newIdx);
+        trackEvent({
+          type: 'stage_enter',
+          scene: 'course',
+          paperId: currentPaper.id,
+          stageIndex: newIdx,
+          stageTitle: stages[newIdx]?.title,
+          x: 3,
+          y: 10,
+          direction: 'right',
+          timestamp: Date.now(),
+        }, passkeyInfo?.publicKey);
+      }
     }
   };
 
