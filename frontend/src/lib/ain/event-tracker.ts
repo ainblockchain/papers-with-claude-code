@@ -62,11 +62,13 @@ function toExplorationInput(event: LocationEvent & { paperId: string }, passkeyP
 /** Fire-and-forget event tracking. Errors are logged, never thrown.
  *  Pass passkeyPublicKey explicitly when calling from server-side (no localStorage). */
 export async function trackEvent(event: LocationEvent, passkeyPublicKey?: string): Promise<void> {
-  // 1. Always update location on AIN chain
-  try {
-    await ainAdapter.updateLocation(toUserLocation(event));
-  } catch (err) {
-    console.error(`[event-tracker] location write failed for ${event.type}:`, err);
+  // 1. Update location (skip for learning events to avoid concurrent tx rate-limiting)
+  if (!LEARNING_EVENT_TYPES.includes(event.type)) {
+    try {
+      await ainAdapter.updateLocation(toUserLocation(event));
+    } catch (err) {
+      console.error(`[event-tracker] location write failed for ${event.type}:`, err);
+    }
   }
 
   // 2. For learning events, also record to the knowledge graph
