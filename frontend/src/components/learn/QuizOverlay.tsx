@@ -20,6 +20,7 @@ export function QuizOverlay() {
     setPaymentModalOpen,
     setDoorUnlocked,
     setProgress,
+    setCourseComplete,
   } = useLearningStore();
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [showResult, setShowResult] = useState(false);
@@ -102,8 +103,9 @@ export function QuizOverlay() {
         const { stages: s, currentStageIndex: idx } = useLearningStore.getState();
         const isLastStage = idx >= s.length - 1;
         if (isLastStage) {
-          // Last stage: unlock door directly (no payment needed)
+          // Last stage: unlock door and auto-complete course (no payment needed)
           setDoorUnlocked(true);
+          setCourseComplete(true);
         } else {
           // Auto-open payment modal after quiz pass
           setPaymentModalOpen(true);

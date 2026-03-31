@@ -53,7 +53,6 @@ export default function LearnPage() {
     setProgress,
     setPlayerPosition,
     clearTerminalMessages,
-    setCourseComplete,
     setSessionId,
     setSessionStatus,
     setSessionError,
@@ -263,13 +262,6 @@ export default function LearnPage() {
     [stages, user, paperId],
   );
 
-  const handleCourseComplete = useCallback(() => {
-    setCourseComplete(true);
-    // No saveCheckpoint here — QuizOverlay already recorded the last stage completion.
-    // Calling saveCheckpoint with stageNumber=stages.length would create a phantom
-    // extra entry beyond the actual stage range (e.g., stageNumber=3 for a 3-stage course).
-  }, [setCourseComplete]);
-
   const currentStage = stages[currentStageIndex];
 
   // Passkey guard: require login (passkey) to learn
@@ -428,17 +420,6 @@ export default function LearnPage() {
                 className="px-4 py-2 bg-[#10B981] hover:bg-[#059669] text-white rounded-lg shadow-lg text-sm font-medium transition-colors"
               >
                 Enter Stage {currentStageIndex + 2} →
-              </button>
-            </div>
-          )}
-          {/* Complete Course button (last stage, door unlocked) */}
-          {isDoorUnlocked && currentStageIndex >= stages.length - 1 && (
-            <div className="absolute bottom-4 right-4 z-10">
-              <button
-                onClick={handleCourseComplete}
-                className="px-4 py-2 bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-lg shadow-lg text-sm font-medium transition-colors"
-              >
-                Complete Course
               </button>
             </div>
           )}
