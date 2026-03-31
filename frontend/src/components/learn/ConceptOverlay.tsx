@@ -105,7 +105,7 @@ export function ConceptOverlay() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setActiveConcept(null)}
+            onClick={close}
             className="h-6 w-6 p-0 text-white hover:bg-white/20 shrink-0"
           >
             <X className="h-4 w-4" />
@@ -119,7 +119,7 @@ export function ConceptOverlay() {
         <div className="px-4 pb-4 shrink-0">
           <Button
             size="sm"
-            onClick={() => setActiveConcept(null)}
+            onClick={close}
             className="w-full bg-[#FF9D00] hover:bg-[#FF9D00]/90 text-white"
           >
             Got it!
