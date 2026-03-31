@@ -29,6 +29,7 @@ export interface ExerciseEntry {
 export interface Lesson {
   concept_id: string;
   title: string;
+  content?: string; // Rich learning content for the concept (displayed on chalkboard)
   key_ideas: string[];
   exercise?: string;
   answer?: string;
@@ -277,8 +278,13 @@ function computeConceptPositions(count: number): ConceptPosition[] {
 
 // ── Build concept content ────────────────────────────────────────────────
 
-/** Build rich concept content from lesson key_ideas + explanation. */
+/** Build rich concept content from lesson content field, or fallback to key_ideas + explanation. */
 function buildConceptContent(lesson: Lesson): string {
+  // Prefer rich content field if available
+  if (lesson.content?.trim()) {
+    return lesson.content.trim();
+  }
+  // Fallback to legacy format: key_ideas + explanation
   const keyIdeasBlock = lesson.key_ideas?.length
     ? `Key ideas:\n${lesson.key_ideas.map((k) => `- ${k}`).join('\n')}\n\n`
     : '';
