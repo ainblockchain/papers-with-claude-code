@@ -244,22 +244,32 @@ Generate lessons for all concepts in each course. **Lesson schema**:
   "concept_id": "concept_id",
   "title": "Lesson Title",
   "prerequisites": ["required_concept_id"],
+  "content": "Rich markdown content for chalkboard display (required)",
   "key_ideas": ["3-5 key ideas"],
   "code_ref": "",
   "paper_ref": "Authors, Year — Paper Title",
   "exercise": "Quiz question (see format below)",
   "answer": "The correct answer text (must exactly match one of the options)",
-  "explanation": "Paper-first style explanation",
+  "explanation": "Quiz answer explanation",
   "x402_price": "",
   "x402_gateway": ""
 }
 ```
 
-**Lesson writing principles**:
+**`content` field (required)**:
+The `content` field is the main learning content displayed on the chalkboard UI. Write in markdown format with:
+- Section headers (`##`, `###`)
+- Bold for emphasis (`**important**`)
+- Bullet points for lists
+- Code blocks for examples
+- Tables where appropriate
+
+**Lesson writing principles** (apply to `content` field):
 1. **Paper-first**: Paper/author/year first -> problem background -> solution idea in order
-2. **Short paragraphs**: 2-3 sentences max
+2. **Short paragraphs**: 2-3 sentences max per paragraph
 3. **One analogy**: One analogy that intuitively explains the concept
-4. **Quiz to finish**: One of multiple choice / true-false / fill-in-the-blank
+4. **Rich content**: Include formulas, diagrams (as text), comparisons, and examples
+5. **Quiz to finish**: One of multiple choice / true-false / fill-in-the-blank (in `exercise` field)
    - Do not require writing code
    - Do not use expressions like "open the file"
 
@@ -427,7 +437,7 @@ frontend/public/courses/<paper-slug>--<course-name-slug>/stages/2.json
 
 Each stage file contains:
 - TMJ map data (floor, collision, objects layers)
-- Concept data (id, title, content from lesson key_ideas + explanation)
+- Concept data (id, title, content from lesson `content` field)
 - Quiz data (question, options, correctAnswer from lesson exercise + answer)
 - Room layout (spawn, door, NPC positions)
 
@@ -970,12 +980,13 @@ courses.json structure:
         "concept_id": "concept_id_1",
         "title": "...",
         "prerequisites": [],
-        "key_ideas": ["..."],
+        "content": "## Section Header\n\nRich markdown content for chalkboard display...\n\n### Subsection\n\n- Bullet point 1\n- Bullet point 2",
+        "key_ideas": ["Key idea 1", "Key idea 2", "Key idea 3"],
         "code_ref": "",
         "paper_ref": "Author et al., Year — Title",
         "exercise": "Quiz question...\n1) A\n2) B\n3) C\nType the number.",
         "answer": "B",
-        "explanation": "Paper-first explanation with analogy...",
+        "explanation": "Quiz answer explanation...",
         "x402_price": "",
         "x402_gateway": ""
       }
