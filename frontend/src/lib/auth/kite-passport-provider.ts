@@ -1,4 +1,3 @@
-import { createHash } from "crypto"
 import type { OAuthConfig } from "next-auth/providers"
 
 interface KiteProfile {
@@ -9,8 +8,12 @@ interface KiteProfile {
 const KITE_OAUTH_BASE =
   process.env.KITE_OAUTH_BASE_URL || "https://neo.dev.gokite.ai"
 
-function hashToken(token: string): string {
-  return createHash("sha256").update(token).digest("hex").slice(0, 16)
+async function hashToken(token: string): Promise<string> {
+  const encoder = new TextEncoder()
+  const data = encoder.encode(token)
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  return hashArray.map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 16)
 }
 
 export default function KitePassport(): OAuthConfig<KiteProfile> {
@@ -28,7 +31,7 @@ export default function KitePassport(): OAuthConfig<KiteProfile> {
       async request({ tokens }: { tokens: { access_token: string } }) {
         // Kite Passport has no userinfo endpoint.
         // Derive a deterministic user ID from the access token.
-        const tokenId = hashToken(tokens.access_token)
+        const tokenId = await hashToken(tokens.access_token)
         return {
           sub: `kite-${tokenId}`,
           name: "Kite User",
