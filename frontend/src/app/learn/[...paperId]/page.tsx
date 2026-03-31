@@ -571,12 +571,14 @@ async function loadStages(paperId: string, paperTitle: string, totalStages: numb
       const json = await res.json();
       if (!json.ok || !json.data?.stage) throw new Error('Invalid stage data');
       const s = json.data.stage;
+      // Support both old (quiz) and new (quizzes) format
+      const quizzes = s.quizzes || (s.quiz ? [s.quiz] : []);
       stages.push({
         id: s.id,
         stageNumber: s.stageNumber,
         title: s.title,
         concepts: s.concepts,
-        quiz: s.quiz,
+        quizzes,
         roomWidth: s.roomWidth,
         roomHeight: s.roomHeight,
       });
@@ -620,13 +622,15 @@ function generateGenericStages(paperTitle: string, count: number) {
         position: { x: 12, y: 3 },
       },
     ],
-    quiz: {
-      id: `quiz-${i + 1}`,
-      question: `What is the main contribution of the ${stageNames[i] || 'topic'} section?`,
-      type: 'multiple-choice' as const,
-      options: ['Option A', 'Option B', 'Option C', 'Option D'],
-      correctAnswer: 'Option A',
-    },
+    quizzes: [
+      {
+        id: `quiz-${i + 1}`,
+        question: `What is the main contribution of the ${stageNames[i] || 'topic'} section?`,
+        type: 'multiple-choice' as const,
+        options: ['Option A', 'Option B', 'Option C', 'Option D'],
+        correctAnswer: 'Option A',
+      },
+    ],
     roomWidth: 20,
     roomHeight: 15,
   }));

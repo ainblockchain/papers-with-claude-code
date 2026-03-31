@@ -18,7 +18,7 @@ export interface StageConfig {
   stageNumber: number;
   title: string;
   concepts: Concept[];
-  quiz: Quiz;
+  quizzes: Quiz[];
   roomWidth: number;
   roomHeight: number;
 }

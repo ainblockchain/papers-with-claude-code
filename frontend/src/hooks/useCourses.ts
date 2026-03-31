@@ -13,6 +13,8 @@ export function useCourses() {
   return useQuery({
     queryKey: ['courses'],
     queryFn: fetchCourses,
-    staleTime: 10 * 60 * 1000, // 10 minutes - data rarely changes
+    staleTime: 10 * 60 * 1000, // 10 minutes cache
+    refetchOnWindowFocus: true, // refetch when user returns to tab
+    refetchOnMount: true, // refetch on component mount (page navigation)
   });
 }

@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { X, CheckCircle2, XCircle } from 'lucide-react';
 import { useLearningStore } from '@/stores/useLearningStore';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { progressAdapter } from '@/lib/adapters/progress';
 import { cn } from '@/lib/utils';
+import { Quiz } from '@/types/learning';
 
 export function QuizOverlay() {
   const {
@@ -22,11 +23,20 @@ export function QuizOverlay() {
   } = useLearningStore();
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [showResult, setShowResult] = useState(false);
+  const [quizKey, setQuizKey] = useState(0);
 
   const currentStage = stages[currentStageIndex];
-  if (!isQuizActive || !currentStage) return null;
 
-  const quiz = currentStage.quiz;
+  // Select a random quiz from the quizzes array
+  // Re-randomize when quizKey changes (on retry after wrong answer)
+  const quiz: Quiz | null = useMemo(() => {
+    if (!currentStage?.quizzes?.length) return null;
+    const randomIndex = Math.floor(Math.random() * currentStage.quizzes.length);
+    return currentStage.quizzes[randomIndex];
+  }, [currentStage?.quizzes, quizKey]);
+
+  if (!isQuizActive || !currentStage || !quiz) return null;
+
   const isCorrect = selectedOption === quiz.correctAnswer;
 
   const handleSubmit = () => {
@@ -75,6 +85,7 @@ export function QuizOverlay() {
             currentStage: currentStageIndex,
             totalStages: stages.length,
             completedStages: updatedStages,
+            unlockedStages: userProgress?.unlockedStages ?? [],
             lastAccessedAt: completedAt,
           });
         }
@@ -101,6 +112,8 @@ export function QuizOverlay() {
   const handleRetry = () => {
     setSelectedOption(null);
     setShowResult(false);
+    // Re-randomize quiz selection on retry
+    setQuizKey((k) => k + 1);
   };
 
   const handleClose = () => {

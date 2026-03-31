@@ -20,14 +20,21 @@ import type {
 
 // ── Input types ──────────────────────────────────────────────────────────
 
+export interface ExerciseEntry {
+  question: string;
+  answer: string;
+  explanation: string;
+}
+
 export interface Lesson {
   concept_id: string;
   title: string;
   key_ideas: string[];
-  exercise: string;
+  exercise?: string;
   answer?: string;
   explanation: string;
   prerequisites: string[];
+  exercises?: ExerciseEntry[];
 }
 
 export interface CourseEntry {
@@ -69,7 +76,7 @@ export interface StageData {
   roomWidth: number;
   roomHeight: number;
   concepts: ConceptData[];
-  quiz: QuizData;
+  quizzes: QuizData[];
   doorPosition: { x: number; y: number };
   spawnPosition: { x: number; y: number };
   nextStage: number | null;
@@ -116,12 +123,13 @@ export const DOOR_Y = 7;
 // ── Quiz parsing ─────────────────────────────────────────────────────────
 
 /**
- * Parse a lesson's exercise text into quiz data.
- * Uses lesson.answer for correctAnswer if available.
+ * Parse a single exercise text into quiz data.
  */
-function parseExercise(lesson: Lesson, quizId: string): QuizData {
-  const exercise = lesson.exercise ?? '';
-  const answer = lesson.answer ?? '';
+function parseSingleExercise(
+  exercise: string,
+  answer: string,
+  quizId: string,
+): QuizData {
   const doorPos = { x: DOOR_X, y: DOOR_Y };
 
   // True / False format
@@ -160,7 +168,12 @@ function parseExercise(lesson: Lesson, quizId: string): QuizData {
     if (numInline !== -1) {
       const segments = exercise.slice(numInline).split(/[,.]?\s*(?=\(?\d+\))/);
       const inlineOpts = segments
-        .map((s) => s.replace(/^\(?\d+\)\s*/, '').replace(/\.?\s*(Type|Which).*$/i, '').trim())
+        .map((s) =>
+          s
+            .replace(/^\(?\d+\)\s*/, '')
+            .replace(/\.?\s*(Type|Which).*$/i, '')
+            .trim(),
+        )
         .filter(Boolean);
       if (inlineOpts.length >= 2) options = inlineOpts;
     }
@@ -188,6 +201,33 @@ function parseExercise(lesson: Lesson, quizId: string): QuizData {
     correctAnswer: answer,
     position: doorPos,
   };
+}
+
+/**
+ * Parse all exercises from a lesson into quiz data array.
+ * Supports both new format (exercises array) and legacy format (single exercise/answer).
+ */
+function parseExercises(lesson: Lesson, baseQuizId: string): QuizData[] {
+  // New format: exercises array
+  if (lesson.exercises && lesson.exercises.length > 0) {
+    return lesson.exercises.map((ex, i) =>
+      parseSingleExercise(ex.question, ex.answer, `${baseQuizId}-${i}`),
+    );
+  }
+
+  // Legacy format: single exercise/answer fields
+  if (lesson.exercise?.trim()) {
+    return [
+      parseSingleExercise(
+        lesson.exercise,
+        lesson.answer ?? '',
+        `${baseQuizId}-0`,
+      ),
+    ];
+  }
+
+  // No exercises found
+  return [];
 }
 
 // ── Concept position layout ──────────────────────────────────────────────
@@ -434,13 +474,27 @@ export function generateStageData(
     type: 'text' as const,
   }));
 
-  // Quiz: prefer last lesson that has an exercise, else use the very last lesson
-  let quizLesson = [...course.lessons]
-    .reverse()
-    .find((l) => l.exercise?.trim());
-  if (!quizLesson) quizLesson = course.lessons[course.lessons.length - 1];
+  // Quizzes: collect all exercises from all lessons in this stage
+  const quizzes: QuizData[] = [];
+  course.lessons.forEach((lesson, lessonIdx) => {
+    const lessonQuizzes = parseExercises(
+      lesson,
+      `quiz-stage-${stageNumber}-lesson-${lessonIdx}`,
+    );
+    quizzes.push(...lessonQuizzes);
+  });
 
-  const quiz = parseExercise(quizLesson, `quiz-stage-${stageNumber}`);
+  // Fallback: if no quizzes found, create a placeholder
+  if (quizzes.length === 0) {
+    quizzes.push({
+      id: `quiz-stage-${stageNumber}-fallback`,
+      question: 'No quiz available for this stage.',
+      type: 'multiple-choice',
+      options: ['Continue'],
+      correctAnswer: 'Continue',
+      position: { x: DOOR_X, y: DOOR_Y },
+    });
+  }
 
   const stageData: StageData = {
     id: course.id,
@@ -449,7 +503,7 @@ export function generateStageData(
     roomWidth,
     roomHeight,
     concepts,
-    quiz,
+    quizzes,
     doorPosition: { x: DOOR_X, y: DOOR_Y },
     spawnPosition: { x: SPAWN_X, y: SPAWN_Y },
     nextStage: stageNumber < totalStages ? stageNumber + 1 : null,
