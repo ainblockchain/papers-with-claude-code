@@ -135,6 +135,14 @@ export default function LearnPage() {
           setProgress(progress);
           initialStageIdx = Math.min(progress.currentStage, stageData.length - 1);
           setCurrentStageIndex(initialStageIdx);
+
+          // Restore quiz passed state if current stage is already completed
+          const stageAlreadyCompleted = progress.completedStages.some(
+            s => s.stageNumber === initialStageIdx
+          );
+          if (stageAlreadyCompleted) {
+            useLearningStore.getState().setQuizPassed(true);
+          }
         }
       }
 

@@ -76,7 +76,7 @@ async function convertLearnerProgress(progress: LearnerProgress): Promise<UserPr
 
     results.push({
       paperId,
-      currentStage: maxStageEnterIndex > 0 ? maxStageEnterIndex : completedStages.length,
+      currentStage: maxStageEnterIndex,
       totalStages,
       completedStages: completedStages.sort((a, b) => a.stageNumber - b.stageNumber),
       lastAccessedAt,

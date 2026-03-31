@@ -68,7 +68,7 @@ export default function DashboardPage() {
 
   const streakStyle = getStreakStyle(streak);
   const totalStagesCleared = progressList.reduce(
-    (sum, p) => sum + Math.max(p.completedStages.length, p.currentStage),
+    (sum, p) => sum + p.completedStages.length,
     0
   );
 
@@ -179,11 +179,11 @@ export default function DashboardPage() {
                 </h3>
                 <div className="flex items-center gap-2 mt-1">
                   <Progress
-                    value={(Math.max(p.completedStages.length, p.currentStage) / p.totalStages) * 100}
+                    value={(p.completedStages.length / p.totalStages) * 100}
                     className="h-2 flex-1"
                   />
                   <span className="text-xs text-[#6B7280] whitespace-nowrap">
-                    Stage {p.currentStage}/{p.totalStages}
+                    Stage {p.completedStages.length}/{p.totalStages}
                   </span>
                 </div>
               </div>

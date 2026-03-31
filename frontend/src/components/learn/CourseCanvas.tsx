@@ -283,7 +283,7 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
           (stage.roomWidth - 1) * TILE_SIZE,
           doorPosition.y * TILE_SIZE,
           TILE_SIZE,
-          isDoorUnlocked,
+          isQuizPassed || isDoorUnlocked,
         );
       } else {
         drawDoor(
@@ -352,7 +352,7 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
     dirtyRef.current = true;
     rafIdRef.current = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(rafIdRef.current);
-  }, [stage, activeConceptId, isDoorUnlocked, doorPosition, mapData, canUseTmj, playerPosition, playerDirection]);
+  }, [stage, activeConceptId, isDoorUnlocked, isQuizPassed, doorPosition, mapData, canUseTmj, playerPosition, playerDirection]);
 
   return (
     <div className="w-full h-full bg-gray-900 overflow-hidden">
