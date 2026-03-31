@@ -60,6 +60,7 @@ export function QuizOverlay() {
       }
 
       // Save to localStorage so dashboard reflects completion immediately
+      // Use completedOnly: true to NOT update currentStage — user must click "Enter Stage X" to advance
       const authUser = useAuthStore.getState().user;
       const completedAt = new Date().toISOString();
       if (authUser && currentPaper) {
@@ -69,9 +70,11 @@ export function QuizOverlay() {
           stageNumber: currentStageIndex,
           completedAt,
           totalStages: stages.length,
+          completedOnly: true,
         });
 
         // Sync Zustand store so StageProgressBar updates immediately
+        // Keep currentStage unchanged — only update when user clicks "Enter Stage X"
         const alreadyCompleted = userProgress?.completedStages?.some(
           s => s.stageNumber === currentStageIndex
         );
@@ -82,7 +85,7 @@ export function QuizOverlay() {
           ];
           setProgress({
             paperId: currentPaper.id,
-            currentStage: currentStageIndex,
+            currentStage: userProgress?.currentStage ?? currentStageIndex,
             totalStages: stages.length,
             completedStages: updatedStages,
             unlockedStages: userProgress?.unlockedStages ?? [],
