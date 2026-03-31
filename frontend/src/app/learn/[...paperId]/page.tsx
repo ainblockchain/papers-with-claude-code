@@ -20,7 +20,7 @@ import {
   SessionLimitError,
 } from '@/lib/adapters/terminal-session';
 
-import { trackEvent } from '@/lib/ain/event-tracker';
+
 
 const TERMINAL_API_URL = process.env.NEXT_PUBLIC_TERMINAL_API_URL;
 const API_PROXY = '/api/terminal';
@@ -34,9 +34,8 @@ export default function LearnPage() {
     : (params.paperId as string);
   // Track session ID for cleanup — ref survives async race conditions
   const sessionCleanupRef = useRef<string | null>(null);
-  // Track whether effect has been cancelled (unmount / re-run)
-  const cancelledRef = useRef(false);
-  const enteredStagesRef = useRef(new Set<number>());
+  // Monotonic ID to detect stale effect runs (Strict Mode safe)
+  const effectIdRef = useRef(0);
 
   const { user, passkeyInfo } = useAuthStore();
   const {
@@ -105,11 +104,12 @@ export default function LearnPage() {
     // If there's a leftover session from a previous effect run (HMR / StrictMode),
     // clean it up before starting a new one
     cleanupSession();
-    cancelledRef.current = false;
+    const myId = ++effectIdRef.current;
+    const isCancelled = () => effectIdRef.current !== myId;
 
     async function load() {
       const paper = await papersAdapter.getPaperById(paperId);
-      if (!paper || cancelledRef.current) {
+      if (!paper || isCancelled()) {
         if (!paper) router.push('/explore');
         return;
       }
@@ -131,39 +131,44 @@ export default function LearnPage() {
         if (!progress) {
           progress = await progressAdapter.loadProgress(user.id, paperId);
         }
-        if (progress && !cancelledRef.current) {
+        if (progress && !isCancelled()) {
           setProgress(progress);
           initialStageIdx = Math.min(progress.currentStage, stageData.length - 1);
           setCurrentStageIndex(initialStageIdx);
 
-          // Restore quiz passed state if current stage is already completed
+          // Restore quiz/unlock state from blockchain progress
           const stageAlreadyCompleted = progress.completedStages.some(
             s => s.stageNumber === initialStageIdx
           );
           if (stageAlreadyCompleted) {
             useLearningStore.getState().setQuizPassed(true);
           }
+          const stageAlreadyUnlocked = progress.unlockedStages?.includes(initialStageIdx);
+          if (stageAlreadyUnlocked) {
+            useLearningStore.getState().setDoorUnlocked(true);
+          }
         }
       }
 
-      // Track stage_enter event for the initial stage (skip if already entered)
-      if (!cancelledRef.current && !enteredStagesRef.current.has(initialStageIdx)) {
-        enteredStagesRef.current.add(initialStageIdx);
-        trackEvent({
-          type: 'stage_enter',
-          scene: 'course',
-          paperId,
-          stageIndex: initialStageIdx,
-          stageTitle: stageData[initialStageIdx]?.title,
-          x: 3,
-          y: 10,
-          direction: 'right',
-          timestamp: Date.now(),
-        }, passkeyInfo?.publicKey);
+      // Record stage_enter via dedicated server API
+      if (!isCancelled()) {
+        console.log('[learn] calling /api/stage-enter for', paperId, 'stage', initialStageIdx);
+        fetch('/api/stage-enter', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            paperId,
+            stageNum: initialStageIdx,
+            stageTitle: stageData[initialStageIdx]?.title,
+            passkeyPublicKey: passkeyInfo?.publicKey,
+          }),
+        })
+        .then(res => console.log('[learn] stage-enter response:', res.status))
+        .catch(err => console.error('[LearnPage] stage_enter failed:', err));
       }
 
       // Create backend session if TERMINAL_API_URL is configured
-      if (TERMINAL_API_URL && !cancelledRef.current) {
+      if (TERMINAL_API_URL && !isCancelled()) {
         setSessionStatus('creating');
         // Clean up any leftover terminated sessions from previous visits
         await terminalSessionAdapter.cleanupStaleSessions();
@@ -179,9 +184,7 @@ export default function LearnPage() {
           // even if the effect is cancelled during the await below
           sessionCleanupRef.current = session.sessionId;
 
-          if (cancelledRef.current) {
-            // Effect was cancelled while createSession was in-flight
-            // → delete the just-created session immediately
+          if (isCancelled()) {
             cleanupSession();
             return;
           }
@@ -189,9 +192,9 @@ export default function LearnPage() {
           setSessionId(session.sessionId);
 
           // Poll until session is running (Pod takes 10-30s)
-          await waitForSession(session.sessionId, cancelledRef);
+          await waitForSession(session.sessionId, isCancelled);
 
-          if (cancelledRef.current) {
+          if (isCancelled()) {
             cleanupSession();
             return;
           }
@@ -200,11 +203,11 @@ export default function LearnPage() {
 
           // Try to fetch stages from backend
           const backendStages = await terminalSessionAdapter.getStages(session.sessionId);
-          if (backendStages.length > 0 && !cancelledRef.current) {
+          if (backendStages.length > 0 && !isCancelled()) {
             setStages(backendStages as typeof stageData);
           }
         } catch (err) {
-          if (cancelledRef.current) {
+          if (isCancelled()) {
             cleanupSession();
             return;
           }
@@ -225,7 +228,6 @@ export default function LearnPage() {
 
     // Cleanup session on unmount or paperId change
     return () => {
-      cancelledRef.current = true;
       cleanupSession();
     };
   }, [paperId]);
@@ -297,6 +299,10 @@ export default function LearnPage() {
       clearTerminalMessages();
       setPlayerPosition({ x: 3, y: 10 });
       const newIdx = currentStageIndex + 1;
+      // New stage: reset quiz/unlock — blockchain is source of truth,
+      // these will be restored from progress if already done
+      useLearningStore.getState().setQuizPassed(false);
+      useLearningStore.getState().setDoorUnlocked(false);
       setCurrentStageIndex(newIdx);
 
       // Save current position (don't mark as completed — QuizOverlay handles that)
@@ -311,21 +317,17 @@ export default function LearnPage() {
         });
       }
 
-      // Track stage_enter event for the new stage (skip if already entered)
-      if (!enteredStagesRef.current.has(newIdx)) {
-        enteredStagesRef.current.add(newIdx);
-        trackEvent({
-          type: 'stage_enter',
-          scene: 'course',
+      // Record stage_enter via dedicated server API
+      fetch('/api/stage-enter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           paperId: currentPaper.id,
-          stageIndex: newIdx,
+          stageNum: newIdx,
           stageTitle: stages[newIdx]?.title,
-          x: 3,
-          y: 10,
-          direction: 'right',
-          timestamp: Date.now(),
-        }, passkeyInfo?.publicKey);
-      }
+          passkeyPublicKey: passkeyInfo?.publicKey,
+        }),
+      }).catch(err => console.error('[LearnPage] stage_enter failed:', err));
     }
   };
 
@@ -536,14 +538,14 @@ function SessionErrorUI({ error }: { error: string | null }) {
 /** Poll session status until it's running */
 async function waitForSession(
   sessionId: string,
-  cancelledRef: React.RefObject<boolean | null>,
+  isCancelled: () => boolean,
   maxWait = 60000,
 ) {
   const start = Date.now();
   const interval = 2000;
 
   while (Date.now() - start < maxWait) {
-    if (cancelledRef.current) return;
+    if (isCancelled()) return;
     try {
       const info = await terminalSessionAdapter.getSession(sessionId);
       if (info.status === 'running') return;

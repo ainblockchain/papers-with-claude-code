@@ -104,7 +104,7 @@ export const useLearningStore = create<LearningState>((set, get) => ({
   setPaper: (currentPaper) => set({ currentPaper }),
   setStages: (stages) => set({ stages }),
   setCurrentStageIndex: (currentStageIndex) =>
-    set({ currentStageIndex, isQuizPassed: false, isDoorUnlocked: false, activeConceptId: null }),
+    set({ currentStageIndex, activeConceptId: null }),
   setProgress: (progress) => set({ progress }),
   movePlayer: (dx, dy) => {
     const { playerPosition } = get();

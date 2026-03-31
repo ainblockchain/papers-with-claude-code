@@ -5,6 +5,7 @@ import { Loader2, Lock, Unlock, ExternalLink, AlertTriangle, SkipForward } from 
 import { Button } from '@/components/ui/button';
 import { ChainSelector } from '@/components/payment/ChainSelector';
 import { useLearningStore } from '@/stores/useLearningStore';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { multiChainAdapter } from '@/lib/payment/multi-chain-adapter';
 import {
   type PaymentChainId,
@@ -85,6 +86,20 @@ export function PaymentModal() {
         setTxHash(result.txHash || null);
         setExplorerUrl(result.explorerUrl || null);
         setDoorUnlocked(true);
+
+        // Record stage_unlock on blockchain (fire-and-forget)
+        fetch('/api/stage-unlock', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            paperId: currentPaper.id,
+            stageNum: currentStageIndex,
+            passkeyPublicKey: useAuthStore.getState().passkeyInfo?.publicKey,
+            paymentMethod: selectedChain,
+            txHash: result.txHash,
+            amount: formatChainAmount(selectedChain, 'stageUnlock'),
+          }),
+        }).catch(err => console.error('[PaymentModal] stage_unlock failed:', err));
       } else {
         setPhase('idle');
         setError(result.error || 'Payment failed. Please try again.');
@@ -99,6 +114,18 @@ export function PaymentModal() {
   const handleFreeUnlock = () => {
     setPhase('done');
     setDoorUnlocked(true);
+
+    // Record stage_unlock on blockchain (fire-and-forget)
+    fetch('/api/stage-unlock', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        paperId: currentPaper.id,
+        stageNum: currentStageIndex,
+        passkeyPublicKey: useAuthStore.getState().passkeyInfo?.publicKey,
+        paymentMethod: 'skip',
+      }),
+    }).catch(err => console.error('[PaymentModal] stage_unlock failed:', err));
   };
 
   const handleClose = () => {
@@ -250,7 +277,7 @@ export function PaymentModal() {
               <Button
                 variant="ghost"
                 onClick={() => {
-                  setDoorUnlocked(true);
+                  handleFreeUnlock();
                   handleClose();
                 }}
                 className="text-xs text-gray-500 hover:text-gray-300 px-2"

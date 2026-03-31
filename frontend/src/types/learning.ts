@@ -28,6 +28,7 @@ export interface UserProgress {
   currentStage: number;
   totalStages: number;
   completedStages: { stageNumber: number; completedAt: string; quizScore?: number }[];
+  unlockedStages: number[];
   lastAccessedAt: string;
 }
 

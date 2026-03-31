@@ -52,8 +52,10 @@ export async function POST(request: NextRequest) {
       ...(relatedEntries ? { relatedEntries } : {}),
     });
 
+    console.log('[explorations POST]', topicPath, 'result:', JSON.stringify(result).slice(0, 300));
     return NextResponse.json({ ok: true, data: result });
   } catch (error: any) {
+    console.error('[explorations POST] FAILED:', error.message);
     return NextResponse.json(
       { ok: false, error: error.message ?? 'Failed to create exploration' },
       { status: 500 }

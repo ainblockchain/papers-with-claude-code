@@ -35,8 +35,9 @@ async function convertLearnerProgress(progress: LearnerProgress): Promise<UserPr
 
     const paperId = normalizePaperId(topic.topicPath.replace('courses/', ''));
 
-    // Extract completed stages (depth=2) and track latest stage_enter (depth=1)
+    // Extract completed/unlocked stages and track latest stage_enter
     const completedStages: { stageNumber: number; completedAt: string; quizScore?: number }[] = [];
+    const unlockedStages: number[] = [];
     let lastAccessedAt = '';
     let maxStageEnterIndex = 0;
 
@@ -48,15 +49,22 @@ async function convertLearnerProgress(progress: LearnerProgress): Promise<UserPr
       }
 
       if (entry.depth === 2) {
-        completedStages.push({
-          stageNumber: stageIndex,
-          completedAt: new Date(entry.createdAt).toISOString(),
-        });
+        if (!completedStages.find(s => s.stageNumber === stageIndex)) {
+          completedStages.push({
+            stageNumber: stageIndex,
+            completedAt: new Date(entry.createdAt).toISOString(),
+          });
+        }
       }
 
       // Track highest stage_enter index for currentStage restoration
       if (entry.depth === 1 && entry.summary.startsWith('stage_enter')) {
         maxStageEnterIndex = Math.max(maxStageEnterIndex, stageIndex);
+      }
+
+      // Track unlocked stages
+      if (entry.depth === 1 && entry.summary.startsWith('stage_unlock')) {
+        unlockedStages.push(stageIndex);
       }
 
       const entryTime = new Date(entry.createdAt).toISOString();
@@ -76,9 +84,10 @@ async function convertLearnerProgress(progress: LearnerProgress): Promise<UserPr
 
     results.push({
       paperId,
-      currentStage: maxStageEnterIndex,
+      currentStage: maxStageEnterIndex > 0 ? maxStageEnterIndex : completedStages.length,
       totalStages,
       completedStages: completedStages.sort((a, b) => a.stageNumber - b.stageNumber),
+      unlockedStages,
       lastAccessedAt,
     });
   }
@@ -105,7 +114,7 @@ class MockProgressAdapter implements ProgressAdapter {
     const existing = localStorage.getItem(key);
     const progress: UserProgress = existing
       ? JSON.parse(existing)
-      : { paperId: data.paperId, currentStage: 0, totalStages: data.totalStages ?? 5, completedStages: [], lastAccessedAt: '' };
+      : { paperId: data.paperId, currentStage: 0, totalStages: data.totalStages ?? 5, completedStages: [], unlockedStages: [], lastAccessedAt: '' };
     // Update totalStages if provided (fixes stale values from older saves)
     if (data.totalStages) {
       progress.totalStages = data.totalStages;
@@ -126,8 +135,11 @@ class MockProgressAdapter implements ProgressAdapter {
   async loadProgress(userId: string, paperId: string): Promise<UserProgress | null> {
     if (typeof window === 'undefined') return null;
     const key = this.getKey(userId, paperId);
-    const data = localStorage.getItem(key);
-    return data ? JSON.parse(data) : null;
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (!data.unlockedStages) data.unlockedStages = [];
+    return data;
   }
 
   async loadAllProgress(userId: string): Promise<UserProgress[]> {
@@ -136,8 +148,12 @@ class MockProgressAdapter implements ProgressAdapter {
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (key?.startsWith(`progress:${userId}:`)) {
-        const data = localStorage.getItem(key);
-        if (data) results.push(JSON.parse(data));
+        const raw = localStorage.getItem(key);
+        if (raw) {
+          const data = JSON.parse(raw);
+          if (!data.unlockedStages) data.unlockedStages = [];
+          results.push(data);
+        }
       }
     }
     return results;

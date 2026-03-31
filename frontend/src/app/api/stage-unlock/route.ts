@@ -3,15 +3,17 @@ import { getUserAinClient, getAinClient } from '@/lib/ain/client';
 import { hasExploration, writeExploration } from '@/lib/ain/record-exploration';
 
 /**
- * Record stage_complete on AIN blockchain.
- * Uses AIN SDK directly instead of going through trackEvent → ainAdapter
- * (which would make a server→server self-referencing fetch that can fail).
+ * Record stage_unlock on AIN blockchain.
+ * Called when a user pays (x402) or skips to unlock the next stage.
  */
 export async function POST(req: NextRequest) {
   let body: {
     paperId?: string;
     stageNum?: number;
     passkeyPublicKey?: string;
+    paymentMethod?: string;
+    txHash?: string;
+    amount?: string;
   };
   try {
     body = await req.json();
@@ -22,7 +24,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { paperId, stageNum, passkeyPublicKey } = body;
+  const { paperId, stageNum, passkeyPublicKey, paymentMethod, txHash, amount } = body;
 
   if (!paperId || typeof paperId !== 'string') {
     return NextResponse.json(
@@ -38,38 +40,42 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    if (await hasExploration(passkeyPublicKey, paperId, 'stage_complete', 2, stageNum)) {
+    if (await hasExploration(passkeyPublicKey, paperId, 'stage_unlock', 1, stageNum)) {
       return NextResponse.json({ success: true, skipped: true });
     }
 
     const ain = passkeyPublicKey ? getUserAinClient(passkeyPublicKey) : getAinClient();
-    const tagsStr = `stage_complete,${paperId}`;
+    const tagsStr = `stage_unlock,${paperId}`;
     await writeExploration(ain, {
       topicPath: `courses/${paperId}`,
-      title: `stage_complete: stage ${stageNum}`,
+      title: `stage_unlock: stage ${stageNum}`,
       content: JSON.stringify({
-        eventType: 'stage_complete',
+        eventType: 'stage_unlock',
         paperId,
         stageIndex: stageNum,
+        paymentMethod: paymentMethod ?? 'skip',
+        txHash: txHash ?? null,
+        amount: amount ?? null,
         timestamp: Date.now(),
       }),
-      summary: `stage_complete in course ${paperId}, stage ${stageNum}`,
-      depth: 2,
+      summary: `stage_unlock in course ${paperId}, stage ${stageNum}`,
+      depth: 1,
       tags: tagsStr,
     });
 
     return NextResponse.json({
       success: true,
-      stageCompletion: {
+      stageUnlock: {
         paperId,
         stageNum,
-        completedAt: new Date().toISOString(),
+        paymentMethod: paymentMethod ?? 'skip',
+        unlockedAt: new Date().toISOString(),
       },
     });
   } catch (error: any) {
-    console.error('[stage-complete] AIN tracking failed:', error);
+    console.error('[stage-unlock] AIN tracking failed:', error);
     return NextResponse.json(
-      { error: 'tracking_failed', message: error.message ?? 'Failed to record stage completion' },
+      { error: 'tracking_failed', message: error.message ?? 'Failed to record stage unlock' },
       { status: 500 },
     );
   }

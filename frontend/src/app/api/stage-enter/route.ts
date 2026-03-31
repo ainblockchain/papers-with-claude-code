@@ -3,14 +3,14 @@ import { getUserAinClient, getAinClient } from '@/lib/ain/client';
 import { hasExploration, writeExploration } from '@/lib/ain/record-exploration';
 
 /**
- * Record stage_complete on AIN blockchain.
- * Uses AIN SDK directly instead of going through trackEvent → ainAdapter
- * (which would make a server→server self-referencing fetch that can fail).
+ * Record stage_enter on AIN blockchain.
+ * Direct server-side write — avoids client-side fetch abort during navigation.
  */
 export async function POST(req: NextRequest) {
   let body: {
     paperId?: string;
     stageNum?: number;
+    stageTitle?: string;
     passkeyPublicKey?: string;
   };
   try {
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { paperId, stageNum, passkeyPublicKey } = body;
+  const { paperId, stageNum, stageTitle, passkeyPublicKey } = body;
 
   if (!paperId || typeof paperId !== 'string') {
     return NextResponse.json(
@@ -38,38 +38,31 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    if (await hasExploration(passkeyPublicKey, paperId, 'stage_complete', 2, stageNum)) {
+    if (await hasExploration(passkeyPublicKey, paperId, 'stage_enter', 1, stageNum)) {
       return NextResponse.json({ success: true, skipped: true });
     }
 
     const ain = passkeyPublicKey ? getUserAinClient(passkeyPublicKey) : getAinClient();
-    const tagsStr = `stage_complete,${paperId}`;
+    const tagsStr = `stage_enter,${paperId}`;
     await writeExploration(ain, {
       topicPath: `courses/${paperId}`,
-      title: `stage_complete: stage ${stageNum}`,
+      title: stageTitle ? `stage_enter: ${stageTitle}` : `stage_enter: stage ${stageNum}`,
       content: JSON.stringify({
-        eventType: 'stage_complete',
+        eventType: 'stage_enter',
         paperId,
         stageIndex: stageNum,
         timestamp: Date.now(),
       }),
-      summary: `stage_complete in course ${paperId}, stage ${stageNum}`,
-      depth: 2,
+      summary: `stage_enter in course ${paperId}, stage ${stageNum}`,
+      depth: 1,
       tags: tagsStr,
     });
 
-    return NextResponse.json({
-      success: true,
-      stageCompletion: {
-        paperId,
-        stageNum,
-        completedAt: new Date().toISOString(),
-      },
-    });
+    return NextResponse.json({ success: true });
   } catch (error: any) {
-    console.error('[stage-complete] AIN tracking failed:', error);
+    console.error('[stage-enter] AIN tracking failed:', error);
     return NextResponse.json(
-      { error: 'tracking_failed', message: error.message ?? 'Failed to record stage completion' },
+      { error: 'tracking_failed', message: error.message ?? 'Failed to record stage enter' },
       { status: 500 },
     );
   }
