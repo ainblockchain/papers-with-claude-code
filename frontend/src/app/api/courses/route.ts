@@ -2,6 +2,20 @@ import { NextResponse } from 'next/server';
 import { listCourses, fetchCoursesJson, fetchCourseReadme, fetchPaperJson, getRawUrl } from '@/lib/github';
 import type { Paper } from '@/types/paper';
 
+/** Fallback series mapping for papers that don't have series in paper.json yet */
+const BLOCKCHAIN_SERIES_SLUGS = new Set([
+  'blockchain-decentralization-fundamentals',
+  'dao-decentralized-organizations',
+  'bitcoin-ethereum-ainetwork',
+  'meaning-of-decentralization',
+  'strong-weak-technologies',
+  'token-standards-crypto',
+  'nft-philosophy-technology',
+  'nft-creator-economy',
+  'ai-blockchain-longtail',
+  'ainft-web3-ai',
+]);
+
 /** Convert slug to title case: "attention-is-all-you-need" → "Attention Is All You Need" */
 function slugToTitle(slug: string): string {
   return slug
@@ -153,6 +167,9 @@ export async function GET() {
         const backgroundUrl = courseBgOverride
           || (rawBg.startsWith('http') ? rawBg : rawBg ? getRawUrl(`${entry.paperSlug}/${rawBg}`) : '');
 
+        const series = paperJson?.series
+          || (BLOCKCHAIN_SERIES_SLUGS.has(entry.paperSlug) ? 'blockchain-fundamentals' : undefined);
+
         const paper: Paper = {
           id: courseId,
           title: title + courseLabel,
@@ -170,6 +187,8 @@ export async function GET() {
           organization: paperJson?.organization
             ? { name: paperJson.organization.name, logoUrl: '' }
             : undefined,
+          series,
+          sortOrder: paperJson?.sortOrder,
         };
 
         return paper;
