@@ -76,6 +76,26 @@ curl -s -X POST https://devnet-api.ainetwork.ai/json-rpc \
   -d '{"jsonrpc":"2.0","id":1,"method":"ain_get","params":{"protoVer":"1.6.0","type":"GET_VALUE","ref":"/apps/knowledge/topics/identity"}}'
 ```
 
+## Series Data Schema
+
+시리즈 데이터는 AIN 블록체인 `/apps/knowledge/series/{series-slug}/`에 저장.
+
+| 필드 | 필수 | 설명 |
+|---|---|---|
+| `title` | Yes | 시리즈 제목 |
+| `description` | Yes | 시리즈 설명 |
+| `thumbnailUrl` | No | 에셋 파일명 (예: `blockchain-fundamentals.png`). 프론트엔드에서 `NEXT_PUBLIC_COURSE_ASSETS_BASE_URL`과 조합하여 전체 URL 생성 |
+| `creatorAddress` | Yes | 생성자 지갑 주소 (auth.addr) |
+| `groups` | Yes | 그룹별 코스 ID 목록. 그룹명은 자유 (언어, 난이도, 주제 등). 1개면 탭 없음, 2개 이상이면 자동 탭 생성. `{ "English": { 0: "id", 1: "id" }, "Korean": { 0: "id" } }` |
+| `createdAt` | Yes | 생성 타임스탬프 (ms) |
+
+썸네일 이미지는 awesome 레포 `assets/` 폴더에 업로드하고, 블록체인에는 파일명만 기록.
+
+## Git / Push Rules
+
+- **awesome 레포** (`ainblockchain/awesome-papers-with-claude-code`, 강의 콘텐츠): 수정 시 바로 커밋 + 푸시
+- **그 외** (frontend, knowledge-graph-builder 등): 유저가 커밋/푸시를 명시적으로 요청하거나 컨펌할 때만 진행. 자동 커밋/푸시 금지
+
 ## Known Issues / TODO
 
 - identity 경로가 `/topics/identity/`에 임시 배치 (root rule 제약) → `AIN_PRIVATE_KEY` 확보 후 이전

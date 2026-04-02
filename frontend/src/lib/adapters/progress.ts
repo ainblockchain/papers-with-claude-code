@@ -66,6 +66,7 @@ async function convertLearnerProgress(progress: LearnerProgress): Promise<UserPr
       }
 
       // Track unlocked stages
+      // Value = the stage index where unlock/payment happened (current stage at that time)
       if (entry.depth === 1 && entry.summary.startsWith('stage_unlock')) {
         unlockedStages.push(stageIndex);
       }

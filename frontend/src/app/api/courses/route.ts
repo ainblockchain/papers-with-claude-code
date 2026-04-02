@@ -1,6 +1,32 @@
 import { NextResponse } from 'next/server';
 import { listCourses, fetchCoursesJson, fetchCourseReadme, fetchPaperJson, getRawUrl } from '@/lib/github';
+import { getAinClient } from '@/lib/ain/client';
 import type { Paper } from '@/types/paper';
+
+/** Build courseId → seriesSlug map from blockchain series data */
+async function loadSeriesMap(): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  try {
+    const ain = getAinClient();
+    const raw = await ain.db.ref('/apps/knowledge/series').getValue();
+    if (raw && typeof raw === 'object') {
+      for (const [slug, data] of Object.entries(raw) as [string, any][]) {
+        if (data.groups && typeof data.groups === 'object') {
+          for (const ids of Object.values(data.groups) as any[]) {
+            if (ids && typeof ids === 'object') {
+              for (const courseId of Object.values(ids) as string[]) {
+                map.set(courseId, slug);
+              }
+            }
+          }
+        }
+      }
+    }
+  } catch {
+    // blockchain unavailable — return empty map
+  }
+  return map;
+}
 
 /** Convert slug to title case: "attention-is-all-you-need" → "Attention Is All You Need" */
 function slugToTitle(slug: string): string {
@@ -67,7 +93,7 @@ export async function GET() {
   }
 
   try {
-    const entries = await listCourses();
+    const [entries, seriesMap] = await Promise.all([listCourses(), loadSeriesMap()]);
 
     // Pre-compute course count per paper (for courseLabel logic)
     const courseCountByPaper = new Map<string, number>();
@@ -153,6 +179,8 @@ export async function GET() {
         const backgroundUrl = courseBgOverride
           || (rawBg.startsWith('http') ? rawBg : rawBg ? getRawUrl(`${entry.paperSlug}/${rawBg}`) : '');
 
+        const series = paperJson?.series || seriesMap.get(courseId);
+
         const paper: Paper = {
           id: courseId,
           title: title + courseLabel,
@@ -170,6 +198,8 @@ export async function GET() {
           organization: paperJson?.organization
             ? { name: paperJson.organization.name, logoUrl: '' }
             : undefined,
+          series,
+          sortOrder: paperJson?.sortOrder,
         };
 
         return paper;

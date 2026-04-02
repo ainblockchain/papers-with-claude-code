@@ -290,6 +290,8 @@ export interface PaperJsonData {
   publishedAt?: string;
   organization?: { name: string };
   submittedBy?: string;
+  series?: string;
+  sortOrder?: number;
 }
 
 /** Build a URL to a file in the current branch */

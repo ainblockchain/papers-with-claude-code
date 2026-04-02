@@ -30,4 +30,16 @@ export interface Paper {
   courseName?: string;
   courses?: CourseInfo[];
   badgeUrl?: string;
+  series?: string;
+  sortOrder?: number;
+}
+
+export interface Series {
+  id: string;
+  title: string;
+  description: string;
+  thumbnailUrl?: string;
+  creatorAddress: string;
+  groups: Record<string, string[]>;
+  createdAt: number;
 }

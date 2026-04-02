@@ -272,6 +272,7 @@ The `content` field is the main learning content displayed on the chalkboard UI.
 5. **Quiz to finish**: One of multiple choice / true-false / fill-in-the-blank (in `exercise` field)
    - Do not require writing code
    - Do not use expressions like "open the file"
+   - Do not add "Answer with a number" or "숫자로 답하세요" — the UI renders clickable options, not a text input
 
 **Quiz example**:
 ```
@@ -279,7 +280,6 @@ Why are there multiple "heads" in multi-head attention?
 1) To speed up computation
 2) To simultaneously learn attention patterns from different perspectives
 3) To save memory
-Answer with a number.
 ```
 → `"answer": "To simultaneously learn attention patterns from different perspectives"`
 
