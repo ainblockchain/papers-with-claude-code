@@ -9,6 +9,8 @@ import { PurchaseModal } from '@/components/purchase/PurchaseModal';
 import { useSeries } from '@/hooks/useSeries';
 import { useCourses } from '@/hooks/useCourses';
 import type { Paper } from '@/types/paper';
+
+const ASSETS_BASE = process.env.NEXT_PUBLIC_COURSE_ASSETS_BASE_URL || '';
 import { usePurchaseStore } from '@/stores/usePurchaseStore';
 
 export default function SeriesDetailPage() {
@@ -95,13 +97,24 @@ export default function SeriesDetailPage() {
         >
           <ArrowLeft className="h-4 w-4 mr-1" /> Back to Explore
         </Button>
-        <h1 className="text-3xl font-bold text-[#111827]">{series.title}</h1>
-        {series.description && (
-          <p className="mt-2 text-sm text-[#6B7280] max-w-2xl">{series.description}</p>
-        )}
-        <p className="mt-2 text-xs text-[#9CA3AF]">
-          {series.courseIds.length} course{series.courseIds.length !== 1 ? 's' : ''}
-        </p>
+        <div className="flex gap-4 items-start">
+          {series.thumbnailUrl && ASSETS_BASE && (
+            <img
+              src={`${ASSETS_BASE}/${series.thumbnailUrl}`}
+              alt={series.title}
+              className="w-[120px] h-[80px] rounded-lg object-cover flex-shrink-0"
+            />
+          )}
+          <div>
+            <h1 className="text-3xl font-bold text-[#111827]">{series.title}</h1>
+            {series.description && (
+              <p className="mt-2 text-sm text-[#6B7280] max-w-2xl">{series.description}</p>
+            )}
+            <p className="mt-2 text-xs text-[#9CA3AF]">
+              {series.courseIds.length} course{series.courseIds.length !== 1 ? 's' : ''}
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* EN Courses */}

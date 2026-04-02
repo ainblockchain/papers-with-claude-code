@@ -1,8 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { BookOpen, ChevronRight } from 'lucide-react';
 import { Series } from '@/types/paper';
+
+const ASSETS_BASE = process.env.NEXT_PUBLIC_COURSE_ASSETS_BASE_URL || '';
 
 interface SeriesCardProps {
   series: Series;
@@ -10,15 +13,28 @@ interface SeriesCardProps {
 
 export function SeriesCard({ series }: SeriesCardProps) {
   const router = useRouter();
+  const [imgError, setImgError] = useState(false);
+  const thumbnailSrc = series.thumbnailUrl && ASSETS_BASE
+    ? `${ASSETS_BASE}/${series.thumbnailUrl}`
+    : null;
 
   return (
     <article
       onClick={() => router.push(`/explore/series/${series.id}`)}
       className="flex gap-4 py-5 border-t border-[#E5E7EB] first:border-t-0 cursor-pointer group hover:bg-gray-50/50 transition-colors"
     >
-      {/* Thumbnail placeholder */}
+      {/* Thumbnail */}
       <div className="relative flex-shrink-0 w-[160px] h-[120px] rounded-lg overflow-hidden bg-gradient-to-br from-[#FF9D00]/10 to-[#FF9D00]/5 border border-[#FF9D00]/20 flex items-center justify-center">
-        <BookOpen className="h-10 w-10 text-[#FF9D00]/60" />
+        {thumbnailSrc && !imgError ? (
+          <img
+            src={thumbnailSrc}
+            alt={series.title}
+            className="absolute inset-0 w-full h-full object-cover"
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <BookOpen className="h-10 w-10 text-[#FF9D00]/60" />
+        )}
       </div>
 
       {/* Content */}

@@ -1,20 +1,28 @@
 import { NextResponse } from 'next/server';
 import { listCourses, fetchCoursesJson, fetchCourseReadme, fetchPaperJson, getRawUrl } from '@/lib/github';
+import { getAinClient } from '@/lib/ain/client';
 import type { Paper } from '@/types/paper';
 
-/** Fallback series mapping for papers that don't have series in paper.json yet */
-const BLOCKCHAIN_SERIES_SLUGS = new Set([
-  'blockchain-decentralization-fundamentals',
-  'dao-decentralized-organizations',
-  'bitcoin-ethereum-ainetwork',
-  'meaning-of-decentralization',
-  'strong-weak-technologies',
-  'token-standards-crypto',
-  'nft-philosophy-technology',
-  'nft-creator-economy',
-  'ai-blockchain-longtail',
-  'ainft-web3-ai',
-]);
+/** Build courseId → seriesSlug map from blockchain series data */
+async function loadSeriesMap(): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  try {
+    const ain = getAinClient();
+    const raw = await ain.db.ref('/apps/knowledge/series').getValue();
+    if (raw && typeof raw === 'object') {
+      for (const [slug, data] of Object.entries(raw) as [string, any][]) {
+        if (data.courseIds && typeof data.courseIds === 'object') {
+          for (const courseId of Object.values(data.courseIds) as string[]) {
+            map.set(courseId, slug);
+          }
+        }
+      }
+    }
+  } catch {
+    // blockchain unavailable — return empty map
+  }
+  return map;
+}
 
 /** Convert slug to title case: "attention-is-all-you-need" → "Attention Is All You Need" */
 function slugToTitle(slug: string): string {
@@ -81,7 +89,7 @@ export async function GET() {
   }
 
   try {
-    const entries = await listCourses();
+    const [entries, seriesMap] = await Promise.all([listCourses(), loadSeriesMap()]);
 
     // Pre-compute course count per paper (for courseLabel logic)
     const courseCountByPaper = new Map<string, number>();
@@ -167,8 +175,7 @@ export async function GET() {
         const backgroundUrl = courseBgOverride
           || (rawBg.startsWith('http') ? rawBg : rawBg ? getRawUrl(`${entry.paperSlug}/${rawBg}`) : '');
 
-        const series = paperJson?.series
-          || (BLOCKCHAIN_SERIES_SLUGS.has(entry.paperSlug) ? 'blockchain-fundamentals' : undefined);
+        const series = paperJson?.series || seriesMap.get(courseId);
 
         const paper: Paper = {
           id: courseId,
