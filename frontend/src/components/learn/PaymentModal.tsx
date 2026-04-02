@@ -53,6 +53,8 @@ export function PaymentModal() {
     setDoorUnlocked,
     setTxHash,
     setExplorerUrl,
+    progress: userProgress,
+    setProgress,
   } = useLearningStore();
 
   if (!isPaymentModalOpen || !currentPaper) return null;
@@ -87,6 +89,13 @@ export function PaymentModal() {
         setExplorerUrl(result.explorerUrl || null);
         setDoorUnlocked(true);
 
+        // Update unlockedStages so the navigator reflects the unlock
+        const nextIdx = currentStageIndex + 1;
+        const existing = userProgress?.unlockedStages ?? [];
+        if (!existing.includes(nextIdx) && userProgress) {
+          setProgress({ ...userProgress, unlockedStages: [...existing, nextIdx] });
+        }
+
         // Record stage_unlock on blockchain (fire-and-forget)
         fetch('/api/stage-unlock', {
           method: 'POST',
@@ -114,6 +123,13 @@ export function PaymentModal() {
   const handleFreeUnlock = () => {
     setPhase('done');
     setDoorUnlocked(true);
+
+    // Update unlockedStages so the navigator reflects the unlock
+    const nextIdx = currentStageIndex + 1;
+    const existing = userProgress?.unlockedStages ?? [];
+    if (!existing.includes(nextIdx) && userProgress) {
+      setProgress({ ...userProgress, unlockedStages: [...existing, nextIdx] });
+    }
 
     // Record stage_unlock on blockchain (fire-and-forget)
     fetch('/api/stage-unlock', {
