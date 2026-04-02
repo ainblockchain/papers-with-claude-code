@@ -89,11 +89,11 @@ export function PaymentModal() {
         setExplorerUrl(result.explorerUrl || null);
         setDoorUnlocked(true);
 
-        // Update unlockedStages so the navigator reflects the unlock
-        const nextIdx = currentStageIndex + 1;
+        // Update unlockedStages: store current stage index (= this stage's exit was unlocked)
+        // StageProgressBar checks stageIndex-1 to determine if a stage is accessible
         const existing = userProgress?.unlockedStages ?? [];
-        if (!existing.includes(nextIdx) && userProgress) {
-          setProgress({ ...userProgress, unlockedStages: [...existing, nextIdx] });
+        if (!existing.includes(currentStageIndex) && userProgress) {
+          setProgress({ ...userProgress, unlockedStages: [...existing, currentStageIndex] });
         }
 
         // Record stage_unlock on blockchain (fire-and-forget)
@@ -124,11 +124,10 @@ export function PaymentModal() {
     setPhase('done');
     setDoorUnlocked(true);
 
-    // Update unlockedStages so the navigator reflects the unlock
-    const nextIdx = currentStageIndex + 1;
+    // Update unlockedStages: store current stage index (= this stage's exit was unlocked)
     const existing = userProgress?.unlockedStages ?? [];
-    if (!existing.includes(nextIdx) && userProgress) {
-      setProgress({ ...userProgress, unlockedStages: [...existing, nextIdx] });
+    if (!existing.includes(currentStageIndex) && userProgress) {
+      setProgress({ ...userProgress, unlockedStages: [...existing, currentStageIndex] });
     }
 
     // Record stage_unlock on blockchain (fire-and-forget)

@@ -35,15 +35,16 @@ export function StageProgressBar() {
 
   const isStageUnlocked = (stageIndex: number) => {
     if (stageIndex === 0) return true; // First stage always unlocked
-    if (stageIndex === currentStageIndex) return true; // Current stage always unlocked
     // Stage is unlocked if:
-    // 1. Explicitly unlocked (via unlockedStages array — set after payment/skip)
+    // 1. Previous stage's exit was unlocked (payment/skip recorded for stageIndex-1)
     // 2. This stage itself is completed (already played through)
-    const explicitlyUnlocked = userProgress?.unlockedStages?.includes(stageIndex) ?? false;
+    // unlockedStages stores the stage index where unlock happened, so checking
+    // stageIndex-1 means "the exit of the previous stage was paid for"
+    const previousExitUnlocked = userProgress?.unlockedStages?.includes(stageIndex - 1) ?? false;
     const thisStageCompleted = userProgress?.completedStages?.some(
       (s) => s.stageNumber === stageIndex
     ) ?? false;
-    return explicitlyUnlocked || thisStageCompleted;
+    return previousExitUnlocked || thisStageCompleted;
   };
 
   const isStageCompleted = (stageIndex: number) => {
