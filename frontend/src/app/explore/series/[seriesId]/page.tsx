@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,42 @@ import type { Paper } from '@/types/paper';
 import { usePurchaseStore } from '@/stores/usePurchaseStore';
 
 const ASSETS_BASE = process.env.NEXT_PUBLIC_COURSE_ASSETS_BASE_URL || '';
+
+function ExpandableText({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const measuredRef = useRef<HTMLParagraphElement>(null);
+  const [overflows, setOverflows] = useState(false);
+
+  useEffect(() => {
+    const el = measuredRef.current;
+    if (!el) return;
+    // line-clamp-3 height vs actual content height
+    const lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 20;
+    setOverflows(el.scrollHeight > lineHeight * 3 + 1);
+  }, [text]);
+
+  return (
+    <div className="mt-2 max-w-2xl">
+      <p
+        ref={measuredRef}
+        className={cn(
+          'text-sm text-[#6B7280]',
+          !expanded && overflows && 'line-clamp-2'
+        )}
+      >
+        {text}
+      </p>
+      {overflows && (
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="text-xs text-[#FF9D00] hover:underline mt-0.5"
+        >
+          {expanded ? 'Show less' : 'Show more'}
+        </button>
+      )}
+    </div>
+  );
+}
 
 function LanguageTabs({ lang, setLang, enCount, koCount }: {
   lang: 'en' | 'ko';
@@ -139,22 +175,24 @@ export default function SeriesDetailPage() {
         >
           <ArrowLeft className="h-4 w-4 mr-1" /> Back to Explore
         </Button>
-        <div className="flex gap-4 items-start">
+        <div className="flex gap-5 items-start">
           {series.thumbnailUrl && ASSETS_BASE && (
             <img
               src={`${ASSETS_BASE}/${series.thumbnailUrl}`}
               alt={series.title}
-              className="w-[120px] h-[80px] rounded-lg object-cover flex-shrink-0"
+              className="w-[140px] h-[108px] rounded-lg object-cover flex-shrink-0"
             />
           )}
-          <div>
-            <h1 className="text-3xl font-bold text-[#111827]">{series.title}</h1>
+          <div className="min-w-0">
+            <div className="flex items-end gap-3">
+              <h1 className="text-3xl font-bold text-[#111827] leading-tight">{series.title}</h1>
+              <span className="text-xs text-[#9CA3AF] whitespace-nowrap pb-1">
+                {series.courseIds.length} course{series.courseIds.length !== 1 ? 's' : ''}
+              </span>
+            </div>
             {series.description && (
-              <p className="mt-2 text-sm text-[#6B7280] max-w-2xl">{series.description}</p>
+              <ExpandableText text={series.description} />
             )}
-            <p className="mt-2 text-xs text-[#9CA3AF]">
-              {series.courseIds.length} course{series.courseIds.length !== 1 ? 's' : ''}
-            </p>
           </div>
         </div>
       </div>
