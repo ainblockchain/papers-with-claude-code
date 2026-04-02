@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchCoursesJson } from '@/lib/github';
-import { generateCourseInfo } from '@/lib/server/map-generator';
+import { generateCourseInfo, type CourseEntry } from '@/lib/server/map-generator';
 
 /** Parse composite courseId "paperSlug--courseSlug" */
 function parseCourseId(courseId: string): { paperSlug: string; courseSlug: string } | null {
@@ -25,7 +25,7 @@ export async function GET(
 
   try {
     const courses = await fetchCoursesJson(parsed.paperSlug, parsed.courseSlug);
-    const info = generateCourseInfo(parsed.paperSlug, parsed.courseSlug, courses);
+    const info = generateCourseInfo(parsed.paperSlug, parsed.courseSlug, courses as CourseEntry[]);
     return NextResponse.json(info);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to fetch course info';

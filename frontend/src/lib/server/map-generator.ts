@@ -29,7 +29,7 @@ export interface ExerciseEntry {
 export interface Lesson {
   concept_id: string;
   title: string;
-  content: string; // Rich learning content for the concept (displayed on chalkboard)
+  content?: string; // Rich learning content for the concept (displayed on chalkboard)
   key_ideas: string[];
   exercise?: string;
   answer?: string;
@@ -280,7 +280,7 @@ function computeConceptPositions(count: number): ConceptPosition[] {
 
 /** Get concept content from lesson. */
 function buildConceptContent(lesson: Lesson): string {
-  return lesson.content.trim();
+  return (lesson.content ?? '').trim();
 }
 
 // ── Stage room TMJ generation ────────────────────────────────────────────

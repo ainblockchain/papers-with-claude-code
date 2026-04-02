@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchCoursesJson } from '@/lib/github';
-import { generateStageData } from '@/lib/server/map-generator';
+import { generateStageData, type CourseEntry } from '@/lib/server/map-generator';
 
 /** Parse composite courseId "paperSlug--courseSlug" */
 function parseCourseId(courseId: string): { paperSlug: string; courseSlug: string } | null {
@@ -43,7 +43,7 @@ export async function GET(
 
     const stageData = generateStageData(
       stageNumber,
-      courses[stageNumber - 1],
+      courses[stageNumber - 1] as CourseEntry,
       courses.length,
     );
 

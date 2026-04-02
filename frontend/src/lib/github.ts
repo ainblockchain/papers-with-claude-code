@@ -31,10 +31,13 @@ export interface GitHubCourseEntry {
 export interface CoursesJsonLesson {
   concept_id: string;
   title: string;
+  content?: string;
   key_ideas: string[];
   exercise: string;
+  answer?: string;
   explanation: string;
   prerequisites: string[];
+  exercises?: unknown[];
 }
 
 export interface CoursesJson {
