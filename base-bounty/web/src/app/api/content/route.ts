@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getAin } from '@/lib/ain-server';
 import { titleWords, similarity, hasPaperRef, hasCodeRef } from '@/lib/mcp/helpers/publication-criteria';
 
+export const dynamic = 'force-dynamic';
+
 async function collectAllTopicPaths(ain: any): Promise<string[]> {
   const paths: string[] = [];
 
