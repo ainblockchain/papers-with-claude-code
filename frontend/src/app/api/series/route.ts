@@ -5,6 +5,13 @@ import type { Series } from '@/types/paper';
 let cachedResponse: { data: Series[]; timestamp: number } | null = null;
 const CACHE_TTL = 2 * 60 * 1000; // 2 minutes
 
+/** Convert AIN object { 0: "a", 1: "b" } to ordered array ["a", "b"] */
+function toArray(obj: Record<string, string>): string[] {
+  return Object.keys(obj)
+    .sort((a, b) => Number(a) - Number(b))
+    .map((k) => obj[k]);
+}
+
 export async function GET() {
   if (cachedResponse && Date.now() - cachedResponse.timestamp < CACHE_TTL) {
     return NextResponse.json(cachedResponse.data);
@@ -19,12 +26,13 @@ export async function GET() {
     }
 
     const series: Series[] = Object.entries(raw).map(([slug, data]: [string, any]) => {
-      // courseIds is stored as { 0: "id", 1: "id", ... } — convert to array
-      const courseIds: string[] = [];
-      if (data.courseIds && typeof data.courseIds === 'object') {
-        const keys = Object.keys(data.courseIds).sort((a, b) => Number(a) - Number(b));
-        for (const key of keys) {
-          courseIds.push(data.courseIds[key]);
+      const groups: Record<string, string[]> = {};
+
+      if (data.groups && typeof data.groups === 'object') {
+        for (const [groupName, ids] of Object.entries(data.groups)) {
+          if (ids && typeof ids === 'object') {
+            groups[groupName] = toArray(ids as Record<string, string>);
+          }
         }
       }
 
@@ -34,7 +42,7 @@ export async function GET() {
         description: data.description || '',
         thumbnailUrl: data.thumbnailUrl || undefined,
         creatorAddress: data.creatorAddress || '',
-        courseIds,
+        groups,
         createdAt: data.createdAt || 0,
       };
     });

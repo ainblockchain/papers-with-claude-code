@@ -40,6 +40,6 @@ export interface Series {
   description: string;
   thumbnailUrl?: string;
   creatorAddress: string;
-  courseIds: string[];
+  groups: Record<string, string[]>;
   createdAt: number;
 }

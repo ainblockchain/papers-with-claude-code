@@ -11,9 +11,13 @@ async function loadSeriesMap(): Promise<Map<string, string>> {
     const raw = await ain.db.ref('/apps/knowledge/series').getValue();
     if (raw && typeof raw === 'object') {
       for (const [slug, data] of Object.entries(raw) as [string, any][]) {
-        if (data.courseIds && typeof data.courseIds === 'object') {
-          for (const courseId of Object.values(data.courseIds) as string[]) {
-            map.set(courseId, slug);
+        if (data.groups && typeof data.groups === 'object') {
+          for (const ids of Object.values(data.groups) as any[]) {
+            if (ids && typeof ids === 'object') {
+              for (const courseId of Object.values(ids) as string[]) {
+                map.set(courseId, slug);
+              }
+            }
           }
         }
       }

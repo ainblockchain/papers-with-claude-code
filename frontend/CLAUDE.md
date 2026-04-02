@@ -86,7 +86,7 @@ curl -s -X POST https://devnet-api.ainetwork.ai/json-rpc \
 | `description` | Yes | 시리즈 설명 |
 | `thumbnailUrl` | No | 에셋 파일명 (예: `blockchain-fundamentals.png`). 프론트엔드에서 `NEXT_PUBLIC_COURSE_ASSETS_BASE_URL`과 조합하여 전체 URL 생성 |
 | `creatorAddress` | Yes | 생성자 지갑 주소 (auth.addr) |
-| `courseIds` | Yes | 포함된 코스 ID 목록 (순서 = 학습 추천 순서). `{ 0: "slug--core", 1: "slug--core-ko", ... }` |
+| `groups` | Yes | 그룹별 코스 ID 목록. 그룹명은 자유 (언어, 난이도, 주제 등). 1개면 탭 없음, 2개 이상이면 자동 탭 생성. `{ "English": { 0: "id", 1: "id" }, "Korean": { 0: "id" } }` |
 | `createdAt` | Yes | 생성 타임스탬프 (ms) |
 
 썸네일 이미지는 awesome 레포 `assets/` 폴더에 업로드하고, 블록체인에는 파일명만 기록.

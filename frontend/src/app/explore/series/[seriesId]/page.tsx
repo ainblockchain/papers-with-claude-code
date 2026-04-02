@@ -9,9 +9,8 @@ import { PaperCard } from '@/components/explore/PaperCard';
 import { PurchaseModal } from '@/components/purchase/PurchaseModal';
 import { useSeries } from '@/hooks/useSeries';
 import { useCourses } from '@/hooks/useCourses';
-import type { Paper } from '@/types/paper';
-
 import { usePurchaseStore } from '@/stores/usePurchaseStore';
+import type { Paper } from '@/types/paper';
 
 const ASSETS_BASE = process.env.NEXT_PUBLIC_COURSE_ASSETS_BASE_URL || '';
 
@@ -23,7 +22,6 @@ function ExpandableText({ text }: { text: string }) {
   useEffect(() => {
     const el = measuredRef.current;
     if (!el) return;
-    // line-clamp-3 height vs actual content height
     const lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 20;
     setOverflows(el.scrollHeight > lineHeight * 3 + 1);
   }, [text]);
@@ -51,40 +49,30 @@ function ExpandableText({ text }: { text: string }) {
   );
 }
 
-function LanguageTabs({ lang, setLang, enCount, koCount }: {
-  lang: 'en' | 'ko';
-  setLang: (l: 'en' | 'ko') => void;
-  enCount: number;
-  koCount: number;
+function GroupTabs({ groups, activeGroup, setActiveGroup }: {
+  groups: { name: string; count: number }[];
+  activeGroup: string;
+  setActiveGroup: (g: string) => void;
 }) {
+  if (groups.length <= 1) return null;
   return (
     <div className="flex items-center gap-1 border-b border-[#E5E7EB] mb-4">
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => setLang('en')}
-        className={cn(
-          'text-sm rounded-none border-b-2 -mb-px px-4',
-          lang === 'en'
-            ? 'font-semibold text-[#111827] border-[#FF9D00]'
-            : 'text-[#6B7280] border-transparent hover:text-[#111827]'
-        )}
-      >
-        English ({enCount})
-      </Button>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => setLang('ko')}
-        className={cn(
-          'text-sm rounded-none border-b-2 -mb-px px-4',
-          lang === 'ko'
-            ? 'font-semibold text-[#111827] border-[#FF9D00]'
-            : 'text-[#6B7280] border-transparent hover:text-[#111827]'
-        )}
-      >
-        Korean ({koCount})
-      </Button>
+      {groups.map((g) => (
+        <Button
+          key={g.name}
+          variant="ghost"
+          size="sm"
+          onClick={() => setActiveGroup(g.name)}
+          className={cn(
+            'text-sm rounded-none border-b-2 -mb-px px-4',
+            activeGroup === g.name
+              ? 'font-semibold text-[#111827] border-[#FF9D00]'
+              : 'text-[#6B7280] border-transparent hover:text-[#111827]'
+          )}
+        >
+          {g.name} ({g.count})
+        </Button>
+      ))}
     </div>
   );
 }
@@ -103,19 +91,35 @@ export default function SeriesDetailPage() {
     [allSeries, seriesId]
   );
 
-  const seriesCourses = useMemo((): { en: Paper[]; ko: Paper[] } => {
-    if (!series || !courses) return { en: [], ko: [] };
-
+  // Resolve courseIds to Paper objects per group
+  const groupedCourses = useMemo((): Map<string, Paper[]> => {
+    if (!series || !courses) return new Map();
     const courseMap = new Map(courses.map((c) => [c.id, c]));
-    const ordered = series.courseIds
-      .map((id) => courseMap.get(id))
-      .filter((c): c is Paper => c !== undefined);
+    const result = new Map<string, Paper[]>();
 
-    // EN first, KO second — within each language group, keep series order
-    const en = ordered.filter((c) => !c.id.endsWith('-ko'));
-    const ko = ordered.filter((c) => c.id.endsWith('-ko'));
-    return { en, ko };
+    for (const [groupName, ids] of Object.entries(series.groups)) {
+      const papers = ids
+        .map((id) => courseMap.get(id))
+        .filter((c): c is Paper => c !== undefined);
+      if (papers.length > 0) result.set(groupName, papers);
+    }
+
+    return result;
   }, [series, courses]);
+
+  const groupNames = useMemo(
+    () => Array.from(groupedCourses.entries()).map(([name, papers]) => ({ name, count: papers.length })),
+    [groupedCourses]
+  );
+
+  const [activeGroup, setActiveGroup] = useState('');
+
+  // Set default active group when data loads
+  useEffect(() => {
+    if (groupNames.length > 0 && !groupedCourses.has(activeGroup)) {
+      setActiveGroup(groupNames[0].name);
+    }
+  }, [groupNames, activeGroup, groupedCourses]);
 
   useEffect(() => {
     if (courses && courses.length > 0) {
@@ -124,8 +128,7 @@ export default function SeriesDetailPage() {
     }
   }, [courses, initializeAccess, restoreFromBlockchain]);
 
-  const [lang, setLang] = useState<'en' | 'ko'>('en');
-
+  const totalCourses = groupNames.reduce((sum, g) => sum + g.count, 0);
   const isLoading = seriesLoading || coursesLoading;
 
   if (isLoading) {
@@ -187,7 +190,7 @@ export default function SeriesDetailPage() {
             <div className="flex items-end gap-3">
               <h1 className="text-3xl font-bold text-[#111827] leading-tight">{series.title}</h1>
               <span className="text-xs text-[#9CA3AF] whitespace-nowrap pb-1">
-                {series.courseIds.length} course{series.courseIds.length !== 1 ? 's' : ''}
+                {totalCourses} course{totalCourses !== 1 ? 's' : ''}
               </span>
             </div>
             {series.description && (
@@ -197,19 +200,12 @@ export default function SeriesDetailPage() {
         </div>
       </div>
 
-      {/* Language tabs */}
-      {seriesCourses.en.length > 0 && seriesCourses.ko.length > 0 && (
-        <LanguageTabs
-          lang={lang}
-          setLang={setLang}
-          enCount={seriesCourses.en.length}
-          koCount={seriesCourses.ko.length}
-        />
-      )}
+      {/* Group tabs */}
+      <GroupTabs groups={groupNames} activeGroup={activeGroup} setActiveGroup={setActiveGroup} />
 
       {/* Course list */}
       <div>
-        {(lang === 'en' ? seriesCourses.en : seriesCourses.ko).map((paper) => (
+        {(groupedCourses.get(activeGroup) || []).map((paper) => (
           <PaperCard key={paper.id} paper={paper} />
         ))}
       </div>

@@ -51,7 +51,7 @@ export function SeriesCard({ series }: SeriesCardProps) {
 
         <div className="mt-auto pt-3 flex items-center gap-2 text-sm text-[#6B7280]">
           <span className="text-xs font-medium">
-            {series.courseIds.length} course{series.courseIds.length !== 1 ? 's' : ''}
+            {Object.values(series.groups).reduce((sum, ids) => sum + ids.length, 0)} courses
           </span>
         </div>
       </div>
