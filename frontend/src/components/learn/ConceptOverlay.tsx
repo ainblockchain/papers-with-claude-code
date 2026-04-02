@@ -300,6 +300,10 @@ export function ConceptOverlay() {
   const { stages, currentStageIndex, activeConceptId, setActiveConcept, markConceptViewed } = useLearningStore();
 
   const close = useCallback(() => {
+    setActiveConcept(null);
+  }, [setActiveConcept]);
+
+  const gotIt = useCallback(() => {
     if (activeConceptId) markConceptViewed(activeConceptId);
     setActiveConcept(null);
   }, [activeConceptId, setActiveConcept, markConceptViewed]);
@@ -307,7 +311,7 @@ export function ConceptOverlay() {
   useEffect(() => {
     if (!activeConceptId) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Enter' || e.key === 'Escape') {
+      if (e.key === 'Escape') {
         e.preventDefault();
         e.stopPropagation();
         close();
@@ -345,7 +349,7 @@ export function ConceptOverlay() {
         <div className="px-4 pb-4 shrink-0">
           <Button
             size="sm"
-            onClick={close}
+            onClick={gotIt}
             className="w-full bg-[#FF9D00] hover:bg-[#FF9D00]/90 text-white"
           >
             Got it!
