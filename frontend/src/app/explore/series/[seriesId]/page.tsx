@@ -1,17 +1,57 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { PaperCard } from '@/components/explore/PaperCard';
 import { PurchaseModal } from '@/components/purchase/PurchaseModal';
 import { useSeries } from '@/hooks/useSeries';
 import { useCourses } from '@/hooks/useCourses';
 import type { Paper } from '@/types/paper';
 
-const ASSETS_BASE = process.env.NEXT_PUBLIC_COURSE_ASSETS_BASE_URL || '';
 import { usePurchaseStore } from '@/stores/usePurchaseStore';
+
+const ASSETS_BASE = process.env.NEXT_PUBLIC_COURSE_ASSETS_BASE_URL || '';
+
+function LanguageTabs({ lang, setLang, enCount, koCount }: {
+  lang: 'en' | 'ko';
+  setLang: (l: 'en' | 'ko') => void;
+  enCount: number;
+  koCount: number;
+}) {
+  return (
+    <div className="flex items-center gap-1 border-b border-[#E5E7EB] mb-4">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => setLang('en')}
+        className={cn(
+          'text-sm rounded-none border-b-2 -mb-px px-4',
+          lang === 'en'
+            ? 'font-semibold text-[#111827] border-[#FF9D00]'
+            : 'text-[#6B7280] border-transparent hover:text-[#111827]'
+        )}
+      >
+        English ({enCount})
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => setLang('ko')}
+        className={cn(
+          'text-sm rounded-none border-b-2 -mb-px px-4',
+          lang === 'ko'
+            ? 'font-semibold text-[#111827] border-[#FF9D00]'
+            : 'text-[#6B7280] border-transparent hover:text-[#111827]'
+        )}
+      >
+        Korean ({koCount})
+      </Button>
+    </div>
+  );
+}
 
 export default function SeriesDetailPage() {
   const params = useParams();
@@ -47,6 +87,8 @@ export default function SeriesDetailPage() {
       restoreFromBlockchain();
     }
   }, [courses, initializeAccess, restoreFromBlockchain]);
+
+  const [lang, setLang] = useState<'en' | 'ko'>('en');
 
   const isLoading = seriesLoading || coursesLoading;
 
@@ -117,33 +159,22 @@ export default function SeriesDetailPage() {
         </div>
       </div>
 
-      {/* EN Courses */}
-      {seriesCourses.en && seriesCourses.en.length > 0 && (
-        <div className="mb-6">
-          <h2 className="text-sm font-semibold text-[#6B7280] uppercase tracking-wider mb-2">
-            English
-          </h2>
-          <div>
-            {seriesCourses.en.map((paper) => (
-              <PaperCard key={paper.id} paper={paper} />
-            ))}
-          </div>
-        </div>
+      {/* Language tabs */}
+      {seriesCourses.en.length > 0 && seriesCourses.ko.length > 0 && (
+        <LanguageTabs
+          lang={lang}
+          setLang={setLang}
+          enCount={seriesCourses.en.length}
+          koCount={seriesCourses.ko.length}
+        />
       )}
 
-      {/* KO Courses */}
-      {seriesCourses.ko && seriesCourses.ko.length > 0 && (
-        <div>
-          <h2 className="text-sm font-semibold text-[#6B7280] uppercase tracking-wider mb-2">
-            한국어
-          </h2>
-          <div>
-            {seriesCourses.ko.map((paper) => (
-              <PaperCard key={paper.id} paper={paper} />
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Course list */}
+      <div>
+        {(lang === 'en' ? seriesCourses.en : seriesCourses.ko).map((paper) => (
+          <PaperCard key={paper.id} paper={paper} />
+        ))}
+      </div>
     </div>
   );
 }
