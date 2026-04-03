@@ -1,4 +1,4 @@
-# Papers with Claude Code 
+# Papers with Claude Code
 
 > **Live**: [paperswithclaudecode.com](https://paperswithclaudecode.com/)
 
