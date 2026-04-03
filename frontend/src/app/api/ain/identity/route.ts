@@ -22,18 +22,27 @@ export async function GET(request: NextRequest) {
     const ain = getAinClient();
     const stored = await ain.db.ref(`${IDENTITY_PATH}/${userId}`).getValue();
 
-    if (!stored || !stored.encryptedPublicKey) {
+    if (!stored) {
       return NextResponse.json({ ok: true, data: null });
     }
 
-    try {
-      const publicKey = decryptPublicKey(stored.encryptedPublicKey);
-      return NextResponse.json({ ok: true, data: { publicKey } });
-    } catch {
-      // Encrypted with a different key (e.g. AUTH_SECRET changed) — treat as missing
-      console.log(`[identity] Cannot decrypt identity for userId=${userId}, treating as missing`);
+    if (!stored.keys || typeof stored.keys !== 'object') {
       return NextResponse.json({ ok: true, data: null });
     }
+
+    for (const [, entry] of Object.entries(stored.keys as Record<string, any>)) {
+      if (!entry?.encryptedPublicKey) continue;
+      try {
+        const publicKey = decryptPublicKey(entry.encryptedPublicKey);
+        return NextResponse.json({ ok: true, data: { publicKey } });
+      } catch {
+        // This key was encrypted with a different secret — try next
+        continue;
+      }
+    }
+
+    // None decryptable
+    return NextResponse.json({ ok: true, data: null });
   } catch (error: any) {
     return NextResponse.json(
       { ok: false, error: error.message ?? 'Failed to look up identity' },
@@ -42,7 +51,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-/** POST /api/ain/identity — store new identity mapping (409 if already exists) */
+/** POST /api/ain/identity — add a new passkey mapping (supports multiple keys per user) */
 export async function POST(request: NextRequest) {
   try {
     const { userId, publicKey, provider } = await request.json();
@@ -55,30 +64,46 @@ export async function POST(request: NextRequest) {
     }
 
     const ain = getAinClient();
+    const stored = await ain.db.ref(`${IDENTITY_PATH}/${userId}`).getValue();
 
-    // Check if mapping already exists and is still readable
-    const existing = await ain.db.ref(`${IDENTITY_PATH}/${userId}`).getValue();
-    if (existing && existing.encryptedPublicKey) {
-      try {
-        // If we can decrypt it, the identity is valid — don't overwrite
-        decryptPublicKey(existing.encryptedPublicKey);
-        return NextResponse.json(
-          { ok: false, error: 'Identity mapping already exists' },
-          { status: 409 },
-        );
-      } catch {
-        // Existing data encrypted with a different key — allow overwrite
-        console.log(`[identity] Overwriting unreadable identity for userId=${userId}`);
+    // Check if this exact publicKey is already stored (any format)
+    if (stored) {
+      // New format: check all keys
+      if (stored.keys && typeof stored.keys === 'object') {
+        for (const [, entry] of Object.entries(stored.keys as Record<string, any>)) {
+          if (!entry?.encryptedPublicKey) continue;
+          try {
+            const existing = decryptPublicKey(entry.encryptedPublicKey);
+            if (existing === publicKey) {
+              return NextResponse.json(
+                { ok: false, error: 'This passkey is already registered' },
+                { status: 409 },
+              );
+            }
+          } catch {
+            // Encrypted with different key — skip
+          }
+        }
       }
     }
 
     const encryptedPublicKey = encryptPublicKey(publicKey);
+    const keyId = `key_${Date.now()}`;
+
+    const existingKeys: Record<string, any> = {};
+    if (stored?.keys && typeof stored.keys === 'object') {
+      Object.assign(existingKeys, stored.keys);
+    }
+
+    // Add new key
+    existingKeys[keyId] = {
+      encryptedPublicKey,
+      provider,
+      createdAt: Date.now(),
+    };
+
     const result = await ain.db.ref(`${IDENTITY_PATH}/${userId}`).setValue({
-      value: {
-        encryptedPublicKey,
-        provider,
-        createdAt: Date.now(),
-      },
+      value: { keys: existingKeys },
     });
 
     return NextResponse.json({ ok: true, data: result });

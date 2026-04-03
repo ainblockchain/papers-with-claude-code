@@ -52,7 +52,20 @@ P-256 publicKey → keccak256 → secp256k1 private key → EVM address
 ### Cross-Device Identity Recovery
 
 블록체인 `/apps/knowledge/topics/identity/{userId}`에 암호화된 publicKey 저장.
-새 디바이스 로그인 시 복구하여 동일 지갑 사용.
+하나의 유저에 **복수 패스키(publicKey)** 등록 가능 — 디바이스마다 다른 패스키.
+
+```
+/apps/knowledge/topics/identity/{userId}
+└── keys/
+    ├── key_{timestamp1}: { encryptedPublicKey, provider, createdAt }
+    ├── key_{timestamp2}: { encryptedPublicKey, provider, createdAt }
+    └── ...
+```
+
+- GET: `keys/` 순회하며 현재 환경의 `AIN_PRIVATE_KEY`로 복호화 가능한 첫 번째 publicKey 반환
+- POST: 동일 publicKey 중복 방지(409), 기존 keys 보존하며 추가
+- 환경별(로컬/프로드) `AIN_PRIVATE_KEY`가 다르면 서로의 키를 복호화 불가 → 데이터 자연 분리
+- 블록체인 패스키가 항상 우선: 복구 시 블록체인 publicKey로 지갑 파생
 
 ### Blockchain Paths
 
@@ -100,4 +113,3 @@ curl -s -X POST https://devnet-api.ainetwork.ai/json-rpc \
 
 - identity 경로가 `/topics/identity/`에 임시 배치 (root rule 제약) → `AIN_PRIVATE_KEY` 확보 후 이전
 - `login/page.tsx`에 `[identity-sync]` 디버그 로그 잔존 → 테스트 완료 후 제거
-- 크로스 디바이스 identity 복구 새 시크릿 창에서 최종 검증 필요

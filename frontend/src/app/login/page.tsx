@@ -181,13 +181,21 @@ function LoginContent() {
         if (json.ok && json.data?.publicKey) {
           console.log('[identity-sync] Found mapping on blockchain, recovering wallet...');
           const localPasskey = loadPasskeyInfo();
-          if (!localPasskey || localPasskey.publicKey !== json.data.publicKey) {
-            console.log('[identity-sync] Reconstructing PasskeyInfo from blockchain publicKey');
-            const info = await reconstructPasskeyInfo(json.data.publicKey);
-            setPasskeyInfo(info);
-            console.log('[identity-sync] Recovered AIN address:', info.ainAddress);
-          } else {
+          if (localPasskey?.publicKey === json.data.publicKey) {
             console.log('[identity-sync] Local passkey matches blockchain, no change needed');
+            setPasskeyDone(true);
+            return;
+          }
+          // Blockchain takes priority — recover wallet from blockchain publicKey
+          console.log('[identity-sync] Reconstructing PasskeyInfo from blockchain publicKey');
+          const info = await reconstructPasskeyInfo(json.data.publicKey);
+          setPasskeyInfo(info);
+          console.log('[identity-sync] Recovered AIN address:', info.ainAddress);
+          if (localPasskey) {
+            // Local passkey exists but differs — register it on blockchain too
+            console.log('[identity-sync] Registering local passkey on blockchain');
+            await saveIdentityMapping(localPasskey.publicKey);
+            if (cancelled) return;
           }
           setPasskeyDone(true);
           return;
@@ -214,7 +222,6 @@ function LoginContent() {
     return () => {
       cancelled = true;
       identityChecked.current = false;
-      setIdentityChecking(false);
     };
   }, [isAuthenticated, user, needsIdentitySync]); // eslint-disable-line react-hooks/exhaustive-deps
 
