@@ -97,9 +97,9 @@ export default function SeriesDetailPage() {
     const courseMap = new Map(courses.map((c) => [c.id, c]));
     const result = new Map<string, Paper[]>();
 
-    for (const [groupName, ids] of Object.entries(series.groups)) {
-      const papers = ids
-        .map((id) => courseMap.get(id))
+    for (const [groupName, entries] of Object.entries(series.groups)) {
+      const papers = entries
+        .map((e) => courseMap.get(e.courseId))
         .filter((c): c is Paper => c !== undefined);
       if (papers.length > 0) result.set(groupName, papers);
     }

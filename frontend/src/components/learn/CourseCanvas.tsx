@@ -45,6 +45,7 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
   const prevPositionRef = useRef(playerPosition);
   const rafIdRef = useRef<number>(0);
   const dirtyRef = useRef(true);
+  const viewRef = useRef({ oX: 0, oY: 0, scale: 1 });
 
   const doorPosition = { x: stage.roomWidth - 2, y: Math.floor(stage.roomHeight / 2) };
 
@@ -98,25 +99,35 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
       switch (e.key) {
         case 'ArrowUp':
         case 'w':
+        case 'W':
+        case 'ㅈ':
           dy = -1;
           setPlayerDirection('up');
           break;
         case 'ArrowDown':
         case 's':
+        case 'S':
+        case 'ㄴ':
           dy = 1;
           setPlayerDirection('down');
           break;
         case 'ArrowLeft':
         case 'a':
+        case 'A':
+        case 'ㅁ':
           dx = -1;
           setPlayerDirection('left');
           break;
         case 'ArrowRight':
         case 'd':
+        case 'D':
+        case 'ㅇ':
           dx = 1;
           setPlayerDirection('right');
           break;
         case 'e':
+        case 'E':
+        case 'ㄷ':
         case 'Enter':
           // Interaction
           const concept = stage.concepts.find(
@@ -187,6 +198,41 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
 
+  const handleCanvasClick = useCallback(
+    (e: React.MouseEvent<HTMLCanvasElement>) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      const { oX, oY, scale } = viewRef.current;
+      const tileX = Math.floor((e.clientX - rect.left - oX) / (TILE_SIZE * scale));
+      const tileY = Math.floor((e.clientY - rect.top - oY) / (TILE_SIZE * scale));
+
+      const concept = stage.concepts.find(
+        (c) =>
+          tileX >= c.position.x &&
+          tileX <= c.position.x + 2 &&
+          tileY >= c.position.y - 1 &&
+          tileY <= c.position.y + 1
+      );
+      if (concept) {
+        setActiveConcept(concept.id);
+        const { currentPaper, playerDirection: dir } = useLearningStore.getState();
+        trackEvent({
+          type: 'concept_view',
+          scene: 'course',
+          paperId: currentPaper?.id ?? '',
+          stageIndex: stage.stageNumber - 1,
+          conceptId: concept.id,
+          x: tileX,
+          y: tileY,
+          direction: dir,
+          timestamp: Date.now(),
+        });
+      }
+    },
+    [stage.concepts, stage.stageNumber, setActiveConcept]
+  );
+
   // rAF render loop
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -213,6 +259,7 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
       const scale = Math.min(containerW / roomW, containerH / roomH);
       const oX = (containerW - roomW * scale) / 2;
       const oY = (containerH - roomH * scale) / 2;
+      viewRef.current = { oX, oY, scale };
 
       const isSpaceTheme = is0GCourse(useLearningStore.getState().currentPaper?.id);
 
@@ -358,7 +405,8 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
     <div className="w-full h-full bg-gray-900 overflow-hidden">
       <canvas
         ref={canvasRef}
-        style={{ imageRendering: 'pixelated' }}
+        onClick={handleCanvasClick}
+        style={{ imageRendering: 'pixelated', cursor: 'pointer' }}
       />
     </div>
   );

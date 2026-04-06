@@ -243,6 +243,7 @@ Generate lessons for every concept in each course. **Lesson schema**:
   "title": "Lesson Title",
   "prerequisites": ["required_concept_id"],
   "key_ideas": ["idea1", "idea2"],
+  "content": "Markdown content displayed on the chalkboard modal (see Media Support below)",
   "code_ref": "",
   "paper_ref": "Authors, Year — Paper Title",
   "exercise": "Quiz question (see format below)",
@@ -256,6 +257,26 @@ Generate lessons for every concept in each course. **Lesson schema**:
 1. **Paper-first**: Cite the paper/authors/year briefly
 2. **Ultra-short**: 1-2 sentences maximum for explanation
 3. **Quiz finish**: Multiple choice / true-false / fill-in-the-blank (no code writing)
+
+**Media Support (images & videos in `content` field)**:
+
+The `content` field supports standard markdown with embedded images and YouTube videos.
+
+- **Images**: Use markdown image syntax on its own line: `![caption](path)`
+  - For assets in the awesome repo: `![Architecture](courses/<paper-slug>/<course-slug>/architecture.png)`
+    - Image files go in `assets/courses/<paper-slug>/<course-slug>/` in the awesome repo
+    - The frontend resolves relative paths via `NEXT_PUBLIC_COURSE_ASSETS_BASE_URL`
+  - For external images: `![Diagram](https://example.com/image.png)` (full URL)
+- **YouTube videos**: Place a bare YouTube URL on its own line:
+  ```
+  https://www.youtube.com/watch?v=VIDEO_ID
+  ```
+  or `https://youtu.be/VIDEO_ID` — auto-detected and rendered as an embedded player.
+
+**Content example with media**:
+```
+## Architecture Overview\n\nThe diagram below shows the full model:\n\n![Transformer architecture](courses/attention-is-all-you-need/my-course/transformer.png)\n\n## Watch the Explanation\n\nhttps://www.youtube.com/watch?v=dQw4w9WgXcQ\n\nKey takeaway: ...
+```
 
 **Quiz example**:
 ```
@@ -274,6 +295,12 @@ Output is always generated in a **paper container folder** -> **course name fold
 
 ```
 awesome-papers-with-claude-code/
+  assets/
+    courses/
+      <paper-slug>/
+        <course-name-slug>/   <- Course-specific images (optional)
+          architecture.png
+          diagram.png
   <paper-slug>/               <- Paper container (1 per paper, auto-created)
     paper.json                <- Paper metadata (1 per paper, shared across all courses)
     <course-name-slug>/       <- User-specified course name (determined in input parsing step)

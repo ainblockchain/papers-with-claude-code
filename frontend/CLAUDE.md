@@ -99,10 +99,68 @@ curl -s -X POST https://devnet-api.ainetwork.ai/json-rpc \
 | `description` | Yes | 시리즈 설명 |
 | `thumbnailUrl` | No | 에셋 파일명 (예: `blockchain-fundamentals.png`). 프론트엔드에서 `NEXT_PUBLIC_COURSE_ASSETS_BASE_URL`과 조합하여 전체 URL 생성 |
 | `creatorAddress` | Yes | 생성자 지갑 주소 (auth.addr) |
-| `groups` | Yes | 그룹별 코스 ID 목록. 그룹명은 자유 (언어, 난이도, 주제 등). 1개면 탭 없음, 2개 이상이면 자동 탭 생성. `{ "English": { 0: "id", 1: "id" }, "Korean": { 0: "id" } }` |
+| `groups` | Yes | 그룹별 코스 목록. 그룹명은 자유 (언어, 난이도, 주제 등). 1개면 탭 없음, 2개 이상이면 자동 탭 생성. 각 항목은 `{ courseId, achievementUrl? }` 형태. 아래 Groups 상세 참조 |
 | `createdAt` | Yes | 생성 타임스탬프 (ms) |
 
 썸네일 이미지는 awesome 레포 `assets/` 폴더에 업로드하고, 블록체인에는 파일명만 기록.
+
+### Groups 상세
+
+각 그룹 항목은 인덱스 키(`0`, `1`, ...)로 정렬된 object:
+
+```json
+{
+  "English": {
+    "0": { "courseId": "blockchain-decentralization-fundamentals--core", "achievementUrl": "https://learn-dev.modulabs.co.kr/..." },
+    "1": { "courseId": "dao-decentralized-organizations--core" }
+  },
+  "Korean": {
+    "0": { "courseId": "blockchain-decentralization-fundamentals--core-ko", "achievementUrl": "https://learn-dev.modulabs.co.kr/..." }
+  }
+}
+```
+
+| 필드 | 필수 | 설명 |
+|---|---|---|
+| `courseId` | Yes | 코스 ID (`{paper-slug}--{course-slug}` 형태) |
+| `achievementUrl` | No | 외부 성취 인증 URL. 설정 시 코스 완료 화면에 "Complete on Modulabs" 버튼 표시 (새 탭) |
+
+> **하위호환**: API(`api/series/route.ts`)는 레거시 포맷(`"0": "course-id"` string)도 자동 변환하므로, 기존 시리즈 데이터가 있어도 동작함.
+
+## Lesson Content Media Support
+
+학습 모달(ConceptOverlay)은 `courses.json`의 `content` 마크다운 필드에서 이미지와 YouTube 비디오를 렌더링함.
+
+### 이미지
+
+마크다운 이미지 문법을 독립 라인으로 작성: `![캡션](경로)`
+
+- **에셋 이미지**: awesome 레포 `assets/courses/{paper-slug}/{course-slug}/`에 업로드 후 상대 경로 사용
+  - 예: `![아키텍처](courses/attention-is-all-you-need/my-course/architecture.png)`
+  - 프론트엔드에서 `NEXT_PUBLIC_COURSE_ASSETS_BASE_URL`과 조합하여 전체 URL 생성
+- **외부 이미지**: 전체 URL 사용
+  - 예: `![다이어그램](https://example.com/image.png)`
+
+### YouTube 비디오
+
+YouTube URL을 독립 라인으로 작성하면 자동으로 임베드 플레이어로 변환:
+
+```
+https://www.youtube.com/watch?v=VIDEO_ID
+https://youtu.be/VIDEO_ID
+```
+
+### 에셋 폴더 구조
+
+```
+awesome-papers-with-claude-code/
+  assets/
+    blockchain-fundamentals.png          ← 시리즈 썸네일 (기존)
+    courses/
+      {paper-slug}/{course-slug}/        ← 코스별 학습 이미지
+        architecture-overview.png
+        training-pipeline.png
+```
 
 ## Git / Push Rules
 

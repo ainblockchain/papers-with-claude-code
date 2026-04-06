@@ -3,7 +3,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Loader2, AlertTriangle, Terminal, Trophy, ArrowRight } from 'lucide-react';
+import { Loader2, AlertTriangle, Terminal, Trophy, ArrowRight, ExternalLink } from 'lucide-react';
 import { CourseCanvas } from '@/components/learn/CourseCanvas';
 import { ClaudeTerminal } from '@/components/learn/ClaudeTerminal';
 import { XtermTerminal } from '@/components/learn/XtermTerminal';
@@ -14,6 +14,7 @@ import { PaymentModal } from '@/components/learn/PaymentModal';
 import { useLearningStore } from '@/stores/useLearningStore';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { papersAdapter } from '@/lib/adapters/papers';
+import { useSeries } from '@/hooks/useSeries';
 import { progressAdapter } from '@/lib/adapters/progress';
 import {
   terminalSessionAdapter,
@@ -38,6 +39,7 @@ export default function LearnPage() {
   const effectIdRef = useRef(0);
 
   const { user, passkeyInfo } = useAuthStore();
+  const { data: allSeries } = useSeries();
   const {
     currentPaper,
     stages,
@@ -325,6 +327,18 @@ export default function LearnPage() {
 
   const useRealTerminal = TERMINAL_API_URL && sessionStatus === 'running' && sessionId;
 
+  // Find achievement URL for current course from series data
+  const achievementUrl = (() => {
+    if (!currentPaper || !allSeries) return null;
+    for (const series of allSeries) {
+      for (const entries of Object.values(series.groups)) {
+        const entry = entries.find((e) => e.courseId === currentPaper.id);
+        if (entry?.achievementUrl) return entry.achievementUrl;
+      }
+    }
+    return null;
+  })();
+
   // Course complete overlay
   if (isCourseComplete) {
     return (
@@ -365,6 +379,20 @@ export default function LearnPage() {
                   </div>
                 )}
               </div>
+
+              {achievementUrl && (
+                <a
+                  href={achievementUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block mb-4"
+                >
+                  <button className="w-full px-4 py-3 bg-gradient-to-r from-[#059669] to-[#10B981] hover:from-[#047857] hover:to-[#059669] text-white rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2">
+                    Complete on Modulabs
+                    <ExternalLink className="h-4 w-4" />
+                  </button>
+                </a>
+              )}
 
               <div className="flex gap-3 justify-center">
                 <Link href="/dashboard">
