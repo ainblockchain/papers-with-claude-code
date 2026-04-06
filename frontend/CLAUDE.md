@@ -104,6 +104,41 @@ curl -s -X POST https://devnet-api.ainetwork.ai/json-rpc \
 
 썸네일 이미지는 awesome 레포 `assets/` 폴더에 업로드하고, 블록체인에는 파일명만 기록.
 
+## Lesson Content Media Support
+
+학습 모달(ConceptOverlay)은 `courses.json`의 `content` 마크다운 필드에서 이미지와 YouTube 비디오를 렌더링함.
+
+### 이미지
+
+마크다운 이미지 문법을 독립 라인으로 작성: `![캡션](경로)`
+
+- **에셋 이미지**: awesome 레포 `assets/courses/{paper-slug}/{course-slug}/`에 업로드 후 상대 경로 사용
+  - 예: `![아키텍처](courses/attention-is-all-you-need/my-course/architecture.png)`
+  - 프론트엔드에서 `NEXT_PUBLIC_COURSE_ASSETS_BASE_URL`과 조합하여 전체 URL 생성
+- **외부 이미지**: 전체 URL 사용
+  - 예: `![다이어그램](https://example.com/image.png)`
+
+### YouTube 비디오
+
+YouTube URL을 독립 라인으로 작성하면 자동으로 임베드 플레이어로 변환:
+
+```
+https://www.youtube.com/watch?v=VIDEO_ID
+https://youtu.be/VIDEO_ID
+```
+
+### 에셋 폴더 구조
+
+```
+awesome-papers-with-claude-code/
+  assets/
+    blockchain-fundamentals.png          ← 시리즈 썸네일 (기존)
+    courses/
+      {paper-slug}/{course-slug}/        ← 코스별 학습 이미지
+        architecture-overview.png
+        training-pipeline.png
+```
+
 ## Git / Push Rules
 
 - **awesome 레포** (`ainblockchain/awesome-papers-with-claude-code`, 강의 콘텐츠): 수정 시 바로 커밋 + 푸시

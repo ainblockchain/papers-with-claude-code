@@ -4,6 +4,11 @@ import { ExternalLink } from 'lucide-react';
 const URL_RE = /(https?:\/\/[^\s,)]+)/g;
 const CODE_BLOCK_RE = /```[\w]*\n([\s\S]*?)```/g;
 const INLINE_CODE_RE = /`([^`]+)`/g;
+const IMAGE_RE = /^!\[([^\]]*)\]\(([^)]+)\)$/;
+const YOUTUBE_RE =
+  /^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})(?:[&?][\w=]*)*$/;
+
+const ASSETS_BASE = process.env.NEXT_PUBLIC_COURSE_ASSETS_BASE_URL || '';
 
 /** Render inline: bold, URLs, inline code */
 export function renderInline(text: string, keyPrefix: string): ReactNode[] {
@@ -37,6 +42,67 @@ export function renderInline(text: string, keyPrefix: string): ReactNode[] {
       )
     );
   });
+}
+
+/** Check if a URL uses an allowed protocol (http/https only) */
+function isAllowedMediaUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:';
+  } catch {
+    return false;
+  }
+}
+
+/** Resolve image src: absolute URLs pass through, relative paths get ASSETS_BASE prefix */
+function resolveImageSrc(src: string): string {
+  if (/^https?:\/\//.test(src)) return src;
+  return ASSETS_BASE ? `${ASSETS_BASE}/${src}` : src;
+}
+
+/** Render a markdown image as a figure with optional caption */
+function renderImage(alt: string, rawSrc: string, keyPrefix: string): ReactNode {
+  const src = resolveImageSrc(rawSrc);
+  if (/^https?:\/\//.test(src) && !isAllowedMediaUrl(src)) return null;
+  return (
+    <figure key={keyPrefix} className="my-4">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt={alt}
+        loading="lazy"
+        className="w-full max-w-full h-auto rounded-lg border border-gray-200"
+        onError={(e) => {
+          (e.target as HTMLImageElement).style.display = 'none';
+        }}
+      />
+      {alt && (
+        <figcaption className="mt-1.5 text-xs text-gray-400 text-center italic">
+          {alt}
+        </figcaption>
+      )}
+    </figure>
+  );
+}
+
+/** Render a YouTube video as a responsive 16:9 iframe embed */
+function renderYouTubeEmbed(videoId: string, keyPrefix: string): ReactNode {
+  const embedUrl = `https://www.youtube-nocookie.com/embed/${videoId}`;
+  return (
+    <div key={keyPrefix} className="my-4">
+      <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+        <iframe
+          src={embedUrl}
+          title="YouTube video"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          sandbox="allow-scripts allow-same-origin allow-presentation"
+          loading="lazy"
+          className="absolute inset-0 w-full h-full rounded-lg"
+        />
+      </div>
+    </div>
+  );
 }
 
 /** Render a single line with inline formatting */
@@ -214,6 +280,21 @@ export function renderTextBlock(text: string, keyPrefix: string): ReactNode[] {
       flushTable();
       flushBlockquote();
       result.push(<hr key={lineKey} className="my-4 border-t border-gray-300" />);
+    } else if (IMAGE_RE.test(line)) {
+      flushParagraph();
+      flushList();
+      flushTable();
+      flushBlockquote();
+      const m = line.match(IMAGE_RE)!;
+      const rendered = renderImage(m[1], m[2], lineKey);
+      if (rendered) result.push(rendered);
+    } else if (YOUTUBE_RE.test(line.trim())) {
+      flushParagraph();
+      flushList();
+      flushTable();
+      flushBlockquote();
+      const m = line.trim().match(YOUTUBE_RE)!;
+      result.push(renderYouTubeEmbed(m[1], lineKey));
     } else if (line.startsWith('## ') || line.startsWith('### ')) {
       flushParagraph();
       flushList();
