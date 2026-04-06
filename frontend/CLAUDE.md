@@ -99,10 +99,33 @@ curl -s -X POST https://devnet-api.ainetwork.ai/json-rpc \
 | `description` | Yes | 시리즈 설명 |
 | `thumbnailUrl` | No | 에셋 파일명 (예: `blockchain-fundamentals.png`). 프론트엔드에서 `NEXT_PUBLIC_COURSE_ASSETS_BASE_URL`과 조합하여 전체 URL 생성 |
 | `creatorAddress` | Yes | 생성자 지갑 주소 (auth.addr) |
-| `groups` | Yes | 그룹별 코스 ID 목록. 그룹명은 자유 (언어, 난이도, 주제 등). 1개면 탭 없음, 2개 이상이면 자동 탭 생성. `{ "English": { 0: "id", 1: "id" }, "Korean": { 0: "id" } }` |
+| `groups` | Yes | 그룹별 코스 목록. 그룹명은 자유 (언어, 난이도, 주제 등). 1개면 탭 없음, 2개 이상이면 자동 탭 생성. 각 항목은 `{ courseId, achievementUrl? }` 형태. 아래 Groups 상세 참조 |
 | `createdAt` | Yes | 생성 타임스탬프 (ms) |
 
 썸네일 이미지는 awesome 레포 `assets/` 폴더에 업로드하고, 블록체인에는 파일명만 기록.
+
+### Groups 상세
+
+각 그룹 항목은 인덱스 키(`0`, `1`, ...)로 정렬된 object:
+
+```json
+{
+  "English": {
+    "0": { "courseId": "blockchain-decentralization-fundamentals--core", "achievementUrl": "https://learn-dev.modulabs.co.kr/..." },
+    "1": { "courseId": "dao-decentralized-organizations--core" }
+  },
+  "Korean": {
+    "0": { "courseId": "blockchain-decentralization-fundamentals--core-ko", "achievementUrl": "https://learn-dev.modulabs.co.kr/..." }
+  }
+}
+```
+
+| 필드 | 필수 | 설명 |
+|---|---|---|
+| `courseId` | Yes | 코스 ID (`{paper-slug}--{course-slug}` 형태) |
+| `achievementUrl` | No | 외부 성취 인증 URL. 설정 시 코스 완료 화면에 "Complete on Modulabs" 버튼 표시 (새 탭) |
+
+> **하위호환**: API(`api/series/route.ts`)는 레거시 포맷(`"0": "course-id"` string)도 자동 변환하므로, 기존 시리즈 데이터가 있어도 동작함.
 
 ## Lesson Content Media Support
 
