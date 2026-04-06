@@ -257,7 +257,36 @@ Generate lessons for all concepts in each course. **Lesson schema**:
 ```
 
 **`content` field (required)**:
-The `content` field is the main learning content displayed on the chalkboard UI. Write in markdown format with:
+The `content` field is the main learning content displayed in a **fullscreen paged modal**. Each `## ` header splits the content into a separate navigable page. `### ` headers stay within their parent page as sub-sections.
+
+**Page structure rules:**
+- **Each `## ` section = one page** in the modal (users navigate with Previous/Next buttons)
+- **Minimum 2 `## ` sections required** — enables page navigation; a single `## ` section disables pagination
+- **Recommended 3-5 `## ` sections** per concept for optimal reading flow
+- **Do NOT use `# ` (h1) headers** — only `## ` and `### ` are recognized
+- **Do NOT place content before the first `## `** — it becomes an untitled "Introduction" page
+- **Each `## ` section should have substantial content** (100+ characters) — avoid near-empty pages
+- `### ` sub-headers are rendered within the same page for detailed breakdowns
+
+**Recommended `## ` section pattern:**
+```markdown
+## Key Ideas
+- 3-5 bullet points summarizing the concept (each 1-2 sentences, not just keywords)
+
+## Explanation
+Main explanation with paragraphs, analogies, and examples.
+
+### Sub-topic (stays within Explanation page)
+Detailed breakdown...
+
+## Deep Dive (optional)
+Advanced details, formulas, comparisons, or code examples.
+
+## Summary (optional)
+Key takeaways and connections to other concepts.
+```
+
+Write in markdown format with:
 - Section headers (`##`, `###`)
 - Bold for emphasis (`**important**`)
 - Bullet points for lists
