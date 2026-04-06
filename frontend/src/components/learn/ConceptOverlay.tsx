@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useCallback, useState, useMemo, useRef } from 'react';
-import { X, ChevronLeft, ChevronRight, ChevronDown, CheckCircle2 } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useLearningStore } from '@/stores/useLearningStore';
@@ -14,12 +14,12 @@ export function ConceptOverlay() {
     stages,
     currentStageIndex,
     activeConceptId,
-    viewedConceptIds,
     setActiveConcept,
     markConceptViewed,
   } = useLearningStore();
 
   const [currentFlatIndex, setCurrentFlatIndex] = useState(0);
+  const [expandedConcepts, setExpandedConcepts] = useState<Set<string>>(new Set());
   const [direction, setDirection] = useState<'forward' | 'backward'>('forward');
   const [animKey, setAnimKey] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -73,6 +73,7 @@ export function ConceptOverlay() {
     const targetIndex = flatPages.findIndex((p) => p.conceptId === activeConceptId);
     if (targetIndex >= 0) {
       setCurrentFlatIndex(targetIndex);
+      setExpandedConcepts(new Set([activeConceptId]));
       setDirection('forward');
       setAnimKey((k) => k + 1);
     }
@@ -104,14 +105,14 @@ export function ConceptOverlay() {
     if (isLastPage) return;
     const prevPage = flatPages[currentFlatIndex];
     const nextPage = flatPages[currentFlatIndex + 1];
-    // Auto-mark concept viewed when crossing boundary forward
+    // Auto-expand the new concept when crossing boundary
     if (prevPage && nextPage && prevPage.conceptId !== nextPage.conceptId) {
-      markConceptViewed(prevPage.conceptId);
+      setExpandedConcepts((prev) => new Set(prev).add(nextPage.conceptId));
     }
     setDirection('forward');
     setCurrentFlatIndex((i) => i + 1);
     setAnimKey((k) => k + 1);
-  }, [isLastPage, flatPages, currentFlatIndex, markConceptViewed]);
+  }, [isLastPage, flatPages, currentFlatIndex]);
 
   const goPrev = useCallback(() => {
     if (isFirstPage) return;
@@ -128,6 +129,25 @@ export function ConceptOverlay() {
       setAnimKey((k) => k + 1);
     },
     [currentFlatIndex, flatPages.length],
+  );
+
+  // Toggle a concept's expanded state in the sidebar
+  const toggleConcept = useCallback(
+    (conceptId: string) => {
+      setExpandedConcepts((prev) => {
+        const next = new Set(prev);
+        if (next.has(conceptId)) {
+          next.delete(conceptId);
+        } else {
+          next.add(conceptId);
+          // Navigate to first page of this concept when expanding
+          const bounds = conceptBounds.get(conceptId);
+          if (bounds) goToFlatIndex(bounds.start);
+        }
+        return next;
+      });
+    },
+    [conceptBounds, goToFlatIndex],
   );
 
   // Keyboard: Escape, Left, Right
@@ -155,9 +175,6 @@ export function ConceptOverlay() {
   // --- Early return ---
 
   if (!currentStage || !activeConceptId || !currentPage || flatPages.length === 0) return null;
-
-  const viewedIds = viewedConceptIds;
-  const activeConceptForSidebar = currentPage.conceptId;
 
   // --- Dot indicators: group by concept ---
   const useCompactDots = flatPages.length > 15;
@@ -196,8 +213,8 @@ export function ConceptOverlay() {
           {conceptList.map((concept) => {
             const bounds = conceptBounds.get(concept.id);
             if (!bounds) return null;
-            const isExpanded = activeConceptForSidebar === concept.id;
-            const isViewed = viewedIds.has(concept.id);
+            const isExpanded = expandedConcepts.has(concept.id);
+            const isActiveConcept = currentPage.conceptId === concept.id;
 
             // Collect pages for this concept
             const conceptPages = flatPages.slice(bounds.start, bounds.end + 1);
@@ -206,12 +223,14 @@ export function ConceptOverlay() {
               <div key={concept.id}>
                 {/* Concept header (accordion trigger) */}
                 <button
-                  onClick={() => goToFlatIndex(bounds.start)}
+                  onClick={() => toggleConcept(concept.id)}
                   className={cn(
-                    'flex items-center gap-2 w-full px-4 py-2 text-left text-sm transition-colors',
-                    isExpanded
-                      ? 'bg-white border-l-2 border-[#FF9D00] text-[#1F2937] font-medium'
-                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100 border-l-2 border-transparent',
+                    'flex items-center gap-2 w-full px-4 py-2 text-left text-sm transition-colors border-l-2',
+                    isActiveConcept
+                      ? 'bg-white border-[#FF9D00] text-[#1F2937] font-medium'
+                      : isExpanded
+                        ? 'bg-gray-100 border-gray-300 text-[#1F2937] font-medium'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-100',
                   )}
                 >
                   <ChevronDown
@@ -220,9 +239,6 @@ export function ConceptOverlay() {
                       isExpanded ? 'rotate-0' : '-rotate-90',
                     )}
                   />
-                  {isViewed && (
-                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                  )}
                   <span className="truncate">{concept.title}</span>
                 </button>
 
@@ -231,7 +247,6 @@ export function ConceptOverlay() {
                   <div className="ml-4 border-l border-gray-200">
                     {conceptPages.map((page) => {
                       const isCurrent = page.flatIndex === currentFlatIndex;
-                      const isPast = page.flatIndex < currentFlatIndex;
                       return (
                         <button
                           key={page.flatIndex}
@@ -240,14 +255,9 @@ export function ConceptOverlay() {
                             'flex items-center gap-2 w-full pl-4 pr-4 py-1.5 text-left text-xs transition-colors',
                             isCurrent
                               ? 'text-[#FF9D00] font-medium bg-orange-50'
-                              : isPast
-                                ? 'text-emerald-600'
-                                : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100',
+                              : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100',
                           )}
                         >
-                          {isPast && !isCurrent && (
-                            <CheckCircle2 className="h-3 w-3 text-emerald-400 shrink-0" />
-                          )}
                           <span className="truncate">{page.pageTitle}</span>
                         </button>
                       );
@@ -314,7 +324,6 @@ export function ConceptOverlay() {
                 if (!bounds) return null;
                 const isCurrent =
                   currentFlatIndex >= bounds.start && currentFlatIndex <= bounds.end;
-                const isPast = currentFlatIndex > bounds.end;
                 return (
                   <button
                     key={concept.id}
@@ -323,9 +332,7 @@ export function ConceptOverlay() {
                       'rounded-full transition-all',
                       isCurrent
                         ? 'w-3 h-3 bg-[#FF9D00]'
-                        : isPast
-                          ? 'w-2.5 h-2.5 bg-emerald-400'
-                          : 'w-2.5 h-2.5 bg-gray-300',
+                        : 'w-2.5 h-2.5 bg-gray-300',
                     )}
                   />
                 );
@@ -339,7 +346,6 @@ export function ConceptOverlay() {
                   <div key={concept.id} className={cn('flex items-center gap-1', ci > 0 && 'ml-1.5')}>
                     {pages.map((page) => {
                       const isCurrent = page.flatIndex === currentFlatIndex;
-                      const isPast = page.flatIndex < currentFlatIndex;
                       return (
                         <button
                           key={page.flatIndex}
@@ -348,9 +354,7 @@ export function ConceptOverlay() {
                             'rounded-full transition-all',
                             isCurrent
                               ? 'w-2.5 h-2.5 bg-[#FF9D00]'
-                              : isPast
-                                ? 'w-2 h-2 bg-emerald-400'
-                                : 'w-2 h-2 bg-gray-300',
+                              : 'w-2 h-2 bg-gray-300',
                           )}
                         />
                       );
