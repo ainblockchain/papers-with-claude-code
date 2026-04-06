@@ -34,12 +34,17 @@ export interface Paper {
   sortOrder?: number;
 }
 
+export interface SeriesGroupEntry {
+  courseId: string;
+  achievementUrl?: string;
+}
+
 export interface Series {
   id: string;
   title: string;
   description: string;
   thumbnailUrl?: string;
   creatorAddress: string;
-  groups: Record<string, string[]>;
+  groups: Record<string, SeriesGroupEntry[]>;
   createdAt: number;
 }

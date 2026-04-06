@@ -1,15 +1,21 @@
 import { NextResponse } from 'next/server';
 import { getAinClient } from '@/lib/ain/client';
-import type { Series } from '@/types/paper';
+import type { Series, SeriesGroupEntry } from '@/types/paper';
 
 let cachedResponse: { data: Series[]; timestamp: number } | null = null;
 const CACHE_TTL = 2 * 60 * 1000; // 2 minutes
 
-/** Convert AIN object { 0: "a", 1: "b" } to ordered array ["a", "b"] */
-function toArray(obj: Record<string, string>): string[] {
+/** Convert AIN indexed object to ordered array of SeriesGroupEntry.
+ *  Handles both new format { 0: { courseId, achievementUrl } }
+ *  and legacy format { 0: "courseId" } */
+function toGroupEntries(obj: Record<string, any>): SeriesGroupEntry[] {
   return Object.keys(obj)
     .sort((a, b) => Number(a) - Number(b))
-    .map((k) => obj[k]);
+    .map((k) => {
+      const v = obj[k];
+      if (typeof v === 'string') return { courseId: v };
+      return { courseId: v.courseId, achievementUrl: v.achievementUrl || undefined };
+    });
 }
 
 export async function GET() {
@@ -26,12 +32,12 @@ export async function GET() {
     }
 
     const series: Series[] = Object.entries(raw).map(([slug, data]: [string, any]) => {
-      const groups: Record<string, string[]> = {};
+      const groups: Record<string, SeriesGroupEntry[]> = {};
 
       if (data.groups && typeof data.groups === 'object') {
         for (const [groupName, ids] of Object.entries(data.groups)) {
           if (ids && typeof ids === 'object') {
-            groups[groupName] = toArray(ids as Record<string, string>);
+            groups[groupName] = toGroupEntries(ids as Record<string, any>);
           }
         }
       }

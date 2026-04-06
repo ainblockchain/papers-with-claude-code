@@ -14,8 +14,9 @@ async function loadSeriesMap(): Promise<Map<string, string>> {
         if (data.groups && typeof data.groups === 'object') {
           for (const ids of Object.values(data.groups) as any[]) {
             if (ids && typeof ids === 'object') {
-              for (const courseId of Object.values(ids) as string[]) {
-                map.set(courseId, slug);
+              for (const entry of Object.values(ids) as any[]) {
+                const courseId = typeof entry === 'string' ? entry : entry.courseId;
+                if (courseId) map.set(courseId, slug);
               }
             }
           }
