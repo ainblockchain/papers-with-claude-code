@@ -27,3 +27,49 @@ export function splitContentIntoPages(fullContent: string): ContentPage[] {
 
   return pages;
 }
+
+/** A page in the flat list across all concepts in a stage */
+export interface FlatPage {
+  conceptId: string;
+  conceptTitle: string;
+  conceptIndex: number;
+  pageTitle: string;
+  pageContent: string;
+  pageIndexInConcept: number;
+  totalPagesInConcept: number;
+  flatIndex: number;
+}
+
+/**
+ * Build a flat sequential page list from all concepts in a stage.
+ * Each concept's content is split into pages, then all pages are
+ * concatenated into a single list with metadata for navigation.
+ */
+export function buildFlatPageList(
+  concepts: { id: string; title: string; content: string }[],
+): FlatPage[] {
+  const flatPages: FlatPage[] = [];
+
+  for (let ci = 0; ci < concepts.length; ci++) {
+    const concept = concepts[ci];
+    const pages = splitContentIntoPages(concept.content);
+    // If a concept has no content, create a placeholder page
+    const effectivePages =
+      pages.length > 0 ? pages : [{ title: concept.title, content: '', index: 0 }];
+
+    for (let pi = 0; pi < effectivePages.length; pi++) {
+      flatPages.push({
+        conceptId: concept.id,
+        conceptTitle: concept.title,
+        conceptIndex: ci,
+        pageTitle: effectivePages[pi].title,
+        pageContent: effectivePages[pi].content,
+        pageIndexInConcept: pi,
+        totalPagesInConcept: effectivePages.length,
+        flatIndex: flatPages.length,
+      });
+    }
+  }
+
+  return flatPages;
+}

@@ -1,72 +1,134 @@
 'use client';
 
 import { useEffect, useCallback, useState, useMemo, useRef } from 'react';
-import { X, ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, ChevronDown, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useLearningStore } from '@/stores/useLearningStore';
 import { renderContent } from '@/lib/markdown/renderer';
-import { splitContentIntoPages } from '@/lib/markdown/splitPages';
+import { buildFlatPageList, type FlatPage } from '@/lib/markdown/splitPages';
 import { cn } from '@/lib/utils';
 
 export function ConceptOverlay() {
-  const { stages, currentStageIndex, activeConceptId, setActiveConcept, markConceptViewed } = useLearningStore();
+  const {
+    stages,
+    currentStageIndex,
+    activeConceptId,
+    viewedConceptIds,
+    setActiveConcept,
+    markConceptViewed,
+  } = useLearningStore();
 
-  const [currentPageIndex, setCurrentPageIndex] = useState(0);
+  const [currentFlatIndex, setCurrentFlatIndex] = useState(0);
   const [direction, setDirection] = useState<'forward' | 'backward'>('forward');
   const [animKey, setAnimKey] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const currentStage = stages[currentStageIndex];
-  const concept = currentStage?.concepts.find((c) => c.id === activeConceptId);
-  const pages = useMemo(() => (concept ? splitContentIntoPages(concept.content) : []), [concept]);
-  const isMultiPage = pages.length > 1;
-  const isLastPage = currentPageIndex >= pages.length - 1;
-  const isFirstPage = currentPageIndex === 0;
 
-  // Reset page index when concept changes
+  // Build flat page list from all concepts in the stage
+  const flatPages = useMemo<FlatPage[]>(
+    () => (currentStage ? buildFlatPageList(currentStage.concepts) : []),
+    [currentStage],
+  );
+
+  // Derive current state
+  const currentPage = flatPages[currentFlatIndex] as FlatPage | undefined;
+  const isFirstPage = currentFlatIndex === 0;
+  const isLastPage = currentFlatIndex >= flatPages.length - 1;
+
+  // Concept boundaries: { conceptId → { start, end } } for sidebar & dot grouping
+  const conceptBounds = useMemo(() => {
+    const bounds = new Map<string, { start: number; end: number }>();
+    for (const page of flatPages) {
+      const existing = bounds.get(page.conceptId);
+      if (!existing) {
+        bounds.set(page.conceptId, { start: page.flatIndex, end: page.flatIndex });
+      } else {
+        existing.end = page.flatIndex;
+      }
+    }
+    return bounds;
+  }, [flatPages]);
+
+  // Unique concept list (preserving order)
+  const conceptList = useMemo(() => {
+    const seen = new Set<string>();
+    return flatPages
+      .filter((p) => {
+        if (seen.has(p.conceptId)) return false;
+        seen.add(p.conceptId);
+        return true;
+      })
+      .map((p) => ({
+        id: p.conceptId,
+        title: p.conceptTitle,
+        index: p.conceptIndex,
+      }));
+  }, [flatPages]);
+
+  // Reset to the target concept when activeConceptId changes
   useEffect(() => {
-    setCurrentPageIndex(0);
-    setDirection('forward');
-    setAnimKey((k) => k + 1);
-  }, [activeConceptId]);
+    if (!activeConceptId || flatPages.length === 0) return;
+    const targetIndex = flatPages.findIndex((p) => p.conceptId === activeConceptId);
+    if (targetIndex >= 0) {
+      setCurrentFlatIndex(targetIndex);
+      setDirection('forward');
+      setAnimKey((k) => k + 1);
+    }
+  }, [activeConceptId, flatPages]);
 
-  // Scroll to top on page change
+  // Scroll content to top on page change
   useEffect(() => {
     const viewport = scrollRef.current?.querySelector('[data-slot="scroll-area-viewport"]');
     if (viewport) viewport.scrollTop = 0;
-  }, [currentPageIndex]);
+  }, [currentFlatIndex]);
+
+  // --- Navigation ---
 
   const close = useCallback(() => {
     setActiveConcept(null);
   }, [setActiveConcept]);
 
   const gotIt = useCallback(() => {
-    if (activeConceptId) markConceptViewed(activeConceptId);
+    // Mark all concepts in this stage as viewed
+    if (currentStage) {
+      for (const concept of currentStage.concepts) {
+        markConceptViewed(concept.id);
+      }
+    }
     setActiveConcept(null);
-  }, [activeConceptId, setActiveConcept, markConceptViewed]);
+  }, [currentStage, markConceptViewed, setActiveConcept]);
 
   const goNext = useCallback(() => {
-    if (!isLastPage) {
-      setDirection('forward');
-      setCurrentPageIndex((i) => i + 1);
-      setAnimKey((k) => k + 1);
+    if (isLastPage) return;
+    const prevPage = flatPages[currentFlatIndex];
+    const nextPage = flatPages[currentFlatIndex + 1];
+    // Auto-mark concept viewed when crossing boundary forward
+    if (prevPage && nextPage && prevPage.conceptId !== nextPage.conceptId) {
+      markConceptViewed(prevPage.conceptId);
     }
-  }, [isLastPage]);
+    setDirection('forward');
+    setCurrentFlatIndex((i) => i + 1);
+    setAnimKey((k) => k + 1);
+  }, [isLastPage, flatPages, currentFlatIndex, markConceptViewed]);
 
   const goPrev = useCallback(() => {
-    if (!isFirstPage) {
-      setDirection('backward');
-      setCurrentPageIndex((i) => i - 1);
-      setAnimKey((k) => k + 1);
-    }
+    if (isFirstPage) return;
+    setDirection('backward');
+    setCurrentFlatIndex((i) => i - 1);
+    setAnimKey((k) => k + 1);
   }, [isFirstPage]);
 
-  const goToPage = useCallback((index: number) => {
-    setDirection(index > currentPageIndex ? 'forward' : 'backward');
-    setCurrentPageIndex(index);
-    setAnimKey((k) => k + 1);
-  }, [currentPageIndex]);
+  const goToFlatIndex = useCallback(
+    (index: number) => {
+      if (index < 0 || index >= flatPages.length) return;
+      setDirection(index > currentFlatIndex ? 'forward' : 'backward');
+      setCurrentFlatIndex(index);
+      setAnimKey((k) => k + 1);
+    },
+    [currentFlatIndex, flatPages.length],
+  );
 
   // Keyboard: Escape, Left, Right
   useEffect(() => {
@@ -76,11 +138,11 @@ export function ConceptOverlay() {
         e.preventDefault();
         e.stopPropagation();
         close();
-      } else if (e.key === 'ArrowLeft' && isMultiPage) {
+      } else if (e.key === 'ArrowLeft') {
         e.preventDefault();
         e.stopPropagation();
         goPrev();
-      } else if (e.key === 'ArrowRight' && isMultiPage) {
+      } else if (e.key === 'ArrowRight') {
         e.preventDefault();
         e.stopPropagation();
         goNext();
@@ -88,25 +150,31 @@ export function ConceptOverlay() {
     };
     window.addEventListener('keydown', handler, true);
     return () => window.removeEventListener('keydown', handler, true);
-  }, [activeConceptId, close, goNext, goPrev, isMultiPage]);
+  }, [activeConceptId, close, goNext, goPrev]);
 
-  if (!currentStage || !activeConceptId || !concept || pages.length === 0) return null;
+  // --- Early return ---
 
-  const currentPage = pages[currentPageIndex];
+  if (!currentStage || !activeConceptId || !currentPage || flatPages.length === 0) return null;
+
+  const viewedIds = viewedConceptIds;
+  const activeConceptForSidebar = currentPage.conceptId;
+
+  // --- Dot indicators: group by concept ---
+  const useCompactDots = flatPages.length > 15;
 
   return (
     <div className="absolute inset-0 z-20 flex flex-col bg-black/60 backdrop-blur-sm">
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-3 bg-[#1F2937] shrink-0">
         <div className="flex items-center gap-3 min-w-0">
-          <h2 className="text-white font-bold text-base truncate">{concept.title}</h2>
+          <h2 className="text-white font-bold text-base truncate">
+            {currentStage.title}
+          </h2>
         </div>
         <div className="flex items-center gap-4 shrink-0">
-          {isMultiPage && (
-            <span className="text-gray-400 text-sm">
-              {currentPageIndex + 1} / {pages.length}
-            </span>
-          )}
+          <span className="text-gray-400 text-sm">
+            {currentFlatIndex + 1} / {flatPages.length}
+          </span>
           <Button
             variant="ghost"
             size="sm"
@@ -120,31 +188,76 @@ export function ConceptOverlay() {
 
       {/* Body: Sidebar + Content */}
       <div className="flex flex-1 min-h-0 bg-white">
-        {/* Sidebar TOC — hidden below lg */}
-        {isMultiPage && (
-          <nav className="hidden lg:flex flex-col w-56 shrink-0 border-r border-gray-200 bg-gray-50 py-4 overflow-y-auto">
-            <span className="px-4 pb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-              Contents
-            </span>
-            {pages.map((page, i) => (
-              <button
-                key={i}
-                onClick={() => goToPage(i)}
-                className={cn(
-                  'flex items-center gap-2 px-4 py-2 text-left text-sm transition-colors',
-                  i === currentPageIndex
-                    ? 'bg-white border-l-2 border-[#FF9D00] text-[#1F2937] font-medium'
-                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100 border-l-2 border-transparent'
+        {/* Accordion Sidebar — hidden below lg */}
+        <nav className="hidden lg:flex flex-col w-60 shrink-0 border-r border-gray-200 bg-gray-50 py-4 overflow-y-auto">
+          <span className="px-4 pb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+            Contents
+          </span>
+          {conceptList.map((concept) => {
+            const bounds = conceptBounds.get(concept.id);
+            if (!bounds) return null;
+            const isExpanded = activeConceptForSidebar === concept.id;
+            const isViewed = viewedIds.has(concept.id);
+
+            // Collect pages for this concept
+            const conceptPages = flatPages.slice(bounds.start, bounds.end + 1);
+
+            return (
+              <div key={concept.id}>
+                {/* Concept header (accordion trigger) */}
+                <button
+                  onClick={() => goToFlatIndex(bounds.start)}
+                  className={cn(
+                    'flex items-center gap-2 w-full px-4 py-2 text-left text-sm transition-colors',
+                    isExpanded
+                      ? 'bg-white border-l-2 border-[#FF9D00] text-[#1F2937] font-medium'
+                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100 border-l-2 border-transparent',
+                  )}
+                >
+                  <ChevronDown
+                    className={cn(
+                      'h-3.5 w-3.5 shrink-0 transition-transform',
+                      isExpanded ? 'rotate-0' : '-rotate-90',
+                    )}
+                  />
+                  {isViewed && (
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                  )}
+                  <span className="truncate">{concept.title}</span>
+                </button>
+
+                {/* Pages (expanded content) */}
+                {isExpanded && (
+                  <div className="ml-4 border-l border-gray-200">
+                    {conceptPages.map((page) => {
+                      const isCurrent = page.flatIndex === currentFlatIndex;
+                      const isPast = page.flatIndex < currentFlatIndex;
+                      return (
+                        <button
+                          key={page.flatIndex}
+                          onClick={() => goToFlatIndex(page.flatIndex)}
+                          className={cn(
+                            'flex items-center gap-2 w-full pl-4 pr-4 py-1.5 text-left text-xs transition-colors',
+                            isCurrent
+                              ? 'text-[#FF9D00] font-medium bg-orange-50'
+                              : isPast
+                                ? 'text-emerald-600'
+                                : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100',
+                          )}
+                        >
+                          {isPast && !isCurrent && (
+                            <CheckCircle2 className="h-3 w-3 text-emerald-400 shrink-0" />
+                          )}
+                          <span className="truncate">{page.pageTitle}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 )}
-              >
-                {i < currentPageIndex && (
-                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                )}
-                <span className="truncate">{page.title}</span>
-              </button>
-            ))}
-          </nav>
-        )}
+              </div>
+            );
+          })}
+        </nav>
 
         {/* Content Area */}
         <ScrollArea ref={scrollRef} className="flex-1">
@@ -153,11 +266,22 @@ export function ConceptOverlay() {
               key={animKey}
               className={cn(
                 'w-full max-w-2xl',
-                direction === 'forward' ? 'animate-slide-in-right' : 'animate-slide-in-left'
+                direction === 'forward' ? 'animate-slide-in-right' : 'animate-slide-in-left',
               )}
             >
+              {/* Concept title badge */}
+              <div className="mb-4 flex items-center gap-2">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                  {currentPage.conceptTitle}
+                </span>
+                {currentPage.totalPagesInConcept > 1 && (
+                  <span className="text-xs text-gray-400">
+                    {currentPage.pageIndexInConcept + 1} / {currentPage.totalPagesInConcept}
+                  </span>
+                )}
+              </div>
               <div className="text-sm text-[#374151] leading-relaxed">
-                {renderContent(currentPage.content)}
+                {renderContent(currentPage.pageContent)}
               </div>
             </div>
           </div>
@@ -168,7 +292,7 @@ export function ConceptOverlay() {
       <div className="flex items-center justify-between px-6 py-3 bg-white border-t border-gray-200 shrink-0">
         {/* Previous */}
         <div className="w-28">
-          {isMultiPage && !isFirstPage && (
+          {!isFirstPage && (
             <Button
               variant="outline"
               size="sm"
@@ -181,23 +305,59 @@ export function ConceptOverlay() {
           )}
         </div>
 
-        {/* Dot indicators */}
-        <div className="flex items-center gap-1.5">
-          {isMultiPage &&
-            pages.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => goToPage(i)}
-                className={cn(
-                  'rounded-full transition-all',
-                  i === currentPageIndex
-                    ? 'w-2.5 h-2.5 bg-[#FF9D00]'
-                    : i < currentPageIndex
-                      ? 'w-2 h-2 bg-emerald-400'
-                      : 'w-2 h-2 bg-gray-300'
-                )}
-              />
-            ))}
+        {/* Dot indicators — grouped by concept */}
+        <div className="flex items-center gap-1">
+          {useCompactDots
+            ? // Compact: one dot per concept
+              conceptList.map((concept) => {
+                const bounds = conceptBounds.get(concept.id);
+                if (!bounds) return null;
+                const isCurrent =
+                  currentFlatIndex >= bounds.start && currentFlatIndex <= bounds.end;
+                const isPast = currentFlatIndex > bounds.end;
+                return (
+                  <button
+                    key={concept.id}
+                    onClick={() => goToFlatIndex(bounds.start)}
+                    className={cn(
+                      'rounded-full transition-all',
+                      isCurrent
+                        ? 'w-3 h-3 bg-[#FF9D00]'
+                        : isPast
+                          ? 'w-2.5 h-2.5 bg-emerald-400'
+                          : 'w-2.5 h-2.5 bg-gray-300',
+                    )}
+                  />
+                );
+              })
+            : // Full: one dot per page, grouped
+              conceptList.map((concept, ci) => {
+                const bounds = conceptBounds.get(concept.id);
+                if (!bounds) return null;
+                const pages = flatPages.slice(bounds.start, bounds.end + 1);
+                return (
+                  <div key={concept.id} className={cn('flex items-center gap-1', ci > 0 && 'ml-1.5')}>
+                    {pages.map((page) => {
+                      const isCurrent = page.flatIndex === currentFlatIndex;
+                      const isPast = page.flatIndex < currentFlatIndex;
+                      return (
+                        <button
+                          key={page.flatIndex}
+                          onClick={() => goToFlatIndex(page.flatIndex)}
+                          className={cn(
+                            'rounded-full transition-all',
+                            isCurrent
+                              ? 'w-2.5 h-2.5 bg-[#FF9D00]'
+                              : isPast
+                                ? 'w-2 h-2 bg-emerald-400'
+                                : 'w-2 h-2 bg-gray-300',
+                          )}
+                        />
+                      );
+                    })}
+                  </div>
+                );
+              })}
         </div>
 
         {/* Next / Got it */}
