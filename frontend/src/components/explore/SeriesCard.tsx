@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { BookOpen, ChevronRight } from 'lucide-react';
 import { Series } from '@/types/paper';
 
-const ASSETS_BASE = process.env.NEXT_PUBLIC_COURSE_ASSETS_BASE_URL || '';
+const ASSETS_BASE = 'https://raw.githubusercontent.com/ainblockchain/awesome-papers-with-claude-code/main/assets';
 
 interface SeriesCardProps {
   series: Series;

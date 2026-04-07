@@ -8,7 +8,7 @@ const IMAGE_RE = /^!\[([^\]]*)\]\(([^)]+)\)$/;
 const YOUTUBE_RE =
   /^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})(?:[&?][\w=]*)*$/;
 
-const ASSETS_BASE = process.env.NEXT_PUBLIC_COURSE_ASSETS_BASE_URL || '';
+const ASSETS_BASE = 'https://raw.githubusercontent.com/ainblockchain/awesome-papers-with-claude-code/main/assets';
 
 /** Render inline: bold, URLs, inline code */
 export function renderInline(text: string, keyPrefix: string): ReactNode[] {

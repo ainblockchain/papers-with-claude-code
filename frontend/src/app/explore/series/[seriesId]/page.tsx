@@ -12,7 +12,7 @@ import { useCourses } from '@/hooks/useCourses';
 import { usePurchaseStore } from '@/stores/usePurchaseStore';
 import type { Paper } from '@/types/paper';
 
-const ASSETS_BASE = process.env.NEXT_PUBLIC_COURSE_ASSETS_BASE_URL || '';
+const ASSETS_BASE = 'https://raw.githubusercontent.com/ainblockchain/awesome-papers-with-claude-code/main/assets';
 
 function ExpandableText({ text }: { text: string }) {
   const [expanded, setExpanded] = useState(false);
@@ -179,7 +179,7 @@ export default function SeriesDetailPage() {
           <ArrowLeft className="h-4 w-4 mr-1" /> Back to Explore
         </Button>
         <div className="flex gap-5 items-start">
-          {series.thumbnailUrl && ASSETS_BASE && (
+          {series.thumbnailUrl && (
             <img
               src={`${ASSETS_BASE}/${series.thumbnailUrl}`}
               alt={series.title}
