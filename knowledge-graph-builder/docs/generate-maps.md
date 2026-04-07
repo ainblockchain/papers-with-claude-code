@@ -385,20 +385,18 @@ buildingY = plotRow × 14 + 4   (PLOT_BORDER + floor((12-3)/2) - 1 = 1+4-1 = 4)
 
 ## 프론트엔드 연동 현황
 
-### 현재 상태 (정적 파일 기반)
+### 현재 상태 (API 기반)
 
 ```
-generate-maps.ts 실행
-        ↓
-knowledge-graph-builder/map/ 에 파일 생성
-        ↓ (수동으로 복사)
-frontend/public/maps/village.tmj
-frontend/public/courses/{paperId}/...
-
-프론트엔드 → LocalMapLoader → fetch('/maps/village.tmj')
+프론트엔드 → API route → GitHub raw fetch → on-the-fly 생성
+  - 스테이지: GET /api/maps/courses/{courseId}/stages/{n}
+  - 빌리지: GET /api/maps/village
 ```
 
-### 목표 상태 (API 기반, map-api-spec.md 참조)
+> 코스 스테이지 데이터는 awesome 레포의 courses.json에서 직접 fetch하여 동적 생성.
+> 정적 파일(frontend/public/courses/) 기반 방식은 제거됨.
+
+### 참고: 이전 목표였던 빌리지 맵 API 기반 전환 (map-api-spec.md 참조)
 
 ```
 프론트엔드 → BackendMapLoader → GET /api/maps/village

@@ -445,40 +445,6 @@ To start learning:
   claude
 ```
 
-### Step 5.5. Generate Frontend Stage Files
-
-After saving all course files, generate the frontend stage JSON files that the learning UI consumes.
-**This step is mandatory** — without it, the frontend will show placeholder content instead of real quiz and concept data.
-
-Run from the `frontend/` directory:
-
-```bash
-cd ../../frontend
-npx tsx scripts/generate-course-stages.ts <paper-slug> <course-name-slug>
-```
-
-This reads `knowledge/courses.json` and outputs stage files to:
-```
-frontend/public/courses/<paper-slug>--<course-name-slug>/stages/1.json
-frontend/public/courses/<paper-slug>--<course-name-slug>/stages/2.json
-...
-```
-
-Each stage file contains:
-- TMJ map data (floor, collision, objects layers)
-- Concept data (id, title, content from lesson `content` field)
-- Quiz data (question, options, correctAnswer from lesson exercise + answer)
-- Room layout (spawn, door, NPC positions)
-
-Verify the output:
-```
-✅ Stage 1: <title> (<N> concepts)
-✅ Stage 2: <title> (<N> concepts)
-...
-📁 Output: public/courses/<paper-slug>--<course-name-slug>/stages/
-🎯 Total: <M> stages generated
-```
-
 ### Step 6. Register Knowledge Graph on Blockchain
 
 After saving all files, register the knowledge graph nodes and edges on the AIN blockchain.
