@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { listCourses, fetchCoursesJson, fetchCourseReadme, fetchPaperJson, getRawUrl } from '@/lib/github';
+import { listCourses, fetchCoursesJson, fetchCourseReadme, fetchPaperJson, fetchLastCommitDate, getRawUrl } from '@/lib/github';
 import { getAinClient } from '@/lib/ain/client';
 import type { Paper } from '@/types/paper';
 
@@ -182,6 +182,9 @@ export async function GET() {
 
         const series = paperJson?.series || seriesMap.get(courseId);
 
+        // Fetch last commit date for this course directory
+        const updatedAt = await fetchLastCommitDate(`${entry.paperSlug}/${entry.courseSlug}`);
+
         const paper: Paper = {
           id: courseId,
           title: title + courseLabel,
@@ -201,6 +204,7 @@ export async function GET() {
             : undefined,
           series,
           sortOrder: paperJson?.sortOrder,
+          updatedAt: updatedAt || undefined,
         };
 
         return paper;

@@ -32,6 +32,7 @@ export interface Paper {
   badgeUrl?: string;
   series?: string;
   sortOrder?: number;
+  updatedAt?: string;
 }
 
 export interface SeriesGroupEntry {

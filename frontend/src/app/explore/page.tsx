@@ -24,9 +24,9 @@ export default function ExplorePage() {
   useEffect(() => {
     if (courses && courses.length > 0) {
       const sorted = [...courses].sort((a, b) => {
-        const aPin = a.id?.includes('comcom-ojt-web3-blockchain-ai') ? 1 : 0;
-        const bPin = b.id?.includes('comcom-ojt-web3-blockchain-ai') ? 1 : 0;
-        return bPin - aPin;
+        const aDate = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+        const bDate = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+        return bDate - aDate;
       });
       setPapers(sorted);
       initializeAccess(courses);
