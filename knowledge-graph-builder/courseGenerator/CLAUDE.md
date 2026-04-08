@@ -292,6 +292,7 @@ Write in markdown format with:
 - Bullet points for lists
 - Code blocks for examples
 - Tables where appropriate
+- **Links**: Use bare URLs only (e.g., `https://hanyang-ai-dev.ainetwork.xyz/`). The frontend markdown renderer auto-links bare `https://` URLs into clickable buttons with the domain name and an external link icon. **Do NOT use** markdown link syntax `[text](URL)` — the renderer does not support it and will display it as plain text.
 
 **Lesson writing principles** (apply to `content` field):
 1. **Paper-first**: Paper/author/year first -> problem background -> solution idea in order
