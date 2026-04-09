@@ -45,8 +45,10 @@ export function PaperCard({ paper }: PaperCardProps) {
 
   const showThumbnail = paper.thumbnailUrl && !imgError;
 
+  const goToDetail = () => router.push(`/explore/course/${paper.id}`);
+
   return (
-    <article className="flex gap-4 py-5 border-t border-[#E5E7EB] first:border-t-0 relative overflow-hidden">
+    <article className="flex gap-4 py-5 border-t border-[#E5E7EB] first:border-t-0 relative overflow-hidden group">
       {/* Card background image */}
       {paper.backgroundUrl && (
         <div
@@ -62,8 +64,11 @@ export function PaperCard({ paper }: PaperCardProps) {
         />
       )}
 
-      {/* Thumbnail — HF CDN 이미지 또는 FileText 아이콘 placeholder */}
-      <div className="relative flex-shrink-0 w-[160px] h-[200px] rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
+      {/* Thumbnail — 클릭 시 상세 페이지 */}
+      <div
+        onClick={goToDetail}
+        className="relative flex-shrink-0 w-[160px] h-[200px] rounded-lg overflow-hidden bg-gray-100 border border-gray-200 cursor-pointer"
+      >
         {showThumbnail ? (
           <img
             src={paper.thumbnailUrl}
@@ -86,9 +91,9 @@ export function PaperCard({ paper }: PaperCardProps) {
         )}
       </div>
 
-      {/* Content — 타이틀 + 논문 설명 + 코스 정보 + 저자/날짜 */}
-      <div className="flex-1 min-w-0 flex flex-col">
-        <h3 className="font-bold text-[18px] text-[#111827] leading-tight line-clamp-2">
+      {/* Content — 클릭 시 상세 페이지 */}
+      <div onClick={goToDetail} className="flex-1 min-w-0 flex flex-col cursor-pointer">
+        <h3 className="font-bold text-[18px] text-[#111827] leading-tight line-clamp-2 group-hover:text-[#FF9D00] transition-colors">
           {paper.title}
         </h3>
 

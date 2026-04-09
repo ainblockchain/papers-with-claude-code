@@ -1,0 +1,359 @@
+'use client';
+
+import { useEffect, useMemo } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { ArrowLeft, Play, ShoppingCart, Star, FileText, BookOpen, Users, CheckCircle2 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { useCourses } from '@/hooks/useCourses';
+import { useCourseInfo } from '@/hooks/useCourseInfo';
+import { usePurchaseStore } from '@/stores/usePurchaseStore';
+import { useAuthStore } from '@/stores/useAuthStore';
+import { PurchaseModal } from '@/components/purchase/PurchaseModal';
+import type { Paper } from '@/types/paper';
+
+interface Completer {
+  address: string;
+  stagesCleared: number;
+  avatarUrl?: string;
+}
+
+async function fetchCompleters(courseId: string): Promise<Completer[]> {
+  const res = await fetch(`/api/courses/${encodeURIComponent(courseId)}/completers`);
+  if (!res.ok) return [];
+  const json = await res.json();
+  return json.data ?? [];
+}
+
+function truncateAddress(addr: string) {
+  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+}
+
+export default function CourseDetailPage() {
+  const params = useParams();
+  const router = useRouter();
+  const courseId = params.courseId as string;
+
+  const { isAuthenticated } = useAuthStore();
+  const { data: courses, isLoading: coursesLoading } = useCourses();
+  const { data: courseInfo, isLoading: infoLoading } = useCourseInfo(courseId);
+  const { getAccessStatus, setPurchaseModal, initializeAccess, restoreFromBlockchain } = usePurchaseStore();
+
+  const { data: completers = [], isLoading: completersLoading } = useQuery({
+    queryKey: ['course-completers', courseId],
+    queryFn: () => fetchCompleters(courseId),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const paper = useMemo(
+    () => courses?.find((c) => c.id === courseId),
+    [courses, courseId],
+  );
+
+  useEffect(() => {
+    if (courses && courses.length > 0) {
+      initializeAccess(courses);
+      restoreFromBlockchain();
+    }
+  }, [courses, initializeAccess, restoreFromBlockchain]);
+
+  const access = getAccessStatus(courseId);
+  const canLearn = access === 'owned' || access === 'purchased';
+  const totalStages = paper?.totalStages ?? courseInfo?.totalStages ?? 0;
+  const fullyCompleted = completers.filter((c) => c.stagesCleared >= totalStages && totalStages > 0);
+  const inProgress = completers.filter((c) => c.stagesCleared < totalStages || totalStages === 0);
+  const isLoading = coursesLoading || infoLoading;
+
+  const requireAuth = (action: () => void) => {
+    if (!isAuthenticated) {
+      router.push('/login');
+      return;
+    }
+    action();
+  };
+
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return null;
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  };
+
+  const formatStars = (stars?: number) => {
+    if (!stars) return null;
+    if (stars >= 1000) return `${(stars / 1000).toFixed(1)}k`;
+    return stars.toString();
+  };
+
+  if (isLoading) {
+    return (
+      <div className="mx-auto max-w-[1280px] px-4 py-8">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-gray-200 rounded w-1/3" />
+          <div className="h-4 bg-gray-200 rounded w-2/3" />
+          <div className="h-64 bg-gray-200 rounded mt-8" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!paper) {
+    return (
+      <div className="mx-auto max-w-[1280px] px-4 py-8 text-center">
+        <p className="text-lg text-[#6B7280]">Course not found.</p>
+        <Button variant="ghost" onClick={() => router.push('/explore')} className="mt-4">
+          <ArrowLeft className="h-4 w-4 mr-1" /> Back to Explore
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-[1280px] px-4 py-8">
+      <PurchaseModal />
+
+      {/* Back */}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => router.push('/explore')}
+        className="text-[#6B7280] hover:text-[#111827] -ml-2 mb-6"
+      >
+        <ArrowLeft className="h-4 w-4 mr-1" /> Back to Explore
+      </Button>
+
+      {/* ── Header ── */}
+      <div className="flex gap-6 items-start">
+        {/* Thumbnail */}
+        <div className="relative flex-shrink-0 w-[200px] h-[250px] rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
+          {paper.thumbnailUrl ? (
+            <img
+              src={paper.thumbnailUrl}
+              alt={paper.title}
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-b from-gray-50 to-gray-200">
+              <FileText className="h-16 w-16 text-gray-400" />
+            </div>
+          )}
+        </div>
+
+        {/* Meta */}
+        <div className="flex-1 min-w-0">
+          <h1 className="text-3xl font-bold text-[#111827] leading-tight">{paper.title}</h1>
+
+          {paper.description && (
+            <p className="mt-2 text-[#6B7280] leading-relaxed">{paper.description}</p>
+          )}
+
+          {/* Course info */}
+          <div className="mt-3 flex items-center gap-4 text-sm text-[#6B7280]">
+            {paper.courseName && (
+              <span className="flex items-center gap-1.5">
+                <BookOpen className="h-4 w-4 text-[#FF9D00]" />
+                <span className="font-medium text-[#374151]">{paper.courseName}</span>
+              </span>
+            )}
+            <span>{totalStages} stage{totalStages !== 1 ? 's' : ''}</span>
+            {completers.length > 0 && (
+              <span className="flex items-center gap-1">
+                <Users className="h-4 w-4" />
+                {completers.length} learner{completers.length !== 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
+
+          {/* Authors */}
+          {paper.authors.length > 0 && (
+            <div className="mt-3 flex items-center gap-2 text-sm text-[#6B7280]">
+              <div className="flex items-center gap-1">
+                {paper.authors.slice(0, 5).map((author) => (
+                  <div
+                    key={author.id}
+                    className="h-6 w-6 rounded-full bg-gray-300 flex items-center justify-center text-[10px] font-medium text-white"
+                    title={author.name}
+                  >
+                    {author.name[0]}
+                  </div>
+                ))}
+              </div>
+              <span className="text-sm">
+                {paper.authors.length <= 3
+                  ? paper.authors.map((a) => a.name).join(', ')
+                  : `${paper.authors[0].name} et al.`}
+              </span>
+              {paper.publishedAt && (
+                <>
+                  <span>·</span>
+                  <span>{formatDate(paper.publishedAt)}</span>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Action buttons */}
+          <div className="mt-5 flex items-center gap-3">
+            {canLearn ? (
+              <Button
+                onClick={() => requireAuth(() => router.push(`/learn/${paper.id}`))}
+                className="bg-[#FF9D00] hover:bg-[#FF9D00]/90 text-white"
+              >
+                <Play className="h-4 w-4 mr-1.5" />
+                Start Learning
+              </Button>
+            ) : (
+              <Button
+                onClick={() => requireAuth(() => setPurchaseModal(paper.id, paper))}
+                className="bg-[#7C3AED] hover:bg-[#7C3AED]/90 text-white"
+              >
+                <ShoppingCart className="h-4 w-4 mr-1.5" />
+                Purchase
+              </Button>
+            )}
+            {paper.githubUrl && (
+              <a href={paper.githubUrl} target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" size="sm">
+                  <Star className="h-3.5 w-3.5 mr-1" />
+                  GitHub
+                  {paper.githubStars != null && (
+                    <Badge variant="secondary" className="ml-1.5 text-[10px] px-1.5 py-0">
+                      {formatStars(paper.githubStars)}
+                    </Badge>
+                  )}
+                </Button>
+              </a>
+            )}
+            {paper.arxivUrl ? (
+              <a href={paper.arxivUrl} target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" size="sm">
+                  <FileText className="h-3.5 w-3.5 mr-1" />
+                  arXiv
+                </Button>
+              </a>
+            ) : paper.docsUrl ? (
+              <a href={paper.docsUrl} target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" size="sm">
+                  <FileText className="h-3.5 w-3.5 mr-1" />
+                  Docs
+                </Button>
+              </a>
+            ) : null}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Curriculum ── */}
+      {courseInfo && courseInfo.stages.length > 0 && (
+        <section className="mt-10">
+          <h2 className="text-xl font-bold text-[#111827] mb-4">Curriculum</h2>
+          <div className="border border-[#E5E7EB] rounded-lg divide-y divide-[#E5E7EB]">
+            {courseInfo.stages.map((stage) => (
+              <div key={stage.stageNumber} className="flex items-center gap-4 px-5 py-4">
+                <div className="flex-shrink-0 h-8 w-8 rounded-full bg-[#F3F4F6] flex items-center justify-center text-sm font-semibold text-[#374151]">
+                  {stage.stageNumber}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-[#111827]">{stage.title}</p>
+                  <p className="text-xs text-[#9CA3AF] mt-0.5">
+                    {stage.conceptCount} concept{stage.conceptCount !== 1 ? 's' : ''}
+                    {stage.hasQuiz && ' · Quiz'}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ── Completers ── */}
+      <section className="mt-10">
+        <h2 className="text-xl font-bold text-[#111827] mb-4 flex items-center gap-2">
+          <Users className="h-5 w-5" />
+          Learners
+        </h2>
+
+        {completersLoading ? (
+          <div className="animate-pulse space-y-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="h-12 bg-gray-100 rounded-lg" />
+            ))}
+          </div>
+        ) : completers.length === 0 ? (
+          <p className="text-[#9CA3AF] text-sm py-6 text-center">
+            No learners yet. Be the first to take this course!
+          </p>
+        ) : (
+          <div className="space-y-6">
+            {/* Completed */}
+            {fullyCompleted.length > 0 && (
+              <div>
+                <h3 className="text-sm font-semibold text-[#059669] mb-2 flex items-center gap-1.5">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Completed ({fullyCompleted.length})
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                  {fullyCompleted.map((c) => (
+                    <div
+                      key={c.address}
+                      className="flex items-center gap-3 px-4 py-3 rounded-lg border border-[#059669]/20 bg-[#059669]/5"
+                    >
+                      {c.avatarUrl ? (
+                        <img src={c.avatarUrl} alt="" className="h-8 w-8 rounded-full flex-shrink-0" />
+                      ) : (
+                        <div className="h-8 w-8 rounded-full bg-[#059669]/20 flex items-center justify-center text-xs font-medium text-[#059669] flex-shrink-0">
+                          {c.address.slice(2, 4).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-[#111827] font-mono">
+                          {truncateAddress(c.address)}
+                        </p>
+                        <p className="text-xs text-[#059669]">
+                          {c.stagesCleared}/{totalStages} stages
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* In Progress */}
+            {inProgress.length > 0 && (
+              <div>
+                <h3 className="text-sm font-semibold text-[#6B7280] mb-2">
+                  In Progress ({inProgress.length})
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                  {inProgress.map((c) => (
+                    <div
+                      key={c.address}
+                      className="flex items-center gap-3 px-4 py-3 rounded-lg border border-[#E5E7EB] bg-[#F9FAFB]"
+                    >
+                      {c.avatarUrl ? (
+                        <img src={c.avatarUrl} alt="" className="h-8 w-8 rounded-full flex-shrink-0" />
+                      ) : (
+                        <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium text-[#6B7280] flex-shrink-0">
+                          {c.address.slice(2, 4).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-[#111827] font-mono">
+                          {truncateAddress(c.address)}
+                        </p>
+                        <p className="text-xs text-[#9CA3AF]">
+                          {c.stagesCleared}/{totalStages} stages
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}

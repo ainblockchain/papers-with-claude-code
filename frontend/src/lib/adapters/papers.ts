@@ -284,7 +284,11 @@ class GitHubPapersAdapter implements PapersAdapter {
       return this.cachedPapers;
     }
 
-    const papers = await fetchPapersFromGitHub();
+    // Use server API (token-authenticated, cached) instead of direct GitHub calls
+    // to avoid client-side rate limiting (60 req/hr unauthenticated)
+    const res = await fetch('/api/courses');
+    if (!res.ok) throw new Error(`Failed to fetch courses: ${res.status}`);
+    const papers: Paper[] = await res.json();
     this.cachedPapers = papers;
     this.cacheTimestamp = Date.now();
     return papers;
