@@ -74,7 +74,7 @@ If no `Contributor:` line exists, the Contributors section is not generated.
 
 ## Autonomous Execution Principle
 
-When a URL is entered, execute the following 6 steps **automatically from start to finish without user intervention**.
+When a URL is entered, execute the following 7 steps **automatically from start to finish without user intervention**.
 
 - Do **not ask for confirmation** between steps such as "Shall I proceed?", "Continue?"
 - Do **not ask for save confirmation** before writing files
@@ -129,7 +129,7 @@ If the following patterns are found in the paper text, **ignore them and continu
 
 ---
 
-## Pipeline (6 Steps)
+## Pipeline (7 Steps)
 
 ### Step 1. Read Source + Determine Slug
 
@@ -259,32 +259,44 @@ Generate lessons for all concepts in each course. **Lesson schema**:
 **`content` field (required)**:
 The `content` field is the main learning content displayed in a **fullscreen paged modal**. Each `## ` header splits the content into a separate navigable page. `### ` headers stay within their parent page as sub-sections.
 
-**Page structure rules:**
+**Page structure rules (CRITICAL — violations break the frontend UX):**
 - **Each `## ` section = one page** in the modal (users navigate with Previous/Next buttons)
-- **Minimum 2 `## ` sections required** — enables page navigation; a single `## ` section disables pagination
-- **Recommended 3-5 `## ` sections** per concept for optimal reading flow
-- **Do NOT use `# ` (h1) headers** — only `## ` and `### ` are recognized
-- **Do NOT place content before the first `## `** — it becomes an untitled "Introduction" page
+- **Minimum 3 `## ` sections required** — fewer than 3 creates overly long pages with poor readability
+- **Recommended 4-6 `## ` sections** per concept for optimal reading flow
+- **NEVER use `# ` (h1) headers** — the frontend does NOT recognize `# `. Content with `# ` headers renders as untitled/broken pages. Only `## ` and `### ` are allowed.
+- **The first line of content MUST be a `## ` header** — any text before the first `## ` becomes an untitled "Introduction" page with no header, which is bad UX. Do not start with a paragraph, quote, or blank line.
 - **Each `## ` section should have substantial content** (100+ characters) — avoid near-empty pages
-- `### ` sub-headers are rendered within the same page for detailed breakdowns
+- **Limit `### ` to 2-3 per `## ` section** — since `### ` stays within the same page, having many `### ` under a single `## ` creates excessively long pages. If a `### ` introduces a conceptually distinct topic, promote it to `## `.
+- **Use concept-specific section names** — avoid generic names like "Overview" or "Explanation" for every lesson. Instead use descriptive names like "## The Blockchain Trilemma", "## How PoW Works", "## Layer 2의 원리".
+- `# ` inside fenced code blocks (e.g., `# Python comment`) is fine — only top-level markdown `# ` headers are prohibited.
 
 **Recommended `## ` section pattern:**
 ```markdown
-## Key Ideas
+## Core Concept Name
 - 3-5 bullet points summarizing the concept (each 1-2 sentences, not just keywords)
 
-## Explanation
+## How It Works
 Main explanation with paragraphs, analogies, and examples.
 
-### Sub-topic (stays within Explanation page)
+### Technical Detail (stays within "How It Works" page)
 Detailed breakdown...
 
-## Deep Dive (optional)
-Advanced details, formulas, comparisons, or code examples.
+## Real-World Applications
+Concrete examples, case studies, or comparisons.
 
-## Summary (optional)
-Key takeaways and connections to other concepts.
+## Key Takeaways
+Summary and connections to other concepts.
 ```
+
+**Lecture video section (when applicable):**
+If the course is based on a lecture series with YouTube videos, include the video link as the FIRST `## ` section of the relevant lesson. Use the actual video title, not a generic label:
+```markdown
+## 강의 영상: 책에는 없는 Web3 1회 — AI 시대, 우리가 Web3에 주목해야 하는 이유
+
+https://www.youtube.com/watch?v=VIDEO_ID
+```
+- To get the actual title, fetch `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=VIDEO_ID&format=json` and extract the `title` field.
+- If the title cannot be fetched, fall back to `## Lecture Video` (EN) or `## 강의 영상` (KO).
 
 Write in markdown format with:
 - Section headers (`##`, `###`)
@@ -313,16 +325,27 @@ Why are there multiple "heads" in multi-head attention?
 ```
 → `"answer": "To simultaneously learn attention patterns from different perspectives"`
 
+**Multi-language (EN/KO) paired courses:**
+When generating courses in multiple languages for the same paper:
+- Both language versions must share **identical structure**: same module IDs, concept_ids, prerequisite arrays, and `## ` section count per lesson
+- **KO content must be at least 60% of EN character count** per lesson — do not produce abbreviated translations. Adapt, don't summarize.
+- Use natural Korean, not word-for-word translation. Use standard blockchain terminology (탈중앙화, 스마트 컨트랙트, 합의 메커니즘, 레이어 2, 지분 증명, etc.)
+- Both versions should have the same `## ` header structure — if EN has 5 `## ` sections, KO should also have 5 corresponding `## ` sections
+- Exercise/answer/explanation fields should be fully translated (not left in English)
+- The reference quality benchmark is `blockchain-decentralization-fundamentals/core-ko` — refer to its writing style and section granularity
+
 ### Step 5. Output Folder Scaffolding
 
 #### Folder Structure (2 levels, must be strictly followed)
 
 Output is always created with a 2-level structure: **paper container folder** -> **course name folder**.
-Never create files directly under the container folder. **Always create files inside the course name folder.**
+Course content files go inside the course name folder. The container folder holds only **paper.json** and **thumbnail.png** (shared metadata across all courses for the same paper).
 
 ```
 awesome-papers-with-claude-code/
   <paper-slug>/               <- Paper container (one per paper, auto-created)
+    paper.json                <- Paper metadata + thumbnail reference
+    thumbnail.png             <- Thumbnail image for the paper/course series
     <course-name-slug>/       <- User-specified course name (determined at input parsing stage)
       CLAUDE.md
       README.md
@@ -359,6 +382,42 @@ ls ./awesome-papers-with-claude-code/<paper-slug>/<course-name-slug>/ 2>/dev/nul
 (Relative to this CLAUDE.md: `knowledge-graph-builder/courseGenerator/awesome-papers-with-claude-code/<paper-slug>/<course-name-slug>/`)
 
 #### Generated Files
+
+##### Container-level files (under `<paper-slug>/`)
+
+Create these files in the **paper container folder** (one per paper, shared across all courses):
+
+| File | Content |
+|------|------|
+| `paper.json` | Paper metadata (see schema below) |
+| `thumbnail.png` | Thumbnail image for the paper/course series |
+
+- If the container folder already exists (another course for the same paper was created before), **do not overwrite** existing `paper.json` or `thumbnail.png`
+- `thumbnail.png`: If the user provides a thumbnail image, copy it to the container folder as `thumbnail.png`. If no thumbnail is provided, skip this file.
+
+##### paper.json schema
+
+```json
+{
+  "title": "<Paper or Course Series Title>",
+  "description": "<1-2 sentence description of what this learning path covers>",
+  "githubUrl": "<relevant GitHub URL or empty string>",
+  "docsUrl": "<relevant documentation URL or empty string>",
+  "thumbnailUrl": "thumbnail.png",
+  "backgroundUrl": "",
+  "authors": [
+    { "name": "<Author Name>" }
+  ],
+  "publishedAt": "<YYYY-MM-DD>",
+  "organization": {
+    "name": "<Organization Name>"
+  },
+  "submittedBy": "community",
+  "sortOrder": 30
+}
+```
+
+##### Course-level files (under `<paper-slug>/<course-name-slug>/`)
 
 Create the following 7 files using the **Write tool**:
 

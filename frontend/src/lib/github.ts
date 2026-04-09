@@ -303,6 +303,33 @@ export function getRawUrl(path: string): string {
 }
 
 /**
+ * Fetch the last commit date for a given path in the repository.
+ * Uses the GitHub Commits API with per_page=1 to get the most recent commit.
+ */
+export async function fetchLastCommitDate(path: string): Promise<string | null> {
+  const cacheKey = `lastCommit:${path}`;
+  const cached = getCached<string>(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/commits?path=${encodeURIComponent(path)}&sha=${GITHUB_BRANCH}&per_page=1`;
+    const response = await fetch(url, { headers: buildHeaders() });
+    if (!response.ok) return null;
+    const commits = await response.json();
+    if (Array.isArray(commits) && commits.length > 0) {
+      const date = commits[0].commit?.committer?.date || commits[0].commit?.author?.date;
+      if (date) {
+        setCache(cacheKey, date);
+        return date;
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+/**
  * Fetch and parse paper.json for a given paper slug.
  */
 export async function fetchPaperJson(paperSlug: string): Promise<PaperJsonData | null> {
