@@ -75,12 +75,10 @@ export async function GET(
         }
       }
 
-      if (stagesCleared > 0) {
-        // Only include users whose identity is resolvable in the current environment
-        const avatarUrl = profileMap.get(address.toLowerCase());
-        if (!avatarUrl) continue;
-        completers.push({ address, stagesCleared, avatarUrl });
-      }
+      // Only include users whose identity is resolvable in the current environment
+      const avatarUrl = profileMap.get(address.toLowerCase());
+      if (!avatarUrl) continue;
+      completers.push({ address, stagesCleared, avatarUrl });
     }
 
     completers.sort((a, b) => b.stagesCleared - a.stagesCleared);
