@@ -14,8 +14,12 @@ import {
   BookOpen,
   Zap,
   Users,
+  LogOut,
 } from 'lucide-react';
 import { ClaudeMark } from '@/components/shared/ClaudeMark';
+import { useAuthStore } from '@/stores/useAuthStore';
+import { isRealAuth } from '@/lib/auth-mode';
+import { signOut as nextAuthSignOut } from 'next-auth/react';
 
 // ── Intersection Observer hook ───────────────────────────────────────────────
 function useInView(threshold = 0.08) {
@@ -139,6 +143,7 @@ const STEPS = [
 // ── Page ─────────────────────────────────────────────────────────────────────
 export default function LandingPage() {
   const [mounted, setMounted] = useState(false);
+  const { isAuthenticated, user, logout } = useAuthStore();
   const features = useInView(0.05);
   const steps = useInView(0.05);
   const cta = useInView(0.1);
@@ -160,7 +165,7 @@ export default function LandingPage() {
       </div>
 
       {/* ── Nav ── */}
-      <nav className="relative z-50 flex items-center justify-between px-6 md:px-10 py-5 max-w-[1280px] mx-auto">
+      <nav className="relative z-50 flex items-center px-6 md:px-10 py-5 max-w-[1280px] mx-auto">
         <Link href="/" className="flex items-center gap-2.5 group">
           <ClaudeMark size={28} />
           <span className="font-bold text-base tracking-tight hidden sm:inline">
@@ -168,7 +173,7 @@ export default function LandingPage() {
           </span>
         </Link>
 
-        <div className="hidden md:flex items-center gap-7 text-sm text-gray-400">
+        <div className="hidden md:flex items-center gap-7 text-sm text-gray-400 absolute left-1/2 -translate-x-1/2">
           {[
             { href: '/explore', label: 'Explore' },
             { href: '/builder', label: 'Build' },
@@ -185,13 +190,30 @@ export default function LandingPage() {
           ))}
         </div>
 
-        <Link
-          href="/login"
-          className="flex items-center gap-1.5 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg text-sm transition-all duration-200"
-        >
-          <Github className="h-4 w-4" />
-          <span className="hidden sm:inline">Sign in</span>
-        </Link>
+        <div className="ml-auto">
+          {isAuthenticated && user ? (
+            <div className="flex items-center gap-2">
+              <Link href="/dashboard" className="text-sm text-gray-300 hover:text-white transition-colors">
+                {user.username}
+              </Link>
+              <button
+                onClick={() => isRealAuth ? nextAuthSignOut({ redirectTo: '/' }) : logout()}
+                className="p-1.5 text-gray-500 hover:text-white rounded-md hover:bg-white/10 transition-colors"
+                title="Sign out"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <Link
+              href="/login"
+              className="flex items-center gap-1.5 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg text-sm transition-all duration-200"
+            >
+              <Github className="h-4 w-4" />
+              <span className="hidden sm:inline">Sign in</span>
+            </Link>
+          )}
+        </div>
       </nav>
 
       {/* ── Hero ── */}
