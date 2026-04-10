@@ -13,7 +13,6 @@ interface CourseInfo {
     title: string;
     conceptCount: number;
     hasQuiz: boolean;
-    concepts: Array<{ id: string; title: string }>;
   }>;
 }
 
