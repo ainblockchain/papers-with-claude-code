@@ -140,7 +140,7 @@ export default function CourseDetailPage() {
         </div>
 
         {/* Meta */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 sm:h-[200px] flex flex-col">
           <h1 className="text-xl sm:text-2xl font-bold text-[#111827] leading-tight">{paper.title}</h1>
 
           {paper.description && (
@@ -164,9 +164,9 @@ export default function CourseDetailPage() {
             )}
           </div>
 
-          {/* Authors */}
+          {/* Authors — pushed to bottom */}
           {paper.authors.length > 0 && (
-            <div className="mt-3 flex items-center gap-2 text-sm text-[#6B7280]">
+            <div className="mt-auto pt-3 flex items-center gap-2 text-sm text-[#6B7280]">
               <div className="flex items-center gap-1">
                 {paper.authors.slice(0, 5).map((author) => (
                   <div
@@ -193,7 +193,7 @@ export default function CourseDetailPage() {
           )}
 
           {/* Action buttons */}
-          <div className="mt-5 flex items-center gap-3">
+          <div className="mt-3 flex items-center gap-3">
             {canLearn ? (
               <Button
                 onClick={() => requireAuth(() => router.push(`/learn/${paper.id}`))}
