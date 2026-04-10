@@ -100,6 +100,7 @@ export interface CourseInfo {
     title: string;
     conceptCount: number;
     hasQuiz: boolean;
+    concepts: Array<{ id: string; title: string }>;
   }>;
 }
 
@@ -540,6 +541,7 @@ export function generateCourseInfo(
       title: c.title,
       conceptCount: c.lessons.length,
       hasQuiz: c.lessons.some((l) => l.exercise?.trim()),
+      concepts: c.lessons.map((l) => ({ id: l.concept_id, title: l.title })),
     })),
   };
 }

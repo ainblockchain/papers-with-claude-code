@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Play, ShoppingCart, Star, FileText, BookOpen, Users, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Play, ShoppingCart, Star, FileText, BookOpen, Users, CheckCircle2, ChevronDown, CircleDot } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +24,75 @@ async function fetchCompleters(courseId: string): Promise<Completer[]> {
   if (!res.ok) return [];
   const json = await res.json();
   return json.data ?? [];
+}
+
+function CurriculumTimeline({ stages }: {
+  stages: Array<{
+    stageNumber: number;
+    title: string;
+    conceptCount: number;
+    hasQuiz: boolean;
+    concepts: Array<{ id: string; title: string }>;
+  }>;
+}) {
+  const [expanded, setExpanded] = useState<Set<number>>(new Set());
+
+  const toggle = (stageNumber: number) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(stageNumber)) next.delete(stageNumber);
+      else next.add(stageNumber);
+      return next;
+    });
+  };
+
+  return (
+    <div className="relative ml-1">
+      {stages.map((stage, idx) => {
+        const isLast = idx === stages.length - 1;
+        const isOpen = expanded.has(stage.stageNumber);
+        return (
+          <div key={stage.stageNumber} className="relative flex gap-4 pb-6 last:pb-0">
+            {/* Vertical line */}
+            {!isLast && (
+              <div className="absolute left-[9px] top-5 bottom-0 w-px bg-[#E5E7EB]" />
+            )}
+            {/* Dot */}
+            <div className="relative flex-shrink-0 mt-0.5 h-[18px] w-[18px] rounded-full border-2 border-[#FF9D00] bg-white flex items-center justify-center">
+              <div className="h-2 w-2 rounded-full bg-[#FF9D00]" />
+            </div>
+            {/* Content */}
+            <div className="flex-1 min-w-0 -mt-0.5">
+              <button
+                onClick={() => toggle(stage.stageNumber)}
+                className="flex items-center gap-1.5 group text-left w-full"
+              >
+                <p className="font-medium text-sm text-[#111827] group-hover:text-[#FF9D00] transition-colors">
+                  {stage.title}
+                </p>
+                <ChevronDown className={`h-3.5 w-3.5 text-[#9CA3AF] group-hover:text-[#FF9D00] transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+              </button>
+              <p className="text-xs text-[#9CA3AF] mt-0.5">
+                {stage.conceptCount} concept{stage.conceptCount !== 1 ? 's' : ''}
+                {stage.hasQuiz && ' · Quiz'}
+              </p>
+              {/* Expanded concepts */}
+              {isOpen && stage.concepts.length > 0 && (
+                <ul className="mt-2 space-y-1">
+                  {stage.concepts.map((concept) => (
+                    <li key={concept.id} className="flex items-center gap-2 text-xs text-[#6B7280]">
+                      <CircleDot className="h-3 w-3 text-[#D1D5DB] flex-shrink-0" />
+                      {concept.title}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 function truncateAddress(addr: string) {
@@ -109,7 +178,7 @@ export default function CourseDetailPage() {
   }
 
   return (
-    <div className="mx-auto max-w-[1280px] px-4 py-8">
+    <div className="mx-auto max-w-[1280px] px-4 pt-4 pb-8">
       <PurchaseModal />
 
       {/* Back */}
@@ -117,7 +186,7 @@ export default function CourseDetailPage() {
         variant="ghost"
         size="sm"
         onClick={() => router.push('/explore')}
-        className="text-[#6B7280] hover:text-[#111827] -ml-2 mb-3"
+        className="text-[#6B7280] hover:text-[#111827] -ml-2 mb-2"
       >
         <ArrowLeft className="h-4 w-4 mr-1" /> Back to Explore
       </Button>
@@ -140,15 +209,15 @@ export default function CourseDetailPage() {
         </div>
 
         {/* Meta */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 flex flex-col">
           <h1 className="text-xl sm:text-2xl font-bold text-[#111827] leading-tight">{paper.title}</h1>
 
           {paper.description && (
-            <p className="mt-2 text-sm text-[#6B7280]">{paper.description}</p>
+            <p className="mt-1.5 text-sm text-[#6B7280] line-clamp-3">{paper.description}</p>
           )}
 
           {/* Course info */}
-          <div className="mt-2 flex items-center gap-3 text-sm text-[#6B7280]">
+          <div className="mt-1.5 flex items-center gap-3 text-sm text-[#6B7280]">
             {paper.courseName && (
               <span className="flex items-center gap-1.5">
                 <BookOpen className="h-4 w-4 text-[#FF9D00]" />
@@ -166,7 +235,7 @@ export default function CourseDetailPage() {
 
           {/* Authors */}
           {paper.authors.length > 0 && (
-            <div className="mt-3 flex items-center gap-2 text-sm text-[#6B7280]">
+            <div className="mt-2 flex items-center gap-2 text-sm text-[#6B7280]">
               <div className="flex items-center gap-1">
                 {paper.authors.slice(0, 5).map((author) => (
                   <div
@@ -193,7 +262,7 @@ export default function CourseDetailPage() {
           )}
 
           {/* Action buttons */}
-          <div className="mt-5 flex items-center gap-3">
+          <div className="mt-auto pt-3 flex items-center gap-3">
             {canLearn ? (
               <Button
                 onClick={() => requireAuth(() => router.push(`/learn/${paper.id}`))}
@@ -245,43 +314,19 @@ export default function CourseDetailPage() {
 
       {/* ── Curriculum ── */}
       {courseInfo && courseInfo.stages.length > 0 && (
-        <section className="mt-8">
+        <section className="mt-6">
           <h2 className="text-lg font-bold text-[#111827] mb-4 flex items-center gap-2">
             Curriculum
             <span className="text-xs font-medium text-[#FF9D00] bg-[#FF9D00]/10 px-2 py-0.5 rounded-full">
               {courseInfo.stages.length}
             </span>
           </h2>
-          <div className="relative ml-1">
-            {courseInfo.stages.map((stage, idx) => {
-              const isLast = idx === courseInfo.stages.length - 1;
-              return (
-                <div key={stage.stageNumber} className="relative flex gap-4 pb-6 last:pb-0">
-                  {/* Vertical line */}
-                  {!isLast && (
-                    <div className="absolute left-[9px] top-5 bottom-0 w-px bg-[#E5E7EB]" />
-                  )}
-                  {/* Dot */}
-                  <div className="relative flex-shrink-0 mt-0.5 h-[18px] w-[18px] rounded-full border-2 border-[#FF9D00] bg-white flex items-center justify-center">
-                    <div className="h-2 w-2 rounded-full bg-[#FF9D00]" />
-                  </div>
-                  {/* Content */}
-                  <div className="flex-1 min-w-0 -mt-0.5">
-                    <p className="font-medium text-sm text-[#111827]">{stage.title}</p>
-                    <p className="text-xs text-[#9CA3AF] mt-0.5">
-                      {stage.conceptCount} concept{stage.conceptCount !== 1 ? 's' : ''}
-                      {stage.hasQuiz && ' · Quiz'}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <CurriculumTimeline stages={courseInfo.stages} />
         </section>
       )}
 
       {/* ── Learners ── */}
-      <section className="mt-8">
+      <section className="mt-6">
         <h2 className="text-lg font-bold text-[#111827] mb-4 flex items-center gap-2">
           <Users className="h-5 w-5" />
           Learners
