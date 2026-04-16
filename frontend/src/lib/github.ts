@@ -46,6 +46,12 @@ export interface CoursesJson {
   description?: string;
   concepts: string[];
   lessons: CoursesJsonLesson[];
+  signboards?: Array<{
+    id: string;
+    title: string;
+    position: { x: number; y: number };
+    dataSource: 'chatlog';
+  }>;
 }
 
 /** Shape returned by the GitHub Contents API for directory listings. */

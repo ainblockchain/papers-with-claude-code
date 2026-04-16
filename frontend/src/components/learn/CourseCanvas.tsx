@@ -7,7 +7,7 @@ import { StageConfig } from '@/types/learning';
 import { useMapLoader } from '@/hooks/useMapLoader';
 import { renderFullTileLayer } from '@/lib/tmj/renderer';
 import { trackEvent } from '@/lib/ain/event-tracker';
-import { drawWoodFloorTile, drawWallTile, drawDoor, drawBlackboard, tileHash } from '@/lib/sprites/terrain';
+import { drawWoodFloorTile, drawWallTile, drawDoor, drawBlackboard, drawSignboard, tileHash } from '@/lib/sprites/terrain';
 import {
   drawPlanetFloorA, drawPlanetFloorB, drawSpaceMountainWall,
   drawSpacePortal, drawSpaceOutpost, drawSpaceCrystal, is0GCourse,
@@ -36,6 +36,8 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
     setQuizActive,
     setPaymentModalOpen,
     viewedConceptIds,
+    activeSignboardId,
+    setActiveSignboard,
   } = useLearningStore();
 
   // Animation state
@@ -87,7 +89,7 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
   // Mark dirty on state change
   useEffect(() => {
     dirtyRef.current = true;
-  }, [playerPosition, playerDirection, activeConceptId, isDoorUnlocked, stage, viewedConceptIds]);
+  }, [playerPosition, playerDirection, activeConceptId, activeSignboardId, isDoorUnlocked, stage, viewedConceptIds]);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -151,6 +153,16 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
               timestamp: Date.now(),
             });
           }
+          // Signboard interaction (separate from concepts)
+          const signboard = stage.signboards?.find(
+            (s) =>
+              playerPosition.x >= s.position.x &&
+              playerPosition.x <= s.position.x + 2 &&
+              Math.abs(s.position.y - playerPosition.y) <= 1
+          );
+          if (signboard) {
+            setActiveSignboard(signboard.id);
+          }
           if (
             Math.abs(playerPosition.x - doorPosition.x) <= 1 &&
             Math.abs(playerPosition.y - doorPosition.y) <= 1
@@ -182,7 +194,9 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
       setPlayerPosition,
       setPlayerDirection,
       stage.concepts,
+      stage.signboards,
       setActiveConcept,
+      setActiveSignboard,
       doorPosition,
       isDoorUnlocked,
       setDoorUnlocked,
@@ -371,6 +385,30 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
         }
       });
 
+      // ── Signboards (independent from concepts) ──
+      const currentSignboardId = useLearningStore.getState().activeSignboardId;
+      stage.signboards?.forEach((sb) => {
+        const isActive = currentSignboardId === sb.id;
+        const sx = sb.position.x * TILE_SIZE;
+        const sy = sb.position.y * TILE_SIZE;
+        const sbW = TILE_SIZE * 3;
+        const sbH = TILE_SIZE * 2;
+
+        drawSignboard(ctx, sx, sy, sbW, sbH, isActive, sb.title);
+
+        // Interaction hint
+        const isNear =
+          playerPosition.x >= sb.position.x &&
+          playerPosition.x <= sb.position.x + 2 &&
+          Math.abs(sb.position.y - playerPosition.y) <= 1;
+        if (isNear && !isActive) {
+          ctx.fillStyle = '#FF9D00';
+          ctx.font = `${TILE_SIZE * 0.25}px sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.fillText('Press E', sx + TILE_SIZE * 1.5, sy - 8);
+        }
+      });
+
       // ── Player (pixel art sprite with animation) ──
       const pos = useLearningStore.getState().playerPosition;
       const dir = useLearningStore.getState().playerDirection as Direction;
@@ -399,7 +437,7 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
     dirtyRef.current = true;
     rafIdRef.current = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(rafIdRef.current);
-  }, [stage, activeConceptId, isDoorUnlocked, isQuizPassed, doorPosition, mapData, canUseTmj, playerPosition, playerDirection]);
+  }, [stage, activeConceptId, activeSignboardId, isDoorUnlocked, isQuizPassed, doorPosition, mapData, canUseTmj, playerPosition, playerDirection]);
 
   return (
     <div className="w-full h-full bg-gray-900 overflow-hidden">

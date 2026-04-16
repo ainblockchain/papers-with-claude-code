@@ -35,6 +35,7 @@ export async function GET(
   try {
     const res = await fetch(
       `${RAW_BASE}/${paperSlug}/${courseSlug}/knowledge/courses.json`,
+      { cache: 'no-store' },
     );
     if (!res.ok) throw new Error('courses.json not found on GitHub');
 

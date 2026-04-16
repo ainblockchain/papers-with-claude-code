@@ -11,6 +11,9 @@ import { StageProgressBar } from '@/components/learn/StageProgressBar';
 import { ConceptOverlay } from '@/components/learn/ConceptOverlay';
 import { QuizOverlay } from '@/components/learn/QuizOverlay';
 import { PaymentModal } from '@/components/learn/PaymentModal';
+import { ChatLogOverlay } from '@/components/learn/ChatLogOverlay';
+import { InteractiveCourseCanvas } from '@/components/learn/InteractiveCourseCanvas';
+import { isRpgCourse, getRpgMapData } from '@/lib/rpg-maps/map-registry';
 import { useLearningStore } from '@/stores/useLearningStore';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { papersAdapter } from '@/lib/adapters/papers';
@@ -437,6 +440,7 @@ export default function LearnPage() {
         <div className="relative w-[60%] border-r border-gray-700">
           <CourseCanvas stage={currentStage} />
           <ConceptOverlay />
+          <ChatLogOverlay />
           <QuizOverlay />
           <PaymentModal />
 
@@ -588,6 +592,7 @@ async function loadStages(paperId: string, paperTitle: string, totalStages: numb
         title: s.title,
         concepts: s.concepts,
         quizzes,
+        signboards: s.signboards,
         roomWidth: s.roomWidth,
         roomHeight: s.roomHeight,
       });

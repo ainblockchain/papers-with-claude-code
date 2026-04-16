@@ -38,12 +38,20 @@ export interface Lesson {
   exercises?: ExerciseEntry[];
 }
 
+export interface SignboardEntry {
+  id: string;
+  title: string;
+  position: { x: number; y: number };
+  dataSource: 'chatlog';
+}
+
 export interface CourseEntry {
   id: string;
   title: string;
   description?: string;
   concepts: string[];
   lessons: Lesson[];
+  signboards?: SignboardEntry[];
 }
 
 // ── Output types ─────────────────────────────────────────────────────────
@@ -78,6 +86,7 @@ export interface StageData {
   roomHeight: number;
   concepts: ConceptData[];
   quizzes: QuizData[];
+  signboards?: SignboardEntry[];
   doorPosition: { x: number; y: number };
   spawnPosition: { x: number; y: number };
   nextStage: number | null;
@@ -502,6 +511,7 @@ export function generateStageData(
     roomHeight,
     concepts,
     quizzes,
+    ...(course.signboards?.length && { signboards: course.signboards }),
     doorPosition: { x: DOOR_X, y: DOOR_Y },
     spawnPosition: { x: SPAWN_X, y: SPAWN_Y },
     nextStage: stageNumber < totalStages ? stageNumber + 1 : null,
