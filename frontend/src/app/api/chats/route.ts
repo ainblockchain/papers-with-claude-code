@@ -18,6 +18,7 @@ async function getClient(): Promise<MongoClient> {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const limit = Math.min(Number(searchParams.get('limit')) || 50, 100);
+  const skip = Math.max(Number(searchParams.get('skip')) || 0, 0);
 
   try {
     const client = await getClient();
@@ -38,6 +39,7 @@ export async function GET(request: Request) {
         },
       )
       .sort({ created_at: -1 })
+      .skip(skip)
       .limit(limit)
       .toArray();
 
