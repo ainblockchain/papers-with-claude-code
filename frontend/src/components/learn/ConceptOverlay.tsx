@@ -5,7 +5,8 @@ import { X, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useLearningStore } from '@/stores/useLearningStore';
-import { renderContent } from '@/lib/markdown/renderer';
+import { renderContent, extractImageSrcs } from '@/lib/markdown/renderer';
+import { preloadImages } from '@/lib/markdown/imageCache';
 import { buildFlatPageList, type FlatPage } from '@/lib/markdown/splitPages';
 import { cn } from '@/lib/utils';
 
@@ -84,6 +85,13 @@ export function ConceptOverlay() {
     const viewport = scrollRef.current?.querySelector('[data-slot="scroll-area-viewport"]');
     if (viewport) viewport.scrollTop = 0;
   }, [currentFlatIndex]);
+
+  // Preload image dimensions for all pages in the stage so navigation is shift-free
+  useEffect(() => {
+    if (flatPages.length === 0) return;
+    const srcs = flatPages.flatMap((p) => extractImageSrcs(p.pageContent));
+    if (srcs.length > 0) preloadImages(srcs);
+  }, [flatPages]);
 
   // --- Navigation ---
 
