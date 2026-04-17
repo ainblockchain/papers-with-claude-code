@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useMemo, useRef, useCallback } from 'react';
 import { useLearningStore } from '@/stores/useLearningStore';
 import { TILE_SIZE, COURSE_ROOM_WIDTH, COURSE_ROOM_HEIGHT, WALK_ANIMATION_DURATION } from '@/constants/game';
+import type { Signboard } from '@/types/learning';
 import { StageConfig } from '@/types/learning';
-import { useMapLoader } from '@/hooks/useMapLoader';
+import { useCourseMap } from '@/hooks/useCourseMap';
+import { findObjectByType, findObjectsByType, TMJ_OBJECT_TYPE } from '@/lib/tmj/objects';
 import { renderFullTileLayer } from '@/lib/tmj/renderer';
 import { trackEvent } from '@/lib/ain/event-tracker';
 import { drawWoodFloorTile, drawWallTile, drawDoor, drawBlackboard, drawSignboard, tileHash } from '@/lib/sprites/terrain';
@@ -38,6 +40,8 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
     viewedConceptIds,
     activeSignboardId,
     setActiveSignboard,
+    currentPaper,
+    currentStageIndex,
   } = useLearningStore();
 
   // Animation state
@@ -49,11 +53,38 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
   const dirtyRef = useRef(true);
   const viewRef = useRef({ oX: 0, oY: 0, scale: 1 });
 
-  const doorPosition = { x: stage.roomWidth - 2, y: Math.floor(stage.roomHeight / 2) };
-
-  // Load TMJ map data (falls back to procedural rendering if unavailable)
-  const { mapData } = useMapLoader('course-room');
+  // Load TMJ map data — prefer course-specific map, fall back to shared default.
+  const { mapData } = useCourseMap(currentPaper?.id, currentStageIndex);
   const canUseTmj = mapData && mapData.width === stage.roomWidth && mapData.height === stage.roomHeight;
+
+  // Door position: prefer TMJ-declared `door` object, fall back to procedural formula.
+  const tmjDoor = mapData ? findObjectByType(mapData, TMJ_OBJECT_TYPE.Door) : null;
+  const doorPosition = tmjDoor
+    ? { x: tmjDoor.x, y: tmjDoor.y }
+    : { x: stage.roomWidth - 2, y: Math.floor(stage.roomHeight / 2) };
+
+  // Signboards: prefer TMJ-declared `signboard` objects, fall back to stage config.
+  const signboards = useMemo<Signboard[]>(() => {
+    if (mapData) {
+      const tmjSignboards = findObjectsByType(mapData, TMJ_OBJECT_TYPE.Signboard);
+      if (tmjSignboards.length > 0) {
+        return tmjSignboards.map((obj) => ({
+          id: String(obj.properties.id ?? obj.name),
+          title: String(obj.properties.title ?? obj.name),
+          position: { x: obj.x, y: obj.y },
+          dataSource: (obj.properties.dataSource as Signboard['dataSource']) ?? 'chatlog',
+        }));
+      }
+    }
+    return stage.signboards ?? [];
+  }, [mapData, stage.signboards]);
+
+  // Apply TMJ-declared spawn point when a map loads for the current stage.
+  useEffect(() => {
+    if (mapData?.spawnPoint) {
+      setPlayerPosition(mapData.spawnPoint);
+    }
+  }, [mapData, setPlayerPosition]);
 
   const isWalkable = useCallback(
     (x: number, y: number) => {
@@ -154,7 +185,7 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
             });
           }
           // Signboard interaction (separate from concepts)
-          const signboard = stage.signboards?.find(
+          const signboard = signboards.find(
             (s) =>
               playerPosition.x >= s.position.x &&
               playerPosition.x <= s.position.x + 2 &&
@@ -194,7 +225,7 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
       setPlayerPosition,
       setPlayerDirection,
       stage.concepts,
-      stage.signboards,
+      signboards,
       setActiveConcept,
       setActiveSignboard,
       doorPosition,
@@ -387,7 +418,7 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
 
       // ── Signboards (independent from concepts) ──
       const currentSignboardId = useLearningStore.getState().activeSignboardId;
-      stage.signboards?.forEach((sb) => {
+      signboards.forEach((sb) => {
         const isActive = currentSignboardId === sb.id;
         const sx = sb.position.x * TILE_SIZE;
         const sy = sb.position.y * TILE_SIZE;
