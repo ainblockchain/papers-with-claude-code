@@ -18,7 +18,7 @@ const REPO_OWNER = 'ainblockchain';
 const REPO_NAME = 'awesome-papers-with-claude-code';
 const REPO_BRANCH = process.env.GITHUB_BRANCH || 'main';
 const RAW_BASE = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${REPO_BRANCH}`;
-const CACHE_TTL_MS = 0; // 캐시 비활성화 (디버깅용)
+const CACHE_TTL_MS = process.env.NODE_ENV === 'development' ? 10_000 : 5 * 60_000;
 
 export interface PapersAdapter {
   fetchTrendingPapers(period: 'daily' | 'weekly' | 'monthly'): Promise<Paper[]>;

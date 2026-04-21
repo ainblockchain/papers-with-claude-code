@@ -7,9 +7,12 @@ import { parseTmjMap } from '@/lib/tmj/parser';
 
 export type CourseMapSource = 'course' | 'default';
 
-interface UseCourseMapResult {
+export interface CourseMapResult {
   mapData: ParsedMap | null;
   source: CourseMapSource | null;
+}
+
+interface UseCourseMapResult extends CourseMapResult {
   loading: boolean;
   error: string | null;
 }
@@ -18,6 +21,27 @@ const DEFAULT_MAP_ID = 'course-room';
 
 function courseMapId(courseId: string, stageIndex: number): string {
   return `courses/${courseId}/stage-${stageIndex}`;
+}
+
+export async function loadCourseMap(
+  courseId: string | null | undefined,
+  stageIndex: number,
+): Promise<CourseMapResult> {
+  let raw = null;
+  let resolvedSource: CourseMapSource = 'default';
+
+  if (courseId) {
+    raw = await mapLoaderAdapter.loadMap(courseMapId(courseId, stageIndex));
+    if (raw) resolvedSource = 'course';
+  }
+
+  if (!raw) {
+    raw = await mapLoaderAdapter.loadMap(DEFAULT_MAP_ID);
+    resolvedSource = 'default';
+  }
+
+  if (!raw) return { mapData: null, source: null };
+  return { mapData: parseTmjMap(raw), source: resolvedSource };
 }
 
 export function useCourseMap(
@@ -36,28 +60,10 @@ export function useCourseMap(
       setLoading(true);
       setError(null);
       try {
-        let raw = null;
-        let resolvedSource: CourseMapSource = 'default';
-
-        if (courseId) {
-          raw = await mapLoaderAdapter.loadMap(courseMapId(courseId, stageIndex));
-          if (raw) resolvedSource = 'course';
-        }
-
-        if (!raw) {
-          raw = await mapLoaderAdapter.loadMap(DEFAULT_MAP_ID);
-          resolvedSource = 'default';
-        }
-
+        const result = await loadCourseMap(courseId, stageIndex);
         if (cancelled) return;
-        if (!raw) {
-          setMapData(null);
-          setSource(null);
-          return;
-        }
-
-        setMapData(parseTmjMap(raw));
-        setSource(resolvedSource);
+        setMapData(result.mapData);
+        setSource(result.source);
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : 'Map load failed');

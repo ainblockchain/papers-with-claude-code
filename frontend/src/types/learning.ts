@@ -29,6 +29,7 @@ export interface StageConfig {
   signboards?: Signboard[];
   roomWidth: number;
   roomHeight: number;
+  mode?: 'portal' | 'door';
 }
 
 export interface UserProgress {

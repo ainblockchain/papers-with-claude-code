@@ -15,7 +15,7 @@ const GITHUB_BRANCH = process.env.GITHUB_BRANCH || 'main';
 const GITHUB_API_BASE = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents`;
 const RAW_BASE = `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/${GITHUB_BRANCH}`;
 
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL_MS = process.env.NODE_ENV === 'development' ? 0 : 5 * 60 * 1000;
 
 // ---------------------------------------------------------------------------
 // Types
@@ -187,7 +187,7 @@ async function fetchFileContent(path: string): Promise<string> {
  * Fetch a file via raw.githubusercontent.com (no API rate limit).
  */
 async function fetchRawFile(path: string): Promise<string> {
-  const res = await fetch(`${RAW_BASE}/${path}`);
+  const res = await fetch(`${RAW_BASE}/${path}`, { cache: 'no-store' });
   if (!res.ok) throw new Error(`Raw file not found: ${path} (${res.status})`);
   return res.text();
 }

@@ -25,3 +25,14 @@ export function findObjectsByType(
 ): ParsedObject[] {
   return map.objectsByType.get(type) ?? [];
 }
+
+export type StageMode = 'portal' | 'door';
+
+// Determine exit-gate mode from a stage's TMJ. Defaults to 'portal' when unclear
+// to preserve the existing quiz+payment flow.
+export function resolveStageMode(map: ParsedMap | null): StageMode {
+  if (!map) return 'portal';
+  if (findObjectByType(map, TMJ_OBJECT_TYPE.Portal)) return 'portal';
+  if (findObjectByType(map, TMJ_OBJECT_TYPE.Door)) return 'door';
+  return 'portal';
+}

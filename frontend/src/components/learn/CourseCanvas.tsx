@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useCallback } from 'react';
 import { useLearningStore } from '@/stores/useLearningStore';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { TILE_SIZE, COURSE_ROOM_WIDTH, COURSE_ROOM_HEIGHT, WALK_ANIMATION_DURATION } from '@/constants/game';
 import type { Signboard } from '@/types/learning';
 import { StageConfig } from '@/types/learning';
@@ -57,10 +58,12 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
   const { mapData } = useCourseMap(currentPaper?.id, currentStageIndex);
   const canUseTmj = mapData && mapData.width === stage.roomWidth && mapData.height === stage.roomHeight;
 
-  // Door position: prefer TMJ-declared `door` object, fall back to procedural formula.
-  const tmjDoor = mapData ? findObjectByType(mapData, TMJ_OBJECT_TYPE.Door) : null;
-  const doorPosition = tmjDoor
-    ? { x: tmjDoor.x, y: tmjDoor.y }
+  // Exit position: prefer TMJ-declared `portal` or `door` object, fall back to procedural formula.
+  const tmjExit = mapData
+    ? findObjectByType(mapData, TMJ_OBJECT_TYPE.Portal) ?? findObjectByType(mapData, TMJ_OBJECT_TYPE.Door)
+    : null;
+  const doorPosition = tmjExit
+    ? { x: tmjExit.x, y: tmjExit.y }
     : { x: stage.roomWidth - 2, y: Math.floor(stage.roomHeight / 2) };
 
   // Signboards: prefer TMJ-declared `signboard` objects, fall back to stage config.
@@ -198,14 +201,41 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
             Math.abs(playerPosition.x - doorPosition.x) <= 1 &&
             Math.abs(playerPosition.y - doorPosition.y) <= 1
           ) {
-            if (!isQuizPassed) {
+            const stageMode = stage.mode ?? 'portal';
+
+            // Portal mode: require quiz pass before opening payment.
+            if (stageMode === 'portal' && !isQuizPassed) {
               setQuizActive(true);
-            } else if (!isDoorUnlocked) {
-              const isLastStage = useLearningStore.getState().currentStageIndex >= useLearningStore.getState().stages.length - 1;
-              if (isLastStage) {
-                setDoorUnlocked(true);
-              } else {
-                setPaymentModalOpen(true);
+            } else {
+              // Door mode: treat interaction as quiz pass + record stage_complete.
+              if (stageMode === 'door' && !isQuizPassed) {
+                const { progress: userProgress, setQuizPassed } = useLearningStore.getState();
+                setQuizPassed(true);
+                const alreadyDone = userProgress?.completedStages?.some(
+                  (s) => s.stageNumber === currentStageIndex
+                );
+                if (!alreadyDone) {
+                  fetch('/api/stage-complete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      paperId: currentPaper?.id,
+                      stageNum: currentStageIndex,
+                      passkeyPublicKey: useAuthStore.getState().passkeyInfo?.publicKey,
+                    }),
+                  }).catch((err) => console.error('[CourseCanvas] stage_complete failed:', err));
+                }
+              }
+
+              if (!isDoorUnlocked) {
+                const { currentStageIndex: idx, stages: s, setCourseComplete } = useLearningStore.getState();
+                const isLastStage = idx >= s.length - 1;
+                if (isLastStage) {
+                  setDoorUnlocked(true);
+                  if (stageMode === 'door') setCourseComplete(true);
+                } else {
+                  setPaymentModalOpen(true);
+                }
               }
             }
           }

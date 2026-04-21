@@ -335,10 +335,10 @@ function generateStageRoomTmj(stageData: StageData): TmjMap {
     point: true,
   };
 
-  const doorObj: TmjObject = {
+  const portalObj: TmjObject = {
     id: 2,
-    name: 'door',
-    type: 'door',
+    name: 'portal',
+    type: 'portal',
     x: stageData.doorPosition.x * TILE_PX,
     y: stageData.doorPosition.y * TILE_PX,
     width: TILE_PX,
@@ -398,7 +398,7 @@ function generateStageRoomTmj(stageData: StageData): TmjMap {
     y: 0,
     visible: true,
     opacity: 1,
-    objects: [spawnObj, doorObj, ...npcObjects],
+    objects: [spawnObj, portalObj, ...npcObjects],
   };
 
   return {

@@ -650,10 +650,10 @@
         {
           "height": 0,
           "id": 2,
-          "name": "portal",
+          "name": "door",
           "point": true,
           "rotation": 0,
-          "type": "portal",
+          "type": "door",
           "visible": true,
           "width": 0,
           "x": 720,

@@ -85,7 +85,7 @@ function extractDescriptionFromReadme(readme: string): string | null {
 
 // In-memory cache for the full course list response
 let cachedResponse: { data: Paper[]; timestamp: number } | null = null;
-const CACHE_TTL = 2 * 60 * 1000; // 2 minutes
+const CACHE_TTL = process.env.NODE_ENV === 'development' ? 10_000 : 2 * 60 * 1000;
 
 export async function GET() {
   // Return cached response if still fresh

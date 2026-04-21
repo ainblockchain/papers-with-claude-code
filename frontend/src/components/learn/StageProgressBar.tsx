@@ -24,7 +24,6 @@ export function StageProgressBar() {
     setQuizActive,
     setQuizPassed,
     setDoorUnlocked,
-    setPlayerPosition,
   } = useLearningStore();
 
   if (!currentPaper) return null;
@@ -56,11 +55,11 @@ export function StageProgressBar() {
     if (!isStageUnlocked(stageIndex)) return;
     if (stageIndex === currentStageIndex) return;
 
-    // Reset stage state
+    // Reset stage state. Player spawn is applied by CourseCanvas when the
+    // target stage's TMJ loads, so no manual setPlayerPosition here.
     setQuizActive(false);
     setQuizPassed(isStageCompleted(stageIndex));
     setDoorUnlocked(false);
-    setPlayerPosition({ x: 3, y: 10 });
     setCurrentStageIndex(stageIndex);
   };
 
