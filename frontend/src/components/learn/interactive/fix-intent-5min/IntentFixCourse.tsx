@@ -41,6 +41,7 @@ import {
 } from './NotionTaskPage';
 import { IntentDetailCard } from './IntentDetailCard';
 import { CopyIssueModal } from './CopyIssueModal';
+import { IntentCatalogModal } from './IntentCatalogModal';
 import { SheetEditPage } from './SheetEditPage';
 import { ChatbotTestPage } from './ChatbotTestPage';
 
@@ -82,7 +83,8 @@ const FIELD_QUEST_MESSAGES: Partial<Record<NotionFieldId, string>> = {
   assignee: '이 이슈를 맡을 Assignee 를 지정해주세요.',
   status: '작업의 현재 상태(Status)를 선택해주세요.',
   season: '이 이슈가 속할 Season 을 지정해주세요.',
-  workType: '필요한 Work Type 을 선택해주세요. (복수 선택 가능)',
+  // workType intentionally omitted — IntentCatalogModal takes over as the
+  // guide for this field, opening automatically when it becomes active.
   problemAnalysis:
     '발견한 문제를 정리해 작성해주세요. 본인이 본 문제를 간단히 적고, 문제가 된 채팅 로그를 텍스트로 복사해 붙여넣어주세요. 궁금하냥 팀은 PM이 나중에 검색하기 쉽도록 텍스트 붙여넣기를 권장합니다.',
   solutionDirection: '어떤 방향으로 고칠지 정리해주세요.',
@@ -144,6 +146,12 @@ export function IntentFixCourse() {
   // Copy-Issue modal for problemAnalysis — opens on the helper button
   // under the 문제 상황 분석 block so the learner can grab the chat log.
   const [copyIssueOpen, setCopyIssueOpen] = useState(false);
+  // Intent-Catalog modal — auto-opens once when the Work Type field first
+  // becomes active so the learner can verify that no exam-absence intent
+  // exists in the simulated system before deciding the fix. Closing via
+  // the 확인 button dismisses it permanently for the session.
+  const [catalogOpen, setCatalogOpen] = useState(false);
+  const [catalogAutoOpened, setCatalogAutoOpened] = useState(false);
   // Static Stage 1 lineup: one fixed 10-row set (1 broken + 9 clean) in a
   // deterministic order. Rebuilt on restart to return a fresh reference.
   const [activeSets, setActiveSets] = useState<ChatLogSet[]>(() => [
@@ -293,6 +301,16 @@ export function IntentFixCourse() {
     currentFieldIdx < activeFieldOrder.length
       ? activeFieldOrder[currentFieldIdx]
       : null;
+
+  // Auto-open the intent catalog the first time Work Type becomes the
+  // active field. After the learner dismisses it, never auto-reopen.
+  useEffect(() => {
+    if (phase !== 'notion') return;
+    if (currentFieldId !== 'workType') return;
+    if (catalogAutoOpened) return;
+    setCatalogOpen(true);
+    setCatalogAutoOpened(true);
+  }, [phase, currentFieldId, catalogAutoOpened]);
 
   const handleRowClick = (row: ChatLogRow) => {
     if (dashboardFeedback || showRestart || persisting) return;
@@ -754,6 +772,10 @@ export function IntentFixCourse() {
             onClose={() => setCopyIssueOpen(false)}
           />
         ) : null}
+        <IntentCatalogModal
+          open={catalogOpen}
+          onClose={() => setCatalogOpen(false)}
+        />
         {modal}
       </div>
     );

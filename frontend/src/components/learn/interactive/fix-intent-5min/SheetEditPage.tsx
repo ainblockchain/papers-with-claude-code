@@ -21,6 +21,11 @@ import {
   Strikethrough,
   Undo2,
 } from 'lucide-react';
+import {
+  INTENT_CATALOG,
+  TRIGGER_SENTENCES,
+  type IntentCategory,
+} from '@/data/courses/fix-intent-5min/intent-catalog';
 
 interface Props {
   disabled?: boolean;
@@ -43,30 +48,54 @@ type Grid = string[][];
 const GHOST_ROWS = 18;
 const GHOST_COLS = 7;
 
+// The grid renders one-line cells, so pack the multi-paragraph Prompt body
+// down to its first line (truncated) for Stage 3's editable surface. The
+// full prompt still lives in intent-catalog.ts for Stage 1's modal.
+function summarizePromptForSheet(p: string): string {
+  const firstLine = p.split('\n').find((l) => l.trim().length > 0)?.trim() ?? '';
+  return firstLine.length > 100 ? `${firstLine.slice(0, 100)}…` : firstLine;
+}
+
+function formatCreatedAtForSheet(iso: string): string {
+  return iso.replace('T', ' ').replace('Z', '');
+}
+
+function buildIntentGrid(category: IntentCategory): Grid {
+  const header: string[] = [
+    'Intent',
+    '대표Sentence(참고용)',
+    'Prompt',
+    'created_at',
+    'Note',
+  ];
+  const rows: string[][] = INTENT_CATALOG.filter(
+    (r) => r.category === category,
+  ).map((r) => [
+    r.intent,
+    r.representativeSentence,
+    summarizePromptForSheet(r.prompt),
+    formatCreatedAtForSheet(r.createdAt),
+    r.note ?? '',
+  ]);
+  return [header, ...rows];
+}
+
+function buildTriggerGrid(): Grid {
+  const header: string[] = ['Intent', 'Sentence', 'Column1'];
+  const rows: string[][] = TRIGGER_SENTENCES.map((t) => [
+    t.intent,
+    t.sentence,
+    t.column1 ?? '',
+  ]);
+  return [header, ...rows];
+}
+
 const INITIAL_GRIDS: Record<TabId, Grid> = {
-  intent_trigger_sentence: [
-    ['Intent', 'Trigger', 'Prompt'],
-    ['출결내규', '공결, 결석', '출결 내규에 따르면...'],
-    ['학사일정', '시험 일정, 방학', '학사 일정은...'],
-    ['수강신청', '정정 기간, 폐강', '수강신청 기간은...'],
-  ],
-  일반: [
-    ['Intent', 'Trigger', 'Prompt'],
-    ['장학금', '신청, 기한', '장학금 신청 기한은...'],
-    ['등록금', '납부, 연체', '등록금 납부는...'],
-  ],
-  재무: [
-    ['Intent', 'Trigger', 'Prompt'],
-    ['교환학생', '지원, 해외', '교환학생 지원 절차...'],
-  ],
-  학사: [
-    ['Intent', 'Trigger', 'Prompt'],
-    ['도서관', '좌석, 예약', '도서관 좌석 예약은...'],
-  ],
-  국제: [
-    ['Intent', 'Trigger', 'Prompt'],
-    ['기숙사', '입사, 퇴사', '기숙사 입사 절차...'],
-  ],
+  intent_trigger_sentence: buildTriggerGrid(),
+  일반: buildIntentGrid('일반'),
+  재무: buildIntentGrid('재무'),
+  학사: buildIntentGrid('학사'),
+  국제: buildIntentGrid('국제'),
 };
 
 export function SheetEditPage({ disabled, onComplete }: Props) {
