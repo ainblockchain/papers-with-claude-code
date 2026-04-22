@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { ArrowDown, Download, Heart, Info, MoreHorizontal } from 'lucide-react';
+import { ArrowDown, Download, Heart, Info, MoreHorizontal, Timer } from 'lucide-react';
 import type { ChatLogRow } from '@/data/courses/fix-intent-5min/chat-log-sets';
 
 interface Props {
@@ -11,6 +11,8 @@ interface Props {
   rows: ChatLogRow[];
   onRowClick: (row: ChatLogRow) => void;
   hearts: number;
+  timerRemaining: number;
+  timerTotal: number;
 }
 
 // Metabase tokens reused across cells/headers.
@@ -22,6 +24,53 @@ const ROW_DIVIDER = 'border-[rgba(7,23,34,0.05)]';
 const HOVER_BG = 'hover:bg-[rgba(80,158,227,0.1)]';
 const CARD =
   'bg-white border border-[#DCDFE0] rounded-[8px] shadow-[0px_1px_4px_2px_rgba(0,0,0,0.08)]';
+
+// Game-HUD timer bar — sits next to the hearts to convey urgency. Colour
+// shifts through green → amber → red as the ratio decays; final quarter
+// pulses (animate-pulse) to mirror the heart-critical feedback loop.
+function TimerBar({
+  remaining,
+  total,
+}: {
+  remaining: number;
+  total: number;
+}) {
+  const safeTotal = Math.max(total, 1);
+  const ratio = Math.max(0, Math.min(1, remaining / safeTotal));
+  const pct = ratio * 100;
+  const color =
+    ratio > 0.5 ? '#84BB4C' : ratio > 0.25 ? '#F9CF58' : '#ED6E6E';
+  const critical = ratio <= 0.25 && remaining > 0;
+  const mm = Math.floor(Math.max(0, remaining) / 60);
+  const ss = Math.max(0, remaining) % 60;
+
+  return (
+    <div
+      className="flex items-center gap-1.5"
+      aria-label={`남은 시간 ${mm}분 ${ss}초`}
+    >
+      <Timer
+        size={14}
+        strokeWidth={1.75}
+        className={`text-[rgba(7,23,34,0.55)] ${critical ? 'animate-pulse' : ''}`}
+        style={critical ? { color } : undefined}
+      />
+      <div className="tabular-nums text-[11px] text-[rgba(7,23,34,0.62)] min-w-[30px]">
+        {mm}:{ss.toString().padStart(2, '0')}
+      </div>
+      <div className="relative h-[6px] w-[88px] overflow-hidden rounded-full bg-[#ECECEC]">
+        <div
+          className={`h-full rounded-full ${critical ? 'animate-pulse' : ''}`}
+          style={{
+            width: `${pct}%`,
+            background: color,
+            transition: 'width 1s linear, background-color 400ms ease',
+          }}
+        />
+      </div>
+    </div>
+  );
+}
 
 // Game-HUD hearts — small indicator tucked into the dashboard header.
 // Living hearts pulse gently; the last remaining heart switches to a faster
@@ -389,7 +438,13 @@ function LineChart() {
   );
 }
 
-export function DashboardView({ rows, onRowClick, hearts }: Props) {
+export function DashboardView({
+  rows,
+  onRowClick,
+  hearts,
+  timerRemaining,
+  timerTotal,
+}: Props) {
   return (
     <div
       className={`flex h-full w-full flex-col overflow-hidden bg-[#F9F9FA] ${TEXT_PRIMARY} ${FONT}`}
@@ -400,6 +455,7 @@ export function DashboardView({ rows, onRowClick, hearts }: Props) {
           hanyang-agent-production
         </h2>
         <div className="flex items-center gap-3">
+          <TimerBar remaining={timerRemaining} total={timerTotal} />
           <HeartsIndicator count={hearts} />
           <InertIcon label="Download" className="h-8 w-8">
             <Download size={16} />

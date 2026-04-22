@@ -120,9 +120,10 @@ export function IntentFixCourse() {
   // the entire stage-1 run (both local state and blockchain blob).
   const [hearts, setHearts] = useState(3);
   const [showRestart, setShowRestart] = useState(false);
-  // Countdown timer HUD (dashboard-only). Runs while the user is actively
-  // scanning rows; pauses when any modal is up so reading feedback doesn't
-  // cost time. Hitting zero triggers the same game-over path as hearts=0.
+  // Countdown timer HUD (dashboard-only). Purely cosmetic — conveys urgency
+  // without actually gating the run; reaching zero does not trigger game
+  // over (only hearts=0 does). Pauses when any modal is up so reading
+  // feedback doesn't visually drain the bar.
   const TIMER_TOTAL = 60;
   const [timerRemaining, setTimerRemaining] = useState(TIMER_TOTAL);
   // Notion floating panel — collapsible companion that persists from the
@@ -131,6 +132,32 @@ export function IntentFixCourse() {
   // task panel by clicking "새로 만들기". Mid-progress restoration still
   // auto-opens so users resume where they left off.
   const [panelOpen, setPanelOpen] = useState(false);
+
+  // Countdown tick — decrement once per second while the dashboard is
+  // actively interactive. Pauses whenever a modal is up (briefing / feedback
+  // / restart / persist) so reading feedback doesn't cost time.
+  useEffect(() => {
+    if (phase !== 'dashboard') return;
+    if (showRestart) return;
+    if (dashboardFeedback) return;
+    if (persisting) return;
+    // Quest briefing is up (showQuest condition inlined).
+    if (!questSeen && !representative) return;
+    if (timerRemaining <= 0) return;
+    const t = setTimeout(
+      () => setTimerRemaining((s) => Math.max(0, s - 1)),
+      1000,
+    );
+    return () => clearTimeout(t);
+  }, [
+    phase,
+    showRestart,
+    dashboardFeedback,
+    persisting,
+    questSeen,
+    representative,
+    timerRemaining,
+  ]);
 
   // Load & restore from blockchain on mount
   useEffect(() => {
@@ -268,6 +295,7 @@ export function IntentFixCourse() {
     setDashboardFeedback(null);
     setNotionError(null);
     setHearts(3);
+    setTimerRemaining(TIMER_TOTAL);
     setActiveSets(buildChatLogSets(1, 4));
     setShowRestart(false);
     setPhase('dashboard');
@@ -510,6 +538,8 @@ export function IntentFixCourse() {
           rows={currentSet.rows}
           onRowClick={handleRowClick}
           hearts={hearts}
+          timerRemaining={timerRemaining}
+          timerTotal={TIMER_TOTAL}
         />
         {showQuest && (
           <QuestModal
