@@ -14,22 +14,25 @@ interface Props {
 export function TitleField({ active, filled, disabled, value, placeholder, onSubmit }: Props) {
   const [draft, setDraft] = useState('');
 
+  // Spacing (horizontal inset, gap above) is owned by the caller — this
+  // component only renders the h1 / input so it aligns flush with the
+  // surrounding page content.
   if (filled) {
     return (
-      <h1 className="text-3xl font-bold text-[#37352f] mb-4 px-12 pt-10">{value}</h1>
+      <h1 className="text-3xl font-bold text-[#37352f]">{value}</h1>
     );
   }
 
   if (!active) {
     return (
-      <h1 className="text-3xl font-bold text-gray-300 mb-4 px-12 pt-10">
+      <h1 className="text-3xl font-bold text-gray-300">
         {placeholder ?? '제목 없음'}
       </h1>
     );
   }
 
   return (
-    <div className="px-12 pt-10 mb-4">
+    <div>
       <input
         autoFocus
         value={draft}
