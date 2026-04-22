@@ -269,3 +269,71 @@ export const TRIGGER_SENTENCES: TriggerSentence[] = [
   { intent: '복수학위', sentence: '대학원 복수학위 신청 조건은 어떻게 돼요?' },
   { intent: '복수학위', sentence: 'dual degree 신청하려면 어학 성적 얼마나 필요해?' },
 ];
+
+// ---------------------------------------------------------------------------
+// Sheet helpers — shared by Stage 1's IntentCatalogModal and Stage 3's
+// SheetEditPage so both surfaces render identical rows/columns.
+// ---------------------------------------------------------------------------
+
+export const INTENT_SHEET_TABS = [
+  'intent_trigger_sentence',
+  '일반',
+  '재무',
+  '학사',
+  '국제',
+] as const;
+
+export type IntentSheetTabId = (typeof INTENT_SHEET_TABS)[number];
+
+// The grid renders one-line cells, so compress the multi-paragraph Prompt
+// body to its first non-empty line (truncated) for sheet display. The full
+// prompt still lives on IntentRow for richer read-only surfaces.
+export function summarizePromptForSheet(p: string): string {
+  const firstLine =
+    p.split('\n').find((l) => l.trim().length > 0)?.trim() ?? '';
+  return firstLine.length > 100 ? `${firstLine.slice(0, 100)}…` : firstLine;
+}
+
+export function formatCreatedAtForSheet(iso: string): string {
+  return iso.replace('T', ' ').replace('Z', '');
+}
+
+export function buildIntentGrid(category: IntentCategory): string[][] {
+  const header: string[] = [
+    'Intent',
+    '대표Sentence(참고용)',
+    'Prompt',
+    'created_at',
+    'Note',
+  ];
+  const rows: string[][] = INTENT_CATALOG.filter(
+    (r) => r.category === category,
+  ).map((r) => [
+    r.intent,
+    r.representativeSentence,
+    summarizePromptForSheet(r.prompt),
+    formatCreatedAtForSheet(r.createdAt),
+    r.note ?? '',
+  ]);
+  return [header, ...rows];
+}
+
+export function buildTriggerGrid(): string[][] {
+  const header: string[] = ['Intent', 'Sentence', 'Column1'];
+  const rows: string[][] = TRIGGER_SENTENCES.map((t) => [
+    t.intent,
+    t.sentence,
+    t.column1 ?? '',
+  ]);
+  return [header, ...rows];
+}
+
+export function buildInitialGrids(): Record<IntentSheetTabId, string[][]> {
+  return {
+    intent_trigger_sentence: buildTriggerGrid(),
+    일반: buildIntentGrid('일반'),
+    재무: buildIntentGrid('재무'),
+    학사: buildIntentGrid('학사'),
+    국제: buildIntentGrid('국제'),
+  };
+}

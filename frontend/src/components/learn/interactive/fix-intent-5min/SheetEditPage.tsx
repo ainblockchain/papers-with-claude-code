@@ -22,9 +22,9 @@ import {
   Undo2,
 } from 'lucide-react';
 import {
-  INTENT_CATALOG,
-  TRIGGER_SENTENCES,
-  type IntentCategory,
+  INTENT_SHEET_TABS,
+  buildInitialGrids,
+  type IntentSheetTabId,
 } from '@/data/courses/fix-intent-5min/intent-catalog';
 
 interface Props {
@@ -32,14 +32,10 @@ interface Props {
   onComplete: (summary: string) => void;
 }
 
-const TABS = [
-  'intent_trigger_sentence',
-  '일반',
-  '재무',
-  '학사',
-  '국제',
-] as const;
-type TabId = (typeof TABS)[number];
+// Tab ids + initial grids come from the shared intent catalog so this
+// editable sheet stays in lockstep with Stage 1's read-only preview.
+const TABS = INTENT_SHEET_TABS;
+type TabId = IntentSheetTabId;
 
 type Grid = string[][];
 
@@ -48,55 +44,7 @@ type Grid = string[][];
 const GHOST_ROWS = 18;
 const GHOST_COLS = 7;
 
-// The grid renders one-line cells, so pack the multi-paragraph Prompt body
-// down to its first line (truncated) for Stage 3's editable surface. The
-// full prompt still lives in intent-catalog.ts for Stage 1's modal.
-function summarizePromptForSheet(p: string): string {
-  const firstLine = p.split('\n').find((l) => l.trim().length > 0)?.trim() ?? '';
-  return firstLine.length > 100 ? `${firstLine.slice(0, 100)}…` : firstLine;
-}
-
-function formatCreatedAtForSheet(iso: string): string {
-  return iso.replace('T', ' ').replace('Z', '');
-}
-
-function buildIntentGrid(category: IntentCategory): Grid {
-  const header: string[] = [
-    'Intent',
-    '대표Sentence(참고용)',
-    'Prompt',
-    'created_at',
-    'Note',
-  ];
-  const rows: string[][] = INTENT_CATALOG.filter(
-    (r) => r.category === category,
-  ).map((r) => [
-    r.intent,
-    r.representativeSentence,
-    summarizePromptForSheet(r.prompt),
-    formatCreatedAtForSheet(r.createdAt),
-    r.note ?? '',
-  ]);
-  return [header, ...rows];
-}
-
-function buildTriggerGrid(): Grid {
-  const header: string[] = ['Intent', 'Sentence', 'Column1'];
-  const rows: string[][] = TRIGGER_SENTENCES.map((t) => [
-    t.intent,
-    t.sentence,
-    t.column1 ?? '',
-  ]);
-  return [header, ...rows];
-}
-
-const INITIAL_GRIDS: Record<TabId, Grid> = {
-  intent_trigger_sentence: buildTriggerGrid(),
-  일반: buildIntentGrid('일반'),
-  재무: buildIntentGrid('재무'),
-  학사: buildIntentGrid('학사'),
-  국제: buildIntentGrid('국제'),
-};
+const INITIAL_GRIDS: Record<TabId, Grid> = buildInitialGrids();
 
 export function SheetEditPage({ disabled, onComplete }: Props) {
   const [grids, setGrids] = useState<Record<TabId, Grid>>(INITIAL_GRIDS);
