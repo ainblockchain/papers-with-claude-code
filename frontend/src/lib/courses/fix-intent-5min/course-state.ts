@@ -17,6 +17,7 @@ export interface NotionState {
   assignee: string | null;
   status: string | null;
   season: string | null;
+  workType: string | null;
   problemAnalysis: string | null;
   solutionDirection: string | null;
   workContent: string | null;
@@ -52,6 +53,7 @@ export const initialCourseState: CourseState = {
     assignee: null,
     status: null,
     season: null,
+    workType: null,
     problemAnalysis: null,
     solutionDirection: null,
     workContent: null,
@@ -68,6 +70,7 @@ export type NotionFieldId =
   | 'assignee'
   | 'status'
   | 'season'
+  | 'workType'
   | 'problemAnalysis'
   | 'solutionDirection'
   | 'workContent'

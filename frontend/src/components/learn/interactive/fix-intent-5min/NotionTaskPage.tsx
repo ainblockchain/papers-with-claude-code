@@ -13,6 +13,7 @@ import {
 import { TitleField } from './fields/TitleField';
 import { DropdownField } from './fields/DropdownField';
 import { BlockField } from './fields/BlockField';
+import { WorkTypeField } from './fields/WorkTypeField';
 
 export const STAGE1_FIELD_ORDER: NotionFieldId[] = [
   'agent',
@@ -20,7 +21,24 @@ export const STAGE1_FIELD_ORDER: NotionFieldId[] = [
   'assignee',
   'status',
   'season',
+  'workType',
   'problemAnalysis',
+];
+
+export const STAGE2_FIELD_ORDER: NotionFieldId[] = ['solutionDirection'];
+
+export const STAGE3_FIELD_ORDER: NotionFieldId[] = ['workContent'];
+
+export const STAGE4_FIELD_ORDER: NotionFieldId[] = ['result'];
+
+// Unified order across stages — used for filled-state tracking so fields
+// completed in an earlier stage still render as filled when viewing a later
+// stage's page. The `currentFieldId` prop is what drives the "active" field.
+const ALL_FIELD_ORDER: NotionFieldId[] = [
+  ...STAGE1_FIELD_ORDER,
+  ...STAGE2_FIELD_ORDER,
+  ...STAGE3_FIELD_ORDER,
+  ...STAGE4_FIELD_ORDER,
 ];
 
 interface Props {
@@ -58,31 +76,43 @@ export function NotionTaskPage({
 }: Props) {
   // Keep the current field visibly active even while validating so the user's
   // typed draft doesn't disappear; submission is gated by `disabled` prop.
-  const titleS = computeState('title', currentFieldId, STAGE1_FIELD_ORDER, notion.title);
-  const agentS = computeState('agent', currentFieldId, STAGE1_FIELD_ORDER, notion.agent);
+  const titleS = computeState('title', currentFieldId, ALL_FIELD_ORDER, notion.title);
+  const agentS = computeState('agent', currentFieldId, ALL_FIELD_ORDER, notion.agent);
   const assigneeS = computeState(
     'assignee',
     currentFieldId,
-    STAGE1_FIELD_ORDER,
+    ALL_FIELD_ORDER,
     notion.assignee,
   );
   const statusS = computeState(
     'status',
     currentFieldId,
-    STAGE1_FIELD_ORDER,
+    ALL_FIELD_ORDER,
     notion.status,
   );
   const seasonS = computeState(
     'season',
     currentFieldId,
-    STAGE1_FIELD_ORDER,
+    ALL_FIELD_ORDER,
     notion.season,
+  );
+  const workTypeS = computeState(
+    'workType',
+    currentFieldId,
+    ALL_FIELD_ORDER,
+    notion.workType,
   );
   const problemS = computeState(
     'problemAnalysis',
     currentFieldId,
-    STAGE1_FIELD_ORDER,
+    ALL_FIELD_ORDER,
     notion.problemAnalysis,
+  );
+  const solutionS = computeState(
+    'solutionDirection',
+    currentFieldId,
+    ALL_FIELD_ORDER,
+    notion.solutionDirection,
   );
 
   return (
@@ -133,6 +163,14 @@ export function NotionTaskPage({
             value={notion.season}
             onSubmit={(v) => onSubmit('season', v)}
           />
+          <WorkTypeField
+            label="Work Type"
+            active={workTypeS.active}
+            filled={workTypeS.filled}
+            disabled={disabled}
+            value={notion.workType}
+            onSubmit={(v) => onSubmit('workType', v)}
+          />
         </div>
         <BlockField
           heading="문제 상황 분석"
@@ -142,6 +180,15 @@ export function NotionTaskPage({
           value={notion.problemAnalysis}
           placeholder="대시보드에서 확인한 문제 상황을 구체적으로 설명하세요."
           onSubmit={(v) => onSubmit('problemAnalysis', v)}
+        />
+        <BlockField
+          heading="해결 방향"
+          active={solutionS.active}
+          filled={solutionS.filled}
+          disabled={disabled}
+          value={notion.solutionDirection}
+          placeholder="어떤 방향으로 수정할지 자연어로 설명하세요. (트리거 문장 수정 / 프롬프트 수정 / 신규 인텐트 등록 중 하나 이상)"
+          onSubmit={(v) => onSubmit('solutionDirection', v)}
         />
       </div>
     </div>

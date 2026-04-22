@@ -4,6 +4,7 @@ import {
   assigneeAnswer,
   seasonAnswer,
   statusAnswer,
+  workTypeAnswer,
 } from '@/data/courses/fix-intent-5min/notion-options';
 
 export interface ValidateContext {
@@ -24,6 +25,12 @@ export async function validateNotionField(
       return value === seasonAnswer;
     case 'status':
       return value === statusAnswer;
+    case 'workType': {
+      // Multi-select: comma-separated serialization (e.g. "update,add").
+      // Pass if the user's selection includes the required answer.
+      const selected = value.split(',').map((s) => s.trim());
+      return selected.includes(workTypeAnswer);
+    }
   }
   // Free-input fields → server endpoint (LLM-backed, currently hardcoded pass)
   try {
