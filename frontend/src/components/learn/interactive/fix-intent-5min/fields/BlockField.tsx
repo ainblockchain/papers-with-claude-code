@@ -24,8 +24,10 @@ export function BlockField({
   const [draft, setDraft] = useState('');
 
   return (
-    <div className="px-12 py-4">
-      <h2 className="text-xl font-semibold text-[#37352f] mb-2">{heading}</h2>
+    <div className="px-0 pt-[22px] pb-1">
+      <h2 className="pb-1.5 text-[1.25em] font-semibold leading-[1.3] text-[#37352f]">
+        {heading}
+      </h2>
       {filled ? (
         <div className="text-sm text-[#37352f] whitespace-pre-wrap">{value}</div>
       ) : !active ? (

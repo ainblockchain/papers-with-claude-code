@@ -33,7 +33,6 @@ import {
   STAGE3_FIELD_ORDER,
   STAGE4_FIELD_ORDER,
 } from './NotionTaskPage';
-import { NotionFloatingPanel } from './NotionFloatingPanel';
 import { IntentDetailCard } from './IntentDetailCard';
 import { SheetEditPage } from './SheetEditPage';
 import { ChatbotTestPage } from './ChatbotTestPage';
@@ -69,6 +68,7 @@ function countFilledStage4Notion(notion: NotionState): number {
 
 export function IntentFixCourse() {
   const passkeyPublicKey = useAuthStore((s) => s.passkeyInfo?.publicKey);
+  const githubUsername = useAuthStore((s) => s.user?.username ?? null);
 
   const [loading, setLoading] = useState(true);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -576,7 +576,6 @@ export function IntentFixCourse() {
   }
 
   if (phase === 'notion' || phase === 'quest-clear') {
-    const filledCount = countFilledStage1Notion(notion);
     const showInitialMission =
       phase === 'notion' &&
       !stage1NotionMissionSeen &&
@@ -633,24 +632,28 @@ export function IntentFixCourse() {
       );
     }
 
+    // Promote-to-page pattern: once "새로 만들기" is clicked (panelOpen=true)
+    // the task page takes over the full view instead of squeezing into the
+    // 560px side panel. NotionLanding is hidden; IntentDetailCard stays as
+    // the bottom overlay so the learner can still refer back to the found
+    // intent while filling out the task.
     return (
       <div className="relative h-full w-full">
         {saveErrorBanner}
-        <NotionLanding
-          onCreate={handleCreateTask}
-          onStray={handleNotionStray}
-        />
-        <NotionFloatingPanel
-          open={panelOpen}
-          progress={{ filled: filledCount, total: STAGE1_FIELD_ORDER.length }}
-        >
+        {!panelOpen && (
+          <NotionLanding
+            onCreate={handleCreateTask}
+            onStray={handleNotionStray}
+          />
+        )}
+        {panelOpen && (
           <NotionTaskPage
             notion={notion}
             currentFieldId={phase === 'notion' ? currentFieldId : null}
             disabled={validating}
             onSubmit={handleNotionSubmit}
           />
-        </NotionFloatingPanel>
+        )}
         {panelOpen && representative && (
           <IntentDetailCard intent={representative} />
         )}
