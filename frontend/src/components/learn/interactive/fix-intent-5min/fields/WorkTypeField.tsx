@@ -142,8 +142,22 @@ export function WorkTypeField({
 
       {/* Popover. Anchored to the nearest positioned ancestor — the wrapper
           <div className="relative"> around the Work Type PropertyChip in
-          NotionTaskPage. */}
-      <div className="absolute left-0 top-full z-20 mt-1 w-[320px] rounded-md border border-[rgba(55,53,47,0.16)] bg-white shadow-[0_4px_12px_rgba(0,0,0,0.08)]">
+          NotionTaskPage.
+
+          Enter is captured at the popover level and routed to submit, so
+          pressing Enter while focus is on an option button does NOT trigger
+          that button's click (which would just toggle the tag). Space still
+          toggles via the browser's default button activation. */}
+      <div
+        className="absolute left-0 top-full z-20 mt-1 w-[320px] rounded-md border border-[rgba(55,53,47,0.16)] bg-white shadow-[0_4px_12px_rgba(0,0,0,0.08)]"
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!disabled && draft.size > 0) handleSubmit();
+          }
+        }}
+      >
         <div className="border-b border-[rgba(55,53,47,0.08)] px-3 py-2">
           <input
             autoFocus
@@ -151,9 +165,6 @@ export function WorkTypeField({
             placeholder="옵션 검색"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && draft.size > 0) handleSubmit();
-            }}
             className="w-full bg-transparent text-[13px] text-[#37352f] outline-none placeholder:text-[rgba(55,53,47,0.35)]"
           />
         </div>
