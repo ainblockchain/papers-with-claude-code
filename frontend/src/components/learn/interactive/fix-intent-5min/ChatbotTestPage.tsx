@@ -111,16 +111,16 @@ export function ChatbotTestPage({
           </div>
         </div>
 
-        {/* Character decoration — sits above the input bar, behind bubbles. */}
-        <div
+        {/* Character decoration — official 궁금하냥 mascot pinned to the
+            bottom-right, behind the input bar (bottom:52px keeps it above
+            the bar) and behind any chat bubbles that reach this far. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/courses/fix-intent-5min/curious-nyang-character.webp"
+          alt=""
           aria-hidden="true"
-          className="pointer-events-none absolute bottom-[52px] right-2 z-0 flex h-[130px] w-[120px] select-none flex-col items-center justify-end text-[88px] leading-none opacity-70"
-        >
-          <span>🦁</span>
-          <span className="mt-1 text-[11px] font-medium text-[rgba(0,0,0,0.35)]">
-            궁금하냥
-          </span>
-        </div>
+          className="pointer-events-none absolute bottom-[52px] right-0 z-0 h-[140px] w-[127px] select-none object-contain"
+        />
 
         {/* Result-summary panel — reveals after first exchange, sits above
             the input bar. Keeps the orange course-accent so it reads as a
@@ -212,13 +212,14 @@ function BotBubble({ text, time }: { text: string; time: string }) {
     <div className="flex w-full max-w-[calc(80%+40px)] flex-col">
       <div className="ml-1 flex w-full">
         <div className="flex flex-row items-start">
-          <div
-            className="relative flex shrink-0 items-center justify-center rounded-full bg-[#FFE680] text-[16px] leading-none"
-            style={{ width: 30, height: 30 }}
-            aria-label="궁금하냥 profile"
-          >
-            🦁
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/courses/fix-intent-5min/curious-nyang-avatar.png"
+            alt="궁금하냥 profile"
+            width={30}
+            height={30}
+            className="shrink-0 rounded-full"
+          />
           <div className="ml-2 flex-1">
             <div className="flex items-end">
               <div className="rounded-2xl rounded-tl-none border border-gray-200 bg-[#f8f9fa] px-3 py-2 shadow-sm [word-break:keep-all]">
@@ -277,13 +278,15 @@ function BotTyping() {
     <div className="flex w-full max-w-[calc(80%+40px)] flex-col">
       <div className="ml-1 flex w-full">
         <div className="flex flex-row items-start">
-          <div
-            className="relative flex shrink-0 items-center justify-center rounded-full bg-[#FFE680] text-[16px] leading-none"
-            style={{ width: 30, height: 30 }}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/courses/fix-intent-5min/curious-nyang-avatar.png"
+            alt=""
             aria-hidden="true"
-          >
-            🦁
-          </div>
+            width={30}
+            height={30}
+            className="shrink-0 rounded-full"
+          />
           <div className="ml-2 flex-1">
             <div className="flex items-center">
               <div className="rounded-2xl rounded-tl-none border border-gray-200 bg-[#f8f9fa] px-3 py-2 shadow-sm">
