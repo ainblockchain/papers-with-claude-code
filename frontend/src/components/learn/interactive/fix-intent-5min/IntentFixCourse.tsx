@@ -34,6 +34,7 @@ import {
   STAGE4_FIELD_ORDER,
 } from './NotionTaskPage';
 import { NotionFloatingPanel } from './NotionFloatingPanel';
+import { IntentDetailCard } from './IntentDetailCard';
 import { SheetEditPage } from './SheetEditPage';
 import { ChatbotTestPage } from './ChatbotTestPage';
 
@@ -641,8 +642,6 @@ export function IntentFixCourse() {
         />
         <NotionFloatingPanel
           open={panelOpen}
-          onOpen={() => setPanelOpen(true)}
-          onClose={() => setPanelOpen(false)}
           progress={{ filled: filledCount, total: STAGE1_FIELD_ORDER.length }}
         >
           <NotionTaskPage
@@ -652,6 +651,9 @@ export function IntentFixCourse() {
             onSubmit={handleNotionSubmit}
           />
         </NotionFloatingPanel>
+        {panelOpen && representative && (
+          <IntentDetailCard intent={representative} />
+        )}
         {modal}
       </div>
     );
