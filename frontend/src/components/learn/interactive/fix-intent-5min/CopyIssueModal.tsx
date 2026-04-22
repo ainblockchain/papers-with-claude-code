@@ -62,15 +62,19 @@ export function CopyIssueModal({ intent, onClose }: Props) {
   }, [onClose]);
 
   const handleCopy = async () => {
-    // Dual-format clipboard — rich HTML table for Notion/Docs/Sheets pastes,
-    // markdown-table plain-text fallback for plain <textarea> targets.
+    // Dual-format clipboard — rich HTML table for rich-paste targets, AND
+    // tab-separated plain text (TSV) for targets that only accept text.
+    // Notion/Sheets/Docs both auto-detect TSV and build a real table from
+    // it; a plain <textarea> shows tabs as whitespace (not a table, but
+    // still tabular if we later upgrade the editor).
     const escHtml = (s: string) =>
       s
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;');
-    const mdCell = (s: string) => s.replace(/\|/g, '\\|').replace(/\n+/g, ' ');
+    const tsvCell = (s: string) =>
+      s.replace(/\t/g, ' ').replace(/\r?\n+/g, ' ');
 
     const headers = [
       'Session ID',
@@ -92,13 +96,12 @@ export function CopyIssueModal({ intent, onClose }: Props) {
       .join('')}</tr></thead><tbody><tr>${values
       .map((v) => `<td>${escHtml(v)}</td>`)
       .join('')}</tr></tbody></table>`;
-    const markdown = [
-      `| ${headers.join(' | ')} |`,
-      `| ${headers.map(() => '---').join(' | ')} |`,
-      `| ${values.map(mdCell).join(' | ')} |`,
-    ].join('\n');
+    // TSV: tab between columns, newline between header row and data row.
+    const tsv = `${headers.map(tsvCell).join('\t')}\n${values
+      .map(tsvCell)
+      .join('\t')}`;
 
-    const ok = await writeRichClipboard(html, markdown);
+    const ok = await writeRichClipboard(html, tsv);
     if (ok) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);

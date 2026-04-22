@@ -567,8 +567,9 @@ export function NotionTaskPage({
           filled={problemS.filled}
           disabled={disabled}
           value={notion.problemAnalysis}
-          placeholder="발견한 문제에 대해 자신의 생각과 상황을 정리. 첨부할 이미지가 있다면 추가"
+          placeholder="발견한 문제에 대해 자신의 생각과 상황을 정리. 채팅 로그는 복사해서 표로 붙여넣으세요."
           onSubmit={(v) => onSubmit('problemAnalysis', v)}
+          rich
         />
 
         {/* Helper: open a Metabase-styled modal showing the broken chat row

@@ -5,6 +5,31 @@ import type {
 } from '@/lib/courses/fix-intent-5min/course-state';
 import { buildTitleValidationPrompt } from '@/lib/courses/fix-intent-5min/prompts/title';
 import { buildProblemAnalysisValidationPrompt } from '@/lib/courses/fix-intent-5min/prompts/problemAnalysis';
+
+// Convert a small subset of HTML (what our rich BlockField emits) to a
+// readable plain-text representation — tables collapse to tab-separated
+// rows so the LLM can still see the tabular chat log without being
+// distracted by tag noise.
+function htmlToReadableText(src: string): string {
+  if (!src) return '';
+  let s = src;
+  s = s.replace(/<br\s*\/?>/gi, '\n');
+  s = s.replace(/<\/(p|div|li|h[1-6])>/gi, '\n');
+  s = s.replace(/<(p|div|li|h[1-6])[^>]*>/gi, '');
+  s = s.replace(/<\/tr>/gi, '\n');
+  s = s.replace(/<tr[^>]*>/gi, '');
+  s = s.replace(/<(td|th)[^>]*>/gi, '\t');
+  s = s.replace(/<\/(td|th)>/gi, '');
+  s = s.replace(/<[^>]+>/g, '');
+  s = s
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+  return s.replace(/\n{3,}/g, '\n\n').trim();
+}
 import {
   callAzureResponses,
   parseJsonLeniently,
@@ -78,9 +103,12 @@ export async function POST(request: NextRequest) {
 
   if (fieldId === 'problemAnalysis') {
     try {
+      // The rich BlockField submits HTML (free text + pasted <table>).
+      // Flatten to readable text so the LLM judges on content, not markup.
+      const readable = htmlToReadableText(value);
       const { instructions, input } = buildProblemAnalysisValidationPrompt(
         context?.representativeIntent ?? null,
-        value,
+        readable,
       );
       const { text } = await callAzureResponses({ instructions, input });
       const parsed = parseJsonLeniently(text) as
