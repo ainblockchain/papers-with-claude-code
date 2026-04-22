@@ -2,6 +2,7 @@
 
 import {
   ChevronDown,
+  Clipboard,
   Clock,
   Link2,
   MessageSquare,
@@ -58,6 +59,9 @@ interface Props {
   currentFieldId: NotionFieldId | null;
   disabled?: boolean;
   onSubmit: (fieldId: NotionFieldId, value: string) => void;
+  // When the problemAnalysis field is active, clicking the "복사하러가기"
+  // helper invokes this to open the Copy-Issue modal in the parent.
+  onOpenCopyIssue?: () => void;
 }
 
 function computeState(
@@ -289,6 +293,7 @@ export function NotionTaskPage({
   currentFieldId,
   disabled,
   onSubmit,
+  onOpenCopyIssue,
 }: Props) {
   // Assignee dropdown prepends the logged-in user's GitHub ID, so the
   // correct answer — "assign to yourself" — is a real selectable option
@@ -566,10 +571,24 @@ export function NotionTaskPage({
           onSubmit={(v) => onSubmit('problemAnalysis', v)}
         />
 
-        {/* Image placeholder — purely visual, not an editable field */}
-        <div className="my-2 flex h-[96px] w-full items-center justify-center rounded-[4px] border border-dashed border-[rgba(55,53,47,0.16)] bg-[rgba(55,53,47,0.02)] text-[13px] text-[rgba(55,53,47,0.35)]">
-          이미지를 드래그하거나 클릭해서 추가
-        </div>
+        {/* Helper: open a Metabase-styled modal showing the broken chat row
+            so the learner can select/copy the text into the block above.
+            Rendered only while problemAnalysis is the active field. */}
+        {problemS.active && onOpenCopyIssue ? (
+          <div className="mt-1 mb-2 px-0">
+            <button
+              type="button"
+              onClick={onOpenCopyIssue}
+              className="inline-flex items-center gap-1.5 rounded-md border border-[rgba(55,53,47,0.12)] bg-white px-3 py-1.5 text-[13px] text-[rgba(55,53,47,0.75)] hover:bg-[rgba(55,53,47,0.04)] hover:text-[#37352f]"
+            >
+              <Clipboard size={14} />
+              발견한 이슈 복사하러가기
+            </button>
+            <span className="ml-2 text-[12px] text-[rgba(55,53,47,0.5)]">
+              챗봇 로그를 텍스트로 붙여넣으면 PM이 나중에 검색하기 쉬워요.
+            </span>
+          </div>
+        ) : null}
 
         <BlockField
           heading="해결방향 정리"

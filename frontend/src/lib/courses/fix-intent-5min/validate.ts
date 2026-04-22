@@ -13,32 +13,39 @@ export interface ValidateContext {
   username?: string | null;
 }
 
+export interface ValidateResult {
+  pass: boolean;
+  // LLM-authored hint for free-input fields; ignored for deterministic fields.
+  hint?: string;
+}
+
 export async function validateNotionField(
   fieldId: NotionFieldId,
   value: string,
   context: ValidateContext,
-): Promise<boolean> {
+): Promise<ValidateResult> {
   switch (fieldId) {
     case 'agent':
-      return value === agentAnswer;
+      return { pass: value === agentAnswer };
     case 'assignee':
       // Assignee must match the logged-in user's GitHub ID — i.e. the user
       // assigned the Task to themselves. Falls back to false if unauth'd.
-      return !!context.username && value === context.username;
+      return { pass: !!context.username && value === context.username };
     case 'season':
-      return value === seasonAnswer;
+      return { pass: value === seasonAnswer };
     case 'status':
-      return value === statusAnswer;
+      return { pass: value === statusAnswer };
     case 'workType': {
       // Multi-select: comma-separated serialization (e.g. "newIntent,add").
       // Pass only if every required key is present in the selection.
       const selected = new Set(
         value.split(',').map((s) => s.trim()).filter(Boolean),
       );
-      return workTypeAnswer.every((k) => selected.has(k));
+      return { pass: workTypeAnswer.every((k) => selected.has(k)) };
     }
   }
-  // Free-input fields → server endpoint (LLM-backed, currently hardcoded pass)
+  // Free-input fields → server endpoint (LLM-backed for title/problemAnalysis,
+  // stub-pass for the rest).
   try {
     const res = await fetch('/api/courses/fix-intent-5min/validate', {
       method: 'POST',
@@ -46,8 +53,11 @@ export async function validateNotionField(
       body: JSON.stringify({ fieldId, value, context }),
     });
     const data = await res.json();
-    return !!data?.pass;
+    return {
+      pass: !!data?.pass,
+      hint: typeof data?.hint === 'string' && data.hint ? data.hint : undefined,
+    };
   } catch {
-    return false;
+    return { pass: false };
   }
 }

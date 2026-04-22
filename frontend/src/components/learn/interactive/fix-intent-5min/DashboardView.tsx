@@ -15,15 +15,25 @@ interface Props {
   timerTotal: number;
 }
 
-// Metabase tokens reused across cells/headers.
-const FONT = 'font-[family:var(--font-lato),Arial,sans-serif]';
-const TEXT_PRIMARY = 'text-[rgba(7,23,34,0.84)]';
-const TEXT_SECONDARY = 'text-[rgba(7,23,34,0.62)]';
-const TEXT_TERTIARY = 'text-[rgba(7,23,34,0.44)]';
-const ROW_DIVIDER = 'border-[rgba(7,23,34,0.05)]';
-const HOVER_BG = 'hover:bg-[rgba(80,158,227,0.1)]';
-const CARD =
+// Metabase tokens reused across cells/headers — exported so the Copy-Issue
+// modal (and any future Metabase-styled surfaces) can clone the look 1:1.
+export const MB_FONT = 'font-[family:var(--font-lato),Arial,sans-serif]';
+export const MB_TEXT_PRIMARY = 'text-[rgba(7,23,34,0.84)]';
+export const MB_TEXT_SECONDARY = 'text-[rgba(7,23,34,0.62)]';
+export const MB_TEXT_TERTIARY = 'text-[rgba(7,23,34,0.44)]';
+export const MB_ROW_DIVIDER = 'border-[rgba(7,23,34,0.05)]';
+export const MB_HOVER_BG = 'hover:bg-[rgba(80,158,227,0.1)]';
+export const MB_CARD =
   'bg-white border border-[#DCDFE0] rounded-[8px] shadow-[0px_1px_4px_2px_rgba(0,0,0,0.08)]';
+
+// Internal aliases preserved so the rest of this file compiles unchanged.
+const FONT = MB_FONT;
+const TEXT_PRIMARY = MB_TEXT_PRIMARY;
+const TEXT_SECONDARY = MB_TEXT_SECONDARY;
+const TEXT_TERTIARY = MB_TEXT_TERTIARY;
+const ROW_DIVIDER = MB_ROW_DIVIDER;
+const HOVER_BG = MB_HOVER_BG;
+const CARD = MB_CARD;
 
 // Game-HUD timer bar — sits next to the hearts to convey urgency. Colour
 // shifts through green → amber → red as the ratio decays; final quarter

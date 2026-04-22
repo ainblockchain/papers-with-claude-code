@@ -4,6 +4,7 @@ import type {
   SelectedIntent,
 } from '@/lib/courses/fix-intent-5min/course-state';
 import { buildTitleValidationPrompt } from '@/lib/courses/fix-intent-5min/prompts/title';
+import { buildProblemAnalysisValidationPrompt } from '@/lib/courses/fix-intent-5min/prompts/problemAnalysis';
 import {
   callAzureResponses,
   parseJsonLeniently,
@@ -75,8 +76,42 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Free-input fields other than 'title' still stub-pass until their
-  // prompts are wired up (problemAnalysis, solutionDirection, workContent,
-  // result).
+  if (fieldId === 'problemAnalysis') {
+    try {
+      const { instructions, input } = buildProblemAnalysisValidationPrompt(
+        context?.representativeIntent ?? null,
+        value,
+      );
+      const { text } = await callAzureResponses({ instructions, input });
+      const parsed = parseJsonLeniently(text) as
+        | { pass?: unknown; hint?: unknown }
+        | null;
+      if (!parsed || typeof parsed.pass !== 'boolean') {
+        console.error('[validate/problemAnalysis] unparseable LLM response', {
+          text,
+        });
+        return NextResponse.json({
+          ok: true,
+          pass: false,
+          hint: '검증 서버가 판정을 전달하지 못했어요. 잠시 후 다시 시도해주세요.',
+        });
+      }
+      return NextResponse.json({
+        ok: true,
+        pass: parsed.pass,
+        hint: typeof parsed.hint === 'string' ? parsed.hint : '',
+      });
+    } catch (err) {
+      console.error('[validate/problemAnalysis] call failed', err);
+      return NextResponse.json({
+        ok: true,
+        pass: false,
+        hint: '검증 서버에 일시적 오류가 있어요. 다시 시도해주세요.',
+      });
+    }
+  }
+
+  // Free-input fields other than the wired prompts still stub-pass
+  // (solutionDirection, workContent, result).
   return NextResponse.json({ ok: true, pass: true });
 }
