@@ -580,7 +580,7 @@ export function NotionTaskPage({
             <button
               type="button"
               onClick={onOpenCopyIssue}
-              className="inline-flex items-center gap-1.5 rounded-md border border-[rgba(55,53,47,0.12)] bg-white px-3 py-1.5 text-[13px] text-[rgba(55,53,47,0.75)] hover:bg-[rgba(55,53,47,0.04)] hover:text-[#37352f]"
+              className="inline-flex items-center gap-1.5 rounded-md bg-[#FF9D00] px-3 py-1.5 text-[13px] font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] hover:bg-[#E68E00]"
             >
               <Clipboard size={14} />
               발견한 이슈 복사하러가기
