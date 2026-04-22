@@ -56,6 +56,7 @@ type Phase =
   | 'sheet-edit'
   | 'quest-clear-3'
   | 'chatbot-test'
+  | 'stage4-result-page'
   | 'course-complete';
 
 function countFilledStage1Notion(notion: NotionState): number {
@@ -248,8 +249,15 @@ export function IntentFixCourse() {
           setPhase('course-complete');
           setCurrentFieldIdx(STAGE4_FIELD_ORDER.length);
         } else if (restoredNotion.workContent != null) {
-          setPhase('chatbot-test');
-          setCurrentFieldIdx(countFilledStage4Notion(restoredNotion));
+          // If the chatbot Q&A is already persisted, skip the chat and send
+          // the learner straight to the result-entry page in Notion.
+          if (restoredChat.question && restoredChat.answer) {
+            setPhase('stage4-result-page');
+            setCurrentFieldIdx(countFilledStage4Notion(restoredNotion));
+          } else {
+            setPhase('chatbot-test');
+            setCurrentFieldIdx(countFilledStage4Notion(restoredNotion));
+          }
         } else if (restoredNotion.solutionDirection != null) {
           setPhase('sheet-edit');
           setCurrentFieldIdx(countFilledStage3Notion(restoredNotion));
@@ -299,7 +307,7 @@ export function IntentFixCourse() {
       ? STAGE2_FIELD_ORDER
       : phase === 'sheet-edit'
         ? STAGE3_FIELD_ORDER
-        : phase === 'chatbot-test'
+        : phase === 'chatbot-test' || phase === 'stage4-result-page'
           ? STAGE4_FIELD_ORDER
           : STAGE1_FIELD_ORDER;
   const currentFieldId: NotionFieldId | null =
@@ -568,8 +576,13 @@ export function IntentFixCourse() {
       return;
     }
 
-    // Stage 4 last field (result) → course complete.
-    if (phase === 'chatbot-test' && nextIdx >= STAGE4_FIELD_ORDER.length) {
+    // Stage 4 last field (result) → course complete. The result is now
+    // submitted from the stage4-result-page (NotionTaskPage) after the
+    // chatbot interaction, not from the chatbot itself.
+    if (
+      phase === 'stage4-result-page' &&
+      nextIdx >= STAGE4_FIELD_ORDER.length
+    ) {
       setCurrentFieldIdx(nextIdx);
       setPhase('course-complete');
       await recordStageComplete(passkeyPublicKey, 3);
@@ -595,9 +608,16 @@ export function IntentFixCourse() {
     await handleNotionSubmit('workContent', summary);
   };
 
-  // Stage 4 chatbot interaction — persist the question/answer pair alongside
-  // notion state so it restores on reload.
-  const handleChatbotExchange = async (question: string, answer: string) => {
+  // Stage 4 chatbot interaction. Only on-topic exchanges are persisted —
+  // off-topic attempts stay local to the chat view so the "move to result"
+  // trigger (which reads chatbotInteraction.question/answer) doesn't fire
+  // prematurely. The learner can retry freely until a match lands.
+  const handleChatbotExchange = async (
+    question: string,
+    answer: string,
+    meta: { onTopic: boolean },
+  ) => {
+    if (!meta.onTopic) return;
     const next = { question, answer };
     setChatbotInteraction(next);
     await persist({ chatbotInteraction: next });
@@ -884,31 +904,65 @@ export function IntentFixCourse() {
 
   if (phase === 'chatbot-test') {
     const showStage4Mission = !stage4MissionSeen;
+    // Once the first Q&A is persisted, prompt the learner to go record the
+    // result back in the Notion task page (the "결과" block field there is
+    // now the canonical place for final result text).
+    const showGoToResult =
+      !!chatbotInteraction.question &&
+      !!chatbotInteraction.answer &&
+      !showStage4Mission;
     return (
       <div className="relative h-full w-full">
         {saveErrorBanner}
         <ChatbotTestPage
           disabled={validating}
           representativeIntentLabel={representative?.row.intent}
-          hasInteracted={
-            !!chatbotInteraction.question && !!chatbotInteraction.answer
-          }
+          representativeIntent={representative}
           onAskAndReply={handleChatbotExchange}
-          onSubmitResult={(v) => handleNotionSubmit('result', v)}
+        />
+        {showStage4Mission ? (
+          <QuestModal
+            label="QUEST"
+            body="Stage 1 에서 발견했던 문제 발화를 이 Dev 챗봇에 그대로 넣어 보세요. 수정한 인텐트로 답변이 올바르게 매칭되면, 앞서 작성하던 Notion Task 로 돌아가 결과를 기록하며 마무리합니다."
+            cta="확인"
+            onAccept={() => setStage4MissionSeen(true)}
+          />
+        ) : showGoToResult ? (
+          <QuestModal
+            label="QUEST CLEAR"
+            body="챗봇이 수정한 인텐트로 올바르게 답변했어요! 이제 Notion 으로 돌아가 앞서 기록해 둔 Task 에 '결과'만 추가하면 끝이에요."
+            cta="Notion 으로"
+            onAccept={() => {
+              setCurrentFieldIdx(countFilledStage4Notion(notion));
+              setPhase('stage4-result-page');
+            }}
+          />
+        ) : notionError ? (
+          <FeedbackModal
+            correct={false}
+            message={notionError}
+            onClose={() => setNotionError(null)}
+          />
+        ) : null}
+      </div>
+    );
+  }
+
+  if (phase === 'stage4-result-page') {
+    return (
+      <div className="relative h-full w-full">
+        {saveErrorBanner}
+        <NotionTaskPage
+          notion={notion}
+          currentFieldId={currentFieldId}
+          disabled={validating}
+          onSubmit={handleNotionSubmit}
         />
         {notionError && (
           <FeedbackModal
             correct={false}
             message={notionError}
             onClose={() => setNotionError(null)}
-          />
-        )}
-        {showStage4Mission && (
-          <QuestModal
-            label="QUEST"
-            body="Stage 1 에서 찾았던 문제 발화를 이 Dev 챗봇에 그대로 넣어보고, 수정한 인텐트로 올바른 답변이 나오는지 확인하세요. 응답을 확인했으면 하단 '결과 정리' 에 한두 문장 기록해 제출하면 끝입니다."
-            cta="확인"
-            onAccept={() => setStage4MissionSeen(true)}
           />
         )}
       </div>

@@ -2,13 +2,23 @@
 
 import { useState } from 'react';
 import { Home, Lightbulb, Loader2, Send } from 'lucide-react';
+import type { SelectedIntent } from '@/lib/courses/fix-intent-5min/course-state';
+import {
+  ON_TOPIC_REPLY,
+  OFF_TOPIC_REPLY,
+} from '@/data/courses/fix-intent-5min/chatbot-replies';
 
 interface Props {
   disabled?: boolean;
   representativeIntentLabel?: string;
-  onAskAndReply: (question: string, answer: string) => Promise<void>;
-  onSubmitResult: (result: string) => void;
-  hasInteracted: boolean;
+  // Full representative row — forwarded to the validate-chatbot route
+  // so the LLM can anchor its "on-topic?" judgment in the broken case.
+  representativeIntent?: SelectedIntent | null;
+  onAskAndReply: (
+    question: string,
+    answer: string,
+    meta: { onTopic: boolean },
+  ) => Promise<void>;
 }
 
 type Message = { from: 'bot' | 'user'; text: string; time: string };
@@ -33,24 +43,44 @@ const GREETING_TEXT = `안녕하세요!
 
 🔐 안전한 이용을 위해 개인 정보(이름, 연락처, 이메일 등)는 입력하지 않도록 부탁드려요.`;
 
-function fakeReply(question: string): string {
-  return `질문 "${question}"에 대해 수정된 인텐트로 매칭되어 답변드려요. 요청하신 정보를 단계별로 안내해 드릴게요.`;
+// Asks the server whether the learner's message is on-topic for the
+// intent they just fixed. Network / parsing failures degrade to
+// onTopic=false so the OFF_TOPIC_REPLY keeps the loop educational
+// rather than showing a broken state.
+async function judgeOnTopic(
+  question: string,
+  representativeIntent: SelectedIntent | null | undefined,
+): Promise<boolean> {
+  try {
+    const res = await fetch(
+      '/api/courses/fix-intent-5min/validate-chatbot',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question,
+          context: { representativeIntent: representativeIntent ?? null },
+        }),
+      },
+    );
+    const data = await res.json();
+    return !!data?.onTopic;
+  } catch {
+    return false;
+  }
 }
 
 export function ChatbotTestPage({
   disabled,
   representativeIntentLabel,
+  representativeIntent,
   onAskAndReply,
-  onSubmitResult,
-  hasInteracted,
 }: Props) {
   const [messages, setMessages] = useState<Message[]>(() => [
     { from: 'bot', text: GREETING_TEXT, time: formatKoreanTime() },
   ]);
   const [input, setInput] = useState('');
   const [waiting, setWaiting] = useState(false);
-  const [resultDraft, setResultDraft] = useState('');
-  const [localInteracted, setLocalInteracted] = useState(hasInteracted);
 
   const send = async () => {
     const q = input.trim();
@@ -62,15 +92,16 @@ export function ChatbotTestPage({
     ]);
     setInput('');
     setWaiting(true);
-    await new Promise((r) => setTimeout(r, 700));
-    const a = fakeReply(q);
+
+    const onTopic = await judgeOnTopic(q, representativeIntent);
+    const a = onTopic ? ON_TOPIC_REPLY : OFF_TOPIC_REPLY;
+
     setMessages((m) => [
       ...m,
       { from: 'bot', text: a, time: formatKoreanTime() },
     ]);
     setWaiting(false);
-    setLocalInteracted(true);
-    await onAskAndReply(q, a);
+    await onAskAndReply(q, a, { onTopic });
   };
 
   return (
@@ -144,37 +175,6 @@ export function ChatbotTestPage({
         {/* Result-summary panel — reveals after first exchange, sits above
             the input bar. Keeps the orange course-accent so it reads as a
             "fill this before continuing" surface rather than chat chrome. */}
-        {localInteracted ? (
-          <section className="absolute bottom-[52px] left-1/2 z-20 w-[min(92%,700px)] -translate-x-1/2 rounded-lg border border-[#FFD7A3] bg-[#FFFBEA] p-3 shadow-[0_6px_18px_rgba(0,0,0,0.12)]">
-            <div className="mb-0.5 text-sm font-semibold text-[#37352f]">
-              결과 정리
-            </div>
-            <div className="mb-2 text-xs text-gray-500">
-              수정이 의도한 대로 동작했는지 한두 문장으로 기록하세요.
-            </div>
-            <textarea
-              value={resultDraft}
-              onChange={(e) => setResultDraft(e.target.value)}
-              rows={2}
-              placeholder="예) 문제였던 질문에 올바른 인텐트가 매칭되어 기대한 답변이 나왔음."
-              className="w-full resize-none rounded-md border border-[#FF9D00]/40 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#FF9D00]/30"
-            />
-            <div className="mt-2 flex justify-end">
-              <button
-                onClick={() =>
-                  !disabled &&
-                  resultDraft.trim() &&
-                  onSubmitResult(resultDraft.trim())
-                }
-                disabled={disabled || !resultDraft.trim()}
-                className="rounded-md bg-[#FF9D00] px-3 py-1.5 text-sm font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] hover:bg-[#E68E00] disabled:opacity-40"
-              >
-                {disabled ? '검증 중…' : '결과 제출'}
-              </button>
-            </div>
-          </section>
-        ) : null}
-
         {/* Bottom input bar — Hanyang blue full-width strip with a round
             home button, the input field, and a round send button. Home is
             decorative here (no route to go home inside the course). */}
@@ -201,7 +201,7 @@ export function ChatbotTestPage({
                 if (e.key === 'Enter') send();
               }}
               disabled={disabled || waiting}
-              placeholder="예) '시험 못보면 어떻게 되는거야' — Stage 1 문제 발화를 그대로 입력해 테스트"
+              placeholder="시험 못보면 어떻게 되는거야"
               type="text"
               className="h-[30px] flex-1 rounded-[12px] bg-white px-3 text-[14px] text-[#37352f] outline-none placeholder:text-[rgba(0,0,0,0.35)]"
             />
