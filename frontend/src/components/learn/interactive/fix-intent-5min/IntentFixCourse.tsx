@@ -123,10 +123,6 @@ export function IntentFixCourse() {
   // One-shot briefing modal: shows on first entry of the dashboard phase when
   // the user has no progress yet. Dismissed for the rest of the session.
   const [questSeen, setQuestSeen] = useState(false);
-  // Session-only flag so the Stage 3 mission briefing modal shows at most
-  // once per visit. Not persisted — if the user leaves mid-stage and returns
-  // they'll see it again, which is fine for a guidance prompt.
-  const [stage3MissionSeen, setStage3MissionSeen] = useState(false);
   // Notion-phase guidance (stage 1 after rep pick):
   // - stage1NotionMissionSeen: dismisses initial "Task로 등록해봅시다" brief
   // - notionFirstCreateSeen: gates the "잘 하셨습니다" celebration to once
@@ -849,25 +845,23 @@ export function IntentFixCourse() {
   }
 
   if (phase === 'sheet-edit' || phase === 'quest-clear-3') {
-    const showStage3Mission =
-      phase === 'sheet-edit' && !stage3MissionSeen;
+    // Per-phase Quest modals are now owned by SheetEditPage itself
+    // (add-intent → run-intent-script → add-triggers → run-trigger-script).
+    // This block only layers on the stage-complete celebration + any
+    // global notionError that leaked through.
     return (
       <div className="relative h-full w-full">
         {saveErrorBanner}
-        <SheetEditPage disabled={validating} onComplete={handleSheetComplete} />
+        <SheetEditPage
+          disabled={validating}
+          representative={representative}
+          onComplete={handleSheetComplete}
+        />
         {notionError && (
           <FeedbackModal
             correct={false}
             message={notionError}
             onClose={() => setNotionError(null)}
-          />
-        )}
-        {showStage3Mission && (
-          <QuestModal
-            label="QUEST"
-            body="수정 대상 탭에서 셀을 하나 이상 편집한 뒤, 메뉴바의 Custom Scripts → Update 스크립트 실행 을 클릭해 Dev 환경에 반영하세요."
-            cta="확인"
-            onAccept={() => setStage3MissionSeen(true)}
           />
         )}
         {phase === 'quest-clear-3' && (
