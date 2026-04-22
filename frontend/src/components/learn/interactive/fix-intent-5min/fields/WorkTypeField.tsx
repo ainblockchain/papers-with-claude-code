@@ -41,7 +41,7 @@ function TagChip({
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex items-center rounded px-2 py-0.5 text-[12px] transition-opacity ${
+      className={`inline-flex shrink-0 items-center whitespace-nowrap rounded px-2 py-0.5 text-[12px] leading-[18px] transition-opacity ${
         faded ? 'opacity-50 hover:opacity-80' : 'opacity-100'
       } ${ring ? 'ring-2 ring-[#FF9D00]/60 ring-offset-1' : ''}`}
       style={{ background: wt.bg, color: wt.text }}
@@ -79,8 +79,10 @@ export function WorkTypeField({
   };
 
   return (
-    <div className="flex items-start gap-4 py-1.5">
-      <div className="w-28 shrink-0 pt-1 text-sm text-gray-500">{label}</div>
+    <div className="flex items-start gap-3 py-1.5">
+      {label ? (
+        <div className="w-28 shrink-0 pt-1 text-sm text-gray-500">{label}</div>
+      ) : null}
       {filled ? (
         <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
           {parseSelection(value).length > 0 ? (
@@ -94,7 +96,7 @@ export function WorkTypeField({
       ) : !active ? (
         <div className="pt-1 text-sm text-gray-300 italic">비어 있음</div>
       ) : (
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
           {WORK_TYPES.map((wt) => (
             <TagChip
               key={wt.key}
@@ -107,7 +109,7 @@ export function WorkTypeField({
           <button
             onClick={handleSubmit}
             disabled={draft.size === 0 || disabled}
-            className="rounded bg-[#FF9D00] px-2 py-1 text-xs text-white disabled:opacity-30"
+            className="shrink-0 rounded bg-[#FF9D00] px-2 py-1 text-xs text-white disabled:opacity-30"
           >
             {disabled ? '검증 중…' : '엔터'}
           </button>

@@ -404,23 +404,29 @@ export function NotionTaskPage({
               />
             }
           />
-          <PropertyChip
-            icon={<Tag size={14} />}
-            label="Work Type"
-            active={workTypeS.active}
-            filled={workTypeS.filled}
-            displayFilled={<WorkTypeFilledChips value={notion.workType} />}
-            editor={
-              <WorkTypeField
-                label=""
-                active={workTypeS.active}
-                filled={workTypeS.filled}
-                disabled={disabled}
-                value={notion.workType}
-                onSubmit={(v) => onSubmit('workType', v)}
-              />
-            }
-          />
+          {/* Work Type's editor fans out 6 tags + enter button, which is
+              too wide for a single minmax(160px) grid cell. When it's the
+              active field, stretch the chip across the whole row so the
+              tags stay on one line and don't line-wrap per label. */}
+          <div style={workTypeS.active ? { gridColumn: '1 / -1' } : undefined}>
+            <PropertyChip
+              icon={<Tag size={14} />}
+              label="Work Type"
+              active={workTypeS.active}
+              filled={workTypeS.filled}
+              displayFilled={<WorkTypeFilledChips value={notion.workType} />}
+              editor={
+                <WorkTypeField
+                  label=""
+                  active={workTypeS.active}
+                  filled={workTypeS.filled}
+                  disabled={disabled}
+                  value={notion.workType}
+                  onSubmit={(v) => onSubmit('workType', v)}
+                />
+              }
+            />
+          </div>
           <PropertyChip
             icon={<Users size={14} />}
             label="Assignee"
