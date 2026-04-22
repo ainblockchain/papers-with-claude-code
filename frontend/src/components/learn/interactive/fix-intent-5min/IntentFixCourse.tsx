@@ -25,7 +25,6 @@ import { useLearningStore } from '@/stores/useLearningStore';
 import { DashboardView } from './DashboardView';
 import { FeedbackModal } from './FeedbackModal';
 import { QuestModal } from './QuestModal';
-import { RepresentativeSelect } from './RepresentativeSelect';
 import { NotionLanding } from './NotionLanding';
 import {
   NotionTaskPage,
@@ -42,7 +41,6 @@ export const FIX_INTENT_COURSE_ID = 'curious-nyang-intent-guide--fix-intent-5min
 
 type Phase =
   | 'dashboard'
-  | 'representative-select'
   | 'notion'
   | 'quest-clear'
   | 'stage2-page'
@@ -98,10 +96,25 @@ export function IntentFixCourse() {
   // once per visit. Not persisted — if the user leaves mid-stage and returns
   // they'll see it again, which is fine for a guidance prompt.
   const [stage3MissionSeen, setStage3MissionSeen] = useState(false);
+  // Notion-phase guidance (stage 1 after rep pick):
+  // - stage1NotionMissionSeen: dismisses initial "Task로 등록해봅시다" brief
+  // - notionFirstCreateSeen: gates the "잘 하셨습니다" celebration to once
+  // - notionStrayCount: wrong clicks on the landing before the user finds
+  //   the correct "새로 만들기" button — used to escalate guidance to a hint
+  // - notionStrayFeedback: current feedback message to show; null hides modal
+  // - notionCreateCelebration: celebration QUEST CLEAR modal after first
+  //   correct click; dismissal opens the floating panel
+  const [stage1NotionMissionSeen, setStage1NotionMissionSeen] = useState(false);
+  const [notionFirstCreateSeen, setNotionFirstCreateSeen] = useState(false);
+  const [notionStrayCount, setNotionStrayCount] = useState(0);
+  const [notionStrayFeedback, setNotionStrayFeedback] = useState<string | null>(
+    null,
+  );
+  const [notionCreateCelebration, setNotionCreateCelebration] = useState(false);
   // Randomised per-session sets, rebuilt on game over. Three broken rows from
   // the pool (across patterns) plus four clean rows each, shuffled.
   const [activeSets, setActiveSets] = useState<ChatLogSet[]>(() =>
-    buildChatLogSets(3, 4),
+    buildChatLogSets(1, 4),
   );
   // Hearts HUD: 3 attempts across the dashboard phase. Hitting zero resets
   // the entire stage-1 run (both local state and blockchain blob).
@@ -136,6 +149,12 @@ export function IntentFixCourse() {
       // Skip the briefing modal when returning mid-progress — the user
       // already knows the objective.
       if (restoredSelected.length > 0 || restoredRep) setQuestSeen(true);
+      // Likewise skip the notion-phase guidance modals for returning users:
+      // they've already been past the "click 새로 만들기" gate.
+      if (restoredRep) {
+        setStage1NotionMissionSeen(true);
+        setNotionFirstCreateSeen(true);
+      }
       const filledCount = countFilledStage1Notion(restoredNotion);
       if (filledCount >= STAGE1_FIELD_ORDER.length) {
         // Fast-forward across completed stages based on which NotionState
@@ -160,10 +179,8 @@ export function IntentFixCourse() {
       } else if (restoredRep) {
         setPhase('notion');
         setPanelOpen(false);
-      } else if (restoredSelected.length >= activeSets.length) {
-        setPhase('representative-select');
       } else {
-        setSetIndex(restoredSelected.length);
+        setSetIndex(0);
         setPhase('dashboard');
       }
       setLoading(false);
@@ -246,7 +263,7 @@ export function IntentFixCourse() {
     setDashboardFeedback(null);
     setNotionError(null);
     setHearts(3);
-    setActiveSets(buildChatLogSets(3, 4));
+    setActiveSets(buildChatLogSets(1, 4));
     setShowRestart(false);
     setPhase('dashboard');
     // questSeen stays true — the user just re-read the objective via the
@@ -263,52 +280,72 @@ export function IntentFixCourse() {
       return;
     }
 
-    const newSelected: SelectedIntent[] = [
-      ...selectedIntents,
-      {
-        setId: currentSet.setId,
-        row: {
-          sessionId: clickedRow.sessionId,
-          createdAt: clickedRow.createdAt,
-          intent: clickedRow.intent,
-          userMessage: clickedRow.userMessage,
-          assistantContent: clickedRow.assistantContent,
-        },
+    // Single-round flow: the correctly picked broken row IS the representative
+    // intent. Persist and jump straight to the notion phase — no accumulation
+    // of multiple selections, no separate picker screen.
+    const rep: SelectedIntent = {
+      setId: currentSet.setId,
+      row: {
+        sessionId: clickedRow.sessionId,
+        createdAt: clickedRow.createdAt,
+        intent: clickedRow.intent,
+        userMessage: clickedRow.userMessage,
+        assistantContent: clickedRow.assistantContent,
       },
-    ];
-    // Persist BEFORE any UI transition so a blockchain write failure leaves
-    // the user on the same set with the modal still open — they can retry by
-    // clicking 확인 again, and the save-error banner explains what happened.
+    };
+    // Persist BEFORE UI transition: blockchain write failure should leave the
+    // user on the dashboard with the save-error banner explaining what went
+    // wrong, so they can retry by clicking 확인 again.
     setPersisting(true);
-    const persistOk = await persist({ selectedIntents: newSelected });
+    const persistOk = await persist({ representativeIntent: rep });
     setPersisting(false);
     if (!persistOk) return;
 
     setDashboardFeedback(null);
-    setSelectedIntents(newSelected);
-    const nextIdx = setIndex + 1;
-    if (nextIdx >= activeSets.length) {
-      setPhase('representative-select');
-    } else {
-      setSetIndex(nextIdx);
-    }
-  };
-
-  const handleRepPick = async (intent: SelectedIntent) => {
-    if (persisting) return;
-    setPersisting(true);
-    const persistOk = await persist({ representativeIntent: intent });
-    setPersisting(false);
-    if (!persistOk) return;
-    setRepresentative(intent);
+    setRepresentative(rep);
     setPhase('notion');
     setPanelOpen(false);
   };
 
   // Landing's "새로 만들기" button reopens the floating panel (backdrop-only
-  // anchor now that the panel hosts the task form).
+  // anchor now that the panel hosts the task form). First correct click
+  // during the guidance flow shows a QUEST CLEAR celebration; dismissing it
+  // opens the panel. Subsequent clicks open directly.
   const handleCreateTask = () => {
+    if (
+      phase === 'notion' &&
+      stage1NotionMissionSeen &&
+      !notionFirstCreateSeen
+    ) {
+      setNotionCreateCelebration(true);
+      setNotionStrayFeedback(null);
+      return;
+    }
     setPanelOpen(true);
+  };
+
+  const handleNotionCreateCelebrationAccept = () => {
+    setNotionCreateCelebration(false);
+    setNotionFirstCreateSeen(true);
+    setPanelOpen(true);
+  };
+
+  // Clicks anywhere on NotionLanding that did NOT land on a "새로 만들기"
+  // button bubble up here. We only treat them as stray during the guidance
+  // window (mission dismissed, first-create not yet achieved, panel closed).
+  const handleNotionStray = () => {
+    if (phase !== 'notion') return;
+    if (!stage1NotionMissionSeen) return;
+    if (notionFirstCreateSeen) return;
+    if (notionCreateCelebration) return;
+    if (panelOpen) return;
+    const next = notionStrayCount + 1;
+    setNotionStrayCount(next);
+    setNotionStrayFeedback(
+      next >= 3
+        ? '힌트: 페이지 하단 Tasks 영역 오른쪽에 있는 파란 "새로 만들기" 버튼을 클릭하세요.'
+        : '새 Task 를 등록하려면 올바른 버튼을 눌러야 해요. 다시 찾아보세요.',
+    );
   };
 
   const handleNotionSubmit = async (fieldId: NotionFieldId, value: string) => {
@@ -457,7 +494,7 @@ export function IntentFixCourse() {
   );
 
   if (phase === 'dashboard' && currentSet) {
-    const showQuest = !questSeen && selectedIntents.length === 0 && !showRestart;
+    const showQuest = !questSeen && !representative && !showRestart;
     return (
       <div className="relative h-full w-full bg-[#F9F9FA]">
         {saveErrorBanner}
@@ -493,21 +530,71 @@ export function IntentFixCourse() {
     );
   }
 
-  if (phase === 'representative-select') {
-    return (
-      <div className="relative h-full w-full">
-        {saveErrorBanner}
-        <RepresentativeSelect selected={selectedIntents} onPick={handleRepPick} />
-      </div>
-    );
-  }
-
   if (phase === 'notion' || phase === 'quest-clear') {
     const filledCount = countFilledStage1Notion(notion);
+    const showInitialMission =
+      phase === 'notion' &&
+      !stage1NotionMissionSeen &&
+      !notionCreateCelebration &&
+      !panelOpen;
+    // Modal priority (highest first): quest-clear → celebration → initial
+    // mission → stray feedback → field validation error. Only one at a time.
+    let modal: React.ReactNode = null;
+    if (phase === 'quest-clear') {
+      modal = (
+        <QuestModal
+          label="QUEST CLEAR"
+          body="Stage 1 완료! 이슈를 Notion에 기록했어요. 이제 해결 방향을 정리합니다."
+          cta="다음 단계로"
+          onAccept={() => {
+            setCurrentFieldIdx(countFilledStage2Notion(notion));
+            setPhase('stage2-page');
+          }}
+        />
+      );
+    } else if (notionCreateCelebration) {
+      modal = (
+        <QuestModal
+          label="QUEST CLEAR"
+          body="잘 하셨어요! 이슈를 새로 등록할 때는 '새로 만들기' 버튼을 눌러야 합니다."
+          cta="확인"
+          onAccept={handleNotionCreateCelebrationAccept}
+        />
+      );
+    } else if (showInitialMission) {
+      modal = (
+        <QuestModal
+          label="QUEST"
+          body="노션 페이지에 이슈를 Task로 등록해봅시다."
+          cta="확인"
+          onAccept={() => setStage1NotionMissionSeen(true)}
+        />
+      );
+    } else if (notionStrayFeedback) {
+      modal = (
+        <FeedbackModal
+          correct={false}
+          message={notionStrayFeedback}
+          onClose={() => setNotionStrayFeedback(null)}
+        />
+      );
+    } else if (notionError) {
+      modal = (
+        <FeedbackModal
+          correct={false}
+          message={notionError}
+          onClose={() => setNotionError(null)}
+        />
+      );
+    }
+
     return (
       <div className="relative h-full w-full">
         {saveErrorBanner}
-        <NotionLanding onCreate={handleCreateTask} />
+        <NotionLanding
+          onCreate={handleCreateTask}
+          onStray={handleNotionStray}
+        />
         <NotionFloatingPanel
           open={panelOpen}
           onOpen={() => setPanelOpen(true)}
@@ -521,24 +608,7 @@ export function IntentFixCourse() {
             onSubmit={handleNotionSubmit}
           />
         </NotionFloatingPanel>
-        {notionError && (
-          <FeedbackModal
-            correct={false}
-            message={notionError}
-            onClose={() => setNotionError(null)}
-          />
-        )}
-        {phase === 'quest-clear' && (
-          <QuestModal
-            label="QUEST CLEAR"
-            body="Stage 1 완료! 이슈를 Notion에 기록했어요. 이제 해결 방향을 정리합니다."
-            cta="다음 단계로"
-            onAccept={() => {
-              setCurrentFieldIdx(countFilledStage2Notion(notion));
-              setPhase('stage2-page');
-            }}
-          />
-        )}
+        {modal}
       </div>
     );
   }
