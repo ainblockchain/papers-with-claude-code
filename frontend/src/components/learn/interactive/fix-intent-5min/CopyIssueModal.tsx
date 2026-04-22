@@ -134,10 +134,14 @@ export function CopyIssueModal({ intent, onClose }: Props) {
             <button
               type="button"
               onClick={handleCopy}
-              className="inline-flex items-center gap-1.5 rounded-[6px] border border-[#DCDFE0] bg-white px-3 py-1.5 text-sm font-medium text-[rgba(7,23,34,0.84)] hover:bg-[rgba(80,158,227,0.08)]"
+              className={`inline-flex items-center gap-1.5 rounded-[6px] px-3 py-1.5 text-sm font-medium shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition-colors ${
+                copied
+                  ? 'border border-[#BFDBBF] bg-[#DBEDDB] text-[#448361]'
+                  : 'bg-[#FF9D00] text-white hover:bg-[#E68E00]'
+              }`}
             >
               {copied ? (
-                <Check size={14} className="text-[#84BB4C]" />
+                <Check size={14} />
               ) : (
                 <Copy size={14} />
               )}
