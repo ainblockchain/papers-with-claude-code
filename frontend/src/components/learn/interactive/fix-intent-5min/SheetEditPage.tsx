@@ -19,7 +19,10 @@ import {
   Strikethrough,
   Undo2,
 } from 'lucide-react';
-import type { SelectedIntent } from '@/lib/courses/fix-intent-5min/course-state';
+import type {
+  SelectedIntent,
+  SheetArtifact,
+} from '@/lib/courses/fix-intent-5min/course-state';
 import {
   CORRECT_INTENT_SHEET_ID,
   INTENT_ROWS,
@@ -44,7 +47,7 @@ type Phase =
 interface Props {
   disabled?: boolean;
   representative: SelectedIntent | null;
-  onComplete: (summary: string) => void;
+  onComplete: (summary: string, artifact: SheetArtifact) => void;
 }
 
 const INTENT_COLS: Array<{
@@ -310,61 +313,6 @@ export function SheetEditPage({ disabled, representative, onComplete }: Props) {
     }
   };
 
-  // Tab navigation between editable cells within the current phase.
-  // - add-intent: intent → leadSentence → prompt (forward), reverse on Shift.
-  // - add-triggers: sentence row N → sentence row N±1 (across newTriggerIds).
-  // Returns null when there's no further editable cell in that direction,
-  // which commits and closes the editor.
-  const computeNextCell = (
-    current: { sheetId: SheetId; rowId: string; colId: string },
-    shift: boolean,
-  ) => {
-    if (
-      phase === 'add-intent' &&
-      current.sheetId === CORRECT_INTENT_SHEET_ID &&
-      addedIntent?.rowId === current.rowId
-    ) {
-      const order: Array<'intent' | 'leadSentence' | 'prompt'> = [
-        'intent',
-        'leadSentence',
-        'prompt',
-      ];
-      const idx = order.indexOf(
-        current.colId as 'intent' | 'leadSentence' | 'prompt',
-      );
-      if (idx < 0) return null;
-      const nextIdx = shift ? idx - 1 : idx + 1;
-      if (nextIdx < 0 || nextIdx >= order.length) return null;
-      return {
-        sheetId: current.sheetId,
-        rowId: current.rowId,
-        colId: order[nextIdx],
-      };
-    }
-    if (
-      phase === 'add-triggers' &&
-      current.sheetId === 'intent_trigger_sentence' &&
-      newTriggerIds.includes(current.rowId)
-    ) {
-      const idx = newTriggerIds.indexOf(current.rowId);
-      if (idx < 0) return null;
-      const nextIdx = shift ? idx - 1 : idx + 1;
-      if (nextIdx < 0 || nextIdx >= newTriggerIds.length) return null;
-      return {
-        sheetId: 'intent_trigger_sentence' as SheetId,
-        rowId: newTriggerIds[nextIdx],
-        colId: 'sentence',
-      };
-    }
-    return null;
-  };
-
-  const handleTab = (shift: boolean) => {
-    if (!editing) return;
-    const next = computeNextCell(editing, shift);
-    commitEdit(next);
-  };
-
   const openConfirmIntent = () => {
     if (phase !== 'run-intent-script' || disabled || running) return;
     setMenuOpen(false);
@@ -450,7 +398,21 @@ export function SheetEditPage({ disabled, representative, onComplete }: Props) {
         setTriggerAttempts(0);
         setPhase('complete');
         const summary = `학사 시트에 '${addedIntentRow.intent}' 인텐트 신설 + Prompt 작성, intent_trigger_sentence 에 트리거 ${triggers.length}건 등록. Update Intent Prompts (dev) · Update Intent Triggers (dev) 스크립트 실행 완료.`;
-        onComplete(summary);
+        const artifact: SheetArtifact = {
+          addedIntent: {
+            sheetId: CORRECT_INTENT_SHEET_ID,
+            intent: addedIntentRow.intent,
+            leadSentence: addedIntentRow.leadSentence,
+            prompt: addedIntentRow.prompt,
+            createdAt: addedIntentRow.createdAt,
+            isPush: addedIntentRow.isPush,
+          },
+          triggers: triggerRows
+            .filter((t) => newTriggerIds.includes(t.id))
+            .map((t) => ({ intent: t.intent, sentence: t.sentence })),
+          snapshotAt: Date.now(),
+        };
+        onComplete(summary, artifact);
       } else {
         setTriggerAttempts(attempt);
         setPhase('add-triggers');
@@ -656,7 +618,6 @@ export function SheetEditPage({ disabled, representative, onComplete }: Props) {
             setDraft={setDraft}
             startEdit={startEdit}
             commitEdit={commitEdit}
-            handleTab={handleTab}
             isEditable={(rowId, colId) =>
               isEditable('intent_trigger_sentence', rowId, colId)
             }
@@ -673,7 +634,6 @@ export function SheetEditPage({ disabled, representative, onComplete }: Props) {
             setDraft={setDraft}
             startEdit={startEdit}
             commitEdit={commitEdit}
-            handleTab={handleTab}
             isEditable={(rowId, colId) =>
               isEditable(activeTabId, rowId, colId)
             }
@@ -764,7 +724,6 @@ function TriggerSheetTable({
   setDraft,
   startEdit,
   commitEdit,
-  handleTab,
   isEditable,
 }: {
   rows: TriggerRow[];
@@ -774,7 +733,6 @@ function TriggerSheetTable({
   setDraft: (s: string) => void;
   startEdit: (sheetId: SheetId, rowId: string, colId: string) => void;
   commitEdit: () => void;
-  handleTab: (shift: boolean) => void;
   isEditable: (rowId: string, colId: string) => boolean;
 }) {
   return (
@@ -832,13 +790,11 @@ function TriggerSheetTable({
                         onChange={(e) => setDraft(e.target.value)}
                         onBlur={commitEdit}
                         onKeyDown={(e) => {
-                          if (e.key === 'Tab') {
-                            e.preventDefault();
-                            handleTab(e.shiftKey);
-                            return;
+                          // Commit on Enter/Escape; clicking outside also
+                          // commits via onBlur. No Tab/Ctrl+Enter gymnastics.
+                          if (e.key === 'Enter' || e.key === 'Escape') {
+                            commitEdit();
                           }
-                          if (e.key === 'Enter') commitEdit();
-                          if (e.key === 'Escape') commitEdit();
                         }}
                         className="w-full bg-transparent text-sm outline-none"
                       />
@@ -867,7 +823,6 @@ function IntentSheetTable({
   setDraft,
   startEdit,
   commitEdit,
-  handleTab,
   isEditable,
 }: {
   sheetId: SheetId;
@@ -878,7 +833,6 @@ function IntentSheetTable({
   setDraft: (s: string) => void;
   startEdit: (sheetId: SheetId, rowId: string, colId: string) => void;
   commitEdit: () => void;
-  handleTab: (shift: boolean) => void;
   isEditable: (rowId: string, colId: string) => boolean;
 }) {
   return (
@@ -934,17 +888,9 @@ function IntentSheetTable({
                           onChange={(e) => setDraft(e.target.value)}
                           onBlur={commitEdit}
                           onKeyDown={(e) => {
-                            if (e.key === 'Tab') {
-                              e.preventDefault();
-                              handleTab(e.shiftKey);
-                              return;
-                            }
-                            if (
-                              e.key === 'Enter' &&
-                              (e.metaKey || e.ctrlKey)
-                            ) {
-                              commitEdit();
-                            }
+                            // Enter stays as newline for prompt bodies;
+                            // commit lives on outside-click (onBlur) only.
+                            // Escape gives an explicit escape hatch.
                             if (e.key === 'Escape') commitEdit();
                           }}
                           rows={4}
@@ -957,13 +903,9 @@ function IntentSheetTable({
                           onChange={(e) => setDraft(e.target.value)}
                           onBlur={commitEdit}
                           onKeyDown={(e) => {
-                            if (e.key === 'Tab') {
-                              e.preventDefault();
-                              handleTab(e.shiftKey);
-                              return;
+                            if (e.key === 'Enter' || e.key === 'Escape') {
+                              commitEdit();
                             }
-                            if (e.key === 'Enter') commitEdit();
-                            if (e.key === 'Escape') commitEdit();
                           }}
                           className="w-full bg-transparent text-sm outline-none"
                         />
