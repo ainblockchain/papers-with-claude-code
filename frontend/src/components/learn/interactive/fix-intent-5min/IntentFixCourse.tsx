@@ -17,6 +17,7 @@ import {
 import { validateNotionField } from '@/lib/courses/fix-intent-5min/validate';
 import {
   assigneeHint,
+  seasonHints,
   statusHints,
 } from '@/data/courses/fix-intent-5min/notion-options';
 import { computeWorkTypeHint } from '@/lib/courses/fix-intent-5min/workTypeHint';
@@ -431,18 +432,22 @@ export function IntentFixCourse() {
         fieldId === 'solutionDirection';
       // Status gets a per-option hint because each wrong choice carries a
       // specific meaning the learner should understand, not just reject.
+      // Season nudges any non-"진행중" pick back toward the live season.
       // Assignee shares a single hint for any "other person" pick —
       // the teaching is about the current you-fix-it-yourself situation.
       // workType is multi-select: the hint nudges toward the missing
       // required key (or explains why a wrong key doesn't fit).
       const statusHint =
         fieldId === 'status' ? statusHints[value] : undefined;
+      const seasonHint =
+        fieldId === 'season' ? seasonHints[value] : undefined;
       const pickedOtherAssignee =
         fieldId === 'assignee' && value !== githubUsername;
       const workTypeHint =
         fieldId === 'workType' ? computeWorkTypeHint(value) : undefined;
       setNotionError(
         statusHint ??
+          seasonHint ??
           workTypeHint ??
           (pickedOtherAssignee
             ? assigneeHint

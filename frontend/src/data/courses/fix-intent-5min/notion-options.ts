@@ -31,8 +31,49 @@ export const assigneeOptions: string[] = [
 export const assigneeHint =
   'Assignee 를 다른 사람으로 지정하면 그 사람이 이 이슈를 맡아 수정하는 상황이에요. 지금은 본인이 직접 고칠 참이니, Assignee 는 본인으로 지정해주세요.';
 
-export const seasonOptions: string[] = ['2026 Spring', '2026 Winter', '2025 Fall'];
-export const seasonAnswer = '2026 Spring';
+// Season labels mirror the real Notion database. The one currently
+// tagged "진행중" is the correct answer — this Task is being filed
+// *now*, so it belongs to whichever season is live.
+export const seasonOptions: string[] = [
+  '2-5(4/2~4/22)진행중',
+  '2-4(3/12~4/1)',
+  '2-3(2/19~3/11)',
+  '2-2(1/29~2/18)',
+  '2-1(1/2~1/28)',
+  '1-5 (2025 12/11~1/1)',
+  '1-4 (2025 11/27~12/10)',
+  '1-3 (2025 11/13~11/26)',
+  '1-2 (2025 10/30~11/12)',
+  '1-1 (2025 10/15~10/29)',
+  '0 시범운영 (9/4~10/1)',
+];
+export const seasonAnswer = '2-5(4/2~4/22)진행중';
+
+// Per-option nudge shown when the learner picks a non-진행중 season.
+// Each line names the picked season's window and points the learner
+// back to the "진행중" label, the same cadence as statusHints.
+export const seasonHints: Record<string, string> = {
+  '2-4(3/12~4/1)':
+    '2-4 시즌은 4/1에 끝난 바로 직전 시즌이에요. 이 Task는 지금 이슈를 발견해 기록하는 시점이니, "진행중" 라벨이 붙은 시즌을 골라주세요.',
+  '2-3(2/19~3/11)':
+    '2-3 시즌은 3/11에 끝난 지나간 시즌이에요. 지금 "진행중" 상태로 표시된 시즌을 선택해주세요.',
+  '2-2(1/29~2/18)':
+    '2-2 시즌은 2월 중순에 이미 끝난 시즌이에요. 지금 운영 중인 시즌을 선택해주세요 — "진행중" 라벨이 붙어 있어요.',
+  '2-1(1/2~1/28)':
+    '2-1 시즌은 연초에 끝난 시즌이에요. 현재 "진행중"으로 표시된 시즌을 선택해주세요.',
+  '1-5 (2025 12/11~1/1)':
+    '1-5 는 작년 말에 끝난 시즌이에요. 이번 이슈는 지금 진행 중인 시즌에 기록해야 해요. "진행중" 라벨이 붙은 항목을 골라주세요.',
+  '1-4 (2025 11/27~12/10)':
+    '1-4 는 작년에 끝난 시즌이에요. 지금 운영 중인 시즌을 선택해주세요.',
+  '1-3 (2025 11/13~11/26)':
+    '1-3 는 작년에 끝난 시즌이에요. 지금 운영 중인 시즌을 선택해주세요.',
+  '1-2 (2025 10/30~11/12)':
+    '1-2 는 작년에 끝난 시즌이에요. 지금 운영 중인 시즌을 선택해주세요.',
+  '1-1 (2025 10/15~10/29)':
+    '1-1 은 작년 가을에 끝난 시즌이에요. 지금 운영 중인 시즌에 이 이슈를 등록해주세요.',
+  '0 시범운영 (9/4~10/1)':
+    '시범운영은 서비스 초기 베타 시기의 라벨이에요. 지금은 정식 운영 중이니 "진행중"으로 표시된 시즌을 선택해주세요.',
+};
 
 export const statusOptions: string[] = [
   'Not Started',
