@@ -487,15 +487,19 @@ export function NotionTaskPage({
             icon={<UserCircle size={14} className="text-[rgba(55,53,47,0.45)]" />}
             label="Reported by"
           >
-            <span className="inline-flex items-center gap-1.5 text-[14px]">
-              <span
-                aria-hidden="true"
-                className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#F1F1EF] text-[11px] font-semibold text-[rgba(55,53,47,0.65)]"
-              >
-                본
+            {githubUsername ? (
+              <span className="inline-flex items-center gap-1.5 text-[14px]">
+                <span
+                  aria-hidden="true"
+                  className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#F1F1EF] text-[11px] font-semibold text-[rgba(55,53,47,0.65)]"
+                >
+                  {githubUsername.trim().charAt(0).toUpperCase() || '?'}
+                </span>
+                <span>{githubUsername}</span>
               </span>
-              <span>본인</span>
-            </span>
+            ) : (
+              <span className="italic text-[rgba(55,53,47,0.35)]">비어 있음</span>
+            )}
           </PropertyRow>
           <PropertyRow
             icon={<Clock size={14} className="text-[rgba(55,53,47,0.45)]" />}
