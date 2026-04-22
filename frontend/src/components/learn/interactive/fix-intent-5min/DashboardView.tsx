@@ -145,7 +145,7 @@ function HeartsIndicator({ count, max = 3 }: { count: number; max?: number }) {
 }
 
 // Inert visual-only icon — no click. Row is the only interactive surface.
-function InertIcon({
+export function InertIcon({
   children,
   label,
   className = '',
@@ -165,7 +165,7 @@ function InertIcon({
   );
 }
 
-function CardHeader({
+export function CardHeader({
   title,
   titleClassName = '',
 }: {
@@ -191,7 +191,7 @@ function CardHeader({
   );
 }
 
-function ScalarCard({
+export function ScalarCard({
   label,
   value,
   period,
@@ -235,7 +235,7 @@ const INTENT_BARS: { label: string; value: number }[] = [
   { label: '기타(2)', value: 35 },
 ];
 
-function BarChart() {
+export function BarChart() {
   const maxValue = 500;
   const maxBarValue = Math.max(...INTENT_BARS.map((b) => b.value));
   const chartMax = Math.max(maxValue, maxBarValue);
@@ -334,7 +334,7 @@ const DAILY_POINTS: number[] = [
 const DATE_TICKS = ['7월 1, 2025', '10월 1, 2025', '1월 1, 2026', '4월 1, 2026'];
 const Y_TICKS = [0, 200, 400, 600, 800];
 
-function LineChart() {
+export function LineChart() {
   const W = 520;
   const H = 220;
   const padL = 40;

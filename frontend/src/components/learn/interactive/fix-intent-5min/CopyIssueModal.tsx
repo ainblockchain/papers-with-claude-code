@@ -1,15 +1,19 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Check, Copy, Info, X } from 'lucide-react';
+import { Check, Copy, X } from 'lucide-react';
 import type { SelectedIntent } from '@/lib/courses/fix-intent-5min/course-state';
 import {
+  BarChart,
+  CardHeader,
+  LineChart,
   MB_CARD,
   MB_FONT,
   MB_ROW_DIVIDER,
   MB_TEXT_PRIMARY,
   MB_TEXT_SECONDARY,
   MB_TEXT_TERTIARY,
+  ScalarCard,
 } from './DashboardView';
 
 interface Props {
@@ -121,15 +125,23 @@ export function CopyIssueModal({ intent, onClose }: Props) {
         aria-label="발견한 이슈 복사"
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
-        className={`flex h-[min(90vh,820px)] w-[min(95vw,1200px)] flex-col overflow-hidden rounded-[10px] bg-[#F9F9FA] shadow-[0_24px_48px_-12px_rgba(0,0,0,0.35)] ${MB_FONT} ${MB_TEXT_PRIMARY}`}
+        className={`flex h-[min(94vh,920px)] w-[min(96vw,1280px)] flex-col overflow-hidden rounded-[10px] bg-[#F9F9FA] shadow-[0_24px_48px_-12px_rgba(0,0,0,0.35)] ${MB_FONT} ${MB_TEXT_PRIMARY}`}
       >
-        {/* Dashboard header clone */}
+        {/* Dashboard header clone — mirrors DashboardView's title chrome
+            so the learner reads this as the Stage 1 page scoped to one
+            row. The right side swaps Stage 1's Timer/Hearts/Download for
+            this modal's action (copy / close). */}
         <header
           className={`flex items-center justify-between border-b px-6 pt-5 pb-3 ${MB_ROW_DIVIDER}`}
         >
-          <h2 className="text-[21px] font-bold leading-tight">
-            hanyang-agent-production — 발견한 이슈
-          </h2>
+          <div className="flex items-baseline gap-2 min-w-0">
+            <h2 className="text-[21px] font-bold leading-tight">
+              hanyang-agent-production
+            </h2>
+            <span className={`text-[13px] ${MB_TEXT_TERTIARY}`}>
+              · 발견한 이슈 복사
+            </span>
+          </div>
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -158,24 +170,35 @@ export function CopyIssueModal({ intent, onClose }: Props) {
           </div>
         </header>
 
-        {/* Canvas — single-row table inside the same Metabase card */}
-        <main className="flex flex-1 flex-col gap-3 overflow-auto px-6 py-4">
-          <section className={`flex flex-1 flex-col overflow-hidden ${MB_CARD}`}>
-            <div className="flex items-center justify-between px-4 pt-3 pb-1">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <span
-                  className={`truncate text-[13px] font-bold ${MB_TEXT_PRIMARY}`}
-                >
-                  All chats in table view
-                </span>
-                <span
-                  role="img"
-                  aria-label="Info"
-                  className={`pointer-events-none inline-flex items-center justify-center select-none ${MB_TEXT_TERTIARY}`}
-                >
-                  <Info size={13} />
-                </span>
-              </div>
+        {/* Canvas — mirrors DashboardView's layout so the learner recognises
+            this as "the Stage 1 page, zoomed into that one broken row". */}
+        <main className="mb-scrollbar flex flex-1 flex-col gap-3 overflow-auto px-6 py-4">
+          {/* Top row: KPI scalars + charts, same 3-column grid and heights */}
+          <div className="grid h-[260px] flex-shrink-0 grid-cols-[110px_minmax(0,1fr)_minmax(0,2fr)] gap-3">
+            <div className="flex h-full flex-col gap-3">
+              <ScalarCard
+                label="DAU"
+                value="31"
+                period="4월 21, 2026"
+                changePercent={58.11}
+              />
+              <ScalarCard
+                label="MAU"
+                value="1,762"
+                period="4월 2026"
+                changePercent={42.9}
+              />
+            </div>
+            <BarChart />
+            <LineChart />
+          </div>
+
+          {/* Table card — single-row, but same chrome as DashboardView */}
+          <section
+            className={`flex flex-1 flex-col overflow-hidden ${MB_CARD} min-h-[260px]`}
+          >
+            <CardHeader title="All chats in table view" />
+            <div className="flex items-center justify-end px-4 pb-1">
               <div className={`text-[11px] ${MB_TEXT_TERTIARY}`}>
                 텍스트를 드래그해서 본문에 붙여넣으세요
               </div>
