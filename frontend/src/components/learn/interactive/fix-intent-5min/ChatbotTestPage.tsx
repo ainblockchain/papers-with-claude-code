@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Home, Loader2, Send } from 'lucide-react';
+import { Home, Lightbulb, Loader2, Send } from 'lucide-react';
 
 interface Props {
   disabled?: boolean;
@@ -95,6 +95,25 @@ export function ChatbotTestPage({
         ) : null}
       </header>
 
+      {/* Orange guide band — course-owned instruction strip sandwiched
+          between the Hanyang header and the bot UI, so the learner can
+          always see what this stage is asking for. */}
+      <div className="flex shrink-0 items-start gap-2 border-b border-[#FFD7A3] bg-[#FFF1E0] px-4 py-2 text-[13px] text-[#5B3500]">
+        <Lightbulb
+          size={14}
+          className="mt-[2px] shrink-0 text-[#FF9D00]"
+          aria-hidden="true"
+        />
+        <span>
+          <span className="font-semibold text-[#B25A00]">테스트 가이드</span>
+          {' · '}
+          Stage 1 에서 발견했던 문제 발화를 이 Dev 챗봇에 그대로 넣어
+          보세요. 수정한 인텐트로 올바른 답변이 나오는지 확인한 뒤, 하단
+          <span className="font-medium"> 결과 정리 </span>
+          에 한두 문장 기록해 제출하면 Stage 4 가 끝납니다.
+        </span>
+      </div>
+
       {/* Main scrollable area — messages above, input bar pinned at bottom. */}
       <main className="relative flex flex-1 flex-col overflow-hidden">
         {/* Messages */}
@@ -182,7 +201,7 @@ export function ChatbotTestPage({
                 if (e.key === 'Enter') send();
               }}
               disabled={disabled || waiting}
-              placeholder="궁금한 내용을 입력해 보세요…"
+              placeholder="예) '시험 못보면 어떻게 되는거야' — Stage 1 문제 발화를 그대로 입력해 테스트"
               type="text"
               className="h-[30px] flex-1 rounded-[12px] bg-white px-3 text-[14px] text-[#37352f] outline-none placeholder:text-[rgba(0,0,0,0.35)]"
             />

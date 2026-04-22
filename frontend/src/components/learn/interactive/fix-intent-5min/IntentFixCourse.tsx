@@ -154,6 +154,9 @@ export function IntentFixCourse() {
   // the 확인 button dismisses it permanently for the session.
   const [catalogOpen, setCatalogOpen] = useState(false);
   const [catalogAutoOpened, setCatalogAutoOpened] = useState(false);
+  // Session-only — Stage 4 mission briefing modal shows once when the
+  // learner first enters the chatbot-test phase.
+  const [stage4MissionSeen, setStage4MissionSeen] = useState(false);
   // Static Stage 1 lineup: one fixed 10-row set (1 broken + 9 clean) in a
   // deterministic order. Rebuilt on restart to return a fresh reference.
   const [activeSets, setActiveSets] = useState<ChatLogSet[]>(() => [
@@ -880,6 +883,7 @@ export function IntentFixCourse() {
   }
 
   if (phase === 'chatbot-test') {
+    const showStage4Mission = !stage4MissionSeen;
     return (
       <div className="relative h-full w-full">
         {saveErrorBanner}
@@ -897,6 +901,14 @@ export function IntentFixCourse() {
             correct={false}
             message={notionError}
             onClose={() => setNotionError(null)}
+          />
+        )}
+        {showStage4Mission && (
+          <QuestModal
+            label="QUEST"
+            body="Stage 1 에서 찾았던 문제 발화를 이 Dev 챗봇에 그대로 넣어보고, 수정한 인텐트로 올바른 답변이 나오는지 확인하세요. 응답을 확인했으면 하단 '결과 정리' 에 한두 문장 기록해 제출하면 끝입니다."
+            cta="확인"
+            onAccept={() => setStage4MissionSeen(true)}
           />
         )}
       </div>
