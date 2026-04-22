@@ -24,6 +24,7 @@ import {
   statusOptions,
 } from '@/data/courses/fix-intent-5min/notion-options';
 import { WORK_TYPES } from '@/data/courses/fix-intent-5min/work-types';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { TitleField } from './fields/TitleField';
 import { DropdownField } from './fields/DropdownField';
 import { BlockField } from './fields/BlockField';
@@ -286,6 +287,14 @@ export function NotionTaskPage({
   disabled,
   onSubmit,
 }: Props) {
+  // Assignee dropdown prepends the logged-in user's GitHub ID, so the
+  // correct answer — "assign to yourself" — is a real selectable option
+  // and gets persisted to the blockchain as that concrete ID.
+  const githubUsername = useAuthStore((s) => s.user?.username ?? null);
+  const assigneeChoices = githubUsername
+    ? [githubUsername, ...assigneeOptions]
+    : assigneeOptions;
+
   const titleS = computeState('title', currentFieldId, ALL_FIELD_ORDER, notion.title);
   const agentS = computeState('agent', currentFieldId, ALL_FIELD_ORDER, notion.agent);
   const assigneeS = computeState(
@@ -418,7 +427,7 @@ export function NotionTaskPage({
             editor={
               <DropdownField
                 label=""
-                options={assigneeOptions}
+                options={assigneeChoices}
                 active={assigneeS.active}
                 filled={assigneeS.filled}
                 disabled={disabled}

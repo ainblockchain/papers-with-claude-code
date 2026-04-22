@@ -1,7 +1,6 @@
 import type { NotionFieldId, SelectedIntent } from './course-state';
 import {
   agentAnswer,
-  assigneeAnswer,
   seasonAnswer,
   statusAnswer,
   workTypeAnswer,
@@ -9,6 +8,9 @@ import {
 
 export interface ValidateContext {
   representativeIntent: SelectedIntent | null;
+  // Logged-in user's GitHub ID — used to validate the assignee field
+  // (correct answer = "the user assigned the task to themselves").
+  username?: string | null;
 }
 
 export async function validateNotionField(
@@ -20,7 +22,9 @@ export async function validateNotionField(
     case 'agent':
       return value === agentAnswer;
     case 'assignee':
-      return value === assigneeAnswer;
+      // Assignee must match the logged-in user's GitHub ID — i.e. the user
+      // assigned the Task to themselves. Falls back to false if unauth'd.
+      return !!context.username && value === context.username;
     case 'season':
       return value === seasonAnswer;
     case 'status':

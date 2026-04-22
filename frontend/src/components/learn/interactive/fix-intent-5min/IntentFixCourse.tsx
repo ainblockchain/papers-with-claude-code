@@ -388,6 +388,7 @@ export function IntentFixCourse() {
     setValidating(true);
     const pass = await validateNotionField(fieldId, value, {
       representativeIntent: representative,
+      username: githubUsername,
     });
     if (!pass) {
       setValidating(false);

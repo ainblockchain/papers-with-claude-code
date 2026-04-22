@@ -2,11 +2,28 @@
 
 import type { WorkTypeKey } from './work-types';
 
-export const agentOptions: string[] = ['궁금하냥', '다른 에이전트 A', '다른 에이전트 B'];
-export const agentAnswer = '궁금하냥';
+export const agentOptions: string[] = [
+  '🎯 AIN Space | Uncommon Village',
+  '💪 Inbody 버디',
+  '🎯 Unblock Media 기자10인',
+  '🧑‍🍳 Walkerhill AI Guide',
+  '🎯 Walkerhill WISE',
+  '🤵 Walkerhill 해리스',
+  '🦁 궁금하냥',
+  '😈 깨비',
+  '👩‍💼 동아사이언스 SEO',
+  '🎯 한양 스페이스 관리자(챗봇 Intent Manager Agent)',
+];
+export const agentAnswer = '🦁 궁금하냥';
 
-export const assigneeOptions: string[] = ['본인', '담당자 A', '담당자 B'];
-export const assigneeAnswer = '본인';
+// Distractor assignees — uncommon Korean given names written in English.
+// The logged-in user's GitHub ID is prepended at render time; the correct
+// answer is "this row equals the user's own GitHub ID" (see validate.ts).
+export const assigneeOptions: string[] = [
+  'Haram Baek',
+  'Saebit Ryu',
+  'Gyeol Seo',
+];
 
 export const seasonOptions: string[] = ['2026 Spring', '2026 Winter', '2025 Fall'];
 export const seasonAnswer = '2026 Spring';
