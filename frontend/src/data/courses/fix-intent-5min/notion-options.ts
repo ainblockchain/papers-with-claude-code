@@ -86,9 +86,9 @@ export const statusOptions: string[] = [
 ];
 export const statusAnswer = 'In Progress';
 
-// Per-option hint surfaced when the learner picks a wrong status. Each
-// message explains what that status actually means so the user can reason
-// toward "I'm about to start the fix now" → In Progress.
+// Stage 1 per-option hints — fired when the learner picks a wrong status
+// while first creating the task. Framing assumes the learner is about to
+// start the fix, so every wrong pick is redirected toward In Progress.
 export const statusHints: Record<string, string> = {
   'Not Started':
     'Not Started 는 이슈를 기록만 하고 수정 작업은 아직 시작하지 않은 상태예요. 지금은 이슈를 발견해서 직접 수정을 시작할 참이니, 작업 중임을 나타내는 상태를 골라주세요.',
@@ -99,6 +99,23 @@ export const statusHints: Record<string, string> = {
     'Prod Launch 는 PM이 운영 환경에 반영까지 마친 최종 상태예요. 지금은 Dev 에서 수정을 시작할 참이라 맞지 않아요. 먼저 수정 중임을 나타내는 상태가 필요해요.',
   Close:
     'Close 는 이슈를 수정하지 않기로 결정했을 때 선택해요. 우리는 수정 작업을 진행할 거니까, 작업을 시작한다는 의미의 상태를 골라주세요.',
+};
+
+// Stage 4 per-option hints — fired when the learner, returning from the
+// Dev 챗봇 test with a fix already shipped, picks a wrong status. Framing
+// assumes the work is finished, so every wrong pick is redirected toward
+// Done (not In Progress as in Stage 1).
+export const statusHintsStage4: Record<string, string> = {
+  'Not Started':
+    'Not Started 는 아직 수정을 시작하지도 않은 상태예요. 방금 Dev 챗봇에서 결과까지 확인했으니, 작업이 모두 끝났음을 나타내는 상태를 골라주세요.',
+  'In Progress':
+    'In Progress 는 수정 작업이 아직 진행 중이라는 뜻이에요. 이미 Dev 챗봇 테스트로 결과까지 확인했으니, 작업을 완료했다는 상태로 바꿔주세요.',
+  'Revisions Requested':
+    'Revisions Requested 는 PM이 완료된 수정에 보완을 요청한 상태예요. 지금은 직접 수정·테스트를 방금 마친 단계라 맞지 않아요. 작업이 끝났음을 나타내는 상태가 필요해요.',
+  'Prod Launch':
+    'Prod Launch 는 PM이 운영 환경에 반영까지 마친 최종 상태예요. 우리는 Dev 환경에서 수정·테스트만 마친 단계라 아직 이르고, 우선 작업 완료를 나타내는 상태를 골라주세요.',
+  Close:
+    'Close 는 이슈를 수정하지 않기로 결정했을 때 선택해요. 지금은 수정도 테스트도 모두 마친 상태이니, 완료를 나타내는 상태가 필요해요.',
 };
 
 // Multi-select answer — both keys must be present.

@@ -35,12 +35,30 @@ export interface ChatbotInteractionState {
   answer: string | null;
 }
 
+// Detail captured at Stage 3 completion so Stage 4 can auto-fill the
+// result block with the exact intent row + trigger sentences the learner
+// wrote. Persisted to blockchain alongside workContent so a cross-session
+// reload can still render the auto-fill blocks.
+export interface SheetArtifact {
+  addedIntent: {
+    sheetId: string;
+    intent: string;
+    leadSentence: string;
+    prompt: string;
+    createdAt: string;
+    isPush: string;
+  };
+  triggers: { intent: string; sentence: string }[];
+  snapshotAt: number;
+}
+
 export interface CourseState {
   selectedIntents: SelectedIntent[];
   representativeIntent: SelectedIntent | null;
   notion: NotionState;
   sheetEdit: SheetEditState;
   chatbotInteraction: ChatbotInteractionState;
+  sheetArtifact: SheetArtifact | null;
   updatedAt: number;
 }
 
@@ -61,6 +79,7 @@ export const initialCourseState: CourseState = {
   },
   sheetEdit: { tab: null, cell: null, value: null },
   chatbotInteraction: { question: null, answer: null },
+  sheetArtifact: null,
   updatedAt: 0,
 };
 

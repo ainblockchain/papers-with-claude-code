@@ -45,14 +45,9 @@ export const STAGE2_FIELD_ORDER: NotionFieldId[] = ['solutionDirection'];
 
 export const STAGE3_FIELD_ORDER: NotionFieldId[] = ['workContent'];
 
-export const STAGE4_FIELD_ORDER: NotionFieldId[] = ['result'];
-
-const ALL_FIELD_ORDER: NotionFieldId[] = [
-  ...STAGE1_FIELD_ORDER,
-  ...STAGE2_FIELD_ORDER,
-  ...STAGE3_FIELD_ORDER,
-  ...STAGE4_FIELD_ORDER,
-];
+// Stage 4 result page: learner first flips Status to Done, then writes
+// (or auto-fills) the result block.
+export const STAGE4_FIELD_ORDER: NotionFieldId[] = ['status', 'result'];
 
 interface Props {
   notion: NotionState;
@@ -62,26 +57,36 @@ interface Props {
   // When the problemAnalysis field is active, clicking the "복사하러가기"
   // helper invokes this to open the Copy-Issue modal in the parent.
   onOpenCopyIssue?: () => void;
+  // Stage 4 result-page auto-fill hooks.
+  // - onAutoFillWork: pill button above the 작업내용 block — clicking
+  //   replaces that block's content with the detailed intent + triggers
+  //   tables (persisted via the parent). Hidden once workContent is
+  //   already detailed (parent passes undefined).
+  // - onAutoFillCapture: pill button below the 결과 block — clicking
+  //   renders `captureNode` immediately after. Parent hides the button
+  //   after one click by passing undefined.
+  onAutoFillWork?: () => void;
+  onAutoFillCapture?: () => void;
+  // Visual "capture" card (a React node) that renders below the result
+  // BlockField. Owned by the parent so it can style the chatbot Q&A the
+  // way the Dev 챗봇 screen does — the sanitizer allowed by BlockField
+  // would strip the classes/attrs needed for that look.
+  captureNode?: React.ReactNode;
 }
 
+// Value-based filled logic: a field is "filled" whenever it has a value
+// and isn't the active field. Stage-order lives in the parent — this
+// component only needs to know which single field is currently editable.
+// Value-based means a field previously filled in Stage 1 (e.g. status)
+// can become active again in Stage 4 without breaking other fields'
+// display state.
 function computeState(
   id: NotionFieldId,
   current: NotionFieldId | null,
-  order: NotionFieldId[],
   value: string | null,
 ) {
-  if (current === null) {
-    return { active: false, filled: value != null };
-  }
-  const idx = order.indexOf(id);
-  const currentIdx = order.indexOf(current);
-  if (!order.includes(id)) {
-    return { active: false, filled: value != null };
-  }
-  return {
-    active: idx === currentIdx,
-    filled: idx < currentIdx,
-  };
+  const active = current === id;
+  return { active, filled: !active && value != null };
 }
 
 // Notion status dot colors — matches Notion's muted palette.
@@ -294,6 +299,9 @@ export function NotionTaskPage({
   disabled,
   onSubmit,
   onOpenCopyIssue,
+  onAutoFillWork,
+  onAutoFillCapture,
+  captureNode,
 }: Props) {
   // Assignee dropdown prepends the logged-in user's GitHub ID, so the
   // correct answer — "assign to yourself" — is a real selectable option
@@ -303,56 +311,28 @@ export function NotionTaskPage({
     ? [githubUsername, ...assigneeOptions]
     : assigneeOptions;
 
-  const titleS = computeState('title', currentFieldId, ALL_FIELD_ORDER, notion.title);
-  const agentS = computeState('agent', currentFieldId, ALL_FIELD_ORDER, notion.agent);
-  const assigneeS = computeState(
-    'assignee',
-    currentFieldId,
-    ALL_FIELD_ORDER,
-    notion.assignee,
-  );
-  const statusS = computeState(
-    'status',
-    currentFieldId,
-    ALL_FIELD_ORDER,
-    notion.status,
-  );
-  const seasonS = computeState(
-    'season',
-    currentFieldId,
-    ALL_FIELD_ORDER,
-    notion.season,
-  );
-  const workTypeS = computeState(
-    'workType',
-    currentFieldId,
-    ALL_FIELD_ORDER,
-    notion.workType,
-  );
+  const titleS = computeState('title', currentFieldId, notion.title);
+  const agentS = computeState('agent', currentFieldId, notion.agent);
+  const assigneeS = computeState('assignee', currentFieldId, notion.assignee);
+  const statusS = computeState('status', currentFieldId, notion.status);
+  const seasonS = computeState('season', currentFieldId, notion.season);
+  const workTypeS = computeState('workType', currentFieldId, notion.workType);
   const problemS = computeState(
     'problemAnalysis',
     currentFieldId,
-    ALL_FIELD_ORDER,
     notion.problemAnalysis,
   );
   const solutionS = computeState(
     'solutionDirection',
     currentFieldId,
-    ALL_FIELD_ORDER,
     notion.solutionDirection,
   );
   const workContentS = computeState(
     'workContent',
     currentFieldId,
-    ALL_FIELD_ORDER,
     notion.workContent,
   );
-  const resultS = computeState(
-    'result',
-    currentFieldId,
-    ALL_FIELD_ORDER,
-    notion.result,
-  );
+  const resultS = computeState('result', currentFieldId, notion.result);
 
   return (
     <div className="flex h-full w-full flex-col overflow-auto bg-white text-[#37352f] font-[family:ui-sans-serif,-apple-system,BlinkMacSystemFont,'Segoe_UI','Noto_Sans_KR',Arial,sans-serif]">
@@ -601,6 +581,25 @@ export function NotionTaskPage({
           onSubmit={(v) => onSubmit('solutionDirection', v)}
         />
 
+        {/* Stage 4 auto-fill helper: injects the detailed work summary
+            (intent row + triggers table) into the 작업내용 block above.
+            Parent hides this button once the block is already detailed. */}
+        {onAutoFillWork ? (
+          <div className="mt-1 mb-1 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={onAutoFillWork}
+              disabled={disabled}
+              className="inline-flex items-center gap-1.5 rounded-md bg-[#FF9D00] px-3 py-1.5 text-[13px] font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] hover:bg-[#E68E00] disabled:opacity-50"
+            >
+              📋 작업 내역 불러오기
+            </button>
+            <span className="text-[12px] text-[rgba(55,53,47,0.5)]">
+              Dev Sheet 에 등록한 상세 내역을 작업내용에 펼쳐 보여줘요.
+            </span>
+          </div>
+        ) : null}
+
         <BlockField
           heading="작업내용"
           active={workContentS.active}
@@ -609,44 +608,50 @@ export function NotionTaskPage({
           value={notion.workContent}
           placeholder="에이전트 오너가 수정된 내용을 빠르게 파악할 수 있도록 정리합니다."
           onSubmit={(v) => onSubmit('workContent', v)}
+          rich
         />
 
-        {/* Static bulleted list + nested 2-col table (visual, non-editable) */}
-        <ul className="mt-1 space-y-1 pl-5 text-[14px] text-[rgba(55,53,47,0.85)] list-disc marker:text-[rgba(55,53,47,0.5)]">
-          <li>
-            트리거링 문장 추가
-            <div className="mt-2 mb-3 overflow-hidden rounded border border-[rgba(55,53,47,0.16)]">
-              <table className="w-full text-[13px]">
-                <thead className="bg-[rgba(55,53,47,0.04)]">
-                  <tr>
-                    <th className="border-r border-[rgba(55,53,47,0.09)] px-3 py-1.5 text-left font-medium">
-                      인텐트
-                    </th>
-                    <th className="px-3 py-1.5 text-left font-medium">
-                      트리거링 문장
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="border-t border-[rgba(55,53,47,0.09)]">
-                    <td className="border-r border-[rgba(55,53,47,0.09)] px-3 py-1.5">
-                      &nbsp;
-                    </td>
-                    <td className="px-3 py-1.5">&nbsp;</td>
-                  </tr>
-                  <tr className="border-t border-[rgba(55,53,47,0.09)]">
-                    <td className="border-r border-[rgba(55,53,47,0.09)] px-3 py-1.5">
-                      &nbsp;
-                    </td>
-                    <td className="px-3 py-1.5">&nbsp;</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </li>
-          <li>인텐트 업데이트</li>
-          <li>새로운 인텐트 추가</li>
-        </ul>
+        {/* Static "expected shape" template — teaser shown while the
+            workContent is empty or a plain-text Stage 3 summary. Once the
+            learner clicks 작업 내역 불러오기 in Stage 4, workContent holds
+            the detailed HTML itself and this template becomes redundant. */}
+        {!notion.workContent?.trimStart().startsWith('<') ? (
+          <ul className="mt-1 space-y-1 pl-5 text-[14px] text-[rgba(55,53,47,0.85)] list-disc marker:text-[rgba(55,53,47,0.5)]">
+            <li>
+              트리거링 문장 추가
+              <div className="mt-2 mb-3 overflow-hidden rounded border border-[rgba(55,53,47,0.16)]">
+                <table className="w-full text-[13px]">
+                  <thead className="bg-[rgba(55,53,47,0.04)]">
+                    <tr>
+                      <th className="border-r border-[rgba(55,53,47,0.09)] px-3 py-1.5 text-left font-medium">
+                        인텐트
+                      </th>
+                      <th className="px-3 py-1.5 text-left font-medium">
+                        트리거링 문장
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-t border-[rgba(55,53,47,0.09)]">
+                      <td className="border-r border-[rgba(55,53,47,0.09)] px-3 py-1.5">
+                        &nbsp;
+                      </td>
+                      <td className="px-3 py-1.5">&nbsp;</td>
+                    </tr>
+                    <tr className="border-t border-[rgba(55,53,47,0.09)]">
+                      <td className="border-r border-[rgba(55,53,47,0.09)] px-3 py-1.5">
+                        &nbsp;
+                      </td>
+                      <td className="px-3 py-1.5">&nbsp;</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </li>
+            <li>인텐트 업데이트</li>
+            <li>새로운 인텐트 추가</li>
+          </ul>
+        ) : null}
 
         <BlockField
           heading="결과"
@@ -654,9 +659,31 @@ export function NotionTaskPage({
           filled={resultS.filled}
           disabled={disabled}
           value={notion.result}
-          placeholder="위 내용을 업데이트한 후 개선된 응답 결과를 캡처해서 첨부합니다."
+          placeholder="수정 이후 어떤 변화가 있었는지 한두 줄로 적고, 아래 '📷 테스트 결과 불러오기' 버튼으로 Dev 챗봇 응답 스크린샷을 첨부하세요."
           onSubmit={(v) => onSubmit('result', v)}
+          rich
         />
+
+        {/* Capture toolbar + visual — below the 결과 block. Button injects a
+            chatbot-styled Q&A capture card; the card lives here (not in the
+            rich editor) because BlockField's sanitizer strips the classes
+            needed to make it look like the Dev 챗봇 UI. */}
+        {onAutoFillCapture ? (
+          <div className="mt-2 mb-1 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={onAutoFillCapture}
+              disabled={disabled}
+              className="inline-flex items-center gap-1.5 rounded-md bg-[#FF9D00] px-3 py-1.5 text-[13px] font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] hover:bg-[#E68E00] disabled:opacity-50"
+            >
+              📷 테스트 결과 불러오기
+            </button>
+            <span className="text-[12px] text-[rgba(55,53,47,0.5)]">
+              Dev 챗봇 응답을 이미지처럼 결과 아래에 붙여줘요.
+            </span>
+          </div>
+        ) : null}
+        {captureNode}
       </div>
     </div>
   );

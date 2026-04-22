@@ -15,6 +15,10 @@ export interface ValidateContext {
   // specificity for free-input fields — e.g. solutionDirection starts
   // abstract and reveals more after repeated misses.
   attempt?: number;
+  // Which flow is the learner in? Used to flip the status correct-answer
+  // between 'In Progress' (Stage 1, work is starting) and 'Done' (Stage 4
+  // result page, work is complete).
+  phase?: string;
 }
 
 export interface ValidateResult {
@@ -37,8 +41,12 @@ export async function validateNotionField(
       return { pass: !!context.username && value === context.username };
     case 'season':
       return { pass: value === seasonAnswer };
-    case 'status':
-      return { pass: value === statusAnswer };
+    case 'status': {
+      // Stage 4 result page: the task is completed, so Done is the answer.
+      const expected =
+        context.phase === 'stage4-result-page' ? 'Done' : statusAnswer;
+      return { pass: value === expected };
+    }
     case 'workType': {
       // Multi-select: comma-separated serialization (e.g. "newIntent,add").
       // Pass only if every required key is present in the selection.

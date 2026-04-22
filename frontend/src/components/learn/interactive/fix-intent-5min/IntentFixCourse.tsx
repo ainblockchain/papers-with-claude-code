@@ -13,12 +13,14 @@ import {
   type NotionFieldId,
   type NotionState,
   type SelectedIntent,
+  type SheetArtifact,
 } from '@/lib/courses/fix-intent-5min/course-state';
 import { validateNotionField } from '@/lib/courses/fix-intent-5min/validate';
 import {
   assigneeHint,
   seasonHints,
   statusHints,
+  statusHintsStage4,
 } from '@/data/courses/fix-intent-5min/notion-options';
 import { computeWorkTypeHint } from '@/lib/courses/fix-intent-5min/workTypeHint';
 import {
@@ -72,7 +74,286 @@ function countFilledStage3Notion(notion: NotionState): number {
 }
 
 function countFilledStage4Notion(notion: NotionState): number {
-  return STAGE4_FIELD_ORDER.filter((f) => notion[f] != null).length;
+  // Stage 4's order is [status, result]. status arrives pre-filled from Stage 1
+  // with 'In Progress' so we cannot treat "non-null" as filled here — status
+  // counts as Stage-4-complete only once the learner flips it to 'Done'.
+  // Stops at the first unfilled field so the learner lands on the right one.
+  let count = 0;
+  for (const f of STAGE4_FIELD_ORDER) {
+    const filled = f === 'status' ? notion.status === 'Done' : notion[f] != null;
+    if (!filled) break;
+    count++;
+  }
+  return count;
+}
+
+// Escape user text before embedding in generated HTML. The BlockField
+// sanitizer strips unknown tags anyway but we still want to prevent
+// malformed markup from breaking the table structure.
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// Build the "작업 내역" auto-fill block from the Stage 3 artifact — the new
+// intent row (as a single-row table matching the intent sheet schema) plus
+// a table of trigger sentences the learner added.
+function generateWorkSummaryHtml(artifact: SheetArtifact): string {
+  const a = artifact.addedIntent;
+  const intentTable =
+    `<table>` +
+    `<thead><tr>` +
+    `<th>sheet</th><th>intent</th><th>lead_sentence</th>` +
+    `<th>prompt</th><th>created_at</th><th>is_push</th>` +
+    `</tr></thead>` +
+    `<tbody><tr>` +
+    `<td>${escapeHtml(a.sheetId)}</td>` +
+    `<td>${escapeHtml(a.intent)}</td>` +
+    `<td>${escapeHtml(a.leadSentence)}</td>` +
+    `<td>${escapeHtml(a.prompt)}</td>` +
+    `<td>${escapeHtml(a.createdAt)}</td>` +
+    `<td>${escapeHtml(a.isPush)}</td>` +
+    `</tr></tbody></table>`;
+  const triggerRows = artifact.triggers
+    .map(
+      (t) =>
+        `<tr><td>${escapeHtml(t.intent)}</td><td>${escapeHtml(t.sentence)}</td></tr>`,
+    )
+    .join('');
+  const triggerTable =
+    `<table>` +
+    `<thead><tr><th>인텐트</th><th>트리거링 문장</th></tr></thead>` +
+    `<tbody>${triggerRows}</tbody>` +
+    `</table>`;
+  return (
+    `<p><strong>추가한 인텐트</strong></p>` +
+    intentTable +
+    `<p><strong>추가한 트리거링 문장</strong></p>` +
+    triggerTable
+  );
+}
+
+
+// Luma-inspired celebration screen — cosmic gradient backdrop, floating
+// nebula blobs, starfield twinkle, multiple firework bursts, and glowing
+// headline. Closes the course with a congratulatory moment and a CTA
+// nudge to keep contributing to 궁금하냥 intents. CSS lives in globals
+// (cc-* keyframes) so the component itself stays markup-only.
+function CourseCompleteView() {
+  // Deterministic positions — keeps the layout stable across re-renders
+  // without pulling in randomness (which would shift the scene).
+  const fireworkOrigins = [
+    { top: '18%', left: '15%', delay: 0 },
+    { top: '22%', left: '75%', delay: 0.4 },
+    { top: '55%', left: '10%', delay: 0.9 },
+    { top: '65%', left: '82%', delay: 1.3 },
+    { top: '40%', left: '50%', delay: 0.2 },
+  ];
+  const particlesPerFirework = 10;
+  const twinkles = [
+    { top: '8%', left: '22%', delay: 0, size: 3 },
+    { top: '12%', left: '68%', delay: 0.5, size: 2 },
+    { top: '30%', left: '88%', delay: 1.1, size: 3 },
+    { top: '48%', left: '30%', delay: 0.3, size: 2 },
+    { top: '72%', left: '55%', delay: 0.9, size: 3 },
+    { top: '85%', left: '20%', delay: 1.4, size: 2 },
+    { top: '18%', left: '48%', delay: 1.6, size: 2 },
+    { top: '62%', left: '40%', delay: 2.0, size: 3 },
+    { top: '38%', left: '70%', delay: 0.8, size: 2 },
+    { top: '78%', left: '78%', delay: 0.6, size: 3 },
+  ];
+  const fireworkColors = ['#FFB4E9', '#A78BFA', '#60A5FA', '#FBBF24', '#34D399'];
+  return (
+    <div className="cc-bg relative flex h-full w-full items-center justify-center overflow-hidden">
+      {/* Drifting nebula blobs for depth */}
+      <div
+        className="cc-blob pointer-events-none absolute h-[50%] w-[50%] rounded-full"
+        style={{ top: '10%', left: '5%', background: '#A855F7', animationDelay: '0s' }}
+      />
+      <div
+        className="cc-blob pointer-events-none absolute h-[45%] w-[45%] rounded-full"
+        style={{ top: '45%', left: '55%', background: '#EC4899', animationDelay: '3s' }}
+      />
+      <div
+        className="cc-blob pointer-events-none absolute h-[40%] w-[40%] rounded-full"
+        style={{ top: '55%', left: '15%', background: '#3B82F6', animationDelay: '6s' }}
+      />
+
+      {/* Starfield twinkles */}
+      {twinkles.map((t, i) => (
+        <span
+          key={`tw-${i}`}
+          className="cc-twinkle pointer-events-none absolute rounded-full bg-white"
+          style={{
+            top: t.top,
+            left: t.left,
+            width: `${t.size}px`,
+            height: `${t.size}px`,
+            boxShadow: '0 0 8px rgba(255,255,255,0.8)',
+            animationDelay: `${t.delay}s`,
+          }}
+        />
+      ))}
+
+      {/* Fireworks — each origin spawns N particles fanning outward */}
+      {fireworkOrigins.map((origin, oi) => (
+        <div
+          key={`fw-${oi}`}
+          className="pointer-events-none absolute"
+          style={{ top: origin.top, left: origin.left }}
+        >
+          <span
+            className="cc-firework-center absolute block h-3 w-3 rounded-full"
+            style={{
+              background: fireworkColors[oi % fireworkColors.length],
+              boxShadow: `0 0 24px ${fireworkColors[oi % fireworkColors.length]}`,
+              animationDelay: `${origin.delay}s`,
+              transform: 'translate(-50%, -50%)',
+            }}
+          />
+          {Array.from({ length: particlesPerFirework }).map((_, pi) => {
+            const angle = (pi / particlesPerFirework) * Math.PI * 2;
+            const radius = 90;
+            const dx = Math.cos(angle) * radius;
+            const dy = Math.sin(angle) * radius;
+            const color = fireworkColors[(oi + pi) % fireworkColors.length];
+            return (
+              <span
+                key={`fw-p-${oi}-${pi}`}
+                className="cc-firework-particle absolute block h-1.5 w-1.5 rounded-full"
+                style={
+                  {
+                    background: color,
+                    boxShadow: `0 0 10px ${color}`,
+                    animationDelay: `${origin.delay}s`,
+                    transform: 'translate(-50%, -50%)',
+                    ['--fw-dx' as string]: `${dx}px`,
+                    ['--fw-dy' as string]: `${dy}px`,
+                  } as React.CSSProperties
+                }
+              />
+            );
+          })}
+        </div>
+      ))}
+
+      {/* Headline + encouragement — centered, rising-in on mount */}
+      <div className="relative z-10 flex flex-col items-center px-6 text-center">
+        <div
+          className="cc-rise-in mb-3 inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[12px] font-medium tracking-wide text-white/85 backdrop-blur"
+          style={{ animationDelay: '0.05s', opacity: 0 }}
+        >
+          🎉 QUEST ALL CLEAR
+        </div>
+        <h1
+          className="cc-title-glow cc-rise-in bg-gradient-to-br from-white via-[#FFD5F5] to-[#B9D9FF] bg-clip-text text-[44px] font-extrabold leading-tight text-transparent md:text-[56px]"
+          style={{ animationDelay: '0.15s', opacity: 0 }}
+        >
+          축하합니다!
+        </h1>
+        <p
+          className="cc-rise-in mt-2 max-w-xl text-[15px] leading-[1.6] text-white/80 md:text-[16px]"
+          style={{ animationDelay: '0.35s', opacity: 0 }}
+        >
+          인텐트 기여 한 사이클을 완주했어요. Stage 1~4 기록이 블록체인에 안전하게
+          저장되었습니다.
+        </p>
+        <div
+          className="cc-rise-in mt-8 max-w-xl rounded-2xl border border-white/15 bg-white/10 px-6 py-5 text-[14px] leading-[1.65] text-white/90 backdrop-blur"
+          style={{ animationDelay: '0.55s', opacity: 0 }}
+        >
+          <p className="mb-2 text-[13px] font-semibold uppercase tracking-wider text-[#FFD5F5]">
+            🐱 궁금하냥이 여러분의 손을 기다려요
+          </p>
+          <p>
+            궁금하냥 챗봇은 커뮤니티의 크고 작은 기여로 조금씩 똑똑해져요. 사용자
+            발화 속에서 또 다른 이상한 답변을 발견하면, 오늘 배운 흐름 그대로 인텐트
+            하나를 고쳐 남겨 주세요. 여러분이 남기는 한 줄의 트리거링 문장이 다음
+            학습자의 답을 바꿉니다.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Visual "capture" card mimicking the Dev 챗봇 UI — shown below the
+// result BlockField on Stage 4 after the learner clicks "📷 테스트 결과
+// 불러오기". Not persisted to the course state: derived entirely from
+// `chatbotInteraction` which is already on-chain.
+function ChatbotCaptureBlock({
+  question,
+  answer,
+}: {
+  question: string;
+  answer: string;
+}) {
+  const now = new Date();
+  const time = now.toLocaleTimeString('ko-KR', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+  return (
+    <div className="mt-3 overflow-hidden rounded-lg border border-[rgba(55,53,47,0.12)] bg-[#F9FAFB] shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+      <div className="flex items-center gap-2 border-b border-[rgba(55,53,47,0.08)] bg-white px-3 py-2">
+        <span className="flex gap-1">
+          <span className="h-2.5 w-2.5 rounded-full bg-[#FF5F57]" />
+          <span className="h-2.5 w-2.5 rounded-full bg-[#FFBD2E]" />
+          <span className="h-2.5 w-2.5 rounded-full bg-[#28CA41]" />
+        </span>
+        <span className="ml-2 text-[12px] font-medium text-[rgba(55,53,47,0.65)]">
+          📷 Dev 챗봇 테스트 결과 (스크린샷)
+        </span>
+      </div>
+      <div className="flex flex-col gap-3 px-4 py-4">
+        <div className="flex w-full justify-end">
+          <div className="flex flex-row items-end max-w-[80%]">
+            <div
+              className="mr-1 shrink-0 whitespace-nowrap text-[11px] text-gray-400"
+              style={{ minWidth: '3em', textAlign: 'right' }}
+            >
+              {time}
+            </div>
+            <div
+              className="rounded-2xl rounded-tr-none px-3 py-2 text-sm text-white shadow-sm"
+              style={{ background: '#3B82F6' }}
+            >
+              <p className="whitespace-pre-wrap leading-[1.5]">{question}</p>
+            </div>
+          </div>
+        </div>
+        <div className="flex w-full">
+          <div className="flex flex-row items-start max-w-[80%]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/courses/fix-intent-5min/curious-nyang-avatar.png"
+              alt="궁금하냥"
+              width={28}
+              height={28}
+              className="shrink-0 rounded-full"
+            />
+            <div className="ml-2">
+              <div className="flex items-end">
+                <div className="rounded-2xl rounded-tl-none border border-gray-200 bg-white px-3 py-2 text-sm text-[#37352f] shadow-sm">
+                  <p className="whitespace-pre-wrap leading-[1.5]">{answer}</p>
+                </div>
+                <div
+                  className="ml-1 shrink-0 whitespace-nowrap text-[11px] text-gray-400"
+                  style={{ minWidth: '3em' }}
+                >
+                  {time}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // Per-field Quest body shown when that field first becomes the active one.
@@ -158,6 +439,21 @@ export function IntentFixCourse() {
   // Session-only — Stage 4 mission briefing modal shows once when the
   // learner first enters the chatbot-test phase.
   const [stage4MissionSeen, setStage4MissionSeen] = useState(false);
+  // Per-field seen-set scoped to Stage 4 result page. Kept separate from
+  // the Stage 1-2 `fieldQuestSeen` because the same field id (`status`)
+  // can re-fire its quest with different copy in Stage 4.
+  const [stage4FieldQuestSeen, setStage4FieldQuestSeen] = useState<
+    Set<NotionFieldId>
+  >(new Set());
+  // Stage 3 artifact — detailed intent + triggers rows the learner wrote.
+  // Persisted to blockchain so the Stage 4 work-content auto-fill survives
+  // cross-session reloads.
+  const [sheetArtifact, setSheetArtifact] = useState<SheetArtifact | null>(null);
+  // Stage 4 "테스트 결과 불러오기" toggle — session-local. Renders the Dev
+  // 챗봇 Q&A as a styled "capture" card below the result BlockField when
+  // true. Not persisted: reloading Stage 4 starts without the capture
+  // shown and the learner re-clicks the button if they want it.
+  const [captureVisible, setCaptureVisible] = useState(false);
   // Static Stage 1 lineup: one fixed 10-row set (1 broken + 9 clean) in a
   // deterministic order. Rebuilt on restart to return a fresh reference.
   const [activeSets, setActiveSets] = useState<ChatLogSet[]>(() => [
@@ -221,10 +517,12 @@ export function IntentFixCourse() {
       const restoredRep = state.representativeIntent ?? null;
       const restoredChat =
         state.chatbotInteraction ?? initialCourseState.chatbotInteraction;
+      const restoredArtifact = state.sheetArtifact ?? null;
       setSelectedIntents(restoredSelected);
       setRepresentative(restoredRep);
       setNotion(restoredNotion);
       setChatbotInteraction(restoredChat);
+      setSheetArtifact(restoredArtifact);
       // Mark fields that were already filled on-chain as having seen their
       // Quest so returning users aren't re-prompted on fields they completed.
       const seen = new Set<NotionFieldId>();
@@ -290,6 +588,7 @@ export function IntentFixCourse() {
       notion,
       sheetEdit: { tab: null, cell: null, value: null },
       chatbotInteraction,
+      sheetArtifact,
       updatedAt: Date.now(),
       ...partial,
     };
@@ -462,6 +761,7 @@ export function IntentFixCourse() {
       representativeIntent: representative,
       username: githubUsername,
       attempt,
+      phase,
     });
     if (!result.pass) {
       setValidating(false);
@@ -477,8 +777,16 @@ export function IntentFixCourse() {
       // the teaching is about the current you-fix-it-yourself situation.
       // workType is multi-select: the hint nudges toward the missing
       // required key (or explains why a wrong key doesn't fit).
+      // Status hint dict flips with phase: Stage 1 narrates "about to start
+      // the fix" (→ In Progress); Stage 4 narrates "just finished testing"
+      // (→ Done). Using the Stage 1 dict in Stage 4 produced misleading
+      // copy like "수정을 시작할 참이니…" after the fix was already shipped.
       const statusHint =
-        fieldId === 'status' ? statusHints[value] : undefined;
+        fieldId === 'status'
+          ? (phase === 'stage4-result-page' ? statusHintsStage4 : statusHints)[
+              value
+            ]
+          : undefined;
       const seasonHint =
         fieldId === 'season' ? seasonHints[value] : undefined;
       const pickedOtherAssignee =
@@ -604,8 +912,46 @@ export function IntentFixCourse() {
 
   // Stage 3 completion handler invoked from SheetEditPage when the user
   // clicks "Custom Scripts → Update 스크립트 실행" after making edits.
-  const handleSheetComplete = async (summary: string) => {
-    await handleNotionSubmit('workContent', summary);
+  const handleSheetComplete = async (
+    summary: string,
+    artifact: SheetArtifact,
+  ) => {
+    // Stage 3 completion doesn't go through the generic handleNotionSubmit
+    // path because we need to persist both the workContent summary and the
+    // detailed sheetArtifact atomically so Stage 4's auto-fill survives a
+    // reload.
+    if (validating) return;
+    setValidating(true);
+    const newNotion: NotionState = { ...notion, workContent: summary };
+    const persistOk = await persist({
+      notion: newNotion,
+      sheetArtifact: artifact,
+    });
+    if (!persistOk) {
+      setValidating(false);
+      return;
+    }
+    setNotion(newNotion);
+    setSheetArtifact(artifact);
+    setFieldAttempts((prev) => {
+      const next = { ...prev };
+      delete next.workContent;
+      return next;
+    });
+    setCurrentFieldIdx(STAGE3_FIELD_ORDER.length);
+    setPhase('quest-clear-3');
+    await recordStageComplete(passkeyPublicKey, 2);
+    const { progress: curr, setProgress } = useLearningStore.getState();
+    if (curr && !curr.completedStages.some((s) => s.stageNumber === 2)) {
+      setProgress({
+        ...curr,
+        completedStages: [
+          ...curr.completedStages,
+          { stageNumber: 2, completedAt: new Date().toISOString() },
+        ],
+      });
+    }
+    setValidating(false);
   };
 
   // Stage 4 chatbot interaction. Only on-topic exchanges are persisted —
@@ -930,7 +1276,7 @@ export function IntentFixCourse() {
         ) : showGoToResult ? (
           <QuestModal
             label="QUEST CLEAR"
-            body="챗봇이 수정한 인텐트로 올바르게 답변했어요! 이제 Notion 으로 돌아가 앞서 기록해 둔 Task 에 '결과'만 추가하면 끝이에요."
+            body="챗봇이 수정한 인텐트로 올바르게 답변했어요! 이제 Notion 으로 돌아가 작업 상태를 Done 으로 바꾸고 결과를 기록하며 마무리해요."
             cta="Notion 으로"
             onAccept={() => {
               setCurrentFieldIdx(countFilledStage4Notion(notion));
@@ -949,6 +1295,56 @@ export function IntentFixCourse() {
   }
 
   if (phase === 'stage4-result-page') {
+    // Stage 4 Quest copy: status gets "flip to Done" guidance on first sight;
+    // result gets "we auto-filled, feel free to edit" guidance once active.
+    const stage4QuestBody =
+      currentFieldId === 'status' && !stage4FieldQuestSeen.has('status')
+        ? '작업이 완료되었으니 Status 를 Done 으로 바꿔주세요.'
+        : currentFieldId === 'result' && !stage4FieldQuestSeen.has('result')
+          ? "📋 '작업 내역 불러오기' 로 작업내용을 펼치고, 📷 '테스트 결과 불러오기' 로 챗봇 응답을 결과 아래에 붙인 뒤, 결과란에 한 줄 후기를 적어 제출해주세요."
+          : null;
+    const stage4QuestId = currentFieldId;
+
+    // "📋 작업 내역 불러오기" — replace the Stage 3 short summary in
+    // notion.workContent with the detailed intent + triggers tables, and
+    // persist. The workContent BlockField is rich, so it renders the HTML
+    // as a read-only filled block above the result section.
+    const handleAutoFillWork = async () => {
+      if (!sheetArtifact || validating) return;
+      const detailedHtml = generateWorkSummaryHtml(sheetArtifact);
+      const newNotion: NotionState = { ...notion, workContent: detailedHtml };
+      setValidating(true);
+      const persistOk = await persist({ notion: newNotion });
+      setValidating(false);
+      if (!persistOk) return;
+      setNotion(newNotion);
+    };
+    // "📷 테스트 결과 불러오기" — reveal a chat-bubble capture card
+    // styled like the Dev 챗봇 UI below the result BlockField. Session
+    // state only; the underlying Q&A is already persisted separately.
+    const handleAutoFillCapture = () => {
+      if (!chatbotInteraction.question || !chatbotInteraction.answer) return;
+      setCaptureVisible(true);
+    };
+
+    // Work auto-fill is "done" once the persisted workContent differs from
+    // the Stage 3 plain-text summary. Detection: any HTML opening tag at
+    // the start means the detailed block was loaded (Stage 3 summaries are
+    // always plain prose, never begin with '<').
+    const workAutoFilled =
+      typeof notion.workContent === 'string' &&
+      notion.workContent.trimStart().startsWith('<');
+
+    const captureNode =
+      captureVisible && chatbotInteraction.question && chatbotInteraction.answer
+        ? (
+            <ChatbotCaptureBlock
+              question={chatbotInteraction.question}
+              answer={chatbotInteraction.answer}
+            />
+          )
+        : null;
+
     return (
       <div className="relative h-full w-full">
         {saveErrorBanner}
@@ -957,27 +1353,47 @@ export function IntentFixCourse() {
           currentFieldId={currentFieldId}
           disabled={validating}
           onSubmit={handleNotionSubmit}
+          onAutoFillWork={
+            sheetArtifact && !workAutoFilled ? handleAutoFillWork : undefined
+          }
+          onAutoFillCapture={
+            !captureVisible &&
+            chatbotInteraction.question &&
+            chatbotInteraction.answer
+              ? handleAutoFillCapture
+              : undefined
+          }
+          captureNode={captureNode}
         />
-        {notionError && (
+        {notionError ? (
           <FeedbackModal
             correct={false}
             message={notionError}
             onClose={() => setNotionError(null)}
           />
-        )}
+        ) : stage4QuestBody && stage4QuestId ? (
+          <QuestModal
+            label="QUEST"
+            body={stage4QuestBody}
+            cta="확인"
+            onAccept={() =>
+              setStage4FieldQuestSeen((prev) => {
+                const next = new Set(prev);
+                next.add(stage4QuestId);
+                return next;
+              })
+            }
+          />
+        ) : null}
       </div>
     );
   }
 
-  // course-complete phase — minimal success screen (no big celebration).
+  // course-complete — cosmic celebration with fireworks + encouragement.
   return (
-    <div className="relative flex h-full w-full flex-col items-center justify-center bg-white text-[#37352f]">
+    <div className="relative h-full w-full">
       {saveErrorBanner}
-      <div className="mb-2 text-sm text-[#059669]">코스 완료</div>
-      <div className="text-xl font-semibold">수고하셨습니다.</div>
-      <div className="mt-2 max-w-md text-center text-sm text-gray-500">
-        인텐트 기여 한 사이클을 완주했어요. Stage 1~4 기록이 블록체인에 저장되었습니다.
-      </div>
+      <CourseCompleteView />
     </div>
   );
 }
