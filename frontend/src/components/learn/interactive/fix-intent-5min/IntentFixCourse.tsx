@@ -70,6 +70,20 @@ function countFilledStage4Notion(notion: NotionState): number {
   return STAGE4_FIELD_ORDER.filter((f) => notion[f] != null).length;
 }
 
+// Per-field Quest body shown when that field first becomes the active one.
+// Only fields rendered inside NotionTaskPage (Stage 1 + Stage 2) get a
+// quest — Stage 3/4 have their own page-level briefings instead.
+const FIELD_QUEST_MESSAGES: Partial<Record<NotionFieldId, string>> = {
+  agent: '알맞은 에이전트를 선택해주세요.',
+  title: '이슈 내용이 한눈에 드러나도록 제목을 작성해주세요.',
+  assignee: '이 이슈를 맡을 Assignee 를 지정해주세요.',
+  status: '작업의 현재 상태(Status)를 선택해주세요.',
+  season: '이 이슈가 속할 Season 을 지정해주세요.',
+  workType: '필요한 Work Type 을 선택해주세요. (복수 선택 가능)',
+  problemAnalysis: '문제 상황을 분석해서 작성해주세요.',
+  solutionDirection: '어떤 방향으로 고칠지 정리해주세요.',
+};
+
 export function IntentFixCourse() {
   const passkeyPublicKey = useAuthStore((s) => s.passkeyInfo?.publicKey);
   const githubUsername = useAuthStore((s) => s.user?.username ?? null);
@@ -116,6 +130,13 @@ export function IntentFixCourse() {
     null,
   );
   const [notionCreateCelebration, setNotionCreateCelebration] = useState(false);
+  // Per-field Quest modal seen-set — each time a fresh field becomes active
+  // in the Notion task page, a QuestModal nudges the learner on what that
+  // field is asking for. Dismissing adds the field id to this set so the
+  // modal won't re-show on subsequent renders (e.g. after a wrong submit).
+  const [fieldQuestSeen, setFieldQuestSeen] = useState<Set<NotionFieldId>>(
+    new Set(),
+  );
   // Static Stage 1 lineup: one fixed 10-row set (1 broken + 9 clean) in a
   // deterministic order. Rebuilt on restart to return a fresh reference.
   const [activeSets, setActiveSets] = useState<ChatLogSet[]>(() => [
@@ -183,6 +204,13 @@ export function IntentFixCourse() {
       setRepresentative(restoredRep);
       setNotion(restoredNotion);
       setChatbotInteraction(restoredChat);
+      // Mark fields that were already filled on-chain as having seen their
+      // Quest so returning users aren't re-prompted on fields they completed.
+      const seen = new Set<NotionFieldId>();
+      (Object.keys(FIELD_QUEST_MESSAGES) as NotionFieldId[]).forEach((f) => {
+        if (restoredNotion[f] != null) seen.add(f);
+      });
+      setFieldQuestSeen(seen);
       // Skip the briefing modal when returning mid-progress — the user
       // already knows the objective.
       if (restoredSelected.length > 0 || restoredRep) setQuestSeen(true);
@@ -598,7 +626,15 @@ export function IntentFixCourse() {
       !notionCreateCelebration &&
       !panelOpen;
     // Modal priority (highest first): quest-clear → celebration → initial
-    // mission → stray feedback → field validation error. Only one at a time.
+    // mission → stray feedback → field validation error → per-field Quest.
+    // Only one at a time.
+    const activeFieldQuestBody =
+      phase === 'notion' &&
+      panelOpen &&
+      currentFieldId &&
+      !fieldQuestSeen.has(currentFieldId)
+        ? FIELD_QUEST_MESSAGES[currentFieldId] ?? null
+        : null;
     let modal: React.ReactNode = null;
     if (phase === 'quest-clear') {
       modal = (
@@ -646,6 +682,22 @@ export function IntentFixCourse() {
           onClose={() => setNotionError(null)}
         />
       );
+    } else if (activeFieldQuestBody && currentFieldId) {
+      const id = currentFieldId;
+      modal = (
+        <QuestModal
+          label="QUEST"
+          body={activeFieldQuestBody}
+          cta="확인"
+          onAccept={() =>
+            setFieldQuestSeen((prev) => {
+              const next = new Set(prev);
+              next.add(id);
+              return next;
+            })
+          }
+        />
+      );
     }
 
     // Promote-to-page pattern: once "새로 만들기" is clicked (panelOpen=true)
@@ -679,6 +731,14 @@ export function IntentFixCourse() {
   }
 
   if (phase === 'stage2-page' || phase === 'quest-clear-2') {
+    // Same field-Quest gating as Stage 1, scoped to stage2-page fields.
+    const stage2QuestBody =
+      phase === 'stage2-page' &&
+      currentFieldId &&
+      !fieldQuestSeen.has(currentFieldId)
+        ? FIELD_QUEST_MESSAGES[currentFieldId] ?? null
+        : null;
+    const stage2QuestId = currentFieldId;
     return (
       <div className="relative h-full w-full">
         {saveErrorBanner}
@@ -688,14 +748,7 @@ export function IntentFixCourse() {
           disabled={validating}
           onSubmit={handleNotionSubmit}
         />
-        {notionError && (
-          <FeedbackModal
-            correct={false}
-            message={notionError}
-            onClose={() => setNotionError(null)}
-          />
-        )}
-        {phase === 'quest-clear-2' && (
+        {phase === 'quest-clear-2' ? (
           <QuestModal
             label="QUEST CLEAR"
             body="Stage 2 완료! 수정 방향을 정리했어요. 이제 Dev Sheet 에서 실제로 고칩니다."
@@ -705,7 +758,26 @@ export function IntentFixCourse() {
               setPhase('sheet-edit');
             }}
           />
-        )}
+        ) : notionError ? (
+          <FeedbackModal
+            correct={false}
+            message={notionError}
+            onClose={() => setNotionError(null)}
+          />
+        ) : stage2QuestBody && stage2QuestId ? (
+          <QuestModal
+            label="QUEST"
+            body={stage2QuestBody}
+            cta="확인"
+            onAccept={() =>
+              setFieldQuestSeen((prev) => {
+                const next = new Set(prev);
+                next.add(stage2QuestId);
+                return next;
+              })
+            }
+          />
+        ) : null}
       </div>
     );
   }
