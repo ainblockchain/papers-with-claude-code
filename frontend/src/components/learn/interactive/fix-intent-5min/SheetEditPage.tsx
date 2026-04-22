@@ -7,10 +7,12 @@ import {
   DollarSign,
   Italic,
   Loader2,
+  Menu as MenuIcon,
   MoreHorizontal,
   Paintbrush,
   Percent,
   Play,
+  Plus,
   Printer,
   Redo2,
   Search,
@@ -25,32 +27,43 @@ interface Props {
   onComplete: (summary: string) => void;
 }
 
-const TABS = ['tab1', 'tab2', 'tab3', 'tab4', 'tab5'] as const;
+const TABS = [
+  'intent_trigger_sentence',
+  '일반',
+  '재무',
+  '학사',
+  '국제',
+] as const;
 type TabId = (typeof TABS)[number];
 
 type Grid = string[][];
 
+// Ghost rows/cols beyond the seeded data so the grid reads as a real sheet
+// (not a compact table). They're inert — clicking selects, never edits.
+const GHOST_ROWS = 18;
+const GHOST_COLS = 7;
+
 const INITIAL_GRIDS: Record<TabId, Grid> = {
-  tab1: [
+  intent_trigger_sentence: [
     ['Intent', 'Trigger', 'Prompt'],
     ['출결내규', '공결, 결석', '출결 내규에 따르면...'],
     ['학사일정', '시험 일정, 방학', '학사 일정은...'],
     ['수강신청', '정정 기간, 폐강', '수강신청 기간은...'],
   ],
-  tab2: [
+  일반: [
     ['Intent', 'Trigger', 'Prompt'],
     ['장학금', '신청, 기한', '장학금 신청 기한은...'],
     ['등록금', '납부, 연체', '등록금 납부는...'],
   ],
-  tab3: [
+  재무: [
     ['Intent', 'Trigger', 'Prompt'],
     ['교환학생', '지원, 해외', '교환학생 지원 절차...'],
   ],
-  tab4: [
+  학사: [
     ['Intent', 'Trigger', 'Prompt'],
     ['도서관', '좌석, 예약', '도서관 좌석 예약은...'],
   ],
-  tab5: [
+  국제: [
     ['Intent', 'Trigger', 'Prompt'],
     ['기숙사', '입사, 퇴사', '기숙사 입사 절차...'],
   ],
@@ -58,8 +71,12 @@ const INITIAL_GRIDS: Record<TabId, Grid> = {
 
 export function SheetEditPage({ disabled, onComplete }: Props) {
   const [grids, setGrids] = useState<Record<TabId, Grid>>(INITIAL_GRIDS);
-  const [activeTab, setActiveTab] = useState<TabId>('tab1');
+  const [activeTab, setActiveTab] = useState<TabId>('intent_trigger_sentence');
   const [editing, setEditing] = useState<{ r: number; c: number } | null>(null);
+  const [selected, setSelected] = useState<{ r: number; c: number }>({
+    r: 0,
+    c: 0,
+  });
   const [draft, setDraft] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const [running, setRunning] = useState(false);
@@ -67,9 +84,19 @@ export function SheetEditPage({ disabled, onComplete }: Props) {
     { tab: TabId; cell: string; prev: string; next: string }[]
   >([]);
 
-  const startEdit = (r: number, c: number) => {
+  const dataRowCount = grids[activeTab].length;
+  const dataColCount = grids[activeTab][0]?.length ?? 0;
+  const totalRows = dataRowCount + GHOST_ROWS;
+  const totalCols = dataColCount + GHOST_COLS;
+  const columnLetters = Array.from({ length: totalCols }, (_, i) =>
+    String.fromCharCode(65 + i),
+  );
+
+  const selectCell = (r: number, c: number) => {
+    setSelected({ r, c });
     if (running || disabled) return;
-    if (r === 0) return; // header row, read-only
+    if (r === 0) return; // header row — selectable, not editable
+    if (r >= dataRowCount || c >= dataColCount) return; // ghost cell
     setEditing({ r, c });
     setDraft(grids[activeTab][r][c]);
   };
@@ -107,12 +134,10 @@ export function SheetEditPage({ disabled, onComplete }: Props) {
 
   const canRun = editsRef.current.length > 0 && !disabled && !running;
 
-  const activeCellRef = editing
-    ? `${String.fromCharCode(65 + editing.c)}${editing.r + 1}`
-    : 'A1';
+  const activeCellRef = `${String.fromCharCode(65 + selected.c)}${selected.r + 1}`;
   const activeCellValue = editing
     ? draft
-    : (grids[activeTab][0]?.[0] ?? '');
+    : (grids[activeTab][selected.r]?.[selected.c] ?? '');
 
   return (
     <div className="relative h-full w-full bg-white text-[#3c4043] flex flex-col">
@@ -329,75 +354,150 @@ export function SheetEditPage({ disabled, onComplete }: Props) {
         </button>
       </div>
 
-      {/* Tabs */}
-      <div className="flex items-center gap-1 border-b border-[rgba(55,53,47,0.09)] bg-white px-3 py-1.5">
-        {TABS.map((t) => (
-          <button
-            key={t}
-            onClick={() => {
-              setEditing(null);
-              setActiveTab(t);
-            }}
-            className={`rounded-t px-3 py-1 text-xs ${
-              activeTab === t
-                ? 'border-x border-t border-[rgba(55,53,47,0.12)] bg-white text-[#37352f]'
-                : 'text-gray-500 hover:bg-[rgba(55,53,47,0.04)]'
-            }`}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
-
       {/* Grid */}
-      <div className="flex-1 overflow-auto p-4">
-        <table className="border-collapse text-sm">
+      <div
+        className="flex-1 overflow-auto bg-white"
+        style={{ fontFamily: 'Roboto, Arial, sans-serif' }}
+      >
+        <table className="border-collapse text-[10pt] text-[#202124]">
+          <thead>
+            <tr>
+              <th
+                className="sticky left-0 top-0 z-20 h-[24px] w-[46px] border-b border-r border-[#e0e0e0] bg-[#f8f9fa]"
+                aria-hidden="true"
+              />
+              {columnLetters.map((letter, c) => {
+                const highlighted = selected.c === c;
+                return (
+                  <th
+                    key={letter}
+                    className={`sticky top-0 z-10 h-[24px] min-w-[140px] border-b border-r border-[#e0e0e0] text-[11px] font-normal ${
+                      highlighted
+                        ? 'bg-[#d2e3fc] text-[#1a73e8]'
+                        : 'bg-[#f8f9fa] text-[#5f6368]'
+                    }`}
+                  >
+                    {letter}
+                  </th>
+                );
+              })}
+            </tr>
+          </thead>
           <tbody>
-            {grids[activeTab].map((row, r) => (
-              <tr key={r}>
-                <td className="w-8 border border-[rgba(55,53,47,0.09)] bg-[#f8f8f7] text-center text-[10px] text-gray-400">
-                  {r + 1}
-                </td>
-                {row.map((val, c) => {
-                  const isEditing =
-                    editing && editing.r === r && editing.c === c;
-                  const header = r === 0;
-                  return (
-                    <td
-                      key={c}
-                      onClick={() => startEdit(r, c)}
-                      className={`min-w-[160px] border border-[rgba(55,53,47,0.09)] px-2 py-1 ${
-                        header
-                          ? 'bg-[#f8f8f7] font-semibold text-[#37352f]'
-                          : 'cursor-text bg-white hover:bg-[#fff8e1]'
-                      }`}
-                    >
-                      {isEditing ? (
-                        <input
-                          autoFocus
-                          value={draft}
-                          onChange={(e) => setDraft(e.target.value)}
-                          onBlur={commitEdit}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') commitEdit();
-                            if (e.key === 'Escape') {
-                              setEditing(null);
-                              setDraft('');
-                            }
-                          }}
-                          className="w-full bg-transparent text-sm outline-none"
-                        />
-                      ) : (
-                        <span>{val || <span className="text-gray-300">—</span>}</span>
-                      )}
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
+            {Array.from({ length: totalRows }).map((_, r) => {
+              const row = grids[activeTab][r] ?? [];
+              const rowHighlighted = selected.r === r;
+              return (
+                <tr key={r}>
+                  <th
+                    className={`sticky left-0 z-10 h-[22px] w-[46px] border-b border-r border-[#e0e0e0] text-[11px] font-normal ${
+                      rowHighlighted
+                        ? 'bg-[#d2e3fc] text-[#1a73e8]'
+                        : 'bg-[#f8f9fa] text-[#5f6368]'
+                    }`}
+                  >
+                    {r + 1}
+                  </th>
+                  {columnLetters.map((_letter, c) => {
+                    const val = row[c] ?? '';
+                    const isSelected =
+                      selected.r === r && selected.c === c;
+                    const isEditing =
+                      editing && editing.r === r && editing.c === c;
+                    const isHeaderCell = r === 0 && c < dataColCount;
+                    const isDataCell =
+                      r < dataRowCount && c < dataColCount;
+                    return (
+                      <td
+                        key={c}
+                        onClick={() => selectCell(r, c)}
+                        className={`relative h-[22px] min-w-[140px] border-b border-r border-[#e0e0e0] px-[5px] py-[2px] ${
+                          isHeaderCell
+                            ? 'bg-[#f8f9fa] font-medium text-[#202124]'
+                            : 'bg-white'
+                        } ${
+                          isDataCell && r !== 0 ? 'cursor-text' : 'cursor-cell'
+                        }`}
+                        style={
+                          isSelected
+                            ? { boxShadow: 'inset 0 0 0 2px #1a73e8' }
+                            : undefined
+                        }
+                      >
+                        {isEditing ? (
+                          <input
+                            autoFocus
+                            value={draft}
+                            onChange={(e) => setDraft(e.target.value)}
+                            onBlur={commitEdit}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') commitEdit();
+                              if (e.key === 'Escape') {
+                                setEditing(null);
+                                setDraft('');
+                              }
+                            }}
+                            className="w-full bg-transparent text-[10pt] outline-none"
+                          />
+                        ) : (
+                          <span className="block whitespace-nowrap">
+                            {val}
+                          </span>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
+      </div>
 
+      {/* Bottom sheet tab bar */}
+      <div className="flex shrink-0 items-center border-t border-[#e0e0e0] bg-white px-1 py-1 text-[#5f6368]">
+        <button
+          type="button"
+          aria-label="Add sheet"
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded hover:bg-[rgba(60,64,67,0.08)]"
+        >
+          <Plus size={16} />
+        </button>
+        <button
+          type="button"
+          aria-label="All sheets"
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded hover:bg-[rgba(60,64,67,0.08)]"
+        >
+          <MenuIcon size={16} />
+        </button>
+        <div className="mx-1 h-5 w-px shrink-0 bg-[#e0e0e0]" />
+        <div className="flex min-w-0 flex-1 items-center overflow-hidden">
+          {TABS.map((t) => {
+            const active = activeTab === t;
+            return (
+              <button
+                key={t}
+                type="button"
+                onClick={() => {
+                  setEditing(null);
+                  setActiveTab(t);
+                  setSelected({ r: 0, c: 0 });
+                }}
+                className={`relative flex shrink-0 items-center gap-1 whitespace-nowrap rounded-t-md px-2 py-1 text-[12px] ${
+                  active
+                    ? 'border-x border-t border-[#e0e0e0] bg-white font-medium text-[#3c4043]'
+                    : 'text-[#5f6368] hover:bg-[rgba(60,64,67,0.06)]'
+                }`}
+                style={active ? { marginBottom: -1 } : undefined}
+              >
+                {t}
+                {active ? (
+                  <ChevronDown size={12} className="text-[#5f6368]" />
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {running ? (
