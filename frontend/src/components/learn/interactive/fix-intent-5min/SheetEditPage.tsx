@@ -788,7 +788,7 @@ function TriggerSheetTable({
                         autoFocus
                         value={draft}
                         onChange={(e) => setDraft(e.target.value)}
-                        onBlur={commitEdit}
+                        onBlur={() => commitEdit()}
                         onKeyDown={(e) => {
                           // Commit on Enter/Escape; clicking outside also
                           // commits via onBlur. No Tab/Ctrl+Enter gymnastics.
@@ -886,7 +886,7 @@ function IntentSheetTable({
                           autoFocus
                           value={draft}
                           onChange={(e) => setDraft(e.target.value)}
-                          onBlur={commitEdit}
+                          onBlur={() => commitEdit()}
                           onKeyDown={(e) => {
                             // Enter stays as newline for prompt bodies;
                             // commit lives on outside-click (onBlur) only.
@@ -901,7 +901,7 @@ function IntentSheetTable({
                           autoFocus
                           value={draft}
                           onChange={(e) => setDraft(e.target.value)}
-                          onBlur={commitEdit}
+                          onBlur={() => commitEdit()}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' || e.key === 'Escape') {
                               commitEdit();
