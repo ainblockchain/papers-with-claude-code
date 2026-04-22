@@ -387,9 +387,13 @@ export function NotionTaskPage({
           />
         </div>
 
-        {/* Top property row — Agent / Work Type / Assignee / Status.
+        {/* Top property row — Agent / Assignee / Status.
             Notion renders this as an auto-fit wrap grid above the "속성"
-            section; at panel width it collapses to as many columns as fit. */}
+            section; at panel width it collapses to as many columns as fit.
+            Work Type lives *below* this grid on its own full-width row,
+            because its 6-tag multi-select editor can't fit in a 160px
+            grid cell without line-wrapping chips. Keeping it outside the
+            grid makes the layout stable through active/filled transitions. */}
         <div className="grid gap-y-3 gap-x-4 pb-2" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' }}>
           <PropertyChip
             icon={<Target size={14} />}
@@ -409,29 +413,6 @@ export function NotionTaskPage({
               />
             }
           />
-          {/* Work Type's editor fans out 6 tags + enter button, which is
-              too wide for a single minmax(160px) grid cell. When it's the
-              active field, stretch the chip across the whole row so the
-              tags stay on one line and don't line-wrap per label. */}
-          <div style={workTypeS.active ? { gridColumn: '1 / -1' } : undefined}>
-            <PropertyChip
-              icon={<Tag size={14} />}
-              label="Work Type"
-              active={workTypeS.active}
-              filled={workTypeS.filled}
-              displayFilled={<WorkTypeFilledChips value={notion.workType} />}
-              editor={
-                <WorkTypeField
-                  label=""
-                  active={workTypeS.active}
-                  filled={workTypeS.filled}
-                  disabled={disabled}
-                  value={notion.workType}
-                  onSubmit={(v) => onSubmit('workType', v)}
-                />
-              }
-            />
-          </div>
           <PropertyChip
             icon={<Users size={14} />}
             label="Assignee"
@@ -467,6 +448,29 @@ export function NotionTaskPage({
                 disabled={disabled}
                 value={notion.status}
                 onSubmit={(v) => onSubmit('status', v)}
+              />
+            }
+          />
+        </div>
+
+        {/* Work Type — always a full-width row so the 6-tag multi-select
+            editor has room to lay out in one line, and so active/filled
+            transitions don't rearrange the property grid above. */}
+        <div className="pb-2">
+          <PropertyChip
+            icon={<Tag size={14} />}
+            label="Work Type"
+            active={workTypeS.active}
+            filled={workTypeS.filled}
+            displayFilled={<WorkTypeFilledChips value={notion.workType} />}
+            editor={
+              <WorkTypeField
+                label=""
+                active={workTypeS.active}
+                filled={workTypeS.filled}
+                disabled={disabled}
+                value={notion.workType}
+                onSubmit={(v) => onSubmit('workType', v)}
               />
             }
           />
