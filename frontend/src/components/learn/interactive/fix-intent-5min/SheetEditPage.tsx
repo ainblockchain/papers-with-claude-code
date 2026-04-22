@@ -151,6 +151,9 @@ export function SheetEditPage({ disabled, representative, onComplete }: Props) {
 
   const handleAddIntentRow = (sheetId: SheetId) => {
     if (sheetId === 'intent_trigger_sentence' || phase !== 'add-intent') return;
+    // One intent row per Stage 3 — after the learner adds it (even empty),
+    // the button is locked. Triggers stay multi-add.
+    if (addedIntent) return;
     if (sheetId !== CORRECT_INTENT_SHEET_ID) {
       const next = wrongTabAttempts + 1;
       setWrongTabAttempts(next);
@@ -644,7 +647,8 @@ export function SheetEditPage({ disabled, representative, onComplete }: Props) {
           <div className="mt-2">
             <button
               onClick={() => handleAddIntentRow(activeTabId)}
-              className="flex items-center gap-1.5 rounded-md border border-[#e0e0e0] bg-white px-3 py-1.5 text-[13px] text-[#3c4043] hover:bg-[rgba(60,64,67,0.04)]"
+              disabled={!!addedIntent}
+              className="flex items-center gap-1.5 rounded-md border border-[#e0e0e0] bg-white px-3 py-1.5 text-[13px] text-[#3c4043] hover:bg-[rgba(60,64,67,0.04)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white"
             >
               <Play size={12} className="text-[#0F9D58]" />+ 인텐트 행 추가
             </button>
