@@ -19,6 +19,7 @@ import {
   assigneeHint,
   statusHints,
 } from '@/data/courses/fix-intent-5min/notion-options';
+import { computeWorkTypeHint } from '@/lib/courses/fix-intent-5min/workTypeHint';
 import {
   loadCourseState,
   saveCourseState,
@@ -432,12 +433,17 @@ export function IntentFixCourse() {
       // specific meaning the learner should understand, not just reject.
       // Assignee shares a single hint for any "other person" pick —
       // the teaching is about the current you-fix-it-yourself situation.
+      // workType is multi-select: the hint nudges toward the missing
+      // required key (or explains why a wrong key doesn't fit).
       const statusHint =
         fieldId === 'status' ? statusHints[value] : undefined;
       const pickedOtherAssignee =
         fieldId === 'assignee' && value !== githubUsername;
+      const workTypeHint =
+        fieldId === 'workType' ? computeWorkTypeHint(value) : undefined;
       setNotionError(
         statusHint ??
+          workTypeHint ??
           (pickedOtherAssignee
             ? assigneeHint
             : freeInput

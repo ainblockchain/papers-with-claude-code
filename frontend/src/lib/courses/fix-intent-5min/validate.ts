@@ -30,10 +30,12 @@ export async function validateNotionField(
     case 'status':
       return value === statusAnswer;
     case 'workType': {
-      // Multi-select: comma-separated serialization (e.g. "update,add").
-      // Pass if the user's selection includes the required answer.
-      const selected = value.split(',').map((s) => s.trim());
-      return selected.includes(workTypeAnswer);
+      // Multi-select: comma-separated serialization (e.g. "newIntent,add").
+      // Pass only if every required key is present in the selection.
+      const selected = new Set(
+        value.split(',').map((s) => s.trim()).filter(Boolean),
+      );
+      return workTypeAnswer.every((k) => selected.has(k));
     }
   }
   // Free-input fields → server endpoint (LLM-backed, currently hardcoded pass)

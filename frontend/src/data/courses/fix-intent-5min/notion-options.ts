@@ -59,4 +59,38 @@ export const statusHints: Record<string, string> = {
     'Close 는 이슈를 수정하지 않기로 결정했을 때 선택해요. 우리는 수정 작업을 진행할 거니까, 작업을 시작한다는 의미의 상태를 골라주세요.',
 };
 
-export const workTypeAnswer: WorkTypeKey = 'update';
+// Multi-select answer — both keys must be present.
+// - newIntent: 결시/병결 인텐트가 지금 시스템에 없으니 신규 생성이 필요
+// - add:       방금 만든 인텐트에 유저 발화("시험 못보면 어떻게 되는거야")를
+//              트리거 문장으로 등록해야 분류기가 그 인텐트로 라우팅
+export const workTypeAnswer: readonly WorkTypeKey[] = ['newIntent', 'add'];
+
+// Per-key hint surfaced when the learner *picks a wrong key*. Each
+// sentence explains what that work type actually means and why it
+// doesn't fit this case, without naming the correct answer labels so
+// the learner still has to figure out the right combination.
+export const workTypeHints: Record<WorkTypeKey, string> = {
+  // 'add' / 'newIntent' are the correct keys, so these hints are never
+  // surfaced from the "wrong key" branch. They're kept for symmetry
+  // and in case future code paths reference them.
+  add: 'Add Triggering Sentence 는 인텐트에 유저 발화(트리거 문장)를 연결하는 작업이에요.',
+  newIntent:
+    'New Intent 는 주제 자체가 시스템에 없을 때 인텐트를 새로 만드는 작업이에요.',
+  update:
+    'Update Intent 는 이미 존재하는 인텐트의 프롬프트를 보강하는 작업이에요. 이번 케이스에서는 기존 인텐트를 다듬는 것이 핵심이 아니라, 현재 답변이 아예 갈 곳이 없어서 엉뚱한 인텐트로 떨어지고 있는 상황이라는 점을 다시 살펴보세요.',
+  newIntentDev:
+    'New Intent+Dev 는 인텐트 신설에 더해 답변 생성 로직까지 개발해야 할 때 선택해요. 이 이슈는 분류만 바로잡으면 되는 수준이라 여기엔 맞지 않아요.',
+  sql: 'SQL/Workflow 는 데이터 쿼리나 업무 워크플로를 손보는 작업이에요. 이번 이슈는 인텐트 정의·범위 문제라 데이터 파이프라인 쪽이 아닙니다.',
+  bug: 'Bug Report/QA 는 코드 결함이나 QA에서 발견된 버그를 다룰 때 선택해요. 지금은 분류기가 고장난 게 아니라 인텐트 설계 구조 문제라 결이 달라요.',
+};
+
+// When only SOME of the required keys are picked, surface a nudge that
+// hints toward the missing piece WITHOUT naming it. Key = the selected
+// required key the learner already got right; value = a question that
+// walks them toward what's still missing. The missing key's label must
+// NOT appear verbatim in these strings.
+export const workTypeNextHints: Partial<Record<WorkTypeKey, string>> = {
+  newIntent:
+    '인텐트를 새로 만든 것만으로는 분류기가 유저 질문을 그 인텐트로 자동으로 보내주지 않아요. 실제 유저 발화와 방금 만든 인텐트를 이어 줄 작업이 하나 더 필요해요. 어떤 유형이 여기에 해당할까요?',
+  add: '트리거 문장을 어딘가에 붙이려면, 붙일 대상이 먼저 존재해야 해요. 이 케이스에서는 해당 주제 인텐트가 아직 없다는 점을 떠올려 보세요. 먼저 해야 할 작업이 무엇일까요?',
+};
