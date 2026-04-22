@@ -1,24 +1,82 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type {
+  NotionFieldId,
+  SelectedIntent,
+} from '@/lib/courses/fix-intent-5min/course-state';
+import { buildTitleValidationPrompt } from '@/lib/courses/fix-intent-5min/prompts/title';
+import {
+  callAzureResponses,
+  parseJsonLeniently,
+} from '@/lib/server/azure-openai';
+
+interface Body {
+  fieldId?: NotionFieldId;
+  value?: string;
+  context?: {
+    representativeIntent?: SelectedIntent | null;
+    username?: string | null;
+  };
+}
 
 /**
- * Validation stub for "fix-intent-5min" interactive course free-input fields.
- * 1차: 하드코딩 pass. 2차: LLM 연결.
+ * Validation endpoint for free-input fields in the fix-intent-5min course.
+ * - 'title' → Azure OpenAI (Responses API) with the title-validation prompt.
+ * - Other free-input fields → pass-through stub until their prompts land.
  */
 export async function POST(request: NextRequest) {
+  let body: Body;
   try {
-    const body = await request.json();
-    const { fieldId, value } = body ?? {};
-    if (!fieldId || value == null) {
-      return NextResponse.json(
-        { ok: false, error: 'fieldId and value are required' },
-        { status: 400 },
-      );
-    }
-    return NextResponse.json({ ok: true, pass: true });
-  } catch (error: any) {
+    body = await request.json();
+  } catch {
     return NextResponse.json(
-      { ok: false, error: error?.message ?? 'validate failed' },
-      { status: 500 },
+      { ok: false, error: 'invalid_json' },
+      { status: 400 },
     );
   }
+
+  const { fieldId, value, context } = body;
+  if (!fieldId || typeof value !== 'string') {
+    return NextResponse.json(
+      { ok: false, error: 'fieldId and value are required' },
+      { status: 400 },
+    );
+  }
+
+  if (fieldId === 'title') {
+    try {
+      const { instructions, input } = buildTitleValidationPrompt(
+        context?.representativeIntent ?? null,
+        value,
+      );
+      const { text } = await callAzureResponses({ instructions, input });
+      const parsed = parseJsonLeniently(text) as
+        | { pass?: unknown; hint?: unknown }
+        | null;
+      if (!parsed || typeof parsed.pass !== 'boolean') {
+        console.error('[validate/title] unparseable LLM response', { text });
+        return NextResponse.json({
+          ok: true,
+          pass: false,
+          hint: '검증 서버가 판정을 전달하지 못했어요. 잠시 후 다시 시도해주세요.',
+        });
+      }
+      return NextResponse.json({
+        ok: true,
+        pass: parsed.pass,
+        hint: typeof parsed.hint === 'string' ? parsed.hint : '',
+      });
+    } catch (err) {
+      console.error('[validate/title] call failed', err);
+      return NextResponse.json({
+        ok: true,
+        pass: false,
+        hint: '검증 서버에 일시적 오류가 있어요. 다시 시도해주세요.',
+      });
+    }
+  }
+
+  // Free-input fields other than 'title' still stub-pass until their
+  // prompts are wired up (problemAnalysis, solutionDirection, workContent,
+  // result).
+  return NextResponse.json({ ok: true, pass: true });
 }
