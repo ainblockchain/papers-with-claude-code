@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import {
-  buildChatLogSets,
+  buildStaticChatLogSet,
   type ChatLogRow,
   type ChatLogSet,
 } from '@/data/courses/fix-intent-5min/chat-log-sets';
@@ -111,11 +111,11 @@ export function IntentFixCourse() {
     null,
   );
   const [notionCreateCelebration, setNotionCreateCelebration] = useState(false);
-  // Randomised per-session sets, rebuilt on game over. Three broken rows from
-  // the pool (across patterns) plus four clean rows each, shuffled.
-  const [activeSets, setActiveSets] = useState<ChatLogSet[]>(() =>
-    buildChatLogSets(1, 4),
-  );
+  // Static Stage 1 lineup: one fixed 10-row set (1 broken + 9 clean) in a
+  // deterministic order. Rebuilt on restart to return a fresh reference.
+  const [activeSets, setActiveSets] = useState<ChatLogSet[]>(() => [
+    buildStaticChatLogSet(),
+  ]);
   // Hearts HUD: 3 attempts across the dashboard phase. Hitting zero resets
   // the entire stage-1 run (both local state and blockchain blob).
   const [hearts, setHearts] = useState(3);
@@ -296,7 +296,7 @@ export function IntentFixCourse() {
     setNotionError(null);
     setHearts(3);
     setTimerRemaining(TIMER_TOTAL);
-    setActiveSets(buildChatLogSets(1, 4));
+    setActiveSets([buildStaticChatLogSet()]);
     setShowRestart(false);
     setPhase('dashboard');
     // questSeen stays true — the user just re-read the objective via the

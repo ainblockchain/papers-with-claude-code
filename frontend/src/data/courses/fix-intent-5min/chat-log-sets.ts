@@ -774,3 +774,67 @@ export function buildChatLogSets(
     return { setId: `set-${i + 1}`, title: `세트 ${i + 1}`, rows };
   });
 }
+
+// ---------------------------------------------------------------------------
+// Static 10-row lineup used by Stage 1 (1 broken + 9 clean, fixed order).
+// Rows are referenced by sessionId so the authoritative bodies live in the
+// pools above — editing the pool propagates here.
+// ---------------------------------------------------------------------------
+
+const STATIC_SET_BROKEN_ID = 'e64c3c01-ad81-4ab4-aec1-79eed00f96f5';
+
+// 9 clean rows in display order (broken row gets spliced into position
+// STATIC_SET_BROKEN_POSITION between indices 3 and 4).
+const STATIC_SET_CLEAN_ORDER: readonly string[] = [
+  '27db9842-caf3-49d5-a0e2-8c717ddaf686', // 학사 일정 | 중간고사 기간이 언제야
+  'fa120c32-cff2-48aa-a010-e166f2ee42bf', // 포털 | 포털 주소 좀
+  'bf9279f8-e4d8-4371-ba7c-0d0b8d60cc33', // 증명서 | 재학증명서 뽑기
+  '7819e029-3146-4fad-80fc-68ba661b0962', // 학생증 | 앱에서 학생증 어떻게 발급 받아?
+  'f8dee4a6-a86c-4446-baf3-09cf2cf763b8', // 졸업 | 졸업요건 관련 문의는요
+  '28c42a05-5a9c-4498-90b2-704aa4161257', // 통학버스 | 한양대 정문 버스 알려줘
+  '7137c383-ade4-489d-95d3-7f6a9b039d47', // 휴학 | 지금 휴학할수있나요
+  '3536776c-c5f2-4151-a7c6-02671f49527a', // 등록금 얼마 | 인공지능학과 등록금
+  '10493982-5ee5-4e60-afeb-9ac13fd4ba0e', // 교환학생 | 해외대학 복수학위 학위제도 있어
+];
+
+// 0-based position (5th row) of the broken row in the final 10-row set.
+const STATIC_SET_BROKEN_POSITION = 4;
+
+/**
+ * Builds the fixed 10-row chat-log set used by Stage 1. The broken row sits
+ * at {@link STATIC_SET_BROKEN_POSITION}; clean rows fill the rest in
+ * {@link STATIC_SET_CLEAN_ORDER}.
+ */
+export function buildStaticChatLogSet(): ChatLogSet {
+  const broken = getAllBrokenRows().find(
+    (r) => r.sessionId === STATIC_SET_BROKEN_ID,
+  );
+  if (!broken) {
+    throw new Error(
+      `buildStaticChatLogSet: broken row ${STATIC_SET_BROKEN_ID} not found in brokenRowsByPattern`,
+    );
+  }
+
+  const cleans = STATIC_SET_CLEAN_ORDER.map((id) => {
+    const row = cleanRows.find((r) => r.sessionId === id);
+    if (!row) {
+      throw new Error(
+        `buildStaticChatLogSet: clean row ${id} not found in cleanRows`,
+      );
+    }
+    return row;
+  });
+
+  const rows: ChatLogRow[] = [];
+  let cleanCursor = 0;
+  for (let i = 0; i < cleans.length + 1; i++) {
+    if (i === STATIC_SET_BROKEN_POSITION) {
+      rows.push({ ...broken, isBroken: true });
+    } else {
+      rows.push({ ...cleans[cleanCursor], isBroken: false });
+      cleanCursor += 1;
+    }
+  }
+
+  return { setId: 'static-1', title: '세트 1', rows };
+}
