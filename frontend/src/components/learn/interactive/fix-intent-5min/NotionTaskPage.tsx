@@ -82,9 +82,12 @@ function computeState(
 
 // Notion status dot colors — matches Notion's muted palette.
 const STATUS_DOT: Record<string, string> = {
-  'Not started': '#9B9A97',
-  'In progress': '#529CCA',
+  'Not Started': '#9B9A97',
+  'In Progress': '#529CCA',
+  'Revisions Requested': '#D44C7F',
   Done: '#4DAB9A',
+  'Prod Launch': '#9D68D3',
+  Close: '#787774',
 };
 
 function StatusChip({ value }: { value: string | null }) {

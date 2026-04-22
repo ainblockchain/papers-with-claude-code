@@ -16,6 +16,10 @@ import {
 } from '@/lib/courses/fix-intent-5min/course-state';
 import { validateNotionField } from '@/lib/courses/fix-intent-5min/validate';
 import {
+  assigneeHint,
+  statusHints,
+} from '@/data/courses/fix-intent-5min/notion-options';
+import {
   loadCourseState,
   saveCourseState,
   recordStageComplete,
@@ -396,10 +400,21 @@ export function IntentFixCourse() {
         fieldId === 'title' ||
         fieldId === 'problemAnalysis' ||
         fieldId === 'solutionDirection';
+      // Status gets a per-option hint because each wrong choice carries a
+      // specific meaning the learner should understand, not just reject.
+      // Assignee shares a single hint for any "other person" pick —
+      // the teaching is about the current you-fix-it-yourself situation.
+      const statusHint =
+        fieldId === 'status' ? statusHints[value] : undefined;
+      const pickedOtherAssignee =
+        fieldId === 'assignee' && value !== githubUsername;
       setNotionError(
-        freeInput
-          ? '대표 인텐트와 관련이 약해 보여요. 다시 작성해주세요.'
-          : '올바른 값을 선택해주세요.',
+        statusHint ??
+          (pickedOtherAssignee
+            ? assigneeHint
+            : freeInput
+              ? '대표 인텐트와 관련이 약해 보여요. 다시 작성해주세요.'
+              : '올바른 값을 선택해주세요.'),
       );
       return;
     }
