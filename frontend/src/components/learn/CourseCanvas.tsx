@@ -1,13 +1,16 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useMemo, useRef, useCallback } from 'react';
 import { useLearningStore } from '@/stores/useLearningStore';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { TILE_SIZE, COURSE_ROOM_WIDTH, COURSE_ROOM_HEIGHT, WALK_ANIMATION_DURATION } from '@/constants/game';
+import type { Signboard } from '@/types/learning';
 import { StageConfig } from '@/types/learning';
-import { useMapLoader } from '@/hooks/useMapLoader';
+import { useCourseMap } from '@/hooks/useCourseMap';
+import { findObjectByType, findObjectsByType, TMJ_OBJECT_TYPE } from '@/lib/tmj/objects';
 import { renderFullTileLayer } from '@/lib/tmj/renderer';
 import { trackEvent } from '@/lib/ain/event-tracker';
-import { drawWoodFloorTile, drawWallTile, drawDoor, drawBlackboard, tileHash } from '@/lib/sprites/terrain';
+import { drawWoodFloorTile, drawWallTile, drawDoor, drawBlackboard, drawSignboard, tileHash } from '@/lib/sprites/terrain';
 import {
   drawPlanetFloorA, drawPlanetFloorB, drawSpaceMountainWall,
   drawSpacePortal, drawSpaceOutpost, drawSpaceCrystal, is0GCourse,
@@ -36,6 +39,10 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
     setQuizActive,
     setPaymentModalOpen,
     viewedConceptIds,
+    activeSignboardId,
+    setActiveSignboard,
+    currentPaper,
+    currentStageIndex,
   } = useLearningStore();
 
   // Animation state
@@ -47,11 +54,40 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
   const dirtyRef = useRef(true);
   const viewRef = useRef({ oX: 0, oY: 0, scale: 1 });
 
-  const doorPosition = { x: stage.roomWidth - 2, y: Math.floor(stage.roomHeight / 2) };
-
-  // Load TMJ map data (falls back to procedural rendering if unavailable)
-  const { mapData } = useMapLoader('course-room');
+  // Load TMJ map data — prefer course-specific map, fall back to shared default.
+  const { mapData } = useCourseMap(currentPaper?.id, currentStageIndex);
   const canUseTmj = mapData && mapData.width === stage.roomWidth && mapData.height === stage.roomHeight;
+
+  // Exit position: prefer TMJ-declared `portal` or `door` object, fall back to procedural formula.
+  const tmjExit = mapData
+    ? findObjectByType(mapData, TMJ_OBJECT_TYPE.Portal) ?? findObjectByType(mapData, TMJ_OBJECT_TYPE.Door)
+    : null;
+  const doorPosition = tmjExit
+    ? { x: tmjExit.x, y: tmjExit.y }
+    : { x: stage.roomWidth - 2, y: Math.floor(stage.roomHeight / 2) };
+
+  // Signboards: prefer TMJ-declared `signboard` objects, fall back to stage config.
+  const signboards = useMemo<Signboard[]>(() => {
+    if (mapData) {
+      const tmjSignboards = findObjectsByType(mapData, TMJ_OBJECT_TYPE.Signboard);
+      if (tmjSignboards.length > 0) {
+        return tmjSignboards.map((obj) => ({
+          id: String(obj.properties.id ?? obj.name),
+          title: String(obj.properties.title ?? obj.name),
+          position: { x: obj.x, y: obj.y },
+          dataSource: (obj.properties.dataSource as Signboard['dataSource']) ?? 'chatlog',
+        }));
+      }
+    }
+    return stage.signboards ?? [];
+  }, [mapData, stage.signboards]);
+
+  // Apply TMJ-declared spawn point when a map loads for the current stage.
+  useEffect(() => {
+    if (mapData?.spawnPoint) {
+      setPlayerPosition(mapData.spawnPoint);
+    }
+  }, [mapData, setPlayerPosition]);
 
   const isWalkable = useCallback(
     (x: number, y: number) => {
@@ -87,7 +123,7 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
   // Mark dirty on state change
   useEffect(() => {
     dirtyRef.current = true;
-  }, [playerPosition, playerDirection, activeConceptId, isDoorUnlocked, stage, viewedConceptIds]);
+  }, [playerPosition, playerDirection, activeConceptId, activeSignboardId, isDoorUnlocked, stage, viewedConceptIds]);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -151,18 +187,55 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
               timestamp: Date.now(),
             });
           }
+          // Signboard interaction (separate from concepts)
+          const signboard = signboards.find(
+            (s) =>
+              playerPosition.x >= s.position.x &&
+              playerPosition.x <= s.position.x + 2 &&
+              Math.abs(s.position.y - playerPosition.y) <= 1
+          );
+          if (signboard) {
+            setActiveSignboard(signboard.id);
+          }
           if (
             Math.abs(playerPosition.x - doorPosition.x) <= 1 &&
             Math.abs(playerPosition.y - doorPosition.y) <= 1
           ) {
-            if (!isQuizPassed) {
+            const stageMode = stage.mode ?? 'portal';
+
+            // Portal mode: require quiz pass before opening payment.
+            if (stageMode === 'portal' && !isQuizPassed) {
               setQuizActive(true);
-            } else if (!isDoorUnlocked) {
-              const isLastStage = useLearningStore.getState().currentStageIndex >= useLearningStore.getState().stages.length - 1;
-              if (isLastStage) {
-                setDoorUnlocked(true);
-              } else {
-                setPaymentModalOpen(true);
+            } else {
+              // Door mode: treat interaction as quiz pass + record stage_complete.
+              if (stageMode === 'door' && !isQuizPassed) {
+                const { progress: userProgress, setQuizPassed } = useLearningStore.getState();
+                setQuizPassed(true);
+                const alreadyDone = userProgress?.completedStages?.some(
+                  (s) => s.stageNumber === currentStageIndex
+                );
+                if (!alreadyDone) {
+                  fetch('/api/stage-complete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      paperId: currentPaper?.id,
+                      stageNum: currentStageIndex,
+                      passkeyPublicKey: useAuthStore.getState().passkeyInfo?.publicKey,
+                    }),
+                  }).catch((err) => console.error('[CourseCanvas] stage_complete failed:', err));
+                }
+              }
+
+              if (!isDoorUnlocked) {
+                const { currentStageIndex: idx, stages: s, setCourseComplete } = useLearningStore.getState();
+                const isLastStage = idx >= s.length - 1;
+                if (isLastStage) {
+                  setDoorUnlocked(true);
+                  if (stageMode === 'door') setCourseComplete(true);
+                } else {
+                  setPaymentModalOpen(true);
+                }
               }
             }
           }
@@ -182,7 +255,9 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
       setPlayerPosition,
       setPlayerDirection,
       stage.concepts,
+      signboards,
       setActiveConcept,
+      setActiveSignboard,
       doorPosition,
       isDoorUnlocked,
       setDoorUnlocked,
@@ -371,6 +446,30 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
         }
       });
 
+      // ── Signboards (independent from concepts) ──
+      const currentSignboardId = useLearningStore.getState().activeSignboardId;
+      signboards.forEach((sb) => {
+        const isActive = currentSignboardId === sb.id;
+        const sx = sb.position.x * TILE_SIZE;
+        const sy = sb.position.y * TILE_SIZE;
+        const sbW = TILE_SIZE * 3;
+        const sbH = TILE_SIZE * 2;
+
+        drawSignboard(ctx, sx, sy, sbW, sbH, isActive, sb.title);
+
+        // Interaction hint
+        const isNear =
+          playerPosition.x >= sb.position.x &&
+          playerPosition.x <= sb.position.x + 2 &&
+          Math.abs(sb.position.y - playerPosition.y) <= 1;
+        if (isNear && !isActive) {
+          ctx.fillStyle = '#FF9D00';
+          ctx.font = `${TILE_SIZE * 0.25}px sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.fillText('Press E', sx + TILE_SIZE * 1.5, sy - 8);
+        }
+      });
+
       // ── Player (pixel art sprite with animation) ──
       const pos = useLearningStore.getState().playerPosition;
       const dir = useLearningStore.getState().playerDirection as Direction;
@@ -399,7 +498,7 @@ export function CourseCanvas({ stage }: CourseCanvasProps) {
     dirtyRef.current = true;
     rafIdRef.current = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(rafIdRef.current);
-  }, [stage, activeConceptId, isDoorUnlocked, isQuizPassed, doorPosition, mapData, canUseTmj, playerPosition, playerDirection]);
+  }, [stage, activeConceptId, activeSignboardId, isDoorUnlocked, isQuizPassed, doorPosition, mapData, canUseTmj, playerPosition, playerDirection]);
 
   return (
     <div className="w-full h-full bg-gray-900 overflow-hidden">

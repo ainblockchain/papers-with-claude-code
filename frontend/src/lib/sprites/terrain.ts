@@ -306,3 +306,81 @@ export function drawBlackboard(
     ctx.fillText(lines[i], x + w / 2, startY + i * lineH, maxW);
   }
 }
+
+/** Draw a signboard (bulletin board style) for chatlog interaction */
+export function drawSignboard(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  isActive: boolean,
+  title: string,
+) {
+  // Wooden post (center)
+  ctx.fillStyle = '#6B4226';
+  const postW = 6;
+  ctx.fillRect(x + w / 2 - postW / 2, y + h - 4, postW, 12);
+
+  // Board background
+  ctx.fillStyle = isActive ? '#2D1810' : '#3E2723';
+  ctx.fillRect(x, y, w, h);
+
+  // Board border (nail-frame look)
+  ctx.strokeStyle = isActive ? '#FF9D00' : '#8D6E63';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
+
+  // Paper/notice pinned effect — small rectangles
+  ctx.fillStyle = '#FFF9C4';
+  ctx.fillRect(x + 6, y + 6, w * 0.35, 8);
+  ctx.fillStyle = '#E0E0E0';
+  ctx.fillRect(x + 6, y + 18, w * 0.55, 6);
+  ctx.fillRect(x + 6, y + 27, w * 0.45, 6);
+
+  // Pin dots
+  ctx.fillStyle = '#F44336';
+  ctx.beginPath();
+  ctx.arc(x + 6 + w * 0.17, y + 4, 2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#2196F3';
+  ctx.beginPath();
+  ctx.arc(x + w - 10, y + 4, 2, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Active glow
+  if (isActive) {
+    ctx.shadowColor = '#FF9D00';
+    ctx.shadowBlur = 8;
+    ctx.strokeStyle = '#FF9D00';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x, y, w, h);
+    ctx.shadowBlur = 0;
+  }
+
+  // Title text below (same style as blackboard)
+  const fontSize = 10;
+  ctx.fillStyle = isActive ? '#FF9D00' : '#3E2723';
+  ctx.font = `bold ${fontSize}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const maxW = w + 10;
+  const words = title.split(' ');
+  const lines: string[] = [];
+  let cur = '';
+  for (const word of words) {
+    const test = cur ? `${cur} ${word}` : word;
+    if (ctx.measureText(test).width > maxW && cur) {
+      lines.push(cur);
+      cur = word;
+    } else {
+      cur = test;
+    }
+  }
+  if (cur) lines.push(cur);
+  const lineH = fontSize * 1.2;
+  const startY = y + h + 10 + lineH / 2;
+  for (let i = 0; i < lines.length; i++) {
+    ctx.fillText(lines[i], x + w / 2, startY + i * lineH, maxW);
+  }
+}

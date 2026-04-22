@@ -117,15 +117,15 @@ export default function CourseDetailPage() {
         variant="ghost"
         size="sm"
         onClick={() => router.push('/explore')}
-        className="text-[#6B7280] hover:text-[#111827] -ml-2 mb-6"
+        className="text-[#6B7280] hover:text-[#111827] -ml-2 mb-3"
       >
         <ArrowLeft className="h-4 w-4 mr-1" /> Back to Explore
       </Button>
 
       {/* ── Header ── */}
-      <div className="flex gap-6 items-start">
+      <div className="flex flex-col sm:flex-row gap-4 items-start">
         {/* Thumbnail */}
-        <div className="relative flex-shrink-0 w-[200px] h-[250px] rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
+        <div className="relative flex-shrink-0 w-[160px] h-[200px] rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
           {paper.thumbnailUrl ? (
             <img
               src={paper.thumbnailUrl}
@@ -134,21 +134,21 @@ export default function CourseDetailPage() {
             />
           ) : (
             <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-b from-gray-50 to-gray-200">
-              <FileText className="h-16 w-16 text-gray-400" />
+              <FileText className="h-12 w-12 text-gray-400" />
             </div>
           )}
         </div>
 
         {/* Meta */}
-        <div className="flex-1 min-w-0">
-          <h1 className="text-3xl font-bold text-[#111827] leading-tight">{paper.title}</h1>
+        <div className="flex-1 min-w-0 sm:h-[200px] flex flex-col">
+          <h1 className="text-xl sm:text-2xl font-bold text-[#111827] leading-tight">{paper.title}</h1>
 
           {paper.description && (
-            <p className="mt-2 text-[#6B7280] leading-relaxed">{paper.description}</p>
+            <p className="mt-2 text-sm text-[#6B7280]">{paper.description}</p>
           )}
 
           {/* Course info */}
-          <div className="mt-3 flex items-center gap-4 text-sm text-[#6B7280]">
+          <div className="mt-2 flex items-center gap-3 text-sm text-[#6B7280]">
             {paper.courseName && (
               <span className="flex items-center gap-1.5">
                 <BookOpen className="h-4 w-4 text-[#FF9D00]" />
@@ -158,20 +158,20 @@ export default function CourseDetailPage() {
             <span>{totalStages} stage{totalStages !== 1 ? 's' : ''}</span>
             {completers.length > 0 && (
               <span className="flex items-center gap-1">
-                <Users className="h-4 w-4" />
+                <Users className="h-3.5 w-3.5" />
                 {completers.length} learner{completers.length !== 1 ? 's' : ''}
               </span>
             )}
           </div>
 
-          {/* Authors */}
+          {/* Authors — pushed to bottom */}
           {paper.authors.length > 0 && (
-            <div className="mt-3 flex items-center gap-2 text-sm text-[#6B7280]">
+            <div className="mt-auto pt-3 flex items-center gap-2 text-sm text-[#6B7280]">
               <div className="flex items-center gap-1">
                 {paper.authors.slice(0, 5).map((author) => (
                   <div
                     key={author.id}
-                    className="h-6 w-6 rounded-full bg-gray-300 flex items-center justify-center text-[10px] font-medium text-white"
+                    className="h-5 w-5 rounded-full bg-gray-300 flex items-center justify-center text-[9px] font-medium text-white"
                     title={author.name}
                   >
                     {author.name[0]}
@@ -193,28 +193,28 @@ export default function CourseDetailPage() {
           )}
 
           {/* Action buttons */}
-          <div className="mt-5 flex items-center gap-3">
+          <div className="mt-3 flex items-center gap-3">
             {canLearn ? (
               <Button
                 onClick={() => requireAuth(() => router.push(`/learn/${paper.id}`))}
-                className="bg-[#FF9D00] hover:bg-[#FF9D00]/90 text-white"
+                className="bg-[#FF9D00] hover:bg-[#FF9D00]/90 text-white text-sm h-9"
               >
-                <Play className="h-4 w-4 mr-1.5" />
+                <Play className="h-3.5 w-3.5 mr-1.5" />
                 Start Learning
               </Button>
             ) : (
               <Button
                 onClick={() => requireAuth(() => setPurchaseModal(paper.id, paper))}
-                className="bg-[#7C3AED] hover:bg-[#7C3AED]/90 text-white"
+                className="bg-[#7C3AED] hover:bg-[#7C3AED]/90 text-white text-sm h-9"
               >
-                <ShoppingCart className="h-4 w-4 mr-1.5" />
+                <ShoppingCart className="h-3.5 w-3.5 mr-1.5" />
                 Purchase
               </Button>
             )}
             {paper.githubUrl && (
               <a href={paper.githubUrl} target="_blank" rel="noopener noreferrer">
-                <Button variant="outline" size="sm">
-                  <Star className="h-3.5 w-3.5 mr-1" />
+                <Button variant="outline" size="sm" className="text-xs h-8">
+                  <Star className="h-3 w-3 mr-1" />
                   GitHub
                   {paper.githubStars != null && (
                     <Badge variant="secondary" className="ml-1.5 text-[10px] px-1.5 py-0">
@@ -226,15 +226,15 @@ export default function CourseDetailPage() {
             )}
             {paper.arxivUrl ? (
               <a href={paper.arxivUrl} target="_blank" rel="noopener noreferrer">
-                <Button variant="outline" size="sm">
-                  <FileText className="h-3.5 w-3.5 mr-1" />
+                <Button variant="outline" size="sm" className="text-xs h-8">
+                  <FileText className="h-3 w-3 mr-1" />
                   arXiv
                 </Button>
               </a>
             ) : paper.docsUrl ? (
               <a href={paper.docsUrl} target="_blank" rel="noopener noreferrer">
-                <Button variant="outline" size="sm">
-                  <FileText className="h-3.5 w-3.5 mr-1" />
+                <Button variant="outline" size="sm" className="text-xs h-8">
+                  <FileText className="h-3 w-3 mr-1" />
                   Docs
                 </Button>
               </a>
@@ -245,32 +245,51 @@ export default function CourseDetailPage() {
 
       {/* ── Curriculum ── */}
       {courseInfo && courseInfo.stages.length > 0 && (
-        <section className="mt-10">
-          <h2 className="text-xl font-bold text-[#111827] mb-4">Curriculum</h2>
-          <div className="border border-[#E5E7EB] rounded-lg divide-y divide-[#E5E7EB]">
-            {courseInfo.stages.map((stage) => (
-              <div key={stage.stageNumber} className="flex items-center gap-4 px-5 py-4">
-                <div className="flex-shrink-0 h-8 w-8 rounded-full bg-[#F3F4F6] flex items-center justify-center text-sm font-semibold text-[#374151]">
-                  {stage.stageNumber}
+        <section className="mt-8">
+          <h2 className="text-lg font-bold text-[#111827] mb-4 flex items-center gap-2">
+            Curriculum
+            <span className="text-xs font-medium text-[#FF9D00] bg-[#FF9D00]/10 px-2 py-0.5 rounded-full">
+              {courseInfo.stages.length}
+            </span>
+          </h2>
+          <div className="relative ml-1">
+            {courseInfo.stages.map((stage, idx) => {
+              const isLast = idx === courseInfo.stages.length - 1;
+              return (
+                <div key={stage.stageNumber} className="relative flex gap-4 pb-6 last:pb-0">
+                  {/* Vertical line */}
+                  {!isLast && (
+                    <div className="absolute left-[9px] top-5 bottom-0 w-px bg-[#E5E7EB]" />
+                  )}
+                  {/* Dot */}
+                  <div className="relative flex-shrink-0 mt-0.5 h-[18px] w-[18px] rounded-full border-2 border-[#FF9D00] bg-white flex items-center justify-center">
+                    <div className="h-2 w-2 rounded-full bg-[#FF9D00]" />
+                  </div>
+                  {/* Content */}
+                  <div className="flex-1 min-w-0 -mt-0.5">
+                    <p className="font-medium text-sm text-[#111827]">{stage.title}</p>
+                    <p className="text-xs text-[#9CA3AF] mt-0.5">
+                      {stage.conceptCount} concept{stage.conceptCount !== 1 ? 's' : ''}
+                      {stage.hasQuiz && ' · Quiz'}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-[#111827]">{stage.title}</p>
-                  <p className="text-xs text-[#9CA3AF] mt-0.5">
-                    {stage.conceptCount} concept{stage.conceptCount !== 1 ? 's' : ''}
-                    {stage.hasQuiz && ' · Quiz'}
-                  </p>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
       )}
 
-      {/* ── Completers ── */}
-      <section className="mt-10">
-        <h2 className="text-xl font-bold text-[#111827] mb-4 flex items-center gap-2">
+      {/* ── Learners ── */}
+      <section className="mt-8">
+        <h2 className="text-lg font-bold text-[#111827] mb-4 flex items-center gap-2">
           <Users className="h-5 w-5" />
           Learners
+          {completers.length > 0 && (
+            <span className="text-xs font-medium text-[#FF9D00] bg-[#FF9D00]/10 px-2 py-0.5 rounded-full">
+              {completers.length}
+            </span>
+          )}
         </h2>
 
         {completersLoading ? (

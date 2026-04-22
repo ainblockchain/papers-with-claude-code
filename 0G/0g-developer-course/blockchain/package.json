@@ -1,8 +1,0 @@
-{
-  "name": "0g-developer-course-blockchain",
-  "version": "1.0.0",
-  "description": "Blockchain configuration for 0G Developer Course (registration skipped for bounty submission)",
-  "dependencies": {
-    "@ainblockchain/ain-js": "^1.14.0"
-  }
-}

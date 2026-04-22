@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Geist, Geist_Mono, Lato } from 'next/font/google';
 import './globals.css';
 import { LayoutWrapper } from '@/components/layout/LayoutWrapper';
 import { AuthProvider } from '@/providers/AuthProvider';
@@ -13,6 +13,13 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: '--font-geist-mono',
   subsets: ['latin'],
+});
+
+const lato = Lato({
+  variable: '--font-lato',
+  subsets: ['latin'],
+  weight: ['400', '700', '900'],
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
@@ -30,7 +37,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} ${lato.variable} antialiased`}>
         <AuthProvider>
           <QueryProvider>
             <LayoutWrapper>{children}</LayoutWrapper>

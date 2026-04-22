@@ -42,6 +42,9 @@ build/
 
 # Images
 *.png
+# ...but ship the production-copied course assets under public/ so they
+# land in the bundle like any other static file.
+!frontend/public/**/*.png
 
 # Pipeline results
 knowledge-graph-builder/pipelineResult/

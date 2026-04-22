@@ -1,5 +1,6 @@
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { ExternalLink } from 'lucide-react';
+import { probeImage, useImageDims } from './imageCache';
 
 const URL_RE = /(https?:\/\/[^\s,)]+)/g;
 const CODE_BLOCK_RE = /```[\w]*\n([\s\S]*?)```/g;
@@ -60,22 +61,37 @@ function resolveImageSrc(src: string): string {
   return ASSETS_BASE ? `${ASSETS_BASE}/${src}` : src;
 }
 
-/** Render a markdown image as a figure with optional caption */
-function renderImage(alt: string, rawSrc: string, keyPrefix: string): ReactNode {
-  const src = resolveImageSrc(rawSrc);
-  if (/^https?:\/\//.test(src) && !isAllowedMediaUrl(src)) return null;
+/** Image component that reserves space based on probed dimensions to avoid CLS */
+function MarkdownImage({ alt, src }: { alt: string; src: string }) {
+  const dims = useImageDims(src);
+
+  useEffect(() => {
+    probeImage(src);
+  }, [src]);
+
+  const aspectStyle = dims ? { aspectRatio: `${dims.w} / ${dims.h}` } : undefined;
+
   return (
-    <figure key={keyPrefix} className="my-4">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={src}
-        alt={alt}
-        loading="lazy"
-        className="w-full max-w-full h-auto rounded-lg border border-gray-200"
-        onError={(e) => {
-          (e.target as HTMLImageElement).style.display = 'none';
-        }}
-      />
+    <figure className="my-4">
+      <div
+        className="w-full overflow-hidden rounded-lg border border-gray-200 bg-gray-50"
+        style={aspectStyle}
+      >
+        {dims && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={src}
+            alt={alt}
+            width={dims.w}
+            height={dims.h}
+            loading="lazy"
+            className="w-full h-full object-contain"
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none';
+            }}
+          />
+        )}
+      </div>
       {alt && (
         <figcaption className="mt-1.5 text-xs text-gray-400 text-center italic">
           {alt}
@@ -83,6 +99,13 @@ function renderImage(alt: string, rawSrc: string, keyPrefix: string): ReactNode 
       )}
     </figure>
   );
+}
+
+/** Render a markdown image as a figure with optional caption */
+function renderImage(alt: string, rawSrc: string, keyPrefix: string): ReactNode {
+  const src = resolveImageSrc(rawSrc);
+  if (/^https?:\/\//.test(src) && !isAllowedMediaUrl(src)) return null;
+  return <MarkdownImage key={keyPrefix} alt={alt} src={src} />;
 }
 
 /** Render a YouTube video as a responsive 16:9 iframe embed */
@@ -331,6 +354,19 @@ export function renderTextBlock(text: string, keyPrefix: string): ReactNode[] {
   flushBlockquote();
 
   return result;
+}
+
+/** Scan markdown content and return resolved image src URLs (line-anchored like the renderer). */
+export function extractImageSrcs(text: string): string[] {
+  const srcs: string[] = [];
+  for (const line of text.split('\n')) {
+    const m = line.match(IMAGE_RE);
+    if (!m) continue;
+    const src = resolveImageSrc(m[2]);
+    if (/^https?:\/\//.test(src) && !isAllowedMediaUrl(src)) continue;
+    srcs.push(src);
+  }
+  return srcs;
 }
 
 /** Render full content: code blocks, headers, lists, inline formatting */

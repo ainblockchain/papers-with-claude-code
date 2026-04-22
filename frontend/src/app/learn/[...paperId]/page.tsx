@@ -11,11 +11,15 @@ import { StageProgressBar } from '@/components/learn/StageProgressBar';
 import { ConceptOverlay } from '@/components/learn/ConceptOverlay';
 import { QuizOverlay } from '@/components/learn/QuizOverlay';
 import { PaymentModal } from '@/components/learn/PaymentModal';
+import { ChatLogOverlay } from '@/components/learn/ChatLogOverlay';
+import { IntentFixCourse, FIX_INTENT_COURSE_ID } from '@/components/learn/interactive/fix-intent-5min/IntentFixCourse';
 import { useLearningStore } from '@/stores/useLearningStore';
 import { useAuthStore } from '@/stores/useAuthStore';
-import { papersAdapter } from '@/lib/adapters/papers';
+import { papersAdapter, normalizePaperId } from '@/lib/adapters/papers';
 import { useSeries } from '@/hooks/useSeries';
 import { progressAdapter } from '@/lib/adapters/progress';
+import { loadCourseMap } from '@/hooks/useCourseMap';
+import { resolveStageMode } from '@/lib/tmj/objects';
 import {
   terminalSessionAdapter,
   SessionLimitError,
@@ -53,7 +57,6 @@ export default function LearnPage() {
     setStages,
     setCurrentStageIndex,
     setProgress,
-    setPlayerPosition,
     clearTerminalMessages,
     setSessionId,
     setSessionStatus,
@@ -119,7 +122,16 @@ export default function LearnPage() {
       // Try loading stages from API (knowledge-graph-builder courses),
       // then fall back to hardcoded mock data or generic stages.
       const stageData = await loadStages(paperId, paper.title, paper.totalStages);
-      setStages(stageData);
+
+      // Prefetch each stage's TMJ to resolve exit-gate mode (portal vs door).
+      const stageModes = await Promise.all(
+        stageData.map((_, idx) =>
+          loadCourseMap(paperId, idx).then((res) => resolveStageMode(res.mapData)),
+        ),
+      );
+      if (isCancelled()) return;
+      const stagesWithMode = stageData.map((s, i) => ({ ...s, mode: stageModes[i] }));
+      setStages(stagesWithMode);
 
       // Load progress — prefer blockchain, fallback to localStorage
       let initialStageIdx = 0;
@@ -289,9 +301,9 @@ export default function LearnPage() {
 
   const handleNextStage = () => {
     if (currentStageIndex < stages.length - 1) {
-      // stage_complete is recorded server-side (unlock-stage API after payment)
+      // stage_complete is recorded server-side (unlock-stage API after payment).
+      // Player spawn is applied by CourseCanvas when the new stage's TMJ loads.
       clearTerminalMessages();
-      setPlayerPosition({ x: 3, y: 10 });
       const newIdx = currentStageIndex + 1;
       // New stage: reset quiz/unlock — blockchain is source of truth,
       // these will be restored from progress if already done
@@ -435,21 +447,28 @@ export default function LearnPage() {
       <div className="flex flex-1 overflow-hidden">
         {/* Left: Course Canvas (60%) */}
         <div className="relative w-[60%] border-r border-gray-700">
-          <CourseCanvas stage={currentStage} />
-          <ConceptOverlay />
-          <QuizOverlay />
-          <PaymentModal />
+          {normalizePaperId(paperId) === FIX_INTENT_COURSE_ID ? (
+            <IntentFixCourse />
+          ) : (
+            <>
+              <CourseCanvas stage={currentStage} />
+              <ConceptOverlay />
+              <ChatLogOverlay />
+              <QuizOverlay />
+              <PaymentModal />
 
-          {/* Next Stage button (visible when door is unlocked) */}
-          {isDoorUnlocked && currentStageIndex < stages.length - 1 && (
-            <div className="absolute bottom-4 right-4 z-10">
-              <button
-                onClick={handleNextStage}
-                className="px-4 py-2 bg-[#10B981] hover:bg-[#059669] text-white rounded-lg shadow-lg text-sm font-medium transition-colors"
-              >
-                Enter Stage {currentStageIndex + 2} →
-              </button>
-            </div>
+              {/* Next Stage button (visible when door is unlocked) */}
+              {isDoorUnlocked && currentStageIndex < stages.length - 1 && (
+                <div className="absolute bottom-4 right-4 z-10">
+                  <button
+                    onClick={handleNextStage}
+                    className="px-4 py-2 bg-[#10B981] hover:bg-[#059669] text-white rounded-lg shadow-lg text-sm font-medium transition-colors"
+                  >
+                    Enter Stage {currentStageIndex + 2} →
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
 
@@ -588,6 +607,7 @@ async function loadStages(paperId: string, paperTitle: string, totalStages: numb
         title: s.title,
         concepts: s.concepts,
         quizzes,
+        signboards: s.signboards,
         roomWidth: s.roomWidth,
         roomHeight: s.roomHeight,
       });

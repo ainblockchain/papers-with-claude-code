@@ -38,12 +38,20 @@ export interface Lesson {
   exercises?: ExerciseEntry[];
 }
 
+export interface SignboardEntry {
+  id: string;
+  title: string;
+  position: { x: number; y: number };
+  dataSource: 'chatlog';
+}
+
 export interface CourseEntry {
   id: string;
   title: string;
   description?: string;
   concepts: string[];
   lessons: Lesson[];
+  signboards?: SignboardEntry[];
 }
 
 // ── Output types ─────────────────────────────────────────────────────────
@@ -78,6 +86,7 @@ export interface StageData {
   roomHeight: number;
   concepts: ConceptData[];
   quizzes: QuizData[];
+  signboards?: SignboardEntry[];
   doorPosition: { x: number; y: number };
   spawnPosition: { x: number; y: number };
   nextStage: number | null;
@@ -326,10 +335,10 @@ function generateStageRoomTmj(stageData: StageData): TmjMap {
     point: true,
   };
 
-  const doorObj: TmjObject = {
+  const portalObj: TmjObject = {
     id: 2,
-    name: 'door',
-    type: 'door',
+    name: 'portal',
+    type: 'portal',
     x: stageData.doorPosition.x * TILE_PX,
     y: stageData.doorPosition.y * TILE_PX,
     width: TILE_PX,
@@ -389,7 +398,7 @@ function generateStageRoomTmj(stageData: StageData): TmjMap {
     y: 0,
     visible: true,
     opacity: 1,
-    objects: [spawnObj, doorObj, ...npcObjects],
+    objects: [spawnObj, portalObj, ...npcObjects],
   };
 
   return {
@@ -502,6 +511,7 @@ export function generateStageData(
     roomHeight,
     concepts,
     quizzes,
+    ...(course.signboards?.length && { signboards: course.signboards }),
     doorPosition: { x: DOOR_X, y: DOOR_Y },
     spawnPosition: { x: SPAWN_X, y: SPAWN_Y },
     nextStage: stageNumber < totalStages ? stageNumber + 1 : null,

@@ -13,14 +13,23 @@ export interface Quiz {
   correctAnswer?: string;
 }
 
+export interface Signboard {
+  id: string;
+  title: string;
+  position: { x: number; y: number };
+  dataSource: 'chatlog';
+}
+
 export interface StageConfig {
   id: string;
   stageNumber: number;
   title: string;
   concepts: Concept[];
   quizzes: Quiz[];
+  signboards?: Signboard[];
   roomWidth: number;
   roomHeight: number;
+  mode?: 'portal' | 'door';
 }
 
 export interface UserProgress {
