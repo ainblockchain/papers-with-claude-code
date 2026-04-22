@@ -11,6 +11,10 @@ export interface ValidateContext {
   // Logged-in user's GitHub ID — used to validate the assignee field
   // (correct answer = "the user assigned the task to themselves").
   username?: string | null;
+  // Per-field attempt count (1-based). Used server-side to escalate hint
+  // specificity for free-input fields — e.g. solutionDirection starts
+  // abstract and reveals more after repeated misses.
+  attempt?: number;
 }
 
 export interface ValidateResult {

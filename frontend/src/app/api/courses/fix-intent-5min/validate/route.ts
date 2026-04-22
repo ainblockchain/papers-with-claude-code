@@ -5,6 +5,7 @@ import type {
 } from '@/lib/courses/fix-intent-5min/course-state';
 import { buildTitleValidationPrompt } from '@/lib/courses/fix-intent-5min/prompts/title';
 import { buildProblemAnalysisValidationPrompt } from '@/lib/courses/fix-intent-5min/prompts/problemAnalysis';
+import { buildSolutionDirectionValidationPrompt } from '@/lib/courses/fix-intent-5min/prompts/solutionDirection';
 
 // Convert a small subset of HTML (what our rich BlockField emits) to a
 // readable plain-text representation — tables collapse to tab-separated
@@ -41,6 +42,7 @@ interface Body {
   context?: {
     representativeIntent?: SelectedIntent | null;
     username?: string | null;
+    attempt?: number;
   };
 }
 
@@ -139,7 +141,44 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  if (fieldId === 'solutionDirection') {
+    try {
+      const { instructions, input } = buildSolutionDirectionValidationPrompt(
+        context?.representativeIntent ?? null,
+        value,
+        Math.max(1, context?.attempt ?? 1),
+      );
+      const { text } = await callAzureResponses({ instructions, input });
+      const parsed = parseJsonLeniently(text) as
+        | { pass?: unknown; hint?: unknown }
+        | null;
+      if (!parsed || typeof parsed.pass !== 'boolean') {
+        console.error(
+          '[validate/solutionDirection] unparseable LLM response',
+          { text },
+        );
+        return NextResponse.json({
+          ok: true,
+          pass: false,
+          hint: '검증 서버가 판정을 전달하지 못했어요. 잠시 후 다시 시도해주세요.',
+        });
+      }
+      return NextResponse.json({
+        ok: true,
+        pass: parsed.pass,
+        hint: typeof parsed.hint === 'string' ? parsed.hint : '',
+      });
+    } catch (err) {
+      console.error('[validate/solutionDirection] call failed', err);
+      return NextResponse.json({
+        ok: true,
+        pass: false,
+        hint: '검증 서버에 일시적 오류가 있어요. 다시 시도해주세요.',
+      });
+    }
+  }
+
   // Free-input fields other than the wired prompts still stub-pass
-  // (solutionDirection, workContent, result).
+  // (workContent, result).
   return NextResponse.json({ ok: true, pass: true });
 }

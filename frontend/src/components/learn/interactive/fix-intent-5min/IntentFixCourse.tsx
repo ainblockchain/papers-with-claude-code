@@ -111,6 +111,12 @@ export function IntentFixCourse() {
   const [currentFieldIdx, setCurrentFieldIdx] = useState(0);
   const [notionError, setNotionError] = useState<string | null>(null);
   const [validating, setValidating] = useState(false);
+  // Per-field attempt counters — used to escalate hint specificity when the
+  // learner misses repeatedly on free-input fields (solutionDirection today,
+  // extensible later). Reset on successful submission.
+  const [fieldAttempts, setFieldAttempts] = useState<
+    Partial<Record<NotionFieldId, number>>
+  >({});
   // Guards phase-advancing handlers while a blockchain write is in-flight,
   // so a rapid second click can't race ahead of a failed persist.
   const [persisting, setPersisting] = useState(false);
@@ -443,12 +449,16 @@ export function IntentFixCourse() {
     if (validating) return;
     if (activeFieldOrder[currentFieldIdx] !== fieldId) return;
     setValidating(true);
+    // attempt is 1-based; "this submission's attempt number" = prior fails + 1.
+    const attempt = (fieldAttempts[fieldId] ?? 0) + 1;
     const result = await validateNotionField(fieldId, value, {
       representativeIntent: representative,
       username: githubUsername,
+      attempt,
     });
     if (!result.pass) {
       setValidating(false);
+      setFieldAttempts((prev) => ({ ...prev, [fieldId]: attempt }));
       const freeInput =
         fieldId === 'title' ||
         fieldId === 'problemAnalysis' ||
@@ -494,6 +504,11 @@ export function IntentFixCourse() {
       return;
     }
     setNotion(newNotion);
+    setFieldAttempts((prev) => {
+      const next = { ...prev };
+      delete next[fieldId];
+      return next;
+    });
     const nextIdx = currentFieldIdx + 1;
     setValidating(false);
 
