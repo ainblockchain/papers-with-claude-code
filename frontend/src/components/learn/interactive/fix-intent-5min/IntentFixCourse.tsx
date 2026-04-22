@@ -662,7 +662,7 @@ export function IntentFixCourse() {
         {showStage3Mission && (
           <QuestModal
             label="QUEST"
-            body="수정 대상 탭에서 셀을 하나 이상 편집한 뒤, 우측 상단 Custom Scripts → Update 스크립트 실행 을 클릭해 Dev 환경에 반영하세요."
+            body="수정 대상 탭에서 셀을 하나 이상 편집한 뒤, 메뉴바의 Custom Scripts → Update 스크립트 실행 을 클릭해 Dev 환경에 반영하세요."
             cta="확인"
             onAccept={() => setStage3MissionSeen(true)}
           />
