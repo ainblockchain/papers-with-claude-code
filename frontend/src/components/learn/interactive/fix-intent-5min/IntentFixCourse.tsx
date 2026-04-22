@@ -120,6 +120,11 @@ export function IntentFixCourse() {
   // the entire stage-1 run (both local state and blockchain blob).
   const [hearts, setHearts] = useState(3);
   const [showRestart, setShowRestart] = useState(false);
+  // Countdown timer HUD (dashboard-only). Runs while the user is actively
+  // scanning rows; pauses when any modal is up so reading feedback doesn't
+  // cost time. Hitting zero triggers the same game-over path as hearts=0.
+  const TIMER_TOTAL = 60;
+  const [timerRemaining, setTimerRemaining] = useState(TIMER_TOTAL);
   // Notion floating panel — collapsible companion that persists from the
   // moment a representative intent is picked through Stage 1 completion.
   // Starts closed so users first see the Notion landing page and open the
@@ -513,10 +518,19 @@ export function IntentFixCourse() {
           />
         )}
         {dashboardFeedback && !showQuest && !showRestart && (
-          <FeedbackModal
-            correct={dashboardFeedback.correct}
-            onClose={handleDashboardFeedbackClose}
-          />
+          dashboardFeedback.correct ? (
+            <QuestModal
+              label="QUEST CLEAR"
+              body="인텐트 잘 찾았어요! 이제 노션 페이지로 이동해 이슈를 Task 로 등록합니다."
+              cta={persisting ? '저장 중…' : '확인'}
+              onAccept={handleDashboardFeedbackClose}
+            />
+          ) : (
+            <FeedbackModal
+              correct={false}
+              onClose={handleDashboardFeedbackClose}
+            />
+          )
         )}
         {showRestart && (
           <QuestModal

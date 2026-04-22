@@ -25,6 +25,7 @@ import {
 
 interface Props {
   onCreate: () => void;
+  onStray?: () => void;
 }
 
 const TASKS: {
@@ -182,18 +183,24 @@ function NotionIconButton({
 }
 
 function NotionSplitCreateButton({ onClick }: { onClick: () => void }) {
+  // Stop propagation so the NotionLanding root onClick (onStray) doesn't
+  // also fire when the user clicks the correct button.
+  const handle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onClick();
+  };
   return (
     <div className="ml-[6px] inline-flex h-7 overflow-hidden rounded-[6px] text-[14px] font-medium text-white">
       <button
         type="button"
-        onClick={onClick}
+        onClick={handle}
         className="inline-flex items-center bg-[#2383E2] px-2 hover:bg-[#1A73D1]"
       >
         새로 만들기
       </button>
       <button
         type="button"
-        onClick={onClick}
+        onClick={handle}
         aria-label="추가 옵션 더 보기"
         className="inline-flex w-6 items-center justify-center bg-[#2383E2] shadow-[inset_1px_0_0_rgba(255,255,255,0.2)] hover:bg-[#1A73D1]"
       >
@@ -683,9 +690,12 @@ function ContributionRankingBarChart() {
   );
 }
 
-export function NotionLanding({ onCreate }: Props) {
+export function NotionLanding({ onCreate, onStray }: Props) {
   return (
-    <div className="h-full w-full overflow-auto bg-white font-[family:-apple-system,BlinkMacSystemFont,'Segoe_UI','Noto_Sans_KR',sans-serif] text-[#37352f]">
+    <div
+      onClick={onStray}
+      className="h-full w-full overflow-auto bg-white font-[family:-apple-system,BlinkMacSystemFont,'Segoe_UI','Noto_Sans_KR',sans-serif] text-[#37352f]"
+    >
       {/* Cover */}
       <div
         className="relative h-[180px] w-full bg-white bg-cover bg-center"
@@ -906,7 +916,10 @@ export function NotionLanding({ onCreate }: Props) {
 
             {/* New button */}
             <button
-              onClick={onCreate}
+              onClick={(e) => {
+                e.stopPropagation();
+                onCreate();
+              }}
               className="flex w-full items-center gap-1.5 px-2 py-2 text-left text-[14px] text-[rgba(55,53,47,0.45)] transition-colors hover:bg-[rgba(55,53,47,0.04)] hover:text-[rgba(55,53,47,0.85)]"
             >
               <Plus size={14} />
