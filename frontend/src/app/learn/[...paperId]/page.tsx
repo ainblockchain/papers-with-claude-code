@@ -163,14 +163,19 @@ export default function LearnPage() {
         }
       }
 
-      // Record stage_enter via dedicated server API
+      // Record stage_enter via dedicated server API — use the canonical
+      // double-dash paperId (paper.id). The `paperId` variable from URL
+      // params is slash-separated ("slug/course") which would derive a
+      // different blockchain topicKey than everything else in the system
+      // (QuizOverlay, CourseCanvas, VillageCanvas, completers reader all
+      // use paper.id), splitting events across two buckets per course.
       if (!isCancelled()) {
-        console.log('[learn] calling /api/stage-enter for', paperId, 'stage', initialStageIdx);
+        console.log('[learn] calling /api/stage-enter for', paper.id, 'stage', initialStageIdx);
         fetch('/api/stage-enter', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            paperId,
+            paperId: paper.id,
             stageNum: initialStageIdx,
             stageTitle: stageData[initialStageIdx]?.title,
             passkeyPublicKey: passkeyInfo?.publicKey,
