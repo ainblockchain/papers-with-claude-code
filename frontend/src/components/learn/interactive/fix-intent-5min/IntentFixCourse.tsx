@@ -30,6 +30,7 @@ import {
 } from '@/lib/courses/fix-intent-5min/storage';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useLearningStore } from '@/stores/useLearningStore';
+import { progressAdapter } from '@/lib/adapters/progress';
 import { DashboardView } from './DashboardView';
 import { FeedbackModal } from './FeedbackModal';
 import { QuestModal } from './QuestModal';
@@ -48,6 +49,46 @@ import { SheetEditPage } from './SheetEditPage';
 import { ChatbotTestPage } from './ChatbotTestPage';
 
 export const FIX_INTENT_COURSE_ID = 'curious-nyang-intent-guide--fix-intent-5min';
+const FIX_INTENT_TOTAL_STAGES = 4;
+
+// Mirror QuizOverlay's stage-complete side-effects for the interactive course:
+// 1) write to localStorage (fallback when blockchain is slow/failing) and
+// 2) update the Zustand progress store so in-session UI sees the new stage
+//    even on the first play through (when useLearningStore.progress starts
+//    null and the original "if (curr) setProgress(...)" guard used to skip).
+function markStageCompleteLocally(stageNum: number) {
+  const { progress: curr, setProgress } = useLearningStore.getState();
+  const { user } = useAuthStore.getState();
+  const completedAt = new Date().toISOString();
+
+  if (user) {
+    progressAdapter.saveCheckpoint({
+      userId: user.id,
+      paperId: FIX_INTENT_COURSE_ID,
+      stageNumber: stageNum,
+      completedAt,
+      totalStages: FIX_INTENT_TOTAL_STAGES,
+      completedOnly: true,
+    });
+  }
+
+  const alreadyDone = curr?.completedStages?.some(
+    (s) => s.stageNumber === stageNum,
+  );
+  if (!alreadyDone) {
+    setProgress({
+      paperId: FIX_INTENT_COURSE_ID,
+      currentStage: curr?.currentStage ?? stageNum,
+      totalStages: curr?.totalStages ?? FIX_INTENT_TOTAL_STAGES,
+      completedStages: [
+        ...(curr?.completedStages ?? []),
+        { stageNumber: stageNum, completedAt },
+      ],
+      unlockedStages: curr?.unlockedStages ?? [],
+      lastAccessedAt: completedAt,
+    });
+  }
+}
 
 type Phase =
   | 'dashboard'
@@ -834,16 +875,7 @@ export function IntentFixCourse() {
       setCurrentFieldIdx(nextIdx);
       setPhase('quest-clear');
       await recordStageComplete(passkeyPublicKey, 0);
-      const { progress: curr, setProgress } = useLearningStore.getState();
-      if (curr && !curr.completedStages.some((s) => s.stageNumber === 0)) {
-        setProgress({
-          ...curr,
-          completedStages: [
-            ...curr.completedStages,
-            { stageNumber: 0, completedAt: new Date().toISOString() },
-          ],
-        });
-      }
+      markStageCompleteLocally(0);
       return;
     }
 
@@ -852,16 +884,7 @@ export function IntentFixCourse() {
       setCurrentFieldIdx(nextIdx);
       setPhase('quest-clear-2');
       await recordStageComplete(passkeyPublicKey, 1);
-      const { progress: curr, setProgress } = useLearningStore.getState();
-      if (curr && !curr.completedStages.some((s) => s.stageNumber === 1)) {
-        setProgress({
-          ...curr,
-          completedStages: [
-            ...curr.completedStages,
-            { stageNumber: 1, completedAt: new Date().toISOString() },
-          ],
-        });
-      }
+      markStageCompleteLocally(1);
       return;
     }
 
@@ -871,16 +894,7 @@ export function IntentFixCourse() {
       setCurrentFieldIdx(nextIdx);
       setPhase('quest-clear-3');
       await recordStageComplete(passkeyPublicKey, 2);
-      const { progress: curr, setProgress } = useLearningStore.getState();
-      if (curr && !curr.completedStages.some((s) => s.stageNumber === 2)) {
-        setProgress({
-          ...curr,
-          completedStages: [
-            ...curr.completedStages,
-            { stageNumber: 2, completedAt: new Date().toISOString() },
-          ],
-        });
-      }
+      markStageCompleteLocally(2);
       return;
     }
 
@@ -894,16 +908,7 @@ export function IntentFixCourse() {
       setCurrentFieldIdx(nextIdx);
       setPhase('course-complete');
       await recordStageComplete(passkeyPublicKey, 3);
-      const { progress: curr, setProgress } = useLearningStore.getState();
-      if (curr && !curr.completedStages.some((s) => s.stageNumber === 3)) {
-        setProgress({
-          ...curr,
-          completedStages: [
-            ...curr.completedStages,
-            { stageNumber: 3, completedAt: new Date().toISOString() },
-          ],
-        });
-      }
+      markStageCompleteLocally(3);
       return;
     }
 
@@ -941,16 +946,7 @@ export function IntentFixCourse() {
     setCurrentFieldIdx(STAGE3_FIELD_ORDER.length);
     setPhase('quest-clear-3');
     await recordStageComplete(passkeyPublicKey, 2);
-    const { progress: curr, setProgress } = useLearningStore.getState();
-    if (curr && !curr.completedStages.some((s) => s.stageNumber === 2)) {
-      setProgress({
-        ...curr,
-        completedStages: [
-          ...curr.completedStages,
-          { stageNumber: 2, completedAt: new Date().toISOString() },
-        ],
-      });
-    }
+    markStageCompleteLocally(2);
     setValidating(false);
   };
 
