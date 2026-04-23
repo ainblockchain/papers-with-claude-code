@@ -850,9 +850,51 @@ export function IntentFixCourse() {
       );
       return;
     }
-    // Persist BEFORE advancing UI. If the blockchain write fails, leave the
-    // user on the same field so they can retry instead of silently losing
-    // a validated answer (and, at completion, skipping stage_complete).
+    const nextIdx = currentFieldIdx + 1;
+
+    // Identify stage-boundary transitions up-front so we can order the
+    // blockchain writes intentionally. `recordStageComplete` must run
+    // BEFORE `persist`: stage 0 was consistently missing on-chain because
+    // the last-field persist (problemAnalysis, rich-HTML) fired a heavy
+    // user-wallet tx immediately before the tiny stage_complete tx from
+    // the same wallet — the back-to-back pair raced/overlapped and the
+    // record tx silently dropped. Stages 1-3 survived only because they
+    // were separated by the user's next field-entry delay. Firing
+    // recordStageComplete first lets the small tx land cleanly, and any
+    // later persist failure no longer costs the learner credit.
+    let boundaryStage: number | null = null;
+    let boundaryNextPhase: Phase | null = null;
+    if (phase === 'notion' && nextIdx >= STAGE1_FIELD_ORDER.length) {
+      boundaryStage = 0;
+      boundaryNextPhase = 'quest-clear';
+    } else if (
+      phase === 'stage2-page' &&
+      nextIdx >= STAGE2_FIELD_ORDER.length
+    ) {
+      boundaryStage = 1;
+      boundaryNextPhase = 'quest-clear-2';
+    } else if (
+      phase === 'sheet-edit' &&
+      nextIdx >= STAGE3_FIELD_ORDER.length
+    ) {
+      boundaryStage = 2;
+      boundaryNextPhase = 'quest-clear-3';
+    } else if (
+      phase === 'stage4-result-page' &&
+      nextIdx >= STAGE4_FIELD_ORDER.length
+    ) {
+      boundaryStage = 3;
+      boundaryNextPhase = 'course-complete';
+    }
+
+    if (boundaryStage !== null) {
+      await recordStageComplete(passkeyPublicKey, boundaryStage);
+      markStageCompleteLocally(boundaryStage);
+    }
+
+    // Persist the field value. If the blockchain write fails, leave the
+    // user on the same field so they can retry — but at stage boundaries
+    // we have already recorded completion above, so learner credit is safe.
     const newNotion: NotionState = { ...notion, [fieldId]: value };
     const persistOk = await persist({ notion: newNotion });
     if (!persistOk) {
@@ -865,54 +907,10 @@ export function IntentFixCourse() {
       delete next[fieldId];
       return next;
     });
-    const nextIdx = currentFieldIdx + 1;
     setValidating(false);
 
-    // Stage 1 last field just passed → mark stage 0 complete on-chain and
-    // show Quest Clear modal; the modal's accept handler transitions to
-    // Stage 2 fullscreen page and resets the field cursor.
-    if (phase === 'notion' && nextIdx >= STAGE1_FIELD_ORDER.length) {
-      setCurrentFieldIdx(nextIdx);
-      setPhase('quest-clear');
-      await recordStageComplete(passkeyPublicKey, 0);
-      markStageCompleteLocally(0);
-      return;
-    }
-
-    // Stage 2 last field → Quest Clear → Stage 3.
-    if (phase === 'stage2-page' && nextIdx >= STAGE2_FIELD_ORDER.length) {
-      setCurrentFieldIdx(nextIdx);
-      setPhase('quest-clear-2');
-      await recordStageComplete(passkeyPublicKey, 1);
-      markStageCompleteLocally(1);
-      return;
-    }
-
-    // Stage 3 last field (workContent, auto-submitted by SheetEditPage) →
-    // Quest Clear → Stage 4.
-    if (phase === 'sheet-edit' && nextIdx >= STAGE3_FIELD_ORDER.length) {
-      setCurrentFieldIdx(nextIdx);
-      setPhase('quest-clear-3');
-      await recordStageComplete(passkeyPublicKey, 2);
-      markStageCompleteLocally(2);
-      return;
-    }
-
-    // Stage 4 last field (result) → course complete. The result is now
-    // submitted from the stage4-result-page (NotionTaskPage) after the
-    // chatbot interaction, not from the chatbot itself.
-    if (
-      phase === 'stage4-result-page' &&
-      nextIdx >= STAGE4_FIELD_ORDER.length
-    ) {
-      setCurrentFieldIdx(nextIdx);
-      setPhase('course-complete');
-      await recordStageComplete(passkeyPublicKey, 3);
-      markStageCompleteLocally(3);
-      return;
-    }
-
     setCurrentFieldIdx(nextIdx);
+    if (boundaryNextPhase) setPhase(boundaryNextPhase);
   };
 
   // Stage 3 completion handler invoked from SheetEditPage when the user
@@ -927,6 +925,13 @@ export function IntentFixCourse() {
     // reload.
     if (validating) return;
     setValidating(true);
+
+    // Same ordering fix as handleNotionSubmit: record stage_complete on-chain
+    // BEFORE the heavier persist so a persist failure / tx race doesn't cost
+    // the learner credit for the stage.
+    await recordStageComplete(passkeyPublicKey, 2);
+    markStageCompleteLocally(2);
+
     const newNotion: NotionState = { ...notion, workContent: summary };
     const persistOk = await persist({
       notion: newNotion,
@@ -945,8 +950,6 @@ export function IntentFixCourse() {
     });
     setCurrentFieldIdx(STAGE3_FIELD_ORDER.length);
     setPhase('quest-clear-3');
-    await recordStageComplete(passkeyPublicKey, 2);
-    markStageCompleteLocally(2);
     setValidating(false);
   };
 
