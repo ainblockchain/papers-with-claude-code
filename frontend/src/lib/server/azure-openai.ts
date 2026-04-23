@@ -6,9 +6,9 @@ interface ResponsesCallOptions {
   input: string;
   maxOutputTokens?: number;
   // How many times to retry on transient (5xx / 408 / 429 / network) errors
-  // before giving up. Each attempt waits ~300ms → ~800ms. Default 1 retry
-  // (= up to 2 total calls) — empirically covers the short Azure blips
-  // that otherwise land in the caller's catch block.
+  // before giving up. Each attempt waits ~300ms → ~800ms → ~1300ms. Default
+  // 2 retries (= up to 3 total calls) — covers short Azure blips AND the
+  // ~1-second local DNS (ENOTFOUND) glitches we keep hitting in dev.
   retries?: number;
 }
 
@@ -26,7 +26,7 @@ export async function callAzureResponses({
   instructions,
   input,
   maxOutputTokens = 300,
-  retries = 1,
+  retries = 2,
 }: ResponsesCallOptions): Promise<ResponsesCallResult> {
   const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
   const apiKey = process.env.AZURE_OPENAI_API_KEY;
@@ -55,7 +55,7 @@ export async function callAzureResponses({
   let lastErr: unknown;
   for (let attempt = 0; attempt <= retries; attempt++) {
     if (attempt > 0) {
-      // Exponential-ish backoff: 300ms, 800ms
+      // Exponential-ish backoff: 300ms, 800ms, 1300ms
       await new Promise((resolve) =>
         setTimeout(resolve, 300 + attempt * 500),
       );
