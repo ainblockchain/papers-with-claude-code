@@ -149,47 +149,19 @@ export const brokenRowsByPattern: Record<MismatchPattern, IntentRow[]> = {
     {
       sessionId: "e64c3c01-ad81-4ab4-aec1-79eed00f96f5",
       createdAt: "4월 19, 2026, 4:40 오후",
-      intent: "재수강",
+      // Stage-1 broken row. Intent label is deliberately unrelated to the
+      // user's question so the mismatch reads instantly ("유저는 시험 얘긴데
+      // 챗봇이 학식 메뉴를 답했네"). The user message is load-bearing for
+      // the downstream Stage 2~4 prompts (all of them treat "시험 결시" as
+      // the fix topic via row.userMessage), so it must stay as-is.
+      intent: "학생식당 메뉴",
       userMessage: "시험 못보면 어떻게 되는거야",
-      assistantContent: `^^Thinking^^생각 중입니다...^^/Thinking^^
+      assistantContent: `오늘 한양대학교 서울캠퍼스 학생식당 중식 메뉴는 다음과 같아요.
 
-건강 악화로 인해 시험을 보지 못할 경우, 한양대학교에서는 아래와 같은 절차를 따를 수 있습니다:
+- **제1학생식당**: 김치찌개 · 계란말이 · 샐러드바 (5,500원)
+- **제2학생식당**: 돈까스 · 된장국 · 요거트 (6,000원)
 
----
-
-### 1. **병결 사유 증빙**
-- 시험에 결석한 경우, **병결 사유를 증빙할 수 있는 서류**(예: 병원 진단서, 의사 소견서 등)를 준비해야 합니다.
-- 해당 서류는 **시험일로부터 7일 이내**에 제출하는 것이 일반적입니다. (정확한 기한은 학과나 교수님에 따라 다를 수 있으니 확인 필요)
-
----
-
-### 2. **담당 교수님과의 소통**
-- 시험을 주관하는 **담당 교수님께 즉시 연락**하여 상황을 설명하세요.
-- 교수님께서 병결 사유를 인정하시면, **추가 시험(대체 시험)**을 제공하거나 다른 방식으로 성적을 평가할 수 있습니다.
-
----
-
-### 3. **학과 사무실에 문의**
-- 학과 사무실에 연락하여 병결 처리 및 시험 대체 방안에 대한 학교 정책을 확인하세요.
-- 학과마다 세부 규정이 다를 수 있으므로, 학과 사무실의 안내를 따르는 것이 중요합니다.
-
----
-
-### 4. **학교 규정 확인**
-- 한양대학교의 학사 규정에 따라 병결 시험에 대한 처리 방식이 명시되어 있을 수 있습니다. 학사 안내 페이지나 학사팀에 문의하여 정확한 정보를 확인하세요.
-
----
-
-### 5. **보건센터 활용**
-- 학교 내 보건센터에서 진료를 받았다면, 해당 기록을 병결 증빙 자료로 활용할 수도 있습니다.
-
----
-
-### 추가 문의
-더 구체적인 정보가 필요하시다면, 한양대학교 학사팀이나 학과 사무실로 직접 문의하시길 권장합니다.  
-- **학사팀 연락처**: [한양대학교 학사팀](https://www.hanyang.ac.kr/web/www/home)
-
-빠른 쾌유를 빌며, 시험 관련 절차가 원활히 진행되길 바랍니다! 😊`,
+운영 시간은 **11:30 ~ 14:00** 이며, 자세한 식단은 [한양대학교 복지회 홈페이지](https://welfare.hanyang.ac.kr/)에서 확인하실 수 있어요. 😊`,
     },
     {
       sessionId: "2d1682a9-1587-4751-91e8-7354a029fd6d",
@@ -327,11 +299,9 @@ export const cleanRows: IntentRow[] = [
     createdAt: "4월 20, 2026, 2:35 오후",
     intent: "학사 일정",
     userMessage: "중간고사 기간이 언제야",
-    assistantContent: `^^Thinking^^생각 중입니다...^^/Thinking^^
+    assistantContent: `2026학년도 1학기 중간고사는 **4월 16일(목) ~ 4월 29일(수)** 에 진행됩니다.
 
-2026학년도 1학기 중간고사 기간은 학사일정에 명시되어 있지 않습니다. 하지만 **중간 강의평가 기간**이 **2026년 3월 30일(월)부터 4월 10일(금)**까지로 설정되어 있으니, 중간고사도 이와 비슷한 시기에 진행될 가능성이 높습니다.
-
-정확한 시험 일정은 각 과목의 담당 교수님이나 강의 계획서를 통해 확인하시는 것이 가장 확실합니다. 추가로 궁금한 점이 있다면 말씀해 주세요! 😊`,
+과목별 세부 일정은 HY-in 학사 공지 또는 담당 교수님의 강의 공지를 확인해 주세요.`,
   },
   {
     sessionId: "8449edb1-356e-4e64-b9be-c82f9ae1d882",
@@ -352,13 +322,9 @@ export const cleanRows: IntentRow[] = [
     createdAt: "4월 20, 2026, 2:08 오후",
     intent: "포털",
     userMessage: "포털 주소 좀",
-    assistantContent: `^^Thinking^^생각 중입니다...^^/Thinking^^
+    assistantContent: `한양대학교 포털 HY-in 바로가기: **https://portal.hanyang.ac.kr/**
 
-한양대학교 포털 HY-in의 주소는 다음과 같습니다:
-
-👉 [HY-in 바로가기](https://portal.hanyang.ac.kr/)
-
-포털에서 학사, 증명서 발급, 장학금 등 다양한 서비스를 이용하실 수 있으니 참고하세요! 😊`,
+학사·증명서 발급·장학금 등 다양한 서비스를 이용하실 수 있어요.`,
   },
   {
     sessionId: "bf9279f8-e4d8-4371-ba7c-0d0b8d60cc33",
@@ -639,28 +605,9 @@ export const cleanRows: IntentRow[] = [
     createdAt: "4월 15, 2026, 9:46 오전",
     intent: "등록금 얼마",
     userMessage: "인공지능학과 등록금",
-    assistantContent: `^^Thinking^^생각 중입니다...^^/Thinking^^
+    assistantContent: `학과별 등록금은 매년 1월 말에 확정되며, 상세 금액은 **HY-in 포털 → 등록장학 → 등록금 고지서 출력**에서 확인하실 수 있어요.
 
-인공지능학과의 등록금은 매년 학과별로 상이하며, 내국인의 경우 **매년 1월 말**에 결정됩니다. 
-
-등록금 고지서를 확인하는 방법은 다음과 같습니다:
-
-### 1️⃣ HY-in 포털 이용
-1. [HY-in 포털](https://portal.hanyang.ac.kr) 접속 후 로그인  
-2. **등록장학 메뉴** → **등록금 고지서 출력**  
-3. 고지서 확인 및 출력  
-
-### 2️⃣ 한양대학교 홈페이지 이용
-1. [한양대학교 홈페이지](https://www.hanyang.ac.kr) 접속  
-2. 메인화면의 **[광장] → 재학생 등록안내 배너 클릭**  
-3. **등록금 고지서 출력 버튼** 클릭 후 필수정보 입력  
-4. 고지서 조회 및 인쇄  
-
-📌 **주의사항**  
-- 등록금 납부 후에는 해당 차수의 고지서를 추가 출력할 수 없으니, 꼭 납부 전에 출력하세요!  
-- 신입생 및 편입생의 경우, 등록금 고지서 확인 일정이 재학생과 다를 수 있으니 **합격자 유의사항**을 참고하시기 바랍니다.
-
-더 구체적인 금액 정보는 위 방법으로 고지서를 확인하거나, 학과 사무실에 문의하시면 됩니다! 😊`,
+인공지능학과의 2026학년도 1학기 등록금 고지서도 같은 경로에서 조회 가능합니다.`,
   },
   {
     sessionId: "e4b44adc-66da-43b9-af16-fecb3deb8252",
@@ -681,15 +628,9 @@ export const cleanRows: IntentRow[] = [
     createdAt: "4월 17, 2026, 6:56 오후",
     intent: "교환학생",
     userMessage: "해외대학 복수학위 학위제도 있어",
-    assistantContent: `^^Thinking^^생각 중입니다...^^/Thinking^^
+    assistantContent: `네, 한양대학교는 해외 자매결연 대학과 **복수학위(Dual Degree) 프로그램**을 운영하고 있어요. 본교와 해외 대학에서 각각 수학해 두 학위를 동시에 취득할 수 있는 제도입니다.
 
-한양대학교는 해외 대학과의 협정을 통해 복수학위 프로그램을 운영하고 있습니다. 복수학위 프로그램은 본교와 해외 대학에서 각각 일정 기간 동안 수학하여 두 대학의 학위를 모두 취득할 수 있는 제도입니다. 
-
-자세한 내용은 아래 링크를 통해 확인하실 수 있습니다:
-- [서울캠퍼스 복수학위 안내](https://oia.hanyang.ac.kr/exchangeout)
-- [에리카캠퍼스 복수학위 안내](https://global.hanyang.ac.kr/s2/s2_1_1.php)
-
-복수학위 프로그램은 각 캠퍼스와 협정 대학에 따라 세부 조건이 다를 수 있으니, 위의 링크를 참고하시거나 국제처에 문의하시면 더 정확한 정보를 얻으실 수 있습니다! 😊`,
+자세한 안내는 국제처 [oia.hanyang.ac.kr](https://oia.hanyang.ac.kr/exchangeout) 에서 확인하실 수 있어요.`,
   },
   {
     sessionId: "d1fdf835-0a19-40af-9be2-963567e5dada",
@@ -783,22 +724,19 @@ export function buildChatLogSets(
 
 const STATIC_SET_BROKEN_ID = 'e64c3c01-ad81-4ab4-aec1-79eed00f96f5';
 
-// 9 clean rows in display order (broken row gets spliced into position
-// STATIC_SET_BROKEN_POSITION between indices 3 and 4).
+// 4 clean rows in display order (broken row gets spliced into position
+// STATIC_SET_BROKEN_POSITION). Other pool rows stay around unused so the
+// set can be reshaped later without rewriting the pool.
 const STATIC_SET_CLEAN_ORDER: readonly string[] = [
   '27db9842-caf3-49d5-a0e2-8c717ddaf686', // 학사 일정 | 중간고사 기간이 언제야
   'fa120c32-cff2-48aa-a010-e166f2ee42bf', // 포털 | 포털 주소 좀
-  'bf9279f8-e4d8-4371-ba7c-0d0b8d60cc33', // 증명서 | 재학증명서 뽑기
-  '7819e029-3146-4fad-80fc-68ba661b0962', // 학생증 | 앱에서 학생증 어떻게 발급 받아?
-  'f8dee4a6-a86c-4446-baf3-09cf2cf763b8', // 졸업 | 졸업요건 관련 문의는요
-  '28c42a05-5a9c-4498-90b2-704aa4161257', // 통학버스 | 한양대 정문 버스 알려줘
-  '7137c383-ade4-489d-95d3-7f6a9b039d47', // 휴학 | 지금 휴학할수있나요
   '3536776c-c5f2-4151-a7c6-02671f49527a', // 등록금 얼마 | 인공지능학과 등록금
   '10493982-5ee5-4e60-afeb-9ac13fd4ba0e', // 교환학생 | 해외대학 복수학위 학위제도 있어
 ];
 
-// 0-based position (5th row) of the broken row in the final 10-row set.
-const STATIC_SET_BROKEN_POSITION = 4;
+// 0-based index of the broken row inside the final 5-row lineup
+// (2 → middle slot, i.e. 3rd row of 5).
+const STATIC_SET_BROKEN_POSITION = 2;
 
 /**
  * Builds the fixed 10-row chat-log set used by Stage 1. The broken row sits
