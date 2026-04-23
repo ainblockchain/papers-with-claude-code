@@ -51,7 +51,7 @@ interface Props {
 }
 
 const INTENT_COLS: Array<{
-  id: 'intent' | 'leadSentence' | 'prompt' | 'createdAt' | 'isPush';
+  id: 'intent' | 'leadSentence' | 'prompt' | 'createdAt';
   label: string;
   width: string;
   readonly?: boolean;
@@ -60,7 +60,6 @@ const INTENT_COLS: Array<{
   { id: 'leadSentence', label: '대표 Sentence', width: '180px' },
   { id: 'prompt', label: 'Prompt', width: '1fr' },
   { id: 'createdAt', label: 'created_at', width: '180px', readonly: true },
-  { id: 'isPush', label: 'isPush', width: '80px', readonly: true },
 ];
 
 const TRIGGER_COLS: Array<{
@@ -170,7 +169,6 @@ export function SheetEditPage({ disabled, representative, onComplete }: Props) {
       leadSentence: '',
       prompt: '',
       createdAt: new Date().toISOString().replace(/\.\d+Z$/, 'Z'),
-      isPush: 'Y',
     };
     setIntentRowsBySheet((prev) => ({
       ...prev,
@@ -408,7 +406,6 @@ export function SheetEditPage({ disabled, representative, onComplete }: Props) {
             leadSentence: addedIntentRow.leadSentence,
             prompt: addedIntentRow.prompt,
             createdAt: addedIntentRow.createdAt,
-            isPush: addedIntentRow.isPush,
           },
           triggers: triggerRows
             .filter((t) => newTriggerIds.includes(t.id))

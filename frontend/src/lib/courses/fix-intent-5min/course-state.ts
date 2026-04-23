@@ -46,7 +46,6 @@ export interface SheetArtifact {
     leadSentence: string;
     prompt: string;
     createdAt: string;
-    isPush: string;
   };
   triggers: { intent: string; sentence: string }[];
   snapshotAt: number;

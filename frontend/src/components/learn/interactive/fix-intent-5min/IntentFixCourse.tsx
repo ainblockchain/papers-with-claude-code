@@ -148,7 +148,7 @@ function generateWorkSummaryHtml(artifact: SheetArtifact): string {
     `<table>` +
     `<thead><tr>` +
     `<th>sheet</th><th>intent</th><th>lead_sentence</th>` +
-    `<th>prompt</th><th>created_at</th><th>is_push</th>` +
+    `<th>prompt</th><th>created_at</th>` +
     `</tr></thead>` +
     `<tbody><tr>` +
     `<td>${escapeHtml(a.sheetId)}</td>` +
@@ -156,7 +156,6 @@ function generateWorkSummaryHtml(artifact: SheetArtifact): string {
     `<td>${escapeHtml(a.leadSentence)}</td>` +
     `<td>${escapeHtml(a.prompt)}</td>` +
     `<td>${escapeHtml(a.createdAt)}</td>` +
-    `<td>${escapeHtml(a.isPush)}</td>` +
     `</tr></tbody></table>`;
   const triggerRows = artifact.triggers
     .map(
@@ -181,11 +180,16 @@ function generateWorkSummaryHtml(artifact: SheetArtifact): string {
 // Luma-inspired celebration screen — cosmic gradient backdrop, floating
 // nebula blobs, starfield twinkle, multiple firework bursts, and glowing
 // headline. Closes the course with a congratulatory moment and a CTA
-// nudge to keep contributing to 궁금하냥 intents. CSS lives in globals
-// (cc-* keyframes) so the component itself stays markup-only.
+// nudge to keep contributing to 궁금하냥 intents.
+//
+// All animation keyframes + base styling are embedded in a local <style>
+// tag and applied via inline `style` rather than relying on global CSS
+// classes — earlier attempt put `.cc-*` classes in globals.css and the
+// Tailwind v4 build pipeline silently dropped them (filter blur, gradient
+// background, rise-in opacity transitions all failed to apply, leaving
+// hard solid circles on a white background). Inline styling guarantees
+// the celebration renders identically regardless of CSS layer ordering.
 function CourseCompleteView() {
-  // Deterministic positions — keeps the layout stable across re-renders
-  // without pulling in randomness (which would shift the scene).
   const fireworkOrigins = [
     { top: '18%', left: '15%', delay: 0 },
     { top: '22%', left: '75%', delay: 0.4 },
@@ -207,39 +211,87 @@ function CourseCompleteView() {
     { top: '78%', left: '78%', delay: 0.6, size: 3 },
   ];
   const fireworkColors = ['#FFB4E9', '#A78BFA', '#60A5FA', '#FBBF24', '#34D399'];
+  const cosmicBg =
+    'radial-gradient(ellipse at 20% 30%, rgba(150,90,220,0.55), transparent 55%),' +
+    'radial-gradient(ellipse at 80% 20%, rgba(255,110,180,0.5), transparent 55%),' +
+    'radial-gradient(ellipse at 60% 85%, rgba(80,170,255,0.55), transparent 55%),' +
+    'linear-gradient(135deg, #0a0820 0%, #14083a 40%, #1a0a50 100%)';
   return (
-    <div className="cc-bg relative flex h-full w-full items-center justify-center overflow-hidden">
-      {/* Drifting nebula blobs for depth */}
-      <div
-        className="cc-blob pointer-events-none absolute h-[50%] w-[50%] rounded-full"
-        style={{ top: '10%', left: '5%', background: '#A855F7', animationDelay: '0s' }}
-      />
-      <div
-        className="cc-blob pointer-events-none absolute h-[45%] w-[45%] rounded-full"
-        style={{ top: '45%', left: '55%', background: '#EC4899', animationDelay: '3s' }}
-      />
-      <div
-        className="cc-blob pointer-events-none absolute h-[40%] w-[40%] rounded-full"
-        style={{ top: '55%', left: '15%', background: '#3B82F6', animationDelay: '6s' }}
-      />
+    <div
+      className="relative flex h-full w-full items-center justify-center overflow-hidden"
+      style={{ background: cosmicBg }}
+    >
+      <style>{`
+        @keyframes cc-blob-drift {
+          0%   { transform: translate3d(0, 0, 0) scale(1);   opacity: 0.55; }
+          50%  { transform: translate3d(12%, -8%, 0) scale(1.2); opacity: 0.8; }
+          100% { transform: translate3d(0, 0, 0) scale(1);   opacity: 0.55; }
+        }
+        @keyframes cc-twinkle {
+          0%, 100% { opacity: 0.2; transform: scale(0.8); }
+          50%      { opacity: 1;   transform: scale(1.2); }
+        }
+        @keyframes cc-firework-burst {
+          0%   { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+          15%  { opacity: 1; }
+          100% { transform: translate(calc(-50% + var(--fw-dx, 80px)), calc(-50% + var(--fw-dy, -80px))) scale(1.4); opacity: 0; }
+        }
+        @keyframes cc-firework-center {
+          0%   { transform: translate(-50%, -50%) scale(0);   opacity: 0; }
+          30%  { transform: translate(-50%, -50%) scale(1.6); opacity: 1; }
+          100% { transform: translate(-50%, -50%) scale(0.4); opacity: 0; }
+        }
+        @keyframes cc-title-glow {
+          0%, 100% { text-shadow: 0 0 14px rgba(255,180,255,0.55), 0 0 32px rgba(130,120,255,0.45), 0 0 70px rgba(90,200,255,0.35); }
+          50%      { text-shadow: 0 0 22px rgba(255,200,255,0.85), 0 0 48px rgba(160,150,255,0.7),  0 0 110px rgba(120,220,255,0.6); }
+        }
+        @keyframes cc-rise-in {
+          0%   { transform: translateY(20px); opacity: 0; }
+          100% { transform: translateY(0);    opacity: 1; }
+        }
+      `}</style>
+
+      {/* Drifting nebula blobs (blurred via inline filter) */}
+      {[
+        { size: '50%', top: '10%', left: '5%',  color: '#A855F7', delay: 0 },
+        { size: '45%', top: '45%', left: '55%', color: '#EC4899', delay: 3 },
+        { size: '40%', top: '55%', left: '15%', color: '#3B82F6', delay: 6 },
+      ].map((b, i) => (
+        <div
+          key={`blob-${i}`}
+          className="pointer-events-none absolute rounded-full"
+          style={{
+            top: b.top,
+            left: b.left,
+            width: b.size,
+            height: b.size,
+            background: b.color,
+            filter: 'blur(48px)',
+            animation: `cc-blob-drift 14s ease-in-out infinite`,
+            animationDelay: `${b.delay}s`,
+          }}
+        />
+      ))}
 
       {/* Starfield twinkles */}
       {twinkles.map((t, i) => (
         <span
           key={`tw-${i}`}
-          className="cc-twinkle pointer-events-none absolute rounded-full bg-white"
+          className="pointer-events-none absolute rounded-full"
           style={{
             top: t.top,
             left: t.left,
             width: `${t.size}px`,
             height: `${t.size}px`,
+            background: 'white',
             boxShadow: '0 0 8px rgba(255,255,255,0.8)',
+            animation: 'cc-twinkle 3.2s ease-in-out infinite',
             animationDelay: `${t.delay}s`,
           }}
         />
       ))}
 
-      {/* Fireworks — each origin spawns N particles fanning outward */}
+      {/* Fireworks — each origin spawns a glowing center + particles fanning outward */}
       {fireworkOrigins.map((origin, oi) => (
         <div
           key={`fw-${oi}`}
@@ -247,12 +299,14 @@ function CourseCompleteView() {
           style={{ top: origin.top, left: origin.left }}
         >
           <span
-            className="cc-firework-center absolute block h-3 w-3 rounded-full"
+            className="absolute block rounded-full"
             style={{
+              width: '12px',
+              height: '12px',
               background: fireworkColors[oi % fireworkColors.length],
               boxShadow: `0 0 24px ${fireworkColors[oi % fireworkColors.length]}`,
+              animation: 'cc-firework-center 1.6s ease-out infinite',
               animationDelay: `${origin.delay}s`,
-              transform: 'translate(-50%, -50%)',
             }}
           />
           {Array.from({ length: particlesPerFirework }).map((_, pi) => {
@@ -264,13 +318,15 @@ function CourseCompleteView() {
             return (
               <span
                 key={`fw-p-${oi}-${pi}`}
-                className="cc-firework-particle absolute block h-1.5 w-1.5 rounded-full"
+                className="absolute block rounded-full"
                 style={
                   {
+                    width: '6px',
+                    height: '6px',
                     background: color,
                     boxShadow: `0 0 10px ${color}`,
+                    animation: 'cc-firework-burst 1.6s ease-out infinite',
                     animationDelay: `${origin.delay}s`,
-                    transform: 'translate(-50%, -50%)',
                     ['--fw-dx' as string]: `${dx}px`,
                     ['--fw-dy' as string]: `${dy}px`,
                   } as React.CSSProperties
@@ -284,27 +340,43 @@ function CourseCompleteView() {
       {/* Headline + encouragement — centered, rising-in on mount */}
       <div className="relative z-10 flex flex-col items-center px-6 text-center">
         <div
-          className="cc-rise-in mb-3 inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[12px] font-medium tracking-wide text-white/85 backdrop-blur"
-          style={{ animationDelay: '0.05s', opacity: 0 }}
+          className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[12px] font-medium tracking-wide text-white/85 backdrop-blur"
+          style={{
+            opacity: 0,
+            animation: 'cc-rise-in 0.8s ease-out forwards',
+            animationDelay: '0.05s',
+          }}
         >
           🎉 QUEST ALL CLEAR
         </div>
         <h1
-          className="cc-title-glow cc-rise-in bg-gradient-to-br from-white via-[#FFD5F5] to-[#B9D9FF] bg-clip-text text-[44px] font-extrabold leading-tight text-transparent md:text-[56px]"
-          style={{ animationDelay: '0.15s', opacity: 0 }}
+          className="bg-gradient-to-br from-white via-[#FFD5F5] to-[#B9D9FF] bg-clip-text text-[44px] font-extrabold leading-tight text-transparent md:text-[56px]"
+          style={{
+            opacity: 0,
+            animation: 'cc-rise-in 0.8s ease-out forwards, cc-title-glow 3s ease-in-out 0.8s infinite',
+            animationDelay: '0.15s, 0s',
+          }}
         >
           축하합니다!
         </h1>
         <p
-          className="cc-rise-in mt-2 max-w-xl text-[15px] leading-[1.6] text-white/80 md:text-[16px]"
-          style={{ animationDelay: '0.35s', opacity: 0 }}
+          className="mt-2 max-w-xl text-[15px] leading-[1.6] text-white/80 md:text-[16px]"
+          style={{
+            opacity: 0,
+            animation: 'cc-rise-in 0.8s ease-out forwards',
+            animationDelay: '0.35s',
+          }}
         >
           인텐트 기여 한 사이클을 완주했어요. Stage 1~4 기록이 블록체인에 안전하게
           저장되었습니다.
         </p>
         <div
-          className="cc-rise-in mt-8 max-w-xl rounded-2xl border border-white/15 bg-white/10 px-6 py-5 text-[14px] leading-[1.65] text-white/90 backdrop-blur"
-          style={{ animationDelay: '0.55s', opacity: 0 }}
+          className="mt-8 max-w-xl rounded-2xl border border-white/15 bg-white/10 px-6 py-5 text-[14px] leading-[1.65] text-white/90 backdrop-blur"
+          style={{
+            opacity: 0,
+            animation: 'cc-rise-in 0.8s ease-out forwards',
+            animationDelay: '0.55s',
+          }}
         >
           <p className="mb-2 text-[13px] font-semibold uppercase tracking-wider text-[#FFD5F5]">
             🐱 궁금하냥이 여러분의 손을 기다려요
