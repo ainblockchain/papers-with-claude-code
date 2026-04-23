@@ -1,11 +1,17 @@
 import type { CourseState } from './course-state';
 
-const PAPER_ID_SLASH = 'curious-nyang-intent-guide/fix-intent-5min';
+// System convention for paperIds is the double-dash form ("slug--course").
+// Everything else — QuizOverlay, CourseCanvas, VillageCanvas trackEvent,
+// the /api/courses/{courseId}/completers reader — uses this shape. Previously
+// this file hardcoded a slash form which made writeExploration derive a
+// topicKey ("courses|slug|course", two pipes) that no other code path reads,
+// so fix-intent-5min progress was invisible to the Learners tab.
+const PAPER_ID = 'curious-nyang-intent-guide--fix-intent-5min';
 
 export async function loadCourseState(
   passkeyPublicKey: string | undefined,
 ): Promise<CourseState | null> {
-  const params = new URLSearchParams({ paperId: PAPER_ID_SLASH });
+  const params = new URLSearchParams({ paperId: PAPER_ID });
   if (passkeyPublicKey) params.set('passkeyPublicKey', passkeyPublicKey);
   try {
     const res = await fetch(`/api/courses/fix-intent-5min/state?${params.toString()}`, {
@@ -29,7 +35,7 @@ export async function saveCourseState(
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        paperId: PAPER_ID_SLASH,
+        paperId: PAPER_ID,
         passkeyPublicKey,
         courseState,
       }),
@@ -51,7 +57,7 @@ export async function recordStageComplete(
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        paperId: PAPER_ID_SLASH,
+        paperId: PAPER_ID,
         stageNum,
         passkeyPublicKey,
       }),

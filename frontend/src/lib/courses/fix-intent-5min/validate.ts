@@ -49,11 +49,20 @@ export async function validateNotionField(
     }
     case 'workType': {
       // Multi-select: comma-separated serialization (e.g. "newIntent,add").
-      // Pass only if every required key is present in the selection.
+      // Require an EXACT set match — every required key present AND no
+      // extras. Previously we only checked containment, which let
+      // [newIntent, add, <anythingElse>] pass since the required pair was
+      // still in there. The per-wrong-key hint (computeWorkTypeHint) only
+      // fires on validate-fail, so permissive containment also meant
+      // wrong extras never got explained.
       const selected = new Set(
         value.split(',').map((s) => s.trim()).filter(Boolean),
       );
-      return { pass: workTypeAnswer.every((k) => selected.has(k)) };
+      return {
+        pass:
+          selected.size === workTypeAnswer.length &&
+          workTypeAnswer.every((k) => selected.has(k)),
+      };
     }
   }
   // Free-input fields → server endpoint (LLM-backed for title/problemAnalysis,
