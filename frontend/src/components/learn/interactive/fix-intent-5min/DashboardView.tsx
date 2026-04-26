@@ -13,6 +13,17 @@ interface Props {
   hearts: number;
   timerRemaining: number;
   timerTotal: number;
+  // Parent reports a narrow anchor element at the top-left of the table
+  // card. The Stage 1 guidance tooltip anchors here so it appears above
+  // the header row with its arrow landing at the left end — a small
+  // width is intentional (see the `<span ref={onAnchorRef}>` below) so
+  // radix's arrow middleware clamps the arrow near the content's left
+  // edge instead of centering it over a wide element.
+  onAnchorRef?: (el: HTMLElement | null) => void;
+  // Click-bubble handler used by the guidance stray-click counter. Fires
+  // on every click inside the dashboard so the parent can tell a wrong
+  // tap apart from a correct row click via the event target.
+  onAnyClick?: (event: React.MouseEvent) => void;
 }
 
 // Metabase tokens reused across cells/headers — exported so the Copy-Issue
@@ -454,10 +465,13 @@ export function DashboardView({
   hearts,
   timerRemaining,
   timerTotal,
+  onAnchorRef,
+  onAnyClick,
 }: Props) {
   return (
     <div
       className={`flex h-full w-full flex-col overflow-hidden bg-[#F9F9FA] ${TEXT_PRIMARY} ${FONT}`}
+      onClick={onAnyClick}
     >
       {/* Dashboard top bar */}
       <header className="flex items-center justify-between px-6 pt-5 pb-3 border-b border-[rgba(7,23,34,0.05)]">
@@ -497,9 +511,20 @@ export function DashboardView({
 
         {/* Table card */}
         <section
-          className={`flex flex-1 flex-col overflow-hidden ${CARD} min-h-[320px]`}
+          className={`relative flex flex-1 flex-col overflow-hidden ${CARD} min-h-[320px]`}
         >
           <CardHeader title="All chats in table view" />
+          {/* Guidance tooltip anchor — a 1×1 invisible marker at the
+              top-left of the card, just above the thead row. The Stage 1
+              tooltip (side='top' align='start') sits above this marker
+              with its arrow pointing down at the left side of the
+              header. Kept outside the scroll container so vertical
+              scroll doesn't drag the anchor away. */}
+          <span
+            ref={onAnchorRef}
+            aria-hidden="true"
+            className="pointer-events-none absolute left-6 top-[44px] z-20 h-1 w-1"
+          />
           <div
             className={`mb-scrollbar flex-1 overflow-auto border-t ${ROW_DIVIDER}`}
           >
@@ -530,7 +555,10 @@ export function DashboardView({
                 {rows.map((row) => (
                   <tr
                     key={row.sessionId}
-                    onClick={() => onRowClick(row)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRowClick(row);
+                    }}
                     className={`cursor-pointer transition-colors ${HOVER_BG}`}
                   >
                     <td

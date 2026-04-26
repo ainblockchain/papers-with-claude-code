@@ -19,6 +19,14 @@ import {
 interface Props {
   intent: SelectedIntent;
   onClose: () => void;
+  // Fires once per successful clipboard write — lets the parent record
+  // that the learner has progressed past step 2 of the problemAnalysis
+  // tooltip sequence so the next idle tooltip anchors on the submit
+  // button instead of re-pointing at this modal's CTA.
+  onCopy?: () => void;
+  // Reports the "전체 복사" button element up to the parent so the
+  // guidance tooltip can anchor on it while the modal is open.
+  onCopyButtonEl?: (el: HTMLButtonElement | null) => void;
 }
 
 // Write a table to the clipboard in both rich (text/html) and plain
@@ -50,7 +58,12 @@ async function writeRichClipboard(
 // Almost-fullscreen modal that mirrors the DashboardView look 1:1 and
 // presents the representative broken-intent row as a single-row table so
 // the learner can select / copy the text into their 문제 상황 분석 block.
-export function CopyIssueModal({ intent, onClose }: Props) {
+export function CopyIssueModal({
+  intent,
+  onClose,
+  onCopy,
+  onCopyButtonEl,
+}: Props) {
   const { row } = intent;
   const [copied, setCopied] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -109,6 +122,9 @@ export function CopyIssueModal({ intent, onClose }: Props) {
     if (ok) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
+      // Notify parent — session-local flag drives the tooltip system to
+      // advance from step 2 ("전체 복사") to step 3 (submit button).
+      onCopy?.();
     }
   };
 
@@ -146,6 +162,7 @@ export function CopyIssueModal({ intent, onClose }: Props) {
             <button
               type="button"
               onClick={handleCopy}
+              ref={onCopyButtonEl}
               className={`inline-flex items-center gap-1.5 rounded-[6px] px-3 py-1.5 text-sm font-medium shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition-colors ${
                 copied
                   ? 'border border-[#BFDBBF] bg-[#DBEDDB] text-[#448361]'
@@ -230,9 +247,16 @@ export function CopyIssueModal({ intent, onClose }: Props) {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
+                  {/* Orange highlight on the single row ties the tooltip's
+                      "전체 복사" CTA to the exact data being copied — the
+                      learner sees which row feeds the clipboard without
+                      hunting. Uses the app's brand orange (#FF9D00) as a
+                      soft background tint (/12 alpha) with a matching
+                      left edge accent. */}
+                  <tr style={{ background: 'rgba(255,157,0,0.10)' }}>
                     <td
                       className={`border-b ${MB_ROW_DIVIDER} px-3 py-3 pl-6 font-mono text-[12px] ${MB_TEXT_SECONDARY} whitespace-nowrap align-top`}
+                      style={{ borderLeft: '3px solid #FF9D00' }}
                     >
                       {row.sessionId}
                     </td>

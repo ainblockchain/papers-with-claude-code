@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import {
   buildStaticChatLogSet,
@@ -31,6 +31,7 @@ import {
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useLearningStore } from '@/stores/useLearningStore';
 import { progressAdapter } from '@/lib/adapters/progress';
+import { CourseIntro } from './CourseIntro';
 import { DashboardView } from './DashboardView';
 import { FeedbackModal } from './FeedbackModal';
 import { QuestModal } from './QuestModal';
@@ -47,6 +48,25 @@ import { CopyIssueModal } from './CopyIssueModal';
 import { IntentCatalogModal } from './IntentCatalogModal';
 import { SheetEditPage } from './SheetEditPage';
 import { ChatbotTestPage } from './ChatbotTestPage';
+import { MissionBar } from './MissionBar';
+import {
+  getMissionCopy,
+  type SheetPhase,
+} from '@/lib/courses/fix-intent-5min/mission-copy';
+import {
+  guidanceConfig,
+  getGuidanceEntry,
+  initialGuidanceEntry,
+  resolveActiveGuidancePhase,
+  type GuidanceEntry,
+  type GuidancePhase,
+  type GuidanceState,
+} from '@/lib/courses/fix-intent-5min/tooltip-guidance';
+import { guidanceCopy } from '@/lib/courses/fix-intent-5min/tooltip-copy';
+import type { SheetId } from '@/data/courses/fix-intent-5min/intent-sheets';
+import { useIdleGuidance, useStrayClick } from '@/lib/courses/fix-intent-5min/useGuidance';
+import { GuidanceTooltip } from './GuidanceTooltip';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 export const FIX_INTENT_COURSE_ID = 'curious-nyang-intent-guide--fix-intent-5min';
 const FIX_INTENT_TOTAL_STAGES = 4;
@@ -91,6 +111,7 @@ function markStageCompleteLocally(stageNum: number) {
 }
 
 type Phase =
+  | 'intro'
   | 'dashboard'
   | 'notion'
   | 'quest-clear'
@@ -101,6 +122,87 @@ type Phase =
   | 'chatbot-test'
   | 'stage4-result-page'
   | 'course-complete';
+
+// Sub-phase GuidancePhases that get a one-shot QuestModal when the
+// MissionBar copy transitions to them. Complements (not replaces) the
+// phase-entry modals already gated on *QuestSeen state: those cover
+// the first landing on each phase; this set covers mid-phase objective
+// changes (field advance in Stage 1/4 Notion, script step in Stage 3).
+const SUB_PHASE_MODAL_GUIDANCE_NAMES: ReadonlySet<GuidancePhase> = new Set<
+  GuidancePhase
+>([
+  'notion-field-agent',
+  'notion-field-title',
+  'notion-field-assignee',
+  'notion-field-status',
+  'notion-field-season',
+  'notion-field-workType',
+  // problemAnalysis walks through 3 sub-phases. Step 1 (copy) and step 3
+  // (submit) get their own one-shot briefing modals so the learner is
+  // oriented before each action. Step 2 (copy-modal) intentionally does
+  // NOT get a briefing modal: the CopyIssueModal itself IS the briefing
+  // surface — stacking a QuestModal on top of it would be redundant and
+  // (worse) suppresses the step-2 tooltip that should be pointing at
+  // "전체 복사" the moment the modal opens.
+  'notion-field-problemAnalysis-copy',
+  'notion-field-problemAnalysis-submit',
+  // Stage 3 step 1 splits on the active sheet tab — each sub-phase gets
+  // its own one-shot briefing so the learner is oriented before both
+  // (a) picking the domain tab and (b) hitting "+ 인텐트 행 추가".
+  'sheet-add-intent-tab',
+  'sheet-add-intent-row',
+  // Stage 3 step 1-B — per-column row-fill guidance after the row is
+  // added. Each gets its own one-shot briefing so the learner knows
+  // what to write in every column before the idle tooltip fires.
+  'sheet-field-intent',
+  'sheet-field-leadSentence',
+  'sheet-related-copy',
+  'sheet-field-prompt-paste',
+  'sheet-run-intent-script',
+  'sheet-add-triggers',
+  'sheet-run-trigger-script',
+  // Stage 4 result-field splits into 3 sub-phases (load work → load
+  // capture → submit). Each gets its own one-shot briefing so the
+  // learner is oriented before every click in the sequence.
+  'stage4-result-load-work',
+  'stage4-result-load-capture',
+  'stage4-result-submit',
+]);
+
+// GuidancePhases whose anchor element is reported via a dedicated child
+// ref callback (e.g. the in-field "복사하러가기" button, the "제출"
+// button, Stage 4 auto-fill buttons). `activePhaseAnchor` — which writes
+// the active field wrapper to whatever phase is currently active — must
+// SKIP these or it will overwrite the precise button element with the
+// whole field row and the tooltip will point at the wrong place.
+const DEDICATED_ANCHOR_PHASES: ReadonlySet<GuidancePhase> = new Set<
+  GuidancePhase
+>([
+  'notion-field-problemAnalysis-copy',
+  'notion-field-problemAnalysis-copy-modal',
+  'notion-field-problemAnalysis-submit',
+  'stage4-result-load-work',
+  'stage4-result-load-capture',
+  'stage4-result-submit',
+  // Sheet sub-phases with their own per-cell / per-button anchors.
+  'sheet-field-intent',
+  'sheet-field-leadSentence',
+  'sheet-field-prompt-paste',
+  'sheet-related-copy',
+  'sheet-add-intent-tab',
+  'sheet-add-intent-row',
+  'sheet-run-intent-script',
+  'sheet-add-triggers',
+  'sheet-run-trigger-script',
+  // Non-notion phases — `onActiveFieldEl` never fires for these because
+  // NotionTaskPage isn't on screen, but listing them documents the fact
+  // that they rely on dedicated refs (chatbot input, notion-landing
+  // buttons, dashboard).
+  'notion-landing',
+  'chatbot-before',
+  'chatbot-after',
+  'dashboard',
+]);
 
 function countFilledStage1Notion(notion: NotionState): number {
   return STAGE1_FIELD_ORDER.filter((f) => notion[f] != null).length;
@@ -347,7 +449,7 @@ function CourseCompleteView() {
             animationDelay: '0.05s',
           }}
         >
-          🎉 QUEST ALL CLEAR
+          QUEST ALL CLEAR
         </div>
         <h1
           className="bg-gradient-to-br from-white via-[#FFD5F5] to-[#B9D9FF] bg-clip-text text-[44px] font-extrabold leading-tight text-transparent md:text-[56px]"
@@ -378,8 +480,16 @@ function CourseCompleteView() {
             animationDelay: '0.55s',
           }}
         >
-          <p className="mb-2 text-[13px] font-semibold uppercase tracking-wider text-[#FFD5F5]">
-            🐱 궁금하냥이 여러분의 손을 기다려요
+          <p className="mb-2 flex items-center justify-center gap-2 text-[13px] font-semibold uppercase tracking-wider text-[#FFD5F5]">
+            <img
+              src="/courses/fix-intent-5min/curious-nyang-avatar.png"
+              alt="궁금하냥"
+              width={22}
+              height={22}
+              className="h-[22px] w-[22px] rounded-full object-cover"
+              draggable={false}
+            />
+            궁금하냥이 여러분의 손을 기다려요
           </p>
           <p>
             궁금하냥 챗봇은 커뮤니티의 크고 작은 기여로 조금씩 똑똑해져요. 사용자
@@ -394,7 +504,7 @@ function CourseCompleteView() {
 }
 
 // Visual "capture" card mimicking the Dev 챗봇 UI — shown below the
-// result BlockField on Stage 4 after the learner clicks "📷 테스트 결과
+// result BlockField on Stage 4 after the learner clicks "테스트 결과
 // 불러오기". Not persisted to the course state: derived entirely from
 // `chatbotInteraction` which is already on-chain.
 function ChatbotCaptureBlock({
@@ -469,29 +579,30 @@ function ChatbotCaptureBlock({
   );
 }
 
-// Per-field Quest body shown when that field first becomes the active one.
-// Only fields rendered inside NotionTaskPage (Stage 1 + Stage 2) get a
-// quest — Stage 3/4 have their own page-level briefings instead.
-const FIELD_QUEST_MESSAGES: Partial<Record<NotionFieldId, string>> = {
-  agent: '알맞은 에이전트를 선택해주세요.',
-  title: '이슈 내용이 한눈에 드러나도록 제목을 작성해주세요.',
-  assignee: '이 이슈를 맡을 Assignee 를 지정해주세요.',
-  status: '작업의 현재 상태(Status)를 선택해주세요.',
-  season: '이 이슈가 속할 Season 을 지정해주세요.',
-  // workType intentionally omitted — IntentCatalogModal takes over as the
-  // guide for this field, opening automatically when it becomes active.
-  problemAnalysis:
-    '발견한 문제를 정리해 작성해주세요. 본인이 본 문제를 간단히 적고, 문제가 된 채팅 로그를 텍스트로 복사해 붙여넣어주세요. 궁금하냥 팀은 PM이 나중에 검색하기 쉽도록 텍스트 붙여넣기를 권장합니다.',
-  solutionDirection: '어떤 방향으로 고칠지 정리해주세요.',
-};
-
+// Thin outer wrapper that mounts a single `TooltipProvider` around the
+// course. The inner component has ~10 early-return branches (one per
+// phase), so wrapping at the call site here keeps us from sprinkling
+// providers into every branch. `delayDuration=0` because our tooltip is
+// controlled programmatically (idle/stray triggers), not hover.
 export function IntentFixCourse() {
+  return (
+    <TooltipProvider delayDuration={0} skipDelayDuration={0}>
+      <IntentFixCourseInner />
+    </TooltipProvider>
+  );
+}
+
+function IntentFixCourseInner() {
   const passkeyPublicKey = useAuthStore((s) => s.passkeyInfo?.publicKey);
   const githubUsername = useAuthStore((s) => s.user?.username ?? null);
 
   const [loading, setLoading] = useState(true);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [phase, setPhase] = useState<Phase>('dashboard');
+  // Default to 'intro' so brand-new users (no on-chain state yet → the
+  // `if (!state)` early-return in the mount effect) see the orientation
+  // page instead of landing straight on the quiz. Returning users with
+  // any progress have their phase overwritten by the restore logic below.
+  const [phase, setPhase] = useState<Phase>('intro');
   const [setIndex, setSetIndex] = useState(0);
   const [selectedIntents, setSelectedIntents] = useState<SelectedIntent[]>([]);
   const [representative, setRepresentative] = useState<SelectedIntent | null>(null);
@@ -506,6 +617,19 @@ export function IntentFixCourse() {
   const [currentFieldIdx, setCurrentFieldIdx] = useState(0);
   const [notionError, setNotionError] = useState<string | null>(null);
   const [validating, setValidating] = useState(false);
+  // Blocking FeedbackModal for stray clicks on the Notion landing (Stage 1,
+  // pre-panel). Complements the guidance tooltip: the tooltip covers
+  // idle/persistent nudging, the modal is the "that button, not this one"
+  // gate on an actual misclick so it cannot be ignored.
+  const [notionStrayFeedback, setNotionStrayFeedback] = useState(false);
+  // The full list of "새로 만들기" button elements reported up from
+  // NotionLanding. The chosen tooltip anchor (topmost-then-leftmost)
+  // is derived from this list in an effect below.
+  const [notionCreateButtons, setNotionCreateButtons] = useState<HTMLButtonElement[]>([]);
+  // The chosen notion-landing anchor element, and a cached rect used to
+  // compute dynamic tooltip side/align so the nudge doesn't clip the
+  // viewport edges when the anchor is near the top/bottom/sides.
+  const [notionLandingAnchor, setNotionLandingAnchor] = useState<HTMLButtonElement | null>(null);
   // Per-field attempt counters — used to escalate hint specificity when the
   // learner misses repeatedly on free-input fields (solutionDirection today,
   // extensible later). Reset on successful submission.
@@ -515,49 +639,46 @@ export function IntentFixCourse() {
   // Guards phase-advancing handlers while a blockchain write is in-flight,
   // so a rapid second click can't race ahead of a failed persist.
   const [persisting, setPersisting] = useState(false);
-  // One-shot briefing modal: shows on first entry of the dashboard phase when
-  // the user has no progress yet. Dismissed for the rest of the session.
-  const [questSeen, setQuestSeen] = useState(false);
-  // Notion-phase guidance (stage 1 after rep pick):
-  // - stage1NotionMissionSeen: dismisses initial "Task로 등록해봅시다" brief
-  // - notionFirstCreateSeen: gates the "잘 하셨습니다" celebration to once
-  // - notionStrayCount: wrong clicks on the landing before the user finds
-  //   the correct "새로 만들기" button — used to escalate guidance to a hint
-  // - notionStrayFeedback: current feedback message to show; null hides modal
-  // - notionCreateCelebration: celebration QUEST CLEAR modal after first
-  //   correct click; dismissal opens the floating panel
-  const [stage1NotionMissionSeen, setStage1NotionMissionSeen] = useState(false);
-  const [notionFirstCreateSeen, setNotionFirstCreateSeen] = useState(false);
-  const [notionStrayCount, setNotionStrayCount] = useState(0);
-  const [notionStrayFeedback, setNotionStrayFeedback] = useState<string | null>(
-    null,
-  );
-  const [notionCreateCelebration, setNotionCreateCelebration] = useState(false);
-  // Per-field Quest modal seen-set — each time a fresh field becomes active
-  // in the Notion task page, a QuestModal nudges the learner on what that
-  // field is asking for. Dismissing adds the field id to this set so the
-  // modal won't re-show on subsequent renders (e.g. after a wrong submit).
-  const [fieldQuestSeen, setFieldQuestSeen] = useState<Set<NotionFieldId>>(
-    new Set(),
-  );
+  // Session-only tooltip guidance state — per-GuidancePhase counters and
+  // dismissal bookkeeping. Kept as one map so restart can reset all
+  // entries with a single setState. See `tooltip-guidance.ts` for the
+  // GuidancePhase enum and escalation rules. The old Notion stray-click
+  // FeedbackModal (notionStrayFeedback) is retired — its role is now
+  // played by the orange GuidanceTooltip anchored at the 새로 만들기
+  // button, which doesn't blocking-scrim the page on every misclick.
+  const [guidance, setGuidance] = useState<GuidanceState>({});
+  // Active anchor element per GuidancePhase — populated by child
+  // components via onAnchorEl / primaryButtonRef / data-field-id lookup.
+  // Reset to {} on phase transition so a stale ref from the previous
+  // phase can't anchor a tooltip on the new phase.
+  const [anchorEls, setAnchorEls] = useState<
+    Partial<Record<GuidancePhase, HTMLElement | null>>
+  >({});
   // Copy-Issue modal for problemAnalysis — opens on the helper button
   // under the 문제 상황 분석 block so the learner can grab the chat log.
   const [copyIssueOpen, setCopyIssueOpen] = useState(false);
-  // Intent-Catalog modal — auto-opens once when the Work Type field first
-  // becomes active so the learner can verify that no exam-absence intent
-  // exists in the simulated system before deciding the fix. Closing via
-  // the 확인 button dismisses it permanently for the session.
+  // Session-local flag tracking whether "전체 복사" has fired at least
+  // once. Drives the 3-step tooltip sequence for the problemAnalysis
+  // field: advances the idle tooltip from the modal CTA (step 2) to the
+  // field's 제출 button (step 3) once the clipboard holds the log. Not
+  // persisted — on reload, the logic falls back to "still on step 1"
+  // until they re-copy, which is harmless since the clipboard may have
+  // cleared anyway.
+  const [problemAnalysisCopied, setProblemAnalysisCopied] = useState(false);
+  // Intent-Catalog modal — opened from the workType briefing QuestModal's
+  // CTA (or any manual trigger inside NotionTaskPage). No longer
+  // auto-opens on workType becoming active; that role now belongs to
+  // the briefing QuestModal, which hands off to the catalog sheet
+  // (where the work-type taxonomy badges now live alongside the grid)
+  // when the learner is ready to explore.
   const [catalogOpen, setCatalogOpen] = useState(false);
-  const [catalogAutoOpened, setCatalogAutoOpened] = useState(false);
-  // Session-only — Stage 4 mission briefing modal shows once when the
-  // learner first enters the chatbot-test phase.
-  const [stage4MissionSeen, setStage4MissionSeen] = useState(false);
-  // Per-field seen-set scoped to Stage 4 result page. Kept separate from
-  // the Stage 1-2 `fieldQuestSeen` because the same field id (`status`)
-  // can re-fire its quest with different copy in Stage 4.
-  const [stage4FieldQuestSeen, setStage4FieldQuestSeen] = useState<
-    Set<NotionFieldId>
-  >(new Set());
+  // One-shot per session: did the learner already see the workType
+  // briefing QuestModal? Flipped true on accept (CTA / Enter / Escape —
+  // QuestModal maps all three to onAccept) so the briefing doesn't
+  // re-appear mid-field. Restore also sets this true for returning
+  // users who already filled workType — they've clearly moved past the
+  // briefing.
+  const [workTypeBriefingSeen, setWorkTypeBriefingSeen] = useState(false);
   // Stage 3 artifact — detailed intent + triggers rows the learner wrote.
   // Persisted to blockchain so the Stage 4 work-content auto-fill survives
   // cross-session reloads.
@@ -576,6 +697,38 @@ export function IntentFixCourse() {
   // the entire stage-1 run (both local state and blockchain blob).
   const [hearts, setHearts] = useState(3);
   const [showRestart, setShowRestart] = useState(false);
+  // One-shot stage-1 briefing — shown once on first dashboard entry. The
+  // MissionBar carries the same objective, but new learners benefit from a
+  // blocking Quest modal before the HUD starts interacting. Dismissed for
+  // the rest of the session; restart/refresh with progress skips it.
+  const [stage1QuestSeen, setStage1QuestSeen] = useState(false);
+  // One-shot Agents & Intents (Notion landing) briefing — shown once when
+  // the learner arrives on the Notion landing after picking a broken intent.
+  // Skipped for returning users who already opened the task panel.
+  const [agentsPageQuestSeen, setAgentsPageQuestSeen] = useState(false);
+  // Per-phase one-shot briefings. Each modal shows the first time the user
+  // lands on that phase's UI surface in this session, giving a concrete
+  // action before interaction starts. Auto-dismissed (set true) on restore
+  // if the learner has already progressed past that phase.
+  const [stage2PageQuestSeen, setStage2PageQuestSeen] = useState(false);
+  const [sheetEditQuestSeen, setSheetEditQuestSeen] = useState(false);
+  const [chatbotTestQuestSeen, setChatbotTestQuestSeen] = useState(false);
+  const [stage4ResultQuestSeen, setStage4ResultQuestSeen] = useState(false);
+  // Sub-phase one-shot briefings — fire a QuestModal whenever the
+  // MissionBar copy changes to a *field/step* level objective that
+  // isn't already covered by a phase-entry modal above. The set is
+  // keyed by GuidancePhase so it dovetails with the tooltip system.
+  const [seenSubPhaseQuests, setSeenSubPhaseQuests] = useState<
+    Set<GuidancePhase>
+  >(new Set());
+  const markSubPhaseSeen = (p: GuidancePhase) => {
+    setSeenSubPhaseQuests((prev) => {
+      if (prev.has(p)) return prev;
+      const next = new Set(prev);
+      next.add(p);
+      return next;
+    });
+  };
   // Countdown timer HUD (dashboard-only). Purely cosmetic — conveys urgency
   // without actually gating the run; reaching zero does not trigger game
   // over (only hearts=0 does). Pauses when any modal is up so reading
@@ -588,17 +741,55 @@ export function IntentFixCourse() {
   // task panel by clicking "새로 만들기". Mid-progress restoration still
   // auto-opens so users resume where they left off.
   const [panelOpen, setPanelOpen] = useState(false);
+  // Mirrors SheetEditPage's internal phase so the MissionBar can surface
+  // the matching Stage 3 step ("Step 1/4", "Step 2/4", …). Initial value
+  // matches SheetEditPage's initial phase to avoid a mismatch on first
+  // sheet-edit entry.
+  const [sheetPhase, setSheetPhase] = useState<SheetPhase>('add-intent');
+  // Mirrors SheetEditPage's internal active tab. Feeds the guidance
+  // resolver so the step-1 tooltip flips between "pick a domain tab"
+  // (on the default trigger-sentence tab) and "press + 인텐트 행 추가"
+  // (on any of the 4 intent category tabs). Starts `null` until the
+  // sheet page mounts and reports its initial tab.
+  const [sheetActiveTabId, setSheetActiveTabId] =
+    useState<SheetId | null>(null);
+  // Mirrors SheetEditPage's added-intent row fill state. `null` while
+  // the learner hasn't clicked "+ 인텐트 행 추가" yet; once clicked,
+  // flips to an object tracking which of the 3 editable columns have
+  // non-empty values. Feeds the guidance resolver to walk through
+  // intent → leadSentence → prompt column tooltips.
+  const [sheetRowFilled, setSheetRowFilled] = useState<{
+    intent: boolean;
+    leadSentence: boolean;
+    prompt: boolean;
+  } | null>(null);
+  // Session-local: has the RelatedInfoCard's "복사" button fired at
+  // least once this session? Toggles the Prompt-column guidance
+  // between `sheet-related-copy` (copy first) and
+  // `sheet-field-prompt-paste` (paste into cell). Reset on restart
+  // since the fresh run gets a fresh walkthrough.
+  const [relatedInfoCopied, setRelatedInfoCopied] = useState(false);
+  // Mirrors SheetEditPage's internal ConfirmDialog open/closed state.
+  // Folded into `anyModalOpen` so the Custom-Scripts idle tooltip is
+  // suppressed while the blue "모든 프롬프트를 dev에 업데이트하시겠습니까?"
+  // dialog is up (otherwise the tooltip pokes out beside the dialog with
+  // stale "run the script" copy the learner already acted on).
+  const [sheetConfirmDialogOpen, setSheetConfirmDialogOpen] = useState(false);
+  // Mirrors SheetEditPage's `running` (script executing) and `menuOpen`
+  // (Custom Scripts dropdown open) states. Folded into `anyModalOpen` to
+  // suppress the idle Custom-Scripts tooltip during either interaction.
+  const [sheetScriptRunning, setSheetScriptRunning] = useState(false);
+  const [sheetScriptMenuOpen, setSheetScriptMenuOpen] = useState(false);
 
   // Countdown tick — decrement once per second while the dashboard is
-  // actively interactive. Pauses whenever a modal is up (briefing / feedback
-  // / restart / persist) so reading feedback doesn't cost time.
+  // actively interactive. Pauses whenever a modal is up (feedback /
+  // restart / persist) so reading feedback doesn't cost time.
   useEffect(() => {
     if (phase !== 'dashboard') return;
     if (showRestart) return;
     if (dashboardFeedback) return;
     if (persisting) return;
-    // Quest briefing is up (showQuest condition inlined).
-    if (!questSeen && !representative) return;
+    if (!stage1QuestSeen) return;
     if (timerRemaining <= 0) return;
     const t = setTimeout(
       () => setTimerRemaining((s) => Math.max(0, s - 1)),
@@ -610,8 +801,7 @@ export function IntentFixCourse() {
     showRestart,
     dashboardFeedback,
     persisting,
-    questSeen,
-    representative,
+    stage1QuestSeen,
     timerRemaining,
   ]);
 
@@ -636,21 +826,80 @@ export function IntentFixCourse() {
       setNotion(restoredNotion);
       setChatbotInteraction(restoredChat);
       setSheetArtifact(restoredArtifact);
-      // Mark fields that were already filled on-chain as having seen their
-      // Quest so returning users aren't re-prompted on fields they completed.
-      const seen = new Set<NotionFieldId>();
-      (Object.keys(FIELD_QUEST_MESSAGES) as NotionFieldId[]).forEach((f) => {
-        if (restoredNotion[f] != null) seen.add(f);
-      });
-      setFieldQuestSeen(seen);
-      // Skip the briefing modal when returning mid-progress — the user
-      // already knows the objective.
-      if (restoredSelected.length > 0 || restoredRep) setQuestSeen(true);
-      // Likewise skip the notion-phase guidance modals for returning users:
-      // they've already been past the "click 새로 만들기" gate.
-      if (restoredRep) {
-        setStage1NotionMissionSeen(true);
-        setNotionFirstCreateSeen(true);
+      // Returning mid-progress users have already seen the Stage 1 brief.
+      if (restoredSelected.length > 0 || restoredRep) setStage1QuestSeen(true);
+      // Anyone past the dashboard (has a representative) has already been
+      // oriented to the Agents & Intents page at least once.
+      if (restoredRep) setAgentsPageQuestSeen(true);
+      // Phase-specific briefings: if the learner is already past a given
+      // phase in state, skip its entry modal on this session's load.
+      if (restoredNotion.solutionDirection != null) {
+        setStage2PageQuestSeen(true);
+      }
+      if (restoredNotion.workContent != null) {
+        setSheetEditQuestSeen(true);
+      }
+      if (restoredChat.question && restoredChat.answer) {
+        setChatbotTestQuestSeen(true);
+      }
+      if (restoredNotion.result != null) {
+        setStage4ResultQuestSeen(true);
+      }
+      // Pre-populate seen sub-phase quests from restored field state so
+      // returning users aren't re-briefed on objectives they already
+      // completed. Each filled Stage-1 field → corresponding notion-field-*;
+      // any Stage-3 completion → all sheet-* sub-phases; Stage-4 result
+      // submission → all three stage4-result-* sub-phases.
+      const restoredSubPhaseSeen = new Set<GuidancePhase>();
+      if (restoredNotion.agent != null) restoredSubPhaseSeen.add('notion-field-agent');
+      if (restoredNotion.title != null) restoredSubPhaseSeen.add('notion-field-title');
+      if (restoredNotion.assignee != null) restoredSubPhaseSeen.add('notion-field-assignee');
+      // Stage 1 `status` is preset to 'In Progress' via the auto-fill,
+      // so presence alone isn't enough — treat as seen only when the
+      // learner has moved beyond that field (represented by a later
+      // Stage-1 field being filled).
+      if (restoredNotion.season != null || restoredNotion.workType != null) {
+        restoredSubPhaseSeen.add('notion-field-status');
+      }
+      if (restoredNotion.season != null) restoredSubPhaseSeen.add('notion-field-season');
+      if (restoredNotion.workType != null) {
+        restoredSubPhaseSeen.add('notion-field-workType');
+        // Already-filled workType means they've passed the briefing
+        // step → don't re-show it on resume.
+        setWorkTypeBriefingSeen(true);
+      }
+      if (restoredNotion.problemAnalysis != null) {
+        // Returning users who already submitted the problemAnalysis block
+        // have completed every briefed sub-phase; mark each seen so no
+        // briefing re-fires during restoration. `copy-modal` has no
+        // briefing (the CopyIssueModal itself is the context surface),
+        // so only the copy + submit sub-phases are tracked here.
+        restoredSubPhaseSeen.add('notion-field-problemAnalysis-copy');
+        restoredSubPhaseSeen.add('notion-field-problemAnalysis-submit');
+      }
+      if (restoredNotion.workContent != null) {
+        // Stage 3 workContent is only persisted once the sheet flow
+        // finishes end-to-end — so both step-1 sub-phase briefings
+        // (tab-picking + add-intent-row), the per-column row-fill
+        // briefings, and the later script/trigger sub-phases are all
+        // guaranteed to have been shown already.
+        restoredSubPhaseSeen.add('sheet-add-intent-tab');
+        restoredSubPhaseSeen.add('sheet-add-intent-row');
+        restoredSubPhaseSeen.add('sheet-field-intent');
+        restoredSubPhaseSeen.add('sheet-field-leadSentence');
+        restoredSubPhaseSeen.add('sheet-related-copy');
+        restoredSubPhaseSeen.add('sheet-field-prompt-paste');
+        restoredSubPhaseSeen.add('sheet-run-intent-script');
+        restoredSubPhaseSeen.add('sheet-add-triggers');
+        restoredSubPhaseSeen.add('sheet-run-trigger-script');
+      }
+      if (restoredNotion.result != null) {
+        restoredSubPhaseSeen.add('stage4-result-load-work');
+        restoredSubPhaseSeen.add('stage4-result-load-capture');
+        restoredSubPhaseSeen.add('stage4-result-submit');
+      }
+      if (restoredSubPhaseSeen.size > 0) {
+        setSeenSubPhaseQuests(restoredSubPhaseSeen);
       }
       const filledCount = countFilledStage1Notion(restoredNotion);
       if (filledCount >= STAGE1_FIELD_ORDER.length) {
@@ -685,7 +934,7 @@ export function IntentFixCourse() {
         setPanelOpen(false);
       } else {
         setSetIndex(0);
-        setPhase('dashboard');
+        setPhase('intro');
       }
       setLoading(false);
     })();
@@ -727,18 +976,14 @@ export function IntentFixCourse() {
       ? activeFieldOrder[currentFieldIdx]
       : null;
 
-  // Auto-open the intent catalog the first time Work Type becomes the
-  // active field. After the learner dismisses it, never auto-reopen.
-  useEffect(() => {
-    if (phase !== 'notion') return;
-    if (currentFieldId !== 'workType') return;
-    if (catalogAutoOpened) return;
-    setCatalogOpen(true);
-    setCatalogAutoOpened(true);
-  }, [phase, currentFieldId, catalogAutoOpened]);
+  // NOTE: catalog no longer auto-opens on workType entry. The workType
+  // briefing QuestModal (rendered in the notion phase block below)
+  // takes over as the first-touch UX; its CTA opens the catalog, which
+  // now hosts the workType taxonomy badges inline next to the grid.
 
   const handleRowClick = (row: ChatLogRow) => {
     if (dashboardFeedback || showRestart || persisting) return;
+    if (!stage1QuestSeen) return;
     const correct = row.isBroken;
 
     if (!correct) {
@@ -782,8 +1027,20 @@ export function IntentFixCourse() {
     setActiveSets([buildStaticChatLogSet()]);
     setShowRestart(false);
     setPhase('dashboard');
-    // questSeen stays true — the user just re-read the objective via the
-    // restart modal copy, no need to re-show the briefing.
+    // Fresh run → fresh tooltip guidance. Without this, dashboard
+    // tooltips would re-enter firm-silent mode for learners who
+    // exhausted both tiers before game-over.
+    setGuidance({});
+    setAnchorEls({});
+    // problemAnalysis tooltip sequence is session-local — reset so the
+    // 3-step progression (copy-helper → modal-CTA → submit) starts
+    // fresh on the next time the learner reaches that field.
+    setProblemAnalysisCopied(false);
+    setCopyIssueOpen(false);
+    // Stage 3 row-fill guidance is session-local — reset so the new
+    // run starts from "no row added yet" and "clipboard untouched".
+    setSheetRowFilled(null);
+    setRelatedInfoCopied(false);
   };
 
   const handleDashboardFeedbackClose = async () => {
@@ -823,45 +1080,36 @@ export function IntentFixCourse() {
     setPanelOpen(false);
   };
 
-  // Landing's "새로 만들기" button reopens the floating panel (backdrop-only
-  // anchor now that the panel hosts the task form). First correct click
-  // during the guidance flow shows a QUEST CLEAR celebration; dismissing it
-  // opens the panel. Subsequent clicks open directly.
+  // Landing's "새로 만들기" button opens the floating task panel directly
+  // — the persistent MissionBar already tells the learner what to do, so
+  // we skip the intermediate celebration modal the old flow layered on.
   const handleCreateTask = () => {
-    if (
-      phase === 'notion' &&
-      stage1NotionMissionSeen &&
-      !notionFirstCreateSeen
-    ) {
-      setNotionCreateCelebration(true);
-      setNotionStrayFeedback(null);
-      return;
-    }
     setPanelOpen(true);
   };
 
-  const handleNotionCreateCelebrationAccept = () => {
-    setNotionCreateCelebration(false);
-    setNotionFirstCreateSeen(true);
-    setPanelOpen(true);
-  };
-
-  // Clicks anywhere on NotionLanding that did NOT land on a "새로 만들기"
-  // button bubble up here. We only treat them as stray during the guidance
-  // window (mission dismissed, first-create not yet achieved, panel closed).
-  const handleNotionStray = () => {
+  // Clicks on NotionLanding that did NOT land on "새로 만들기" bubble up
+  // here. Delegated to the shared `registerStray` so escalation (count
+  // → threshold → tooltip) is consistent with every other phase, and
+  // so the guidance-enabled predicate (modals / persist / firmFired)
+  // short-circuits misclicks at the right times. On top of that we pop
+  // a blocking FeedbackModal ("틀렸습니다") so the misclick produces an
+  // immediate, unmistakable "not this button" signal — the tooltip
+  // alone can read as ambient decoration once it's already visible.
+  const handleNotionStray = (event: React.MouseEvent) => {
     if (phase !== 'notion') return;
-    if (!stage1NotionMissionSeen) return;
-    if (notionFirstCreateSeen) return;
-    if (notionCreateCelebration) return;
     if (panelOpen) return;
-    const next = notionStrayCount + 1;
-    setNotionStrayCount(next);
-    setNotionStrayFeedback(
-      next >= 3
-        ? '힌트: 페이지 하단 Tasks 영역 오른쪽에 있는 파란 "새로 만들기" 버튼을 클릭하세요.'
-        : '새 Task 를 등록하려면 올바른 버튼을 눌러야 해요. 다시 찾아보세요.',
-    );
+    // If the click landed inside any of the 5 known create buttons,
+    // skip — NotionSplitCreateButton / the bottom button already
+    // stopPropagation on a successful click, but a click on the
+    // outer-wrapper ring pulse area (padding between the two halves)
+    // could still bubble.
+    const target = event.target;
+    if (target instanceof Node) {
+      const hit = notionCreateButtons.some((el) => el && el.contains(target));
+      if (hit) return;
+    }
+    registerStray(event);
+    setNotionStrayFeedback(true);
   };
 
   const handleNotionSubmit = async (fieldId: NotionFieldId, value: string) => {
@@ -1040,6 +1288,374 @@ export function IntentFixCourse() {
     await persist({ chatbotInteraction: next });
   };
 
+  // ────────────────────────────────────────────────────────────────
+  // Guidance tooltip wiring
+  //
+  // Placed BEFORE the `if (loading) return` early exit so the hooks
+  // below (useIdleGuidance / useStrayClick / useEffect) run on every
+  // render — Rules of Hooks. When loading, `activeGuidancePhase` is
+  // null because phase/panel/etc. are still at their initial values,
+  // so the hooks run but are no-ops (enabled=false, nothing to reset).
+  // ────────────────────────────────────────────────────────────────
+  // Stage 4 result auto-fill detection. `workAutoFilled` flips true once
+  // notion.workContent holds the detailed HTML block (auto-fill button
+  // writes HTML that always starts with '<'). Used by both the guidance
+  // resolver and the mission-copy resolver to pick the right sub-phase.
+  // Irrelevant outside stage4-result-page; the resolvers ignore it there.
+  const workAutoFilled =
+    typeof notion.workContent === 'string' &&
+    notion.workContent.trimStart().startsWith('<');
+
+  const activeGuidancePhase = resolveActiveGuidancePhase({
+    phase,
+    currentFieldId,
+    sheetPhase,
+    panelOpen,
+    hasChatbotAnswer: Boolean(
+      chatbotInteraction.question && chatbotInteraction.answer,
+    ),
+    copyIssueOpen,
+    problemAnalysisCopied,
+    sheetActiveTabId,
+    sheetRowFilled,
+    relatedInfoCopied,
+    workAutoFilled,
+    captureVisible,
+  });
+
+  // Shared pause predicate for both idle and stray hooks. A QuestModal
+  // briefing is scoped to its own phase, so each *QuestSeen check is
+  // gated on `phase === <that-phase>` — otherwise a still-unseen modal
+  // on a downstream phase would falsely suppress guidance on the phase
+  // the learner is currently sitting in.
+  // Workype briefing: shown once per session when the workType field
+  // first becomes active. Takes the place of the generic sub-phase
+  // modal for 'notion-field-workType', and also replaces the old
+  // "auto-open the catalog on workType entry" shortcut.
+  const workTypeBriefingShouldShow =
+    phase === 'notion' &&
+    panelOpen &&
+    currentFieldId === 'workType' &&
+    !workTypeBriefingSeen;
+
+  const questModalOpenHere =
+    (phase === 'dashboard' && !stage1QuestSeen) ||
+    (phase === 'notion' && !panelOpen && !agentsPageQuestSeen) ||
+    (phase === 'stage2-page' && !stage2PageQuestSeen) ||
+    (phase === 'sheet-edit' && !sheetEditQuestSeen) ||
+    (phase === 'chatbot-test' && !chatbotTestQuestSeen) ||
+    (phase === 'stage4-result-page' && !stage4ResultQuestSeen) ||
+    workTypeBriefingShouldShow ||
+    // Any sub-phase briefing modal (notion-field-*, sheet-run-*, stage4-result-*)
+    // also pauses guidance: the modal already tells the learner what to do.
+    (activeGuidancePhase !== null &&
+      SUB_PHASE_MODAL_GUIDANCE_NAMES.has(activeGuidancePhase) &&
+      !seenSubPhaseQuests.has(activeGuidancePhase));
+
+  const anyModalOpen =
+    !!dashboardFeedback ||
+    showRestart ||
+    // Intentional exception: the CopyIssueModal is itself the guidance
+    // target for `notion-field-problemAnalysis-copy-modal` (step 2 of
+    // the problemAnalysis tooltip sequence). Suppressing guidance while
+    // it's open would prevent the learner from seeing the tooltip that
+    // points at "전체 복사". The modal still blocks learner input on the
+    // page behind it via its own backdrop; we just don't treat it as a
+    // modal for the purpose of gating the guidance tooltip.
+    (copyIssueOpen &&
+      activeGuidancePhase !== 'notion-field-problemAnalysis-copy-modal') ||
+    catalogOpen ||
+    !!notionError ||
+    notionStrayFeedback ||
+    // Stage 3 ConfirmDialog — blocks the Custom-Scripts tooltip while the
+    // learner is confirming "Update Intent Prompts / Triggers (dev)".
+    sheetConfirmDialogOpen ||
+    // Same blocking for while the script is actively running, or while
+    // the Custom Scripts dropdown menu is open — both overlap / occlude
+    // the idle tooltip area and the copy is stale mid-action.
+    sheetScriptRunning ||
+    sheetScriptMenuOpen ||
+    questModalOpenHere;
+
+  const activeEntry = activeGuidancePhase
+    ? getGuidanceEntry(guidance, activeGuidancePhase)
+    : initialGuidanceEntry;
+  const activeAnchorEl = activeGuidancePhase
+    ? anchorEls[activeGuidancePhase] ?? null
+    : null;
+  const activeConfig = activeGuidancePhase
+    ? guidanceConfig[activeGuidancePhase]
+    : null;
+  const activeMessage = activeGuidancePhase
+    ? guidanceCopy[activeGuidancePhase]
+    : null;
+
+  // Guidance is enabled whenever we have an anchor element, a resolved
+  // phase, no blocking modal, persist not in flight, validation not in
+  // flight, loading complete, and the phase hasn't been silenced after
+  // two dismissals.
+  const guidanceEnabled =
+    !loading &&
+    !!activeGuidancePhase &&
+    !!activeAnchorEl &&
+    !!activeConfig &&
+    !anyModalOpen &&
+    !persisting &&
+    !validating &&
+    !activeEntry.firmFired &&
+    !saveError;
+
+  const setGuidanceField = (
+    gphase: GuidancePhase,
+    patch: Partial<GuidanceEntry>,
+  ) => {
+    setGuidance((prev) => {
+      const curr = prev[gphase] ?? initialGuidanceEntry;
+      return { ...prev, [gphase]: { ...curr, ...patch } };
+    });
+  };
+
+  useIdleGuidance({
+    enabled: guidanceEnabled && !activeEntry.idleFired,
+    delayMs: activeConfig?.idleMs ?? 999999,
+    resetKey: activeGuidancePhase ?? 'none',
+    onFire: () => {
+      if (activeGuidancePhase) {
+        setGuidanceField(activeGuidancePhase, { idleFired: true });
+      }
+    },
+  });
+
+  useStrayClick({
+    enabled: guidanceEnabled,
+    strayCount: activeEntry.strayCount,
+    threshold: activeConfig?.strayThreshold ?? 999,
+    onIncrement: () => {},
+    onFire: () => {
+      if (activeGuidancePhase && !activeEntry.idleFired) {
+        setGuidanceField(activeGuidancePhase, { idleFired: true });
+      }
+    },
+  });
+
+  // No global phase-wipe useEffect here. Earlier revisions wiped
+  // `anchorEls = {}` on every `phase` change, but that effect runs
+  // AFTER React commits (incl. after the new phase's ref callback has
+  // already set its anchor). The wipe then clobbered the fresh anchor;
+  // because the ref callbacks are `useCallback`-stable, React never
+  // re-invoked them, and the anchor stayed null forever → guidance
+  // was silently disabled for the whole phase. Child components null
+  // their own anchors on unmount via the ref callback protocol, which
+  // is sufficient cleanup. Stale entries for non-active phases are
+  // harmless: the tooltip only reads `anchorEls[activeGuidancePhase]`.
+
+  // Stray-click registrar. Called from phase-component onClick bubbles;
+  // increments the counter unless the click originated on the anchor.
+  const registerStray = (event: React.MouseEvent) => {
+    if (!guidanceEnabled || !activeGuidancePhase) return;
+    if (
+      activeAnchorEl &&
+      event.target instanceof Node &&
+      activeAnchorEl.contains(event.target)
+    ) {
+      return;
+    }
+    setGuidance((prev) => {
+      const curr = prev[activeGuidancePhase] ?? initialGuidanceEntry;
+      return {
+        ...prev,
+        [activeGuidancePhase]: {
+          ...curr,
+          strayCount: curr.strayCount + 1,
+        },
+      };
+    });
+  };
+
+  // No user-facing dismiss in persistent mode: the tooltip stays open
+  // from the moment it fires until the learner actually completes the
+  // phase's primary action, at which point `activeGuidancePhase`
+  // resolves to a new value and a fresh entry (idleFired=false) is
+  // looked up for the next phase. Outside clicks / ESC are explicitly
+  // neutralized inside GuidanceTooltip via `onPointerDownOutside` and
+  // `onEscapeKeyDown` preventDefault.
+
+  // Report an anchor element (or `null` on unmount) for a phase. Wrapped
+  // in `useCallback([])` — React re-invokes ref callbacks with null/el
+  // every time their identity changes, so an inline arrow here would
+  // feed setState on every commit and blow the update-depth budget.
+  // `setAnchorEls` from useState is already reference-stable, so the
+  // empty dep list is safe.
+  const setAnchorFor = useCallback(
+    (gphase: GuidancePhase, el: HTMLElement | null) => {
+      setAnchorEls((prev) => {
+        if (prev[gphase] === el) return prev;
+        return { ...prev, [gphase]: el };
+      });
+    },
+    [],
+  );
+
+  // Stable per-phase anchor callbacks. For hard-coded phases the deps
+  // list contains only `setAnchorFor` (itself stable), so identity is
+  // stable across every render. For `activePhaseAnchor` the identity
+  // changes only when the resolved guidance phase changes (i.e. on a
+  // real sub-phase transition), which is rare and not every render.
+  const dashboardAnchorRef = useCallback(
+    (el: HTMLElement | null) => setAnchorFor('dashboard', el),
+    [setAnchorFor],
+  );
+  // Collect handler for NotionLanding's 5 "새로 만들기" buttons. Picks
+  // the topmost button by bounding-rect top; ties (within ~2px) go to
+  // the leftmost. The chosen element then becomes the notion-landing
+  // anchor for the GuidanceTooltip.
+  const handleNotionCreateButtonsRef = useCallback((els: HTMLButtonElement[]) => {
+    setNotionCreateButtons(els);
+    if (els.length === 0) {
+      setNotionLandingAnchor(null);
+      setAnchorFor('notion-landing', null);
+      return;
+    }
+    const withRects = els.map((el) => ({ el, rect: el.getBoundingClientRect() }));
+    withRects.sort((a, b) => {
+      const dTop = a.rect.top - b.rect.top;
+      if (Math.abs(dTop) > 2) return dTop;
+      return a.rect.left - b.rect.left;
+    });
+    const chosen = withRects[0].el;
+    setNotionLandingAnchor(chosen);
+    setAnchorFor('notion-landing', chosen);
+  }, [setAnchorFor]);
+  const chatbotBeforeAnchorRef = useCallback(
+    (el: HTMLInputElement | null) => setAnchorFor('chatbot-before', el),
+    [setAnchorFor],
+  );
+  // Step-1 anchor: the in-field "복사하러가기" button reported by
+  // NotionTaskPage. Populated only while the problemAnalysis field is
+  // active (the button itself only renders then).
+  const problemCopyHelperAnchorRef = useCallback(
+    (el: HTMLButtonElement | null) =>
+      setAnchorFor('notion-field-problemAnalysis-copy', el),
+    [setAnchorFor],
+  );
+  // Step-2 anchor: the "전체 복사" button inside CopyIssueModal.
+  // Reported by the modal itself; goes null on modal close.
+  const problemCopyModalAnchorRef = useCallback(
+    (el: HTMLButtonElement | null) =>
+      setAnchorFor('notion-field-problemAnalysis-copy-modal', el),
+    [setAnchorFor],
+  );
+  // Step-3 anchor: the field's 제출 button reported by NotionTaskPage.
+  // Same element regardless of which active field — the parent only
+  // reads it when the sub-phase resolves to problemAnalysis-submit.
+  const problemSubmitAnchorRef = useCallback(
+    (el: HTMLButtonElement | null) =>
+      setAnchorFor('notion-field-problemAnalysis-submit', el),
+    [setAnchorFor],
+  );
+  // Anchor the currently-active guidance phase on the active field's
+  // wrapper div (reported by NotionTaskPage via `onActiveFieldEl`, which
+  // queries `[data-field-id="..."]`). Used for the simple single-anchor
+  // sub-phases (agent / title / status / etc.) that don't have a
+  // dedicated element to point at.
+  //
+  // IMPORTANT: sub-phases that own a dedicated anchor ref (the in-field
+  // "복사하러가기" button, the "제출" button, the Stage 4 auto-fill
+  // buttons, etc.) MUST be excluded here. Otherwise this effect writes
+  // the whole field wrapper into the anchor slot AFTER the dedicated
+  // ref wrote the precise button, clobbering it. The tooltip then points
+  // at the entire field row instead of the button.
+  const activePhaseAnchor = useCallback(
+    (el: HTMLElement | null) => {
+      if (!activeGuidancePhase) return;
+      if (DEDICATED_ANCHOR_PHASES.has(activeGuidancePhase)) return;
+      setAnchorFor(activeGuidancePhase, el);
+    },
+    [activeGuidancePhase, setAnchorFor],
+  );
+  // Stage 3 step 1-B anchors — the 3 editable cells of the newly-added
+  // intent row, reported via SheetEditPage → IntentSheetTable. Each
+  // column has its own GuidancePhase + anchor; SheetEditPage fires the
+  // setters with the <td> on mount and `null` on unmount, so the parent
+  // doesn't have to orchestrate a single "active" ref per phase.
+  const handleIntentRowCellEl = useCallback(
+    (colId: 'intent' | 'leadSentence' | 'prompt', el: HTMLElement | null) => {
+      const phase: GuidancePhase =
+        colId === 'intent'
+          ? 'sheet-field-intent'
+          : colId === 'leadSentence'
+            ? 'sheet-field-leadSentence'
+            : 'sheet-field-prompt-paste';
+      setAnchorFor(phase, el);
+    },
+    [setAnchorFor],
+  );
+  // Stage 4 result-field sub-phase anchors. Reported by NotionTaskPage
+  // via `onLoadWorkButtonEl` / `onLoadCaptureButtonEl`. Each goes null
+  // once the parent hides the corresponding button (post-auto-fill), so
+  // the guidance silently disables instead of pointing at a stale target.
+  // Step 3 (submit) re-uses the existing `problemSubmitAnchorRef` wiring
+  // — NotionTaskPage's onSubmitButtonEl scans the active field's subtree
+  // for the "제출" button and works identically for the result field.
+  const loadWorkAnchorRef = useCallback(
+    (el: HTMLButtonElement | null) =>
+      setAnchorFor('stage4-result-load-work', el),
+    [setAnchorFor],
+  );
+  const loadCaptureAnchorRef = useCallback(
+    (el: HTMLButtonElement | null) =>
+      setAnchorFor('stage4-result-load-capture', el),
+    [setAnchorFor],
+  );
+  // Stage 4 step-3 anchor (result field 제출 button). Reuses the same
+  // element-reporting logic as problemAnalysis step 3 but writes into
+  // the `stage4-result-submit` slot. The parent only reads this slot
+  // when `activeGuidancePhase === 'stage4-result-submit'`.
+  const stage4ResultSubmitAnchorRef = useCallback(
+    (el: HTMLButtonElement | null) =>
+      setAnchorFor('stage4-result-submit', el),
+    [setAnchorFor],
+  );
+  // RelatedInfoCard's "복사" button — anchor for `sheet-related-copy`.
+  // The card only mounts during `add-intent` / `run-intent-script`, so
+  // the ref naturally goes null outside that window and the guidance
+  // silently disables instead of pointing at a stale target.
+  const relatedInfoCopyAnchorRef = useCallback(
+    (el: HTMLButtonElement | null) => setAnchorFor('sheet-related-copy', el),
+    [setAnchorFor],
+  );
+  // Anchor forwarder for SheetEditPage's internal-phase-driven anchors
+  // (tab / add-row button / custom scripts menu / trigger-row button).
+  // Writes to a SPECIFIC GuidancePhase slot per SheetEditPage's
+  // current anchor target, rather than to `activeGuidancePhase` — the
+  // parent's resolver may be on one of the new per-column sub-phases
+  // (sheet-field-*) whose anchors come from different sources.
+  const handleSheetAnchorEl = useCallback(
+    (el: HTMLElement | null) => {
+      // We don't know which slot to write from here alone — the
+      // SheetEditPage-side resolution (sheetPhase + activeTabId +
+      // menuOpen) is opaque. Walk the plausible slots: write the el
+      // into the slot that matches the current external resolver inputs.
+      if (sheetPhase === 'add-intent') {
+        // On the default trigger-sentence tab, the el is the leftmost
+        // intent tab; on any intent tab, the el is the "+ 인텐트 행
+        // 추가" button. The resolver picks `sheet-add-intent-tab` vs
+        // `sheet-add-intent-row` on the same criterion, so writing to
+        // both slots and letting the resolver pick is safe — only one
+        // is ever active at a time.
+        setAnchorFor('sheet-add-intent-tab', el);
+        setAnchorFor('sheet-add-intent-row', el);
+      } else if (sheetPhase === 'run-intent-script') {
+        setAnchorFor('sheet-run-intent-script', el);
+      } else if (sheetPhase === 'add-triggers') {
+        setAnchorFor('sheet-add-triggers', el);
+      } else if (sheetPhase === 'run-trigger-script') {
+        setAnchorFor('sheet-run-trigger-script', el);
+      }
+    },
+    [sheetPhase, setAnchorFor],
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full w-full bg-[#0a0a1a]">
@@ -1060,70 +1676,165 @@ export function IntentFixCourse() {
     </div>
   );
 
-  if (phase === 'dashboard' && currentSet) {
-    const showQuest = !questSeen && !representative && !showRestart;
+  // Single source of mission copy for the persistent bar. Intro and
+  // course-complete return null so the bar is hidden in orientation and
+  // final-celebration screens.
+  const missionCopy = getMissionCopy({
+    phase,
+    currentFieldId,
+    sheetPhase,
+    panelOpen,
+    hasChatbotAnswer: Boolean(
+      chatbotInteraction.question && chatbotInteraction.answer,
+    ),
+    sheetRowFilled,
+    relatedInfoCopied,
+    workAutoFilled,
+    captureVisible,
+  });
+
+  // Sub-phase briefing modal: fires once per MissionBar transition that
+  // *isn't* already covered by a phase-entry modal above. Reuses the
+  // MissionBar message so wording stays in one place.
+  const subPhaseQuestToShow: GuidancePhase | null =
+    activeGuidancePhase &&
+    // workType gets a dedicated briefing QuestModal (rendered in the
+    // notion phase block above) instead of the generic sub-phase
+    // QuestModal. Skip it here so the two don't stack.
+    activeGuidancePhase !== 'notion-field-workType' &&
+    SUB_PHASE_MODAL_GUIDANCE_NAMES.has(activeGuidancePhase) &&
+    !seenSubPhaseQuests.has(activeGuidancePhase)
+      ? activeGuidancePhase
+      : null;
+  const subPhaseQuestModal =
+    subPhaseQuestToShow && missionCopy ? (
+      <QuestModal
+        label={missionCopy.stageLabel}
+        body={missionCopy.message}
+        onAccept={() => markSubPhaseSeen(subPhaseQuestToShow)}
+      />
+    ) : null;
+
+  // For the notion-landing phase only, the anchor button is chosen
+  // dynamically from 5 candidates — so its position on screen varies.
+  // Compute a sensible side/align based on the chosen button's rect vs
+  // the viewport so the tooltip doesn't clip or overlap the anchor.
+  // Other phases continue to read static values from guidanceConfig.
+  let resolvedSide = activeConfig?.side;
+  let resolvedAlign = activeConfig?.align;
+  if (
+    activeGuidancePhase === 'notion-landing' &&
+    notionLandingAnchor &&
+    typeof window !== 'undefined'
+  ) {
+    const rect = notionLandingAnchor.getBoundingClientRect();
+    const vh = window.innerHeight || document.documentElement.clientHeight;
+    const vw = window.innerWidth || document.documentElement.clientWidth;
+    if (rect.top < vh * 0.3) {
+      resolvedSide = 'bottom';
+    } else if (rect.bottom > vh * 0.7) {
+      resolvedSide = 'top';
+    } else {
+      resolvedSide = 'right';
+    }
+    const cx = rect.left + rect.width / 2;
+    if (cx < vw * 0.2) {
+      resolvedAlign = 'start';
+    } else if (cx > vw * 0.8) {
+      resolvedAlign = 'end';
+    } else {
+      resolvedAlign = 'center';
+    }
+  }
+
+  // Renders the controlled tooltip for the currently-active phase. Kept
+  // as a helper so each phase's JSX tree can drop it in once without
+  // repeating the state-plumbing boilerplate.
+  // `open` mirrors `guidanceEnabled` (not just `idleFired`) so any
+  // blocking modal — QuestModal (QUEST CLEAR celebration, stage
+  // briefings), FeedbackModal, CopyIssueModal, IntentCatalogModal,
+  // game-over — instantly hides the tooltip instead of letting it
+  // peek through from underneath. When the modal dismisses and
+  // `guidanceEnabled` flips back to true, the tooltip reappears as
+  // long as `idleFired` is still set for the active phase.
+  const guidanceTooltip =
+    activeGuidancePhase && activeAnchorEl && activeConfig && activeMessage ? (
+      <GuidanceTooltip
+        open={activeEntry.idleFired && guidanceEnabled}
+        anchorEl={activeAnchorEl}
+        message={activeMessage}
+        tone={activeEntry.tone}
+        side={resolvedSide}
+        align={resolvedAlign}
+      />
+    ) : null;
+
+  if (phase === 'intro') {
     return (
-      <div className="relative h-full w-full bg-[#F9F9FA]">
+      <div className="relative h-full w-full">
         {saveErrorBanner}
-        <DashboardView
-          title={currentSet.title}
-          setOrder={setIndex + 1}
-          totalSets={activeSets.length}
-          rows={currentSet.rows}
-          onRowClick={handleRowClick}
-          hearts={hearts}
-          timerRemaining={timerRemaining}
-          timerTotal={TIMER_TOTAL}
-        />
-        {showQuest && (
-          <QuestModal
-            body="문제가 있는 인텐트의 행을 클릭하세요"
-            onAccept={() => setQuestSeen(true)}
+        <CourseIntro onNext={() => setPhase('dashboard')} />
+      </div>
+    );
+  }
+
+  if (phase === 'dashboard' && currentSet) {
+    return (
+      <div className="flex h-full w-full flex-col bg-[#F9F9FA]">
+        {missionCopy && <MissionBar {...missionCopy} />}
+        <div className="relative min-h-0 flex-1">
+          {saveErrorBanner}
+          <DashboardView
+            title={currentSet.title}
+            setOrder={setIndex + 1}
+            totalSets={activeSets.length}
+            rows={currentSet.rows}
+            onRowClick={handleRowClick}
+            hearts={hearts}
+            timerRemaining={timerRemaining}
+            timerTotal={TIMER_TOTAL}
+            onAnchorRef={dashboardAnchorRef}
+            onAnyClick={registerStray}
           />
-        )}
-        {dashboardFeedback && !showQuest && !showRestart && (
-          dashboardFeedback.correct ? (
+          {guidanceTooltip}
+          {!stage1QuestSeen && !dashboardFeedback && !showRestart && (
             <QuestModal
-              label="QUEST CLEAR"
-              body="인텐트 잘 찾았어요! 이제 노션 페이지로 이동해 이슈를 Task 로 등록합니다."
-              cta={persisting ? '저장 중…' : '확인'}
-              onAccept={handleDashboardFeedbackClose}
+              body="문제가 있는 인텐트의 행을 클릭하세요"
+              onAccept={() => setStage1QuestSeen(true)}
             />
-          ) : (
-            <FeedbackModal
-              correct={false}
-              onClose={handleDashboardFeedbackClose}
+          )}
+          {dashboardFeedback && !showRestart && (
+            dashboardFeedback.correct ? (
+              <QuestModal
+                label="QUEST CLEAR"
+                body="인텐트 잘 찾았어요! 이제 노션 페이지로 이동해 이슈를 Task 로 등록합니다."
+                cta={persisting ? '저장 중…' : '확인'}
+                onAccept={handleDashboardFeedbackClose}
+              />
+            ) : (
+              <FeedbackModal
+                correct={false}
+                onClose={handleDashboardFeedbackClose}
+              />
+            )
+          )}
+          {showRestart && (
+            <QuestModal
+              label="GAME OVER"
+              body="하트를 모두 소진했어요. 처음부터 다시 도전해 주세요."
+              cta={persisting ? '초기화 중…' : '다시 시작'}
+              onAccept={handleRestart}
             />
-          )
-        )}
-        {showRestart && (
-          <QuestModal
-            label="GAME OVER"
-            body="하트를 모두 소진했어요. 처음부터 다시 도전해 주세요."
-            cta={persisting ? '초기화 중…' : '다시 시작'}
-            onAccept={handleRestart}
-          />
-        )}
+          )}
+        </div>
       </div>
     );
   }
 
   if (phase === 'notion' || phase === 'quest-clear') {
-    const showInitialMission =
-      phase === 'notion' &&
-      !stage1NotionMissionSeen &&
-      !notionCreateCelebration &&
-      !panelOpen;
-    // Modal priority (highest first): quest-clear → celebration → initial
-    // mission → stray feedback → field validation error → per-field Quest.
-    // Only one at a time.
-    const activeFieldQuestBody =
-      phase === 'notion' &&
-      panelOpen &&
-      currentFieldId &&
-      !fieldQuestSeen.has(currentFieldId)
-        ? FIELD_QUEST_MESSAGES[currentFieldId] ?? null
-        : null;
+    // Only two modals remain: the stage-boundary celebration (which also
+    // advances phase) and FeedbackModal variants for stray clicks / field
+    // validation errors. All mission briefing is now in the MissionBar.
     let modal: React.ReactNode = null;
     if (phase === 'quest-clear') {
       modal = (
@@ -1137,54 +1848,56 @@ export function IntentFixCourse() {
           }}
         />
       );
-    } else if (notionCreateCelebration) {
+    } else if (
+      phase === 'notion' &&
+      !panelOpen &&
+      !agentsPageQuestSeen
+    ) {
       modal = (
         <QuestModal
-          label="QUEST CLEAR"
-          body="잘 하셨어요! 이슈를 새로 등록할 때는 '새로 만들기' 버튼을 눌러야 합니다."
-          cta="확인"
-          onAccept={handleNotionCreateCelebrationAccept}
+          body="Agents & Intents 페이지에 이슈를 Task로 등록해봅시다"
+          onAccept={() => setAgentsPageQuestSeen(true)}
         />
       );
-    } else if (showInitialMission) {
-      modal = (
-        <QuestModal
-          label="QUEST"
-          body="노션 페이지에 이슈를 Task로 등록해봅시다."
-          cta="확인"
-          onAccept={() => setStage1NotionMissionSeen(true)}
-        />
-      );
-    } else if (notionStrayFeedback) {
+    } else if (phase === 'notion' && !panelOpen && notionStrayFeedback) {
+      // Misclick on the Notion landing — blocks until the learner
+      // acknowledges. Takes priority over the ambient guidance tooltip
+      // so the "틀렸습니다" signal lands unambiguously.
       modal = (
         <FeedbackModal
           correct={false}
-          message={notionStrayFeedback}
-          onClose={() => setNotionStrayFeedback(null)}
+          message="이 버튼이 아니에요. '새로 만들기' 버튼을 찾아보세요."
+          onClose={() => setNotionStrayFeedback(false)}
         />
       );
+    } else if (workTypeBriefingShouldShow) {
+      // First-touch briefing for Stage 1 workType. Rendered as a plain
+      // QuestModal (blue accent, Target icon) — the workType badge
+      // taxonomy now lives INSIDE the catalog modal so the learner can
+      // see it alongside the existing intents/triggers. CTA opens the
+      // IntentCatalogModal; Enter/Escape both run onAccept for least
+      // surprise (QuestModal maps them the same).
+      modal = (
+        <QuestModal
+          label="STAGE 1 · 이슈 등록"
+          body="아래 엑셀 시트에서 기존 인텐트와 트리거링 문장을 살펴본 뒤, 어떤 유형으로 고칠지 고민해봅시다."
+          cta="엑셀 시트 살펴보기"
+          onAccept={() => {
+            setWorkTypeBriefingSeen(true);
+            setCatalogOpen(true);
+          }}
+        />
+      );
+    } else if (subPhaseQuestModal) {
+      // Field-level briefing inside the Notion task panel — fires on
+      // each field advance until dismissed.
+      modal = subPhaseQuestModal;
     } else if (notionError) {
       modal = (
         <FeedbackModal
           correct={false}
           message={notionError}
           onClose={() => setNotionError(null)}
-        />
-      );
-    } else if (activeFieldQuestBody && currentFieldId) {
-      const id = currentFieldId;
-      modal = (
-        <QuestModal
-          label="QUEST"
-          body={activeFieldQuestBody}
-          cta="확인"
-          onAccept={() =>
-            setFieldQuestSeen((prev) => {
-              const next = new Set(prev);
-              next.add(id);
-              return next;
-            })
-          }
         />
       );
     }
@@ -1195,188 +1908,222 @@ export function IntentFixCourse() {
     // the bottom overlay so the learner can still refer back to the found
     // intent while filling out the task.
     return (
-      <div className="relative h-full w-full">
-        {saveErrorBanner}
-        {!panelOpen && (
-          <NotionLanding
-            onCreate={handleCreateTask}
-            onStray={handleNotionStray}
+      <div className="flex h-full w-full flex-col">
+        {missionCopy && <MissionBar {...missionCopy} />}
+        <div className="relative min-h-0 flex-1">
+          {saveErrorBanner}
+          {!panelOpen && (
+            <NotionLanding
+              onCreate={handleCreateTask}
+              onStray={handleNotionStray}
+              onCreateButtonsRef={handleNotionCreateButtonsRef}
+            />
+          )}
+          {panelOpen && (
+            <NotionTaskPage
+              notion={notion}
+              currentFieldId={phase === 'notion' ? currentFieldId : null}
+              disabled={validating}
+              onSubmit={handleNotionSubmit}
+              onOpenCopyIssue={
+                representative ? () => setCopyIssueOpen(true) : undefined
+              }
+              onActiveFieldEl={activePhaseAnchor}
+              onCopyHelperEl={problemCopyHelperAnchorRef}
+              onSubmitButtonEl={problemSubmitAnchorRef}
+            />
+          )}
+          {guidanceTooltip}
+          {panelOpen && representative && (
+            <IntentDetailCard intent={representative} />
+          )}
+          {copyIssueOpen && representative ? (
+            <CopyIssueModal
+              intent={representative}
+              onClose={() => setCopyIssueOpen(false)}
+              onCopy={() => setProblemAnalysisCopied(true)}
+              onCopyButtonEl={problemCopyModalAnchorRef}
+            />
+          ) : null}
+          <IntentCatalogModal
+            open={catalogOpen}
+            onClose={() => {
+              setCatalogOpen(false);
+              // Fire the workType guidance tooltip IMMEDIATELY on catalog
+              // close. The learner has just digested the briefing +
+              // catalog, then returns to the workType field with the
+              // popover dropdown showing the 6 options — this is exactly
+              // the moment the "Intent 카탈로그를 참고해 알맞은 수정
+              // 유형을 골라주세요" nudge is most relevant. Waiting the
+              // full 25s idle threshold leaves them staring at 6 unlabeled
+              // options with no connection back to the catalog. Setting
+              // `idleFired: true` trips the tooltip's `open` prop
+              // immediately (see `guidanceTooltip` resolver).
+              setGuidanceField('notion-field-workType', {
+                idleFired: true,
+                strayCount: 0,
+                dismissedAt: null,
+                tone: 'soft',
+                firmFired: false,
+              });
+            }}
           />
-        )}
-        {panelOpen && (
-          <NotionTaskPage
-            notion={notion}
-            currentFieldId={phase === 'notion' ? currentFieldId : null}
-            disabled={validating}
-            onSubmit={handleNotionSubmit}
-            onOpenCopyIssue={
-              representative ? () => setCopyIssueOpen(true) : undefined
-            }
-          />
-        )}
-        {panelOpen && representative && (
-          <IntentDetailCard intent={representative} />
-        )}
-        {copyIssueOpen && representative ? (
-          <CopyIssueModal
-            intent={representative}
-            onClose={() => setCopyIssueOpen(false)}
-          />
-        ) : null}
-        <IntentCatalogModal
-          open={catalogOpen}
-          onClose={() => setCatalogOpen(false)}
-        />
-        {modal}
+          {modal}
+        </div>
       </div>
     );
   }
 
   if (phase === 'stage2-page' || phase === 'quest-clear-2') {
-    // Same field-Quest gating as Stage 1, scoped to stage2-page fields.
-    const stage2QuestBody =
-      phase === 'stage2-page' &&
-      currentFieldId &&
-      !fieldQuestSeen.has(currentFieldId)
-        ? FIELD_QUEST_MESSAGES[currentFieldId] ?? null
-        : null;
-    const stage2QuestId = currentFieldId;
     return (
-      <div className="relative h-full w-full">
-        {saveErrorBanner}
-        <NotionTaskPage
-          notion={notion}
-          currentFieldId={phase === 'stage2-page' ? currentFieldId : null}
-          disabled={validating}
-          onSubmit={handleNotionSubmit}
-        />
-        {phase === 'quest-clear-2' ? (
-          <QuestModal
-            label="QUEST CLEAR"
-            body="Stage 2 완료! 수정 방향을 정리했어요. 이제 Dev Sheet 에서 실제로 고칩니다."
-            cta="다음 단계로"
-            onAccept={() => {
-              setCurrentFieldIdx(countFilledStage3Notion(notion));
-              setPhase('sheet-edit');
-            }}
+      <div className="flex h-full w-full flex-col">
+        {missionCopy && <MissionBar {...missionCopy} />}
+        <div className="relative min-h-0 flex-1">
+          {saveErrorBanner}
+          <NotionTaskPage
+            notion={notion}
+            currentFieldId={phase === 'stage2-page' ? currentFieldId : null}
+            disabled={validating}
+            onSubmit={handleNotionSubmit}
+            onActiveFieldEl={activePhaseAnchor}
           />
-        ) : notionError ? (
-          <FeedbackModal
-            correct={false}
-            message={notionError}
-            onClose={() => setNotionError(null)}
-          />
-        ) : stage2QuestBody && stage2QuestId ? (
-          <QuestModal
-            label="QUEST"
-            body={stage2QuestBody}
-            cta="확인"
-            onAccept={() =>
-              setFieldQuestSeen((prev) => {
-                const next = new Set(prev);
-                next.add(stage2QuestId);
-                return next;
-              })
-            }
-          />
-        ) : null}
+          {guidanceTooltip}
+          {phase === 'quest-clear-2' ? (
+            <QuestModal
+              label="QUEST CLEAR"
+              body="Stage 2 완료! 수정 방향을 정리했어요. 이제 Dev Sheet 에서 실제로 고칩니다."
+              cta="다음 단계로"
+              onAccept={() => {
+                setCurrentFieldIdx(countFilledStage3Notion(notion));
+                setPhase('sheet-edit');
+              }}
+            />
+          ) : phase === 'stage2-page' && !stage2PageQuestSeen ? (
+            <QuestModal
+              body="발견한 문제의 수정 방향을 정리해봅시다"
+              onAccept={() => setStage2PageQuestSeen(true)}
+            />
+          ) : notionError ? (
+            <FeedbackModal
+              correct={false}
+              message={notionError}
+              onClose={() => setNotionError(null)}
+            />
+          ) : null}
+        </div>
       </div>
     );
   }
 
   if (phase === 'sheet-edit' || phase === 'quest-clear-3') {
-    // Per-phase Quest modals are now owned by SheetEditPage itself
-    // (add-intent → run-intent-script → add-triggers → run-trigger-script).
-    // This block only layers on the stage-complete celebration + any
-    // global notionError that leaked through.
+    // Per-phase briefing modals have been retired; MissionBar surfaces
+    // the active Stage 3 step (Step 1/4 … 4/4) via sheetPhase. This block
+    // keeps only the stage-complete celebration and any notionError that
+    // leaked through.
     return (
-      <div className="relative h-full w-full">
-        {saveErrorBanner}
-        <SheetEditPage
-          disabled={validating}
-          representative={representative}
-          onComplete={handleSheetComplete}
-        />
-        {notionError && (
-          <FeedbackModal
-            correct={false}
-            message={notionError}
-            onClose={() => setNotionError(null)}
+      <div className="flex h-full w-full flex-col">
+        {missionCopy && <MissionBar {...missionCopy} />}
+        <div className="relative min-h-0 flex-1">
+          {saveErrorBanner}
+          <SheetEditPage
+            disabled={validating}
+            representative={representative}
+            onComplete={handleSheetComplete}
+            onPhaseChange={setSheetPhase}
+            onAnchorEl={handleSheetAnchorEl}
+            onActiveTabChange={setSheetActiveTabId}
+            onIntentRowCellEl={handleIntentRowCellEl}
+            onIntentRowFilled={setSheetRowFilled}
+            onRelatedInfoCopyButtonEl={relatedInfoCopyAnchorRef}
+            onRelatedInfoCopy={() => setRelatedInfoCopied(true)}
+            onConfirmDialogChange={setSheetConfirmDialogOpen}
+            onScriptRunningChange={setSheetScriptRunning}
+            onScriptMenuOpenChange={setSheetScriptMenuOpen}
           />
-        )}
-        {phase === 'quest-clear-3' && (
-          <QuestModal
-            label="QUEST CLEAR"
-            body="Stage 3 완료! Dev 에 수정이 반영됐어요. 이제 Dev 챗봇에서 결과를 확인해봅니다."
-            cta="다음 단계로"
-            onAccept={() => {
-              setCurrentFieldIdx(countFilledStage4Notion(notion));
-              setPhase('chatbot-test');
-            }}
-          />
-        )}
+          {guidanceTooltip}
+          {notionError && (
+            <FeedbackModal
+              correct={false}
+              message={notionError}
+              onClose={() => setNotionError(null)}
+            />
+          )}
+          {phase === 'quest-clear-3' && (
+            <QuestModal
+              label="QUEST CLEAR"
+              body="Stage 3 완료! Dev 에 수정이 반영됐어요. 이제 Dev 챗봇에서 결과를 확인해봅니다."
+              cta="다음 단계로"
+              onAccept={() => {
+                setCurrentFieldIdx(countFilledStage4Notion(notion));
+                setPhase('chatbot-test');
+              }}
+            />
+          )}
+          {phase === 'sheet-edit' && !sheetEditQuestSeen && !notionError && (
+            <QuestModal
+              body="Dev 시트에서 인텐트를 추가하고 트리거 문장을 작성해봅시다"
+              onAccept={() => setSheetEditQuestSeen(true)}
+            />
+          )}
+          {phase === 'sheet-edit' &&
+            sheetEditQuestSeen &&
+            !notionError &&
+            subPhaseQuestModal}
+        </div>
       </div>
     );
   }
 
   if (phase === 'chatbot-test') {
-    const showStage4Mission = !stage4MissionSeen;
-    // Once the first Q&A is persisted, prompt the learner to go record the
-    // result back in the Notion task page (the "결과" block field there is
-    // now the canonical place for final result text).
+    // After a successful Q&A is persisted, gate the move to the result
+    // entry page on a QUEST CLEAR modal whose CTA advances phase — this
+    // modal stays because it's the transition trigger, not just briefing.
     const showGoToResult =
-      !!chatbotInteraction.question &&
-      !!chatbotInteraction.answer &&
-      !showStage4Mission;
+      !!chatbotInteraction.question && !!chatbotInteraction.answer;
     return (
-      <div className="relative h-full w-full">
-        {saveErrorBanner}
-        <ChatbotTestPage
-          disabled={validating}
-          representativeIntentLabel={representative?.row.intent}
-          representativeIntent={representative}
-          onAskAndReply={handleChatbotExchange}
-        />
-        {showStage4Mission ? (
-          <QuestModal
-            label="QUEST"
-            body="Stage 1 에서 발견했던 문제 발화를 이 Dev 챗봇에 그대로 넣어 보세요. 수정한 인텐트로 답변이 올바르게 매칭되면, 앞서 작성하던 Notion Task 로 돌아가 결과를 기록하며 마무리합니다."
-            cta="확인"
-            onAccept={() => setStage4MissionSeen(true)}
+      <div className="flex h-full w-full flex-col">
+        {missionCopy && <MissionBar {...missionCopy} />}
+        <div className="relative min-h-0 flex-1">
+          {saveErrorBanner}
+          <ChatbotTestPage
+            disabled={validating}
+            representativeIntentLabel={representative?.row.intent}
+            representativeIntent={representative}
+            onAskAndReply={handleChatbotExchange}
+            onInputRef={chatbotBeforeAnchorRef}
           />
-        ) : showGoToResult ? (
-          <QuestModal
-            label="QUEST CLEAR"
-            body="챗봇이 수정한 인텐트로 올바르게 답변했어요! 이제 Notion 으로 돌아가 작업 상태를 Done 으로 바꾸고 결과를 기록하며 마무리해요."
-            cta="Notion 으로"
-            onAccept={() => {
-              setCurrentFieldIdx(countFilledStage4Notion(notion));
-              setPhase('stage4-result-page');
-            }}
-          />
-        ) : notionError ? (
-          <FeedbackModal
-            correct={false}
-            message={notionError}
-            onClose={() => setNotionError(null)}
-          />
-        ) : null}
+          {guidanceTooltip}
+          {showGoToResult ? (
+            <QuestModal
+              label="QUEST CLEAR"
+              body="챗봇이 수정한 인텐트로 올바르게 답변했어요! 이제 Notion 으로 돌아가 작업 상태를 Done 으로 바꾸고 결과를 기록하며 마무리해요."
+              cta="Notion 으로"
+              onAccept={() => {
+                setCurrentFieldIdx(countFilledStage4Notion(notion));
+                setPhase('stage4-result-page');
+              }}
+            />
+          ) : !chatbotTestQuestSeen ? (
+            <QuestModal
+              body="Dev 챗봇에 문제 발화를 직접 입력해 수정 결과를 확인해봅시다"
+              onAccept={() => setChatbotTestQuestSeen(true)}
+            />
+          ) : notionError ? (
+            <FeedbackModal
+              correct={false}
+              message={notionError}
+              onClose={() => setNotionError(null)}
+            />
+          ) : null}
+        </div>
       </div>
     );
   }
 
   if (phase === 'stage4-result-page') {
-    // Stage 4 Quest copy: status gets "flip to Done" guidance on first sight;
-    // result gets "we auto-filled, feel free to edit" guidance once active.
-    const stage4QuestBody =
-      currentFieldId === 'status' && !stage4FieldQuestSeen.has('status')
-        ? '작업이 완료되었으니 Status 를 Done 으로 바꿔주세요.'
-        : currentFieldId === 'result' && !stage4FieldQuestSeen.has('result')
-          ? "📋 '작업 내역 불러오기' 로 작업내용을 펼치고, 📷 '테스트 결과 불러오기' 로 챗봇 응답을 결과 아래에 붙인 뒤, 결과란에 한 줄 후기를 적어 제출해주세요."
-          : null;
-    const stage4QuestId = currentFieldId;
-
-    // "📋 작업 내역 불러오기" — replace the Stage 3 short summary in
+    // Per-field briefing modals (status / result) retired — MissionBar
+    // surfaces the active field's instruction in a persistent line.
+    // "작업 내역 불러오기" — replace the Stage 3 short summary in
     // notion.workContent with the detailed intent + triggers tables, and
     // persist. The workContent BlockField is rich, so it renders the HTML
     // as a read-only filled block above the result section.
@@ -1390,7 +2137,7 @@ export function IntentFixCourse() {
       if (!persistOk) return;
       setNotion(newNotion);
     };
-    // "📷 테스트 결과 불러오기" — reveal a chat-bubble capture card
+    // "테스트 결과 불러오기" — reveal a chat-bubble capture card
     // styled like the Dev 챗봇 UI below the result BlockField. Session
     // state only; the underlying Q&A is already persisted separately.
     const handleAutoFillCapture = () => {
@@ -1398,13 +2145,10 @@ export function IntentFixCourse() {
       setCaptureVisible(true);
     };
 
-    // Work auto-fill is "done" once the persisted workContent differs from
-    // the Stage 3 plain-text summary. Detection: any HTML opening tag at
-    // the start means the detailed block was loaded (Stage 3 summaries are
-    // always plain prose, never begin with '<').
-    const workAutoFilled =
-      typeof notion.workContent === 'string' &&
-      notion.workContent.trimStart().startsWith('<');
+    // `workAutoFilled` is computed once at the component level (above the
+    // guidance/mission resolvers) and read here for the auto-fill button's
+    // "already done?" gate so the button hides after the learner clicks
+    // it. See top-level declaration for the detection heuristic.
 
     const captureNode =
       captureVisible && chatbotInteraction.question && chatbotInteraction.answer
@@ -1417,45 +2161,47 @@ export function IntentFixCourse() {
         : null;
 
     return (
-      <div className="relative h-full w-full">
-        {saveErrorBanner}
-        <NotionTaskPage
-          notion={notion}
-          currentFieldId={currentFieldId}
-          disabled={validating}
-          onSubmit={handleNotionSubmit}
-          onAutoFillWork={
-            sheetArtifact && !workAutoFilled ? handleAutoFillWork : undefined
-          }
-          onAutoFillCapture={
-            !captureVisible &&
-            chatbotInteraction.question &&
-            chatbotInteraction.answer
-              ? handleAutoFillCapture
-              : undefined
-          }
-          captureNode={captureNode}
-        />
-        {notionError ? (
-          <FeedbackModal
-            correct={false}
-            message={notionError}
-            onClose={() => setNotionError(null)}
-          />
-        ) : stage4QuestBody && stage4QuestId ? (
-          <QuestModal
-            label="QUEST"
-            body={stage4QuestBody}
-            cta="확인"
-            onAccept={() =>
-              setStage4FieldQuestSeen((prev) => {
-                const next = new Set(prev);
-                next.add(stage4QuestId);
-                return next;
-              })
+      <div className="flex h-full w-full flex-col">
+        {missionCopy && <MissionBar {...missionCopy} />}
+        <div className="relative min-h-0 flex-1">
+          {saveErrorBanner}
+          <NotionTaskPage
+            notion={notion}
+            currentFieldId={currentFieldId}
+            disabled={validating}
+            onSubmit={handleNotionSubmit}
+            onAutoFillWork={
+              sheetArtifact && !workAutoFilled ? handleAutoFillWork : undefined
             }
+            onAutoFillCapture={
+              !captureVisible &&
+              chatbotInteraction.question &&
+              chatbotInteraction.answer
+                ? handleAutoFillCapture
+                : undefined
+            }
+            captureNode={captureNode}
+            onActiveFieldEl={activePhaseAnchor}
+            onLoadWorkButtonEl={loadWorkAnchorRef}
+            onLoadCaptureButtonEl={loadCaptureAnchorRef}
+            onSubmitButtonEl={stage4ResultSubmitAnchorRef}
           />
-        ) : null}
+          {guidanceTooltip}
+          {!stage4ResultQuestSeen ? (
+            <QuestModal
+              body="작업 상태를 Done 으로 바꾸고 결과를 기록해 마무리합시다"
+              onAccept={() => setStage4ResultQuestSeen(true)}
+            />
+          ) : subPhaseQuestModal ? (
+            subPhaseQuestModal
+          ) : notionError ? (
+            <FeedbackModal
+              correct={false}
+              message={notionError}
+              onClose={() => setNotionError(null)}
+            />
+          ) : null}
+        </div>
       </div>
     );
   }

@@ -14,6 +14,11 @@ interface Props {
   // paste (HTML tables stay as tables, TSV becomes a table). The submitted
   // value is an HTML string. Default is a plain <textarea>.
   rich?: boolean;
+  // Direct ref callback for the "제출" button. Fires with the element on
+  // mount / null on unmount. Used by the parent so guidance tooltips
+  // (e.g. problemAnalysis step 3 / stage4-result step 3) can anchor on
+  // the actual button instead of a querySelector-best-guess element.
+  submitButtonRef?: (el: HTMLButtonElement | null) => void;
 }
 
 // Sanitize HTML for safe rendering — allow common block/inline tags and
@@ -139,6 +144,7 @@ export function BlockField({
   placeholder,
   onSubmit,
   rich,
+  submitButtonRef,
 }: Props) {
   const [draft, setDraft] = useState('');
   const editorRef = useRef<HTMLDivElement | null>(null);
@@ -254,6 +260,7 @@ export function BlockField({
                 : '텍스트 혹은 테이블을 붙여넣을 수 있어요. Cmd/Ctrl + Enter로 제출.'}
             </div>
             <button
+              ref={submitButtonRef}
               onClick={handleSubmit}
               disabled={isEmpty || disabled}
               className="rounded bg-[#FF9D00] px-3 py-1 text-xs text-white disabled:opacity-30"
@@ -283,6 +290,7 @@ export function BlockField({
               {disabled ? '검증 중…' : 'Cmd/Ctrl + Enter로 제출'}
             </div>
             <button
+              ref={submitButtonRef}
               onClick={() => !disabled && draft.trim() && onSubmit(draft.trim())}
               disabled={!draft.trim() || disabled}
               className="px-3 py-1 bg-[#FF9D00] disabled:opacity-30 text-white rounded text-xs"
