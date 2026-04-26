@@ -36,7 +36,7 @@ function TagChip({
   return (
     <span
       className={`inline-flex shrink-0 items-center whitespace-nowrap rounded px-2 py-0.5 text-[12px] leading-[18px] ${
-        ring ? 'ring-2 ring-[#FF9D00]/60 ring-offset-1' : ''
+        ring ? 'ring-2 ring-[#FF9D00]/40 ring-offset-1' : ''
       }`}
       style={{ background: wt.bg, color: wt.text }}
     >
