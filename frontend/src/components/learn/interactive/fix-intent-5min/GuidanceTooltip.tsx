@@ -42,8 +42,21 @@ export function GuidanceTooltip({
   useEffect(() => {
     if (!anchorEl || !triggerRef.current) return;
     const trigger = triggerRef.current;
+    let lastRect: DOMRect | null = null;
     const sync = () => {
       const rect = anchorEl.getBoundingClientRect();
+      // Skip the DOM write when nothing changed — keeps the rAF loop
+      // below cheap during steady-state (no layout = no work).
+      if (
+        lastRect &&
+        lastRect.left === rect.left &&
+        lastRect.top === rect.top &&
+        lastRect.width === rect.width &&
+        lastRect.height === rect.height
+      ) {
+        return;
+      }
+      lastRect = rect;
       trigger.style.position = 'fixed';
       trigger.style.left = `${rect.left}px`;
       trigger.style.top = `${rect.top}px`;
@@ -52,11 +65,24 @@ export function GuidanceTooltip({
       trigger.style.pointerEvents = 'none';
     };
     sync();
+    // rAF loop catches anchor *position* changes triggered by sibling /
+    // ancestor layout shifts (e.g. switching sheet tabs swaps the table
+    // body, repositioning "+ 인텐트 행 추가" without changing its size).
+    // ResizeObserver alone misses these because the anchor's own box
+    // doesn't resize. The diff guard above keeps cost negligible when
+    // nothing has moved.
+    let rafId = 0;
+    const loop = () => {
+      sync();
+      rafId = requestAnimationFrame(loop);
+    };
+    rafId = requestAnimationFrame(loop);
     window.addEventListener('scroll', sync, true);
     window.addEventListener('resize', sync);
     const ro = new ResizeObserver(sync);
     ro.observe(anchorEl);
     return () => {
+      cancelAnimationFrame(rafId);
       window.removeEventListener('scroll', sync, true);
       window.removeEventListener('resize', sync);
       ro.disconnect();
