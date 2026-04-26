@@ -1,5 +1,6 @@
 'use client';
 
+import { useCallback, useEffect, useRef } from 'react';
 import {
   BarChart3,
   BarChartHorizontal,
@@ -25,8 +26,23 @@ import {
 
 interface Props {
   onCreate: () => void;
-  onStray?: () => void;
+  onStray?: (event: React.MouseEvent) => void;
+  // Parent reports the "새로 만들기" button element back up so the
+  // GuidanceTooltip can anchor its nudge at the real call-to-action.
+  onPrimaryActionRef?: (el: HTMLButtonElement | null) => void;
+  // Parent receives the full list of "새로 만들기" button elements on
+  // mount / unmount so it can pick the best tooltip anchor (e.g.
+  // topmost-then-leftmost) and compute a sensible side/align.
+  onCreateButtonsRef?: (els: HTMLButtonElement[]) => void;
+  // When true (default), each of the 5 "새로 만들기" buttons pulses with
+  // a subtle orange ring so the learner sees every valid target on the
+  // Stage 1 Notion landing. Parent can set false to disable.
+  highlightCreateButtons?: boolean;
 }
+
+// Shared pulse class applied to every "새로 만들기" button on the Stage 1
+// landing. The keyframes are injected once via a scoped <style> tag below.
+const CREATE_PULSE_CLASS = 'cc-new-task-pulse';
 
 const TASKS: {
   title: string;
@@ -182,19 +198,37 @@ function NotionIconButton({
   );
 }
 
-function NotionSplitCreateButton({ onClick }: { onClick: () => void }) {
+function NotionSplitCreateButton({
+  onClick,
+  primaryButtonRef,
+  highlight,
+}: {
+  onClick: () => void;
+  primaryButtonRef?: (el: HTMLButtonElement | null) => void;
+  highlight?: boolean;
+}) {
   // Stop propagation so the NotionLanding root onClick (onStray) doesn't
   // also fire when the user clicks the correct button.
   const handle = (e: React.MouseEvent) => {
     e.stopPropagation();
     onClick();
   };
+  // The pulse is applied to the primary 새로 만들기 <button> itself via
+  // an animated outline. Outline draws OUTSIDE the element's box and is
+  // not clipped by overflow:hidden ancestors (the wrapper below keeps
+  // overflow-hidden for its rounded-corner split-button look). We keep
+  // the ring on the primary half so it clearly points at the correct
+  // click target rather than the chevron affordance.
+  const primaryExtra = highlight ? ` ${CREATE_PULSE_CLASS}` : '';
   return (
-    <div className="ml-[6px] inline-flex h-7 overflow-hidden rounded-[6px] text-[14px] font-medium text-white">
+    <div
+      className="ml-[6px] inline-flex h-7 overflow-hidden rounded-[6px] text-[14px] font-medium text-white"
+    >
       <button
+        ref={primaryButtonRef}
         type="button"
         onClick={handle}
-        className="inline-flex items-center bg-[#2383E2] px-2 hover:bg-[#1A73D1]"
+        className={`inline-flex items-center bg-[#2383E2] px-2 hover:bg-[#1A73D1]${primaryExtra}`}
       >
         새로 만들기
       </button>
@@ -216,6 +250,8 @@ function NotionCard({
   pillIcon,
   pillLabel,
   onCreate,
+  primaryButtonRef,
+  highlight,
   chartHeight = 300,
   children,
 }: {
@@ -224,6 +260,8 @@ function NotionCard({
   pillIcon: React.ReactNode;
   pillLabel: string;
   onCreate: () => void;
+  primaryButtonRef?: (el: HTMLButtonElement | null) => void;
+  highlight?: boolean;
   chartHeight?: number;
   children: React.ReactNode;
 }) {
@@ -248,7 +286,11 @@ function NotionCard({
             icon={<SlidersHorizontal size={14} />}
             ariaLabel="설정"
           />
-          <NotionSplitCreateButton onClick={onCreate} />
+          <NotionSplitCreateButton
+            onClick={onCreate}
+            primaryButtonRef={primaryButtonRef}
+            highlight={highlight}
+          />
         </div>
       </div>
       <div
@@ -690,12 +732,118 @@ function ContributionRankingBarChart() {
   );
 }
 
-export function NotionLanding({ onCreate, onStray }: Props) {
+export function NotionLanding({
+  onCreate,
+  onStray,
+  onPrimaryActionRef,
+  onCreateButtonsRef,
+  highlightCreateButtons = true,
+}: Props) {
+  // Collect refs for each of the 5 "새로 만들기" buttons (4 in-card cards
+  // + 1 bottom sticky CTA). We bucket them by stable index so each
+  // callback can write independently, then report the ordered array to
+  // the parent. On unmount we ping with an empty list so the parent can
+  // drop the anchor.
+  const buttonsRef = useRef<(HTMLButtonElement | null)[]>([null, null, null, null, null]);
+  // Stable latest-callback refs so slot ref callbacks below don't need
+  // to change identity when the parent rebinds onCreateButtonsRef /
+  // onPrimaryActionRef. React re-invokes ref callbacks with null/el
+  // each time their identity flips, which here would double-report the
+  // buttons on every parent render.
+  const onCreateButtonsRefLatest = useRef(onCreateButtonsRef);
+  const onPrimaryActionRefLatest = useRef(onPrimaryActionRef);
+  useEffect(() => {
+    onCreateButtonsRefLatest.current = onCreateButtonsRef;
+  }, [onCreateButtonsRef]);
+  useEffect(() => {
+    onPrimaryActionRefLatest.current = onPrimaryActionRef;
+  }, [onPrimaryActionRef]);
+
+  const reportButtons = useCallback(() => {
+    const cb = onCreateButtonsRefLatest.current;
+    if (!cb) return;
+    const live = buttonsRef.current.filter(
+      (el): el is HTMLButtonElement => el !== null,
+    );
+    cb(live);
+  }, []);
+
+  // Slot 4 is the bottom sticky 새로 만들기 — it's also the canonical
+  // anchor reported via onPrimaryActionRef for backwards-compat with
+  // earlier wiring. Each ref callback is memoized with an empty dep
+  // list so its identity is stable across renders (React would
+  // otherwise re-invoke the ref with null → el on every parent render
+  // and fire phantom reports to the parent).
+  const slot0Ref = useCallback((el: HTMLButtonElement | null) => {
+    buttonsRef.current[0] = el;
+    reportButtons();
+  }, [reportButtons]);
+  const slot1Ref = useCallback((el: HTMLButtonElement | null) => {
+    buttonsRef.current[1] = el;
+    reportButtons();
+  }, [reportButtons]);
+  const slot2Ref = useCallback((el: HTMLButtonElement | null) => {
+    buttonsRef.current[2] = el;
+    reportButtons();
+  }, [reportButtons]);
+  const slot3Ref = useCallback((el: HTMLButtonElement | null) => {
+    buttonsRef.current[3] = el;
+    reportButtons();
+  }, [reportButtons]);
+  const slot4Ref = useCallback((el: HTMLButtonElement | null) => {
+    buttonsRef.current[4] = el;
+    onPrimaryActionRefLatest.current?.(el);
+    reportButtons();
+  }, [reportButtons]);
+
+  useEffect(() => {
+    return () => {
+      onCreateButtonsRefLatest.current?.([]);
+      onPrimaryActionRefLatest.current?.(null);
+    };
+  }, []);
+
   return (
     <div
       onClick={onStray}
       className="h-full w-full overflow-auto bg-white font-[family:-apple-system,BlinkMacSystemFont,'Segoe_UI','Noto_Sans_KR',sans-serif] text-[#37352f]"
     >
+      {/* Scoped keyframes for the subtle orange pulse on "새로 만들기"
+           targets. Kept inline (not global CSS) so the animation is
+           colocated with the only component that uses it. Tint: brand
+           orange #FF9D00 at ~0.55 alpha, fading to 0 at 70% for a soft
+           "breathing" ring rather than a harsh blink.
+
+           Implementation note: we animate `outline` (not `box-shadow`).
+           Outline draws OUTSIDE the border-box. The split button wrapper
+           keeps overflow-hidden for its rounded corners (the split
+           buttons are the small top-right cards; their pulse radius is
+           small enough to be OK). The bottom sticky "새로 만들기"
+           previously sat inside an overflow-hidden table wrapper which
+           clipped 3 of 4 sides of the ring — that wrapper has since been
+           switched to overflow-visible (see the Tasks Table block
+           below), so all 4 sides of the pulse now render. */}
+      <style>{`
+        @keyframes cc-new-task-pulse {
+          0% {
+            outline-color: rgba(255, 157, 0, 0.55);
+            outline-offset: 0px;
+          }
+          70% {
+            outline-color: rgba(255, 157, 0, 0);
+            outline-offset: 6px;
+          }
+          100% {
+            outline-color: rgba(255, 157, 0, 0);
+            outline-offset: 6px;
+          }
+        }
+        .cc-new-task-pulse {
+          outline: 2px solid rgba(255, 157, 0, 0.55);
+          outline-offset: 0px;
+          animation: cc-new-task-pulse 1.8s ease-in-out infinite;
+        }
+      `}</style>
       {/* Cover */}
       <div
         className="relative h-[180px] w-full bg-white bg-cover bg-center"
@@ -769,6 +917,8 @@ export function NotionLanding({ onCreate, onStray }: Props) {
             pillIcon={<PieChart size={16} />}
             pillLabel="Total issues(Cycle)"
             onCreate={onCreate}
+            primaryButtonRef={slot0Ref}
+            highlight={highlightCreateButtons}
           >
             <IssueStatusDonut />
           </NotionCard>
@@ -777,6 +927,8 @@ export function NotionLanding({ onCreate, onStray }: Props) {
             pillIcon={<BarChart3 size={16} />}
             pillLabel="By project"
             onCreate={onCreate}
+            primaryButtonRef={slot1Ref}
+            highlight={highlightCreateButtons}
           >
             <ProjectProgressChart />
           </NotionCard>
@@ -791,6 +943,8 @@ export function NotionLanding({ onCreate, onStray }: Props) {
             pillLabel="My contribution (monthly)"
             chartHeight={400}
             onCreate={onCreate}
+            primaryButtonRef={slot2Ref}
+            highlight={highlightCreateButtons}
           >
             <MyContributionColumnChart />
           </NotionCard>
@@ -801,6 +955,8 @@ export function NotionLanding({ onCreate, onStray }: Props) {
             pillLabel="contribution point by work type"
             chartHeight={400}
             onCreate={onCreate}
+            primaryButtonRef={slot3Ref}
+            highlight={highlightCreateButtons}
           >
             <ContributionRankingBarChart />
           </NotionCard>
@@ -864,8 +1020,13 @@ export function NotionLanding({ onCreate, onStray }: Props) {
             </div>
           </div>
 
-          {/* Table */}
-          <div className="overflow-hidden">
+          {/* Table. NOTE: wrapper intentionally uses overflow-visible (not
+               overflow-hidden) so the animated outline pulse on the bottom
+               sticky "새로 만들기" button — which lives inside this same
+               wrapper — is not clipped on its bottom/left/right edges. The
+               table itself has no rounded outer border, so there is nothing
+               visually requiring overflow-hidden here. */}
+          <div className="overflow-visible">
             <table className="w-full border-collapse text-[14px]">
               <thead>
                 <tr className="border-b border-[rgba(55,53,47,0.09)] text-[12px] text-[rgba(55,53,47,0.5)]">
@@ -914,13 +1075,21 @@ export function NotionLanding({ onCreate, onStray }: Props) {
               </tbody>
             </table>
 
-            {/* New button */}
+            {/* New button — the canonical "하단 새로 만들기" target the
+                 mission bar refers to. Reported via slot 4 (which also
+                 forwards to onPrimaryActionRef for backwards-compat).
+                 A subtle orange pulse ring is applied when
+                 highlightCreateButtons is on, mirroring the four in-card
+                 create buttons above. */}
             <button
+              ref={slot4Ref}
               onClick={(e) => {
                 e.stopPropagation();
                 onCreate();
               }}
-              className="flex w-full items-center gap-1.5 px-2 py-2 text-left text-[14px] text-[rgba(55,53,47,0.45)] transition-colors hover:bg-[rgba(55,53,47,0.04)] hover:text-[rgba(55,53,47,0.85)]"
+              className={`flex w-full items-center gap-1.5 rounded-[4px] px-2 py-2 text-left text-[14px] text-[rgba(55,53,47,0.45)] transition-colors hover:bg-[rgba(55,53,47,0.04)] hover:text-[rgba(55,53,47,0.85)]${
+                highlightCreateButtons ? ` ${CREATE_PULSE_CLASS}` : ''
+              }`}
             >
               <Plus size={14} />
               새로 만들기

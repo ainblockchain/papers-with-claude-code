@@ -6,13 +6,25 @@ import { EXAM_ABSENCE_INFO } from '@/data/courses/fix-intent-5min/related-info';
 
 interface Props {
   defaultExpanded?: boolean;
+  // Reports the "복사" button element up to the parent so a
+  // GuidanceTooltip anchored on `sheet-related-copy` can point at it.
+  // Fires with the element on mount and `null` on unmount (callback-ref).
+  onCopyButtonEl?: (el: HTMLButtonElement | null) => void;
+  // Fires once per successful clipboard write. The parent uses this to
+  // flip a session flag that advances the Prompt-column guidance from
+  // `sheet-related-copy` to `sheet-field-prompt-paste`.
+  onCopy?: () => void;
 }
 
 // Floating card that surfaces reference material (fake Hanyang exam-absence
 // info) during the intent-writing phase. Mirrors IntentDetailCard: rounded
 // pill at page bottom, collapsible via top-right toggle. The disclaimer row
 // makes clear this is learning fiction and real work involves real sources.
-export function RelatedInfoCard({ defaultExpanded = true }: Props) {
+export function RelatedInfoCard({
+  defaultExpanded = false,
+  onCopyButtonEl,
+  onCopy,
+}: Props) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const [copied, setCopied] = useState(false);
 
@@ -27,9 +39,14 @@ export function RelatedInfoCard({ defaultExpanded = true }: Props) {
     try {
       await navigator.clipboard.writeText(payload);
       setCopied(true);
+      onCopy?.();
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      // clipboard API blocked — silent; user can still select text manually
+      // clipboard API blocked — silent; user can still select text manually.
+      // Still notify the parent so the guidance sequence advances even
+      // when the clipboard API is sandboxed away (the UX intent is
+      // "learner acknowledged the reference", not "clipboard holds X").
+      onCopy?.();
     }
   };
 
@@ -53,6 +70,7 @@ export function RelatedInfoCard({ defaultExpanded = true }: Props) {
           </span>
           <button
             type="button"
+            ref={onCopyButtonEl}
             onClick={handleCopy}
             aria-label={copied ? '복사됨' : '복사하기'}
             className={`ml-auto inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-[12px] font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.08)] transition-colors ${

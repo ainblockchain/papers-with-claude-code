@@ -19,6 +19,10 @@ interface Props {
     answer: string,
     meta: { onTopic: boolean },
   ) => Promise<void>;
+  // Reports the message input element up to the parent so a
+  // GuidanceTooltip can anchor its "문제 발화를 입력해 보세요" nudge at
+  // the real text field when the learner sits idle.
+  onInputRef?: (el: HTMLInputElement | null) => void;
 }
 
 type Message = { from: 'bot' | 'user'; text: string; time: string };
@@ -75,6 +79,7 @@ export function ChatbotTestPage({
   representativeIntentLabel,
   representativeIntent,
   onAskAndReply,
+  onInputRef,
 }: Props) {
   const [messages, setMessages] = useState<Message[]>(() => [
     { from: 'bot', text: GREETING_TEXT, time: formatKoreanTime() },
@@ -195,6 +200,7 @@ export function ChatbotTestPage({
               </span>
             </button>
             <input
+              ref={onInputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
@@ -203,7 +209,12 @@ export function ChatbotTestPage({
               disabled={disabled || waiting}
               placeholder="시험 못보면 어떻게 되는거야"
               type="text"
-              className="h-[30px] flex-1 rounded-[12px] bg-white px-3 text-[14px] text-[#37352f] outline-none placeholder:text-[rgba(0,0,0,0.35)]"
+              // Orange active-target border matches the project-wide
+              // "지금 입력해야 할 곳" convention (see BlockField, DropdownField).
+              // disabled variant falls back to a neutral border so the
+              // highlight doesn't falsely invite input while a request is
+              // in flight or the course has advanced past this step.
+              className="h-[30px] flex-1 rounded-[12px] border border-[#FF9D00] bg-white px-3 text-[14px] text-[#37352f] outline-none placeholder:text-[rgba(0,0,0,0.35)] focus:ring-2 focus:ring-[#FF9D00]/40 disabled:border-[#e0e0e0] disabled:bg-gray-50"
             />
             <button
               type="button"

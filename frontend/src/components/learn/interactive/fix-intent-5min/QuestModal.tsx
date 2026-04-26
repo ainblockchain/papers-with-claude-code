@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { Target } from 'lucide-react';
 
 interface Props {
@@ -15,6 +16,18 @@ export function QuestModal({
   onAccept,
   cta = '확인',
 }: Props) {
+  // Enter anywhere confirms the quest — consistent with FeedbackModal.
+  // Escape mirrors it as an escape hatch.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === 'Escape') {
+        e.preventDefault();
+        onAccept();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onAccept]);
   return (
     <div className="absolute inset-0 z-30 flex items-center justify-center bg-[rgba(7,23,34,0.55)] font-[family:var(--font-lato),Arial,sans-serif]">
       <div className="w-[440px] overflow-hidden rounded-[12px] border border-[#DCDFE0] bg-white shadow-[0px_8px_32px_0px_rgba(0,0,0,0.2)]">
@@ -29,6 +42,7 @@ export function QuestModal({
             {body}
           </p>
           <button
+            autoFocus
             onClick={onAccept}
             className="w-full rounded-[6px] bg-[#509EE3] px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#3E8BCC]"
           >

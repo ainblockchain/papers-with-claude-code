@@ -26,6 +26,11 @@ import {
   buildInitialGrids,
   type IntentSheetTabId,
 } from '@/data/courses/fix-intent-5min/intent-catalog';
+import {
+  WORK_TYPES,
+  type WorkTypeKey,
+} from '@/data/courses/fix-intent-5min/work-types';
+import { workTypeHints } from '@/data/courses/fix-intent-5min/notion-options';
 
 interface Props {
   open: boolean;
@@ -47,6 +52,12 @@ export function IntentCatalogModal({ open, onClose }: Props) {
     r: 0,
     c: 0,
   });
+  // Which WORK_TYPES badge is currently hovered/focused in the taxonomy
+  // strip below the info banner. Null → placeholder caption prompting
+  // the learner to hover a badge. Used to reveal each type's
+  // description inline instead of rendering six tooltips stacked.
+  const [hoveredWorkType, setHoveredWorkType] =
+    useState<WorkTypeKey | null>(null);
 
   const dataRowCount = GRIDS[activeTab].length;
   const dataColCount = GRIDS[activeTab][0]?.length ?? 0;
@@ -269,6 +280,65 @@ export function IntentCatalogModal({ open, onClose }: Props) {
             아래 시트를 둘러본 뒤 오른쪽 위 "확인" 을 눌러 닫고, 어떤 Work
             Type 으로 처리할지 골라 보세요.
           </span>
+        </div>
+
+        {/* Work Type taxonomy strip — the 6 canonical WORK_TYPES shown with
+            the same Notion-style colored labels WorkTypeField's popover
+            uses (bg/text tokens live in work-types.ts; TagChip in
+            WorkTypeField.tsx is the canonical renderer). Hover/focus
+            highlights a pill with an orange accent ring AND swaps the
+            caption line below for that type's description from
+            `workTypeHints`. Lets the learner cross-reference the catalog
+            rows and the available work-type labels in the same view. */}
+        <div className="flex shrink-0 flex-col gap-1.5 border-b border-[#e0e0e0] bg-white px-4 py-2.5">
+          <div className="flex items-center gap-2">
+            <span className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#5f6368]">
+              Work Type
+            </span>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {WORK_TYPES.map((wt) => {
+                const isHovered = hoveredWorkType === wt.key;
+                return (
+                  <button
+                    key={wt.key}
+                    type="button"
+                    onMouseEnter={() => setHoveredWorkType(wt.key)}
+                    onMouseLeave={() =>
+                      setHoveredWorkType((curr) =>
+                        curr === wt.key ? null : curr,
+                      )
+                    }
+                    onFocus={() => setHoveredWorkType(wt.key)}
+                    onBlur={() =>
+                      setHoveredWorkType((curr) =>
+                        curr === wt.key ? null : curr,
+                      )
+                    }
+                    aria-describedby={
+                      isHovered ? 'catalog-worktype-desc' : undefined
+                    }
+                    className={`inline-flex shrink-0 items-center whitespace-nowrap rounded px-2 py-0.5 text-[12px] leading-[18px] transition-shadow focus:outline-none ${
+                      isHovered
+                        ? 'ring-2 ring-[#FF9D00]/50 ring-offset-1'
+                        : ''
+                    }`}
+                    style={{ background: wt.bg, color: wt.text }}
+                  >
+                    {wt.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <p
+            id="catalog-worktype-desc"
+            role="tooltip"
+            className="min-h-[18px] pl-[74px] text-[12px] leading-[18px] text-[#5f6368]"
+          >
+            {hoveredWorkType
+              ? workTypeHints[hoveredWorkType]
+              : '각 Work Type 에 마우스를 올리면 어떤 작업인지 설명을 볼 수 있어요.'}
+          </p>
         </div>
 
         {/* Grid */}

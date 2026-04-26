@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import {
   ChevronDown,
   Clipboard,
@@ -54,9 +55,28 @@ interface Props {
   currentFieldId: NotionFieldId | null;
   disabled?: boolean;
   onSubmit: (fieldId: NotionFieldId, value: string) => void;
+  // Reports the DOM element corresponding to the current active field
+  // up to the parent. The parent finds it by querying for a
+  // `[data-field-id="${currentFieldId}"]` inside this component's root
+  // container — that keeps wiring to one attribute per field instead
+  // of threading refs through TitleField / BlockField / PropertyChip.
+  onActiveFieldEl?: (el: HTMLElement | null) => void;
   // When the problemAnalysis field is active, clicking the "복사하러가기"
   // helper invokes this to open the Copy-Issue modal in the parent.
   onOpenCopyIssue?: () => void;
+  // Reports the in-field "복사하러가기" button element up to the parent
+  // so the guidance tooltip can anchor on it during step 1 of the
+  // problemAnalysis tooltip sequence. Null when the field isn't active.
+  onCopyHelperEl?: (el: HTMLButtonElement | null) => void;
+  // Reports the current active field's "제출" button element up to the
+  // parent — used as the anchor for step 3 of the problemAnalysis
+  // tooltip sequence (post-copy, nudging paste + submit) and the Stage 4
+  // result-submit tooltip. Wired as a direct `ref={...}` on the BlockField
+  // submit button (via BlockField's `submitButtonRef` prop) so the anchor
+  // fires exactly on mount/unmount of the actual element, without racing
+  // against the `onActiveFieldEl` effect. Only forwarded to the BlockField
+  // that's currently active — the other BlockFields pass undefined.
+  onSubmitButtonEl?: (el: HTMLButtonElement | null) => void;
   // Stage 4 result-page auto-fill hooks.
   // - onAutoFillWork: pill button above the 작업내용 block — clicking
   //   replaces that block's content with the detailed intent + triggers
@@ -67,6 +87,14 @@ interface Props {
   //   after one click by passing undefined.
   onAutoFillWork?: () => void;
   onAutoFillCapture?: () => void;
+  // Reports the "작업 내용 불러오기" button element up to the parent so the
+  // Stage 4 result-load-work tooltip can anchor on it. Null when the
+  // button isn't rendered (no sheet artifact, or already auto-filled).
+  onLoadWorkButtonEl?: (el: HTMLButtonElement | null) => void;
+  // Reports the "테스트 결과 불러오기" button element up to the parent so
+  // the Stage 4 result-load-capture tooltip can anchor on it. Null when
+  // the button isn't rendered (capture already shown, or Q&A missing).
+  onLoadCaptureButtonEl?: (el: HTMLButtonElement | null) => void;
   // Visual "capture" card (a React node) that renders below the result
   // BlockField. Owned by the parent so it can style the chatbot Q&A the
   // way the Dev 챗봇 screen does — the sanitizer allowed by BlockField
@@ -175,6 +203,7 @@ function PropertyChip({
   filled,
   displayFilled,
   editor,
+  fieldId,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -182,9 +211,12 @@ function PropertyChip({
   filled: boolean;
   displayFilled: React.ReactNode;
   editor: React.ReactNode;
+  // Marks the chip's root element so the parent's single querySelector-
+  // based anchor lookup can find this field when it's active.
+  fieldId?: NotionFieldId;
 }) {
   return (
-    <div className="flex min-w-0 flex-col gap-0.5">
+    <div data-field-id={fieldId} className="flex min-w-0 flex-col gap-0.5">
       <div className="flex items-center gap-1.5 px-1 text-[13px] font-medium text-[rgba(55,53,47,0.5)]">
         <span className="flex h-3.5 w-3.5 items-center justify-center text-[rgba(55,53,47,0.5)]">
           {icon}
@@ -299,9 +331,14 @@ export function NotionTaskPage({
   disabled,
   onSubmit,
   onOpenCopyIssue,
+  onCopyHelperEl,
+  onSubmitButtonEl,
   onAutoFillWork,
   onAutoFillCapture,
   captureNode,
+  onActiveFieldEl,
+  onLoadWorkButtonEl,
+  onLoadCaptureButtonEl,
 }: Props) {
   // Assignee dropdown prepends the logged-in user's GitHub ID, so the
   // correct answer — "assign to yourself" — is a real selectable option
@@ -334,8 +371,35 @@ export function NotionTaskPage({
   );
   const resultS = computeState('result', currentFieldId, notion.result);
 
+  const rootRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!onActiveFieldEl) return;
+    if (!currentFieldId) {
+      onActiveFieldEl(null);
+      return;
+    }
+    const el =
+      (rootRef.current?.querySelector(
+        `[data-field-id="${currentFieldId}"]`,
+      ) as HTMLElement | null) ?? null;
+    onActiveFieldEl(el);
+  }, [currentFieldId, notion, onActiveFieldEl]);
+
+  // The active field's "제출" button is reported via a direct ref callback
+  // threaded through BlockField's `submitButtonRef` prop (see the
+  // problemAnalysis / result BlockFields below). Direct refs are reliable
+  // across active/filled transitions and don't race with effect ordering,
+  // whereas the old querySelector-on-effect approach was prone to being
+  // clobbered by the `onActiveFieldEl` effect writing to the same anchor
+  // slot. The parent guards the prop so only the currently-active field's
+  // submit button is reported to it (problemAnalysis during Stage 1,
+  // result during Stage 4).
+
   return (
-    <div className="flex h-full w-full flex-col overflow-auto bg-white text-[#37352f] font-[family:ui-sans-serif,-apple-system,BlinkMacSystemFont,'Segoe_UI','Noto_Sans_KR',Arial,sans-serif]">
+    <div
+      ref={rootRef}
+      className="flex h-full w-full flex-col overflow-auto bg-white text-[#37352f] font-[family:ui-sans-serif,-apple-system,BlinkMacSystemFont,'Segoe_UI','Noto_Sans_KR',Arial,sans-serif]"
+    >
       <Breadcrumb title={notion.title} />
 
       {/* Page content */}
@@ -356,7 +420,7 @@ export function NotionTaskPage({
         </div>
 
         {/* Title — TitleField renders its own h1 styling; we own padding. */}
-        <div className="mb-4">
+        <div data-field-id="title" className="mb-4">
           <TitleField
             active={titleS.active}
             filled={titleS.filled}
@@ -375,6 +439,7 @@ export function NotionTaskPage({
             the learner is picking multi-select options. */}
         <div className="grid gap-y-3 gap-x-4 pb-2" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' }}>
           <PropertyChip
+            fieldId="agent"
             icon={<Target size={14} />}
             label="Agent"
             active={agentS.active}
@@ -395,6 +460,7 @@ export function NotionTaskPage({
           {/* position: relative so the WorkTypeField popover can anchor here. */}
           <div className="relative">
             <PropertyChip
+              fieldId="workType"
               icon={<Tag size={14} />}
               label="Work Type"
               active={workTypeS.active}
@@ -413,6 +479,7 @@ export function NotionTaskPage({
             />
           </div>
           <PropertyChip
+            fieldId="assignee"
             icon={<Users size={14} />}
             label="Assignee"
             active={assigneeS.active}
@@ -431,6 +498,7 @@ export function NotionTaskPage({
             }
           />
           <PropertyChip
+            fieldId="status"
             icon={
               <span className="inline-block h-2.5 w-2.5 rounded-full border border-[rgba(55,53,47,0.35)]" />
             }
@@ -455,6 +523,7 @@ export function NotionTaskPage({
         {/* 속성 section */}
         <SectionLabel>속성</SectionLabel>
         <div className="flex flex-col gap-0.5 border-t border-[rgba(55,53,47,0.08)] pt-1">
+          <div data-field-id="season">
           <PropertyRow
             icon={<MessageSquare size={14} className="text-[rgba(55,53,47,0.45)]" />}
             label="Season"
@@ -477,6 +546,7 @@ export function NotionTaskPage({
               <span className="italic text-[rgba(55,53,47,0.35)]">비어 있음</span>
             )}
           </PropertyRow>
+          </div>
           <PropertyRow
             icon={<UserCircle size={14} className="text-[rgba(55,53,47,0.45)]" />}
             label="Reported by"
@@ -541,16 +611,23 @@ export function NotionTaskPage({
         </div>
 
         {/* Content sections */}
-        <BlockField
-          heading="문제 상황 분석"
-          active={problemS.active}
-          filled={problemS.filled}
-          disabled={disabled}
-          value={notion.problemAnalysis}
-          placeholder="발견한 문제에 대해 자신의 생각과 상황을 정리. 채팅 로그는 복사해서 표로 붙여넣으세요."
-          onSubmit={(v) => onSubmit('problemAnalysis', v)}
-          rich
-        />
+        <div data-field-id="problemAnalysis">
+          <BlockField
+            heading="문제 상황 분석"
+            active={problemS.active}
+            filled={problemS.filled}
+            disabled={disabled}
+            value={notion.problemAnalysis}
+            placeholder="발견한 문제에 대해 자신의 생각과 상황을 정리. 채팅 로그는 복사해서 표로 붙여넣으세요."
+            onSubmit={(v) => onSubmit('problemAnalysis', v)}
+            rich
+            // Ref only mounts while the field is active (button doesn't
+            // render otherwise), so we can pass the parent's callback
+            // unconditionally — it will only fire from whichever BlockField
+            // currently owns the "제출" button.
+            submitButtonRef={problemS.active ? onSubmitButtonEl : undefined}
+          />
+        </div>
 
         {/* Helper: open a Metabase-styled modal showing the broken chat row
             so the learner can select/copy the text into the block above.
@@ -560,6 +637,7 @@ export function NotionTaskPage({
             <button
               type="button"
               onClick={onOpenCopyIssue}
+              ref={onCopyHelperEl}
               className="inline-flex items-center gap-1.5 rounded-md bg-[#FF9D00] px-3 py-1.5 text-[13px] font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] hover:bg-[#E68E00]"
             >
               <Clipboard size={14} />
@@ -571,15 +649,17 @@ export function NotionTaskPage({
           </div>
         ) : null}
 
-        <BlockField
-          heading="해결방향 정리"
-          active={solutionS.active}
-          filled={solutionS.filled}
-          disabled={disabled}
-          value={notion.solutionDirection}
-          placeholder="어떤 방향으로 해결하고자 하는지 생각 정리"
-          onSubmit={(v) => onSubmit('solutionDirection', v)}
-        />
+        <div data-field-id="solutionDirection">
+          <BlockField
+            heading="해결방향 정리"
+            active={solutionS.active}
+            filled={solutionS.filled}
+            disabled={disabled}
+            value={notion.solutionDirection}
+            placeholder="어떤 방향으로 해결하고자 하는지 생각 정리"
+            onSubmit={(v) => onSubmit('solutionDirection', v)}
+          />
+        </div>
 
         {/* Stage 4 auto-fill helper: injects the detailed work summary
             (intent row + triggers table) into the 작업내용 block above.
@@ -590,9 +670,10 @@ export function NotionTaskPage({
               type="button"
               onClick={onAutoFillWork}
               disabled={disabled}
+              ref={onLoadWorkButtonEl}
               className="inline-flex items-center gap-1.5 rounded-md bg-[#FF9D00] px-3 py-1.5 text-[13px] font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] hover:bg-[#E68E00] disabled:opacity-50"
             >
-              📋 작업 내역 불러오기
+              작업 내역 불러오기
             </button>
             <span className="text-[12px] text-[rgba(55,53,47,0.5)]">
               Dev Sheet 에 등록한 상세 내역을 작업내용에 펼쳐 보여줘요.
@@ -653,16 +734,19 @@ export function NotionTaskPage({
           </ul>
         ) : null}
 
-        <BlockField
-          heading="결과"
-          active={resultS.active}
-          filled={resultS.filled}
-          disabled={disabled}
-          value={notion.result}
-          placeholder="수정 이후 어떤 변화가 있었는지 한두 줄로 적고, 아래 '📷 테스트 결과 불러오기' 버튼으로 Dev 챗봇 응답 스크린샷을 첨부하세요."
-          onSubmit={(v) => onSubmit('result', v)}
-          rich
-        />
+        <div data-field-id="result">
+          <BlockField
+            heading="결과"
+            active={resultS.active}
+            filled={resultS.filled}
+            disabled={disabled}
+            value={notion.result}
+            placeholder="수정 이후 어떤 변화가 있었는지 한두 줄로 적고, 아래 '테스트 결과 불러오기' 버튼으로 Dev 챗봇 응답 스크린샷을 첨부하세요."
+            onSubmit={(v) => onSubmit('result', v)}
+            rich
+            submitButtonRef={resultS.active ? onSubmitButtonEl : undefined}
+          />
+        </div>
 
         {/* Capture toolbar + visual — below the 결과 block. Button injects a
             chatbot-styled Q&A capture card; the card lives here (not in the
@@ -674,9 +758,10 @@ export function NotionTaskPage({
               type="button"
               onClick={onAutoFillCapture}
               disabled={disabled}
+              ref={onLoadCaptureButtonEl}
               className="inline-flex items-center gap-1.5 rounded-md bg-[#FF9D00] px-3 py-1.5 text-[13px] font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] hover:bg-[#E68E00] disabled:opacity-50"
             >
-              📷 테스트 결과 불러오기
+              테스트 결과 불러오기
             </button>
             <span className="text-[12px] text-[rgba(55,53,47,0.5)]">
               Dev 챗봇 응답을 이미지처럼 결과 아래에 붙여줘요.

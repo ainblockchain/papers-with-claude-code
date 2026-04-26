@@ -5,6 +5,11 @@ interface ResponsesCallOptions {
   instructions: string;
   input: string;
   maxOutputTokens?: number;
+  // How many times to retry on transient (5xx / 408 / 429 / network) errors
+  // before giving up. Each attempt waits ~300ms → ~800ms → ~1300ms. Default
+  // 2 retries (= up to 3 total calls) — covers short Azure blips AND the
+  // ~1-second local DNS (ENOTFOUND) glitches we keep hitting in dev.
+  retries?: number;
 }
 
 interface ResponsesCallResult {
@@ -12,10 +17,16 @@ interface ResponsesCallResult {
   raw: unknown;
 }
 
+// Azure Responses occasionally throws short 5xx/429 blips that otherwise
+// bubble up as "검증 서버에 일시적 오류가 있어요" UI. The set of codes we
+// treat as worth retrying.
+const TRANSIENT_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504]);
+
 export async function callAzureResponses({
   instructions,
   input,
   maxOutputTokens = 300,
+  retries = 2,
 }: ResponsesCallOptions): Promise<ResponsesCallResult> {
   const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
   const apiKey = process.env.AZURE_OPENAI_API_KEY;
@@ -34,29 +45,45 @@ export async function callAzureResponses({
     url += `${url.includes('?') ? '&' : '?'}api-version=${apiVersion ?? ''}`;
   }
 
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'api-key': apiKey,
-    },
-    body: JSON.stringify({
-      model: deployment,
-      instructions,
-      input,
-      max_output_tokens: maxOutputTokens,
-    }),
+  const body = JSON.stringify({
+    model: deployment,
+    instructions,
+    input,
+    max_output_tokens: maxOutputTokens,
   });
 
-  const raw: unknown = await res.json().catch(() => null);
-  if (!res.ok) {
-    const excerpt = JSON.stringify(raw).slice(0, 500);
-    throw new Error(`Azure OpenAI ${res.status}: ${excerpt}`);
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    if (attempt > 0) {
+      // Exponential-ish backoff: 300ms, 800ms, 1300ms
+      await new Promise((resolve) =>
+        setTimeout(resolve, 300 + attempt * 500),
+      );
+    }
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'api-key': apiKey },
+        body,
+      });
+      const raw: unknown = await res.json().catch(() => null);
+      if (!res.ok) {
+        const excerpt = JSON.stringify(raw).slice(0, 500);
+        const err = new Error(`Azure OpenAI ${res.status}: ${excerpt}`);
+        if (TRANSIENT_STATUSES.has(res.status) && attempt < retries) {
+          lastErr = err;
+          continue;
+        }
+        throw err;
+      }
+      return { text: extractResponseText(raw), raw };
+    } catch (err) {
+      // Network / fetch-layer failures — always retry until we exhaust budget.
+      lastErr = err;
+      if (attempt >= retries) throw err;
+    }
   }
-
-  // Responses API output: output[].content[].text — flatten & join.
-  const text = extractResponseText(raw);
-  return { text, raw };
+  throw lastErr ?? new Error('Azure OpenAI call failed with no error object');
 }
 
 function extractResponseText(raw: unknown): string {

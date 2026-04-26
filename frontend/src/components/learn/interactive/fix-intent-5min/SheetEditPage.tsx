@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Bold,
   ChevronDown,
@@ -33,7 +33,6 @@ import {
   type SheetId,
   type TriggerRow,
 } from '@/data/courses/fix-intent-5min/intent-sheets';
-import { QuestModal } from './QuestModal';
 import { FeedbackModal } from './FeedbackModal';
 import { RelatedInfoCard } from './RelatedInfoCard';
 
@@ -48,10 +47,68 @@ interface Props {
   disabled?: boolean;
   representative: SelectedIntent | null;
   onComplete: (summary: string, artifact: SheetArtifact) => void;
+  // Fires on every internal phase transition so the parent can surface
+  // the matching mission copy in its persistent MissionBar. The effect
+  // is read-only: parent must never drive phase back into SheetEditPage.
+  onPhaseChange?: (phase: Phase) => void;
+  // Reports the current phase's primary-action element back up so a
+  // GuidanceTooltip anchored on it can point at the real target. The
+  // anchor changes with internal `phase` (add-intent row button /
+  // Custom Scripts menu / script menu item / add-trigger row button) —
+  // fire with `null` when no anchor applies for the active phase.
+  // During `add-intent` the reported element further branches on the
+  // currently active sheet tab: trigger-sentence tab → leftmost intent
+  // category tab; any intent tab → "+ 인텐트 행 추가" button.
+  onAnchorEl?: (el: HTMLElement | null) => void;
+  // Reports the currently active sheet tab id up to the parent so the
+  // guidance resolver can pick between `sheet-add-intent-tab` and
+  // `sheet-add-intent-row` sub-phases. Fires once on mount with the
+  // initial tab and again after every tab switch.
+  onActiveTabChange?: (tabId: SheetId) => void;
+  // Per-column DOM element for the newly-added intent row. Fires with
+  // the current <td> (or input/textarea when editing) on mount/layout
+  // change; `null` when the row doesn't exist yet or the column's cell
+  // isn't rendered. The parent anchors the intent / leadSentence /
+  // prompt per-column tooltips on these elements.
+  onIntentRowCellEl?: (
+    colId: 'intent' | 'leadSentence' | 'prompt',
+    el: HTMLElement | null,
+  ) => void;
+  // Reports which of the 3 editable columns on the newly-added intent
+  // row currently have non-empty values. Fires with `null` before the
+  // row exists (so the parent can keep showing "+ 인텐트 행 추가"
+  // guidance); once the row is added, fires with an object and updates
+  // on every commit. The parent feeds this into
+  // `resolveActiveGuidancePhase` to walk through intent → leadSentence
+  // → prompt column tooltips.
+  onIntentRowFilled?: (
+    filled: { intent: boolean; leadSentence: boolean; prompt: boolean } | null,
+  ) => void;
+  // Passed through to RelatedInfoCard. Reports the "복사" button ref
+  // and fires a callback on successful clipboard write. Bubbled through
+  // SheetEditPage because the card is rendered inside the sheet page,
+  // not at the course root.
+  onRelatedInfoCopyButtonEl?: (el: HTMLButtonElement | null) => void;
+  onRelatedInfoCopy?: () => void;
+  // Fires whenever the internal ConfirmDialog (triggered by clicking
+  // "Update Intent Prompts (dev)" / "Update Intent Triggers (dev)") opens
+  // or closes. The parent folds this into its `anyModalOpen` gate so the
+  // idle GuidanceTooltip pointing at Custom Scripts is suppressed while
+  // the blue confirm dialog is sitting in front of it — otherwise the
+  // tooltip floats over/beside the dialog with stale "run the script" copy.
+  onConfirmDialogChange?: (open: boolean) => void;
+  // Fires while the script is actively running (`running=true`) — the
+  // parent suppresses guidance the same way as the confirm dialog so
+  // the "run the script" tooltip doesn't hang around the running spinner.
+  onScriptRunningChange?: (running: boolean) => void;
+  // Fires when the Custom Scripts dropdown menu is open. Suppresses the
+  // idle guidance while the user is hovering menu items so the tooltip
+  // doesn't overlay the open menu.
+  onScriptMenuOpenChange?: (open: boolean) => void;
 }
 
 const INTENT_COLS: Array<{
-  id: 'intent' | 'leadSentence' | 'prompt' | 'createdAt' | 'isPush';
+  id: 'intent' | 'leadSentence' | 'prompt' | 'createdAt';
   label: string;
   width: string;
   readonly?: boolean;
@@ -60,7 +117,6 @@ const INTENT_COLS: Array<{
   { id: 'leadSentence', label: '대표 Sentence', width: '180px' },
   { id: 'prompt', label: 'Prompt', width: '1fr' },
   { id: 'createdAt', label: 'created_at', width: '180px', readonly: true },
-  { id: 'isPush', label: 'isPush', width: '80px', readonly: true },
 ];
 
 const TRIGGER_COLS: Array<{
@@ -72,19 +128,58 @@ const TRIGGER_COLS: Array<{
   { id: 'sentence', label: 'Sentence', width: '1fr' },
 ];
 
-const PHASE_QUEST: Record<Exclude<Phase, 'complete'>, string> = {
-  'add-intent':
-    '방금 정리한 해결 방향에 맞는 새 인텐트를 어떤 탭에 추가할지 생각해보고, 해당 탭에서 "+ 인텐트 행 추가" 를 눌러 Intent / 대표 Sentence / Prompt 를 채워주세요.',
-  'run-intent-script':
-    'Custom Scripts > "Update Intent Prompts (dev)" 를 실행해 Dev 서버에 반영하세요.',
-  'add-triggers':
-    '인텐트를 잘 추가하셨습니다. 이제 방금 만든 인텐트에 유저가 쓸 법한 질문 표현을 트리거링 문장으로 2개 이상 추가해주세요. 트리거가 다양할수록 매칭 정확도가 높아집니다.',
-  'run-trigger-script':
-    'Custom Scripts > "Update Intent Triggers (dev)" 를 실행해 Dev 서버에 반영하세요.',
-};
+// Leftmost intent category tab is the first in SHEET_ORDER after the
+// default trigger-sentence tab. Anchoring the `sheet-add-intent-tab`
+// tooltip on this tab reads left-to-right like normal tab navigation.
+const INTENT_CATEGORY_TAB_IDS: SheetId[] = SHEET_ORDER.filter(
+  (id) => id !== 'intent_trigger_sentence',
+);
+const LEFTMOST_INTENT_TAB_ID: SheetId = INTENT_CATEGORY_TAB_IDS[0];
 
-export function SheetEditPage({ disabled, representative, onComplete }: Props) {
+export function SheetEditPage({
+  disabled,
+  representative,
+  onComplete,
+  onPhaseChange,
+  onAnchorEl,
+  onActiveTabChange,
+  onIntentRowCellEl,
+  onIntentRowFilled,
+  onRelatedInfoCopyButtonEl,
+  onRelatedInfoCopy,
+  onConfirmDialogChange,
+  onScriptRunningChange,
+  onScriptMenuOpenChange,
+}: Props) {
   const [phase, setPhase] = useState<Phase>('add-intent');
+  // Callback-ref state for each anchor candidate. Using `useState`
+  // setters as callback refs (React treats the setter as a stable ref
+  // callback) lets the forwarding effect below re-run whenever any
+  // anchor element mounts or unmounts — plain useRef wouldn't trigger
+  // a re-render, so the parent would miss late-mounting anchors.
+  const [addIntentBtn, setAddIntentBtn] =
+    useState<HTMLButtonElement | null>(null);
+  const [customScriptsBtn, setCustomScriptsBtn] =
+    useState<HTMLButtonElement | null>(null);
+  const [intentScriptItem, setIntentScriptItem] =
+    useState<HTMLButtonElement | null>(null);
+  const [triggerScriptItem, setTriggerScriptItem] =
+    useState<HTMLButtonElement | null>(null);
+  const [addTriggerBtn, setAddTriggerBtn] =
+    useState<HTMLButtonElement | null>(null);
+  // Anchor for `sheet-add-intent-tab` — the leftmost intent category
+  // tab (the first tab right of `intent_trigger_sentence`). Captured
+  // via callback-ref on the matching <button> during the tab-row render.
+  const [leftmostIntentTabBtn, setLeftmostIntentTabBtn] =
+    useState<HTMLButtonElement | null>(null);
+  // Keep the parent's copy of the internal phase in sync with ours.
+  // Using an effect instead of inlining the callback at every setPhase
+  // call site keeps the many transitions (run-* failure paths, etc.)
+  // from drifting out of sync if someone later forgets to mirror a
+  // setPhase with an onPhaseChange.
+  useEffect(() => {
+    onPhaseChange?.(phase);
+  }, [phase, onPhaseChange]);
   // Start on the trigger-sentence tab so we don't hint at which category
   // the learner should pick — they must actively navigate to an intent tab.
   const [activeTabId, setActiveTabId] = useState<SheetId>(
@@ -119,20 +214,103 @@ export function SheetEditPage({ disabled, representative, onComplete }: Props) {
   >(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const [phaseQuestSeen, setPhaseQuestSeen] = useState<Set<Phase>>(new Set());
+  // Bubble the ConfirmDialog open/closed transitions up so the parent can
+  // suppress the Custom Scripts idle tooltip while the blue dialog is up.
+  useEffect(() => {
+    onConfirmDialogChange?.(confirmDialog !== null);
+  }, [confirmDialog, onConfirmDialogChange]);
+  // Same story for `running` (script executing) and `menuOpen` (Custom
+  // Scripts dropdown open) — both occlude / overlap the tooltip area and
+  // the "run the script" copy is stale while the learner is mid-action.
+  useEffect(() => {
+    onScriptRunningChange?.(running);
+  }, [running, onScriptRunningChange]);
+  useEffect(() => {
+    onScriptMenuOpenChange?.(menuOpen);
+  }, [menuOpen, onScriptMenuOpenChange]);
+
+  // Forward the element that currently matches the active internal phase
+  // up to the parent for GuidanceTooltip anchoring. While Custom Scripts
+  // menu is open on a `run-*` phase, the script menu item is the better
+  // anchor (closer to the actual click target); while the menu is
+  // closed, the menu button itself is the anchor so the tooltip can
+  // nudge the learner to open the menu first.
+  useEffect(() => {
+    if (!onAnchorEl) return;
+    let el: HTMLElement | null = null;
+    if (phase === 'add-intent') {
+      // Trigger-sentence tab → leftmost intent category tab (nudges
+      // the learner toward picking a domain). Intent category tab →
+      // "+ 인텐트 행 추가" button. If the intent row button hasn't
+      // mounted yet (rare — only during the tab-switch animation) we
+      // fall back to the leftmost intent tab rather than returning null
+      // so the tooltip doesn't flicker off-screen mid-transition.
+      if (activeTabId === 'intent_trigger_sentence') {
+        el = leftmostIntentTabBtn;
+      } else {
+        el = addIntentBtn ?? leftmostIntentTabBtn;
+      }
+    } else if (phase === 'run-intent-script')
+      el = menuOpen ? intentScriptItem : customScriptsBtn;
+    else if (phase === 'add-triggers') el = addTriggerBtn;
+    else if (phase === 'run-trigger-script')
+      el = menuOpen ? triggerScriptItem : customScriptsBtn;
+    onAnchorEl(el);
+  }, [
+    phase,
+    activeTabId,
+    menuOpen,
+    addIntentBtn,
+    leftmostIntentTabBtn,
+    customScriptsBtn,
+    intentScriptItem,
+    triggerScriptItem,
+    addTriggerBtn,
+    onAnchorEl,
+  ]);
+
+  // Report the active tab id up to the parent so it can feed the
+  // guidance resolver's new `sheetActiveTabId` ctx key. Fires on mount
+  // with the initial value and on every subsequent tab change.
+  useEffect(() => {
+    onActiveTabChange?.(activeTabId);
+  }, [activeTabId, onActiveTabChange]);
+
+  // Per-column DOM refs for the newly-added intent row. Used for
+  // anchoring the intent → leadSentence → prompt tooltip sequence.
+  // The <td> is the natural anchor (stable across edit ↔ read mode
+  // within the same commit frame); the input/textarea element inside
+  // would churn on every edit-state toggle.
+  const [intentCellEls, setIntentCellEls] = useState<{
+    intent: HTMLElement | null;
+    leadSentence: HTMLElement | null;
+    prompt: HTMLElement | null;
+  }>({ intent: null, leadSentence: null, prompt: null });
+  // Stable per-column setter factory. IntentSheetTable uses these as
+  // <td> callback-refs via `ref={...}` — React re-invokes the ref on
+  // unmount with null and on mount with the element, so we get free
+  // cleanup. We only care about the currently-added row's cells, so
+  // the table passes the setters only on the row where `isAdded`.
+  const setIntentCellEl = useCallback(
+    (colId: 'intent' | 'leadSentence' | 'prompt', el: HTMLElement | null) => {
+      setIntentCellEls((prev) => {
+        if (prev[colId] === el) return prev;
+        return { ...prev, [colId]: el };
+      });
+    },
+    [],
+  );
+  // Forward the cell refs up to the parent whenever they change.
+  useEffect(() => {
+    if (!onIntentRowCellEl) return;
+    onIntentRowCellEl('intent', intentCellEls.intent);
+    onIntentRowCellEl('leadSentence', intentCellEls.leadSentence);
+    onIntentRowCellEl('prompt', intentCellEls.prompt);
+  }, [intentCellEls, onIntentRowCellEl]);
+
+
   const [intentAttempts, setIntentAttempts] = useState(0);
   const [triggerAttempts, setTriggerAttempts] = useState(0);
-
-  const showQuestFor =
-    phase !== 'complete' && !phaseQuestSeen.has(phase) ? phase : null;
-
-  const markQuestSeen = (p: Phase) => {
-    setPhaseQuestSeen((prev) => {
-      const next = new Set(prev);
-      next.add(p);
-      return next;
-    });
-  };
 
   const addedIntentRow = useMemo<IntentRow | null>(() => {
     if (!addedIntent) return null;
@@ -143,6 +321,29 @@ export function SheetEditPage({ disabled, representative, onComplete }: Props) {
       ];
     return rows.find((r) => r.id === addedIntent.rowId) ?? null;
   }, [addedIntent, intentRowsBySheet]);
+
+  // Forward the fill state of the newly-added intent row. `null` when
+  // no row has been added yet (the parent keeps showing the "+ 인텐트
+  // 행 추가" tooltip in that state). Once the row exists, the object
+  // reports which editable columns are non-empty.
+  useEffect(() => {
+    if (!onIntentRowFilled) return;
+    if (!addedIntentRow) {
+      onIntentRowFilled(null);
+      return;
+    }
+    onIntentRowFilled({
+      intent: Boolean(addedIntentRow.intent?.trim()),
+      leadSentence: Boolean(addedIntentRow.leadSentence?.trim()),
+      prompt: Boolean(addedIntentRow.prompt?.trim()),
+    });
+  }, [
+    addedIntentRow,
+    addedIntentRow?.intent,
+    addedIntentRow?.leadSentence,
+    addedIntentRow?.prompt,
+    onIntentRowFilled,
+  ]);
 
   const handleTabClick = (id: SheetId) => {
     setEditing(null);
@@ -170,7 +371,6 @@ export function SheetEditPage({ disabled, representative, onComplete }: Props) {
       leadSentence: '',
       prompt: '',
       createdAt: new Date().toISOString().replace(/\.\d+Z$/, 'Z'),
-      isPush: 'Y',
     };
     setIntentRowsBySheet((prev) => ({
       ...prev,
@@ -408,7 +608,6 @@ export function SheetEditPage({ disabled, representative, onComplete }: Props) {
             leadSentence: addedIntentRow.leadSentence,
             prompt: addedIntentRow.prompt,
             createdAt: addedIntentRow.createdAt,
-            isPush: addedIntentRow.isPush,
           },
           triggers: triggerRows
             .filter((t) => newTriggerIds.includes(t.id))
@@ -514,6 +713,7 @@ export function SheetEditPage({ disabled, representative, onComplete }: Props) {
         ))}
         <div className="relative">
           <button
+            ref={setCustomScriptsBtn}
             onClick={() => setMenuOpen((v) => !v)}
             disabled={disabled || running}
             className={`flex items-center gap-0.5 rounded px-2 py-0.5 hover:bg-[rgba(60,64,67,0.08)] disabled:opacity-40 ${
@@ -530,6 +730,7 @@ export function SheetEditPage({ disabled, representative, onComplete }: Props) {
           {menuOpen ? (
             <div className="absolute left-0 top-full z-20 mt-1 w-72 rounded-md border border-[#e0e0e0] bg-white py-1 shadow-[0_2px_6px_2px_rgba(60,64,67,0.15)]">
               <button
+                ref={setIntentScriptItem}
                 onClick={openConfirmIntent}
                 disabled={phase !== 'run-intent-script'}
                 className={`flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] hover:bg-[rgba(60,64,67,0.08)] disabled:cursor-not-allowed disabled:opacity-40 ${
@@ -547,6 +748,7 @@ export function SheetEditPage({ disabled, representative, onComplete }: Props) {
                 ) : null}
               </button>
               <button
+                ref={setTriggerScriptItem}
                 onClick={openConfirmTriggers}
                 disabled={phase !== 'run-trigger-script'}
                 className={`flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] hover:bg-[rgba(60,64,67,0.08)] disabled:cursor-not-allowed disabled:opacity-40 ${
@@ -593,21 +795,74 @@ export function SheetEditPage({ disabled, representative, onComplete }: Props) {
         ))}
       </div>
 
-      {/* Tabs */}
+      {/* Tabs. While the learner is on the default trigger-sentence tab
+          during the `add-intent` phase, the four intent-category tabs
+          get a soft orange ring + gentle pulse so it's obvious they
+          need to pick one. The highlight falls off as soon as any
+          intent tab becomes active (or Stage 3 advances past add-intent). */}
+      <style>{`
+        @keyframes cc-tab-group-pulse {
+          0% { box-shadow: 0 0 0 0 rgba(255, 157, 0, 0.5); }
+          70% { box-shadow: 0 0 0 6px rgba(255, 157, 0, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(255, 157, 0, 0); }
+        }
+        .cc-tab-group-pulse {
+          border-radius: 6px;
+          box-shadow: 0 0 0 0 rgba(255, 157, 0, 0.5);
+          animation: cc-tab-group-pulse 2s ease-in-out infinite;
+        }
+      `}</style>
       <div className="flex items-center gap-1 border-b border-[#e0e0e0] bg-white px-3 py-1.5">
-        {SHEET_ORDER.map((id) => (
-          <button
-            key={id}
-            onClick={() => handleTabClick(id)}
-            className={`rounded-t px-3 py-1 text-xs ${
-              activeTabId === id
-                ? 'border-x border-t border-[rgba(55,53,47,0.12)] bg-white text-[#37352f]'
-                : 'text-gray-500 hover:bg-[rgba(55,53,47,0.04)]'
-            }`}
-          >
-            {id}
-          </button>
-        ))}
+        {(() => {
+          const highlightIntentTabs =
+            phase === 'add-intent' &&
+            activeTabId === 'intent_trigger_sentence';
+          // Group the 4 intent tabs inside a wrapper so the orange
+          // ring+pulse surrounds them as a unit. The trigger-sentence
+          // tab renders outside the wrapper and keeps its plain styling.
+          const triggerTabId: SheetId = 'intent_trigger_sentence';
+          return (
+            <>
+              <button
+                key={triggerTabId}
+                onClick={() => handleTabClick(triggerTabId)}
+                className={`rounded-t px-3 py-1 text-xs ${
+                  activeTabId === triggerTabId
+                    ? 'border-x border-t border-[rgba(55,53,47,0.12)] bg-white text-[#37352f]'
+                    : 'text-gray-500 hover:bg-[rgba(55,53,47,0.04)]'
+                }`}
+              >
+                {triggerTabId}
+              </button>
+              <div
+                className={`flex items-center gap-1 ${
+                  highlightIntentTabs
+                    ? 'cc-tab-group-pulse ring-2 ring-[#FF9D00]'
+                    : ''
+                }`}
+              >
+                {INTENT_CATEGORY_TAB_IDS.map((id) => (
+                  <button
+                    key={id}
+                    ref={
+                      id === LEFTMOST_INTENT_TAB_ID
+                        ? setLeftmostIntentTabBtn
+                        : undefined
+                    }
+                    onClick={() => handleTabClick(id)}
+                    className={`rounded-t px-3 py-1 text-xs ${
+                      activeTabId === id
+                        ? 'border-x border-t border-[rgba(55,53,47,0.12)] bg-white text-[#37352f]'
+                        : 'text-gray-500 hover:bg-[rgba(55,53,47,0.04)]'
+                    }`}
+                  >
+                    {id}
+                  </button>
+                ))}
+              </div>
+            </>
+          );
+        })()}
       </div>
 
       {/* Grid */}
@@ -640,15 +895,25 @@ export function SheetEditPage({ disabled, representative, onComplete }: Props) {
             isEditable={(rowId, colId) =>
               isEditable(activeTabId, rowId, colId)
             }
+            onAddedRowCellEl={setIntentCellEl}
           />
         )}
 
         {phase === 'add-intent' && activeTabId !== 'intent_trigger_sentence' ? (
           <div className="mt-2">
             <button
+              ref={setAddIntentBtn}
               onClick={() => handleAddIntentRow(activeTabId)}
               disabled={!!addedIntent}
-              className="flex items-center gap-1.5 rounded-md border border-[#e0e0e0] bg-white px-3 py-1.5 text-[13px] text-[#3c4043] hover:bg-[rgba(60,64,67,0.04)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white"
+              // Highlight only on the correct (학사) tab so the orange
+              // ring isn't a spoiler when the learner is still scanning
+              // tabs. Once the row is added, the button flips to its
+              // disabled/dim styling and the highlight falls off.
+              className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[13px] text-[#3c4043] disabled:cursor-not-allowed disabled:opacity-40 ${
+                !addedIntent && activeTabId === CORRECT_INTENT_SHEET_ID
+                  ? 'border border-transparent bg-[#FFF8E1] ring-2 ring-[#FF9D00] hover:bg-[#FFEDB8]'
+                  : 'border border-[#e0e0e0] bg-white hover:bg-[rgba(60,64,67,0.04)] disabled:hover:bg-white'
+              }`}
             >
               <Play size={12} className="text-[#0F9D58]" />+ 인텐트 행 추가
             </button>
@@ -658,8 +923,17 @@ export function SheetEditPage({ disabled, representative, onComplete }: Props) {
         activeTabId === 'intent_trigger_sentence' ? (
           <div className="mt-2">
             <button
+              ref={setAddTriggerBtn}
               onClick={handleAddTriggerRow}
-              className="flex items-center gap-1.5 rounded-md border border-[#e0e0e0] bg-white px-3 py-1.5 text-[13px] text-[#3c4043] hover:bg-[rgba(60,64,67,0.04)]"
+              // Highlight the "add trigger" button when no trigger cell
+              // is actively being edited — once the learner is typing in
+              // a row, the orange-ring cell owns the spotlight and the
+              // button drops back to plain styling to avoid competing.
+              className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[13px] text-[#3c4043] ${
+                !editing
+                  ? 'border border-transparent bg-[#FFF8E1] ring-2 ring-[#FF9D00] hover:bg-[#FFEDB8]'
+                  : 'border border-[#e0e0e0] bg-white hover:bg-[rgba(60,64,67,0.04)]'
+              }`}
             >
               <Play size={12} className="text-[#0F9D58]" />+ 트리거 행 추가
             </button>
@@ -676,21 +950,14 @@ export function SheetEditPage({ disabled, representative, onComplete }: Props) {
         </div>
       ) : null}
 
-      {(phase === 'add-intent' || phase === 'run-intent-script') &&
-      !showQuestFor ? (
-        <RelatedInfoCard defaultExpanded />
-      ) : null}
-
-      {showQuestFor ? (
-        <QuestModal
-          label="QUEST"
-          body={PHASE_QUEST[showQuestFor]}
-          cta="확인"
-          onAccept={() => markQuestSeen(showQuestFor)}
+      {phase === 'add-intent' || phase === 'run-intent-script' ? (
+        <RelatedInfoCard
+          onCopyButtonEl={onRelatedInfoCopyButtonEl}
+          onCopy={onRelatedInfoCopy}
         />
       ) : null}
 
-      {!showQuestFor && feedback ? (
+      {feedback ? (
         <FeedbackModal
           correct={false}
           message={feedback}
@@ -828,6 +1095,7 @@ function IntentSheetTable({
   startEdit,
   commitEdit,
   isEditable,
+  onAddedRowCellEl,
 }: {
   sheetId: SheetId;
   rows: IntentRow[];
@@ -838,7 +1106,31 @@ function IntentSheetTable({
   startEdit: (sheetId: SheetId, rowId: string, colId: string) => void;
   commitEdit: () => void;
   isEditable: (rowId: string, colId: string) => boolean;
+  // Callback-ref for the 3 editable columns of the newly-added row.
+  // Only the new row reports its <td> elements; all other rows skip
+  // the ref so SheetEditPage's intent-cell map tracks exactly one row
+  // (the current spotlight target).
+  onAddedRowCellEl?: (
+    colId: 'intent' | 'leadSentence' | 'prompt',
+    el: HTMLElement | null,
+  ) => void;
 }) {
+  // Stable per-column ref callbacks. React re-invokes a ref callback
+  // whenever its identity changes; if we built the callback inline
+  // inside the <td> we'd get a null→el flip every render. Memo-ing on
+  // the stable `onAddedRowCellEl` keeps identity stable across
+  // renders, so the callback only fires on actual mount/unmount.
+  const addedRowRefs = useMemo(
+    () => ({
+      intent: (el: HTMLTableCellElement | null) =>
+        onAddedRowCellEl?.('intent', el),
+      leadSentence: (el: HTMLTableCellElement | null) =>
+        onAddedRowCellEl?.('leadSentence', el),
+      prompt: (el: HTMLTableCellElement | null) =>
+        onAddedRowCellEl?.('prompt', el),
+    }),
+    [onAddedRowCellEl],
+  );
   return (
     <table className="w-full border-collapse text-sm">
       <tbody>
@@ -871,9 +1163,20 @@ function IntentSheetTable({
                   editing.rowId === row.id &&
                   editing.colId === c.id;
                 const val = row[c.id];
+                // Only the 3 editable columns of the added row report
+                // their <td> up as a guidance anchor. readonly column
+                // (`createdAt`) and non-added rows skip the ref.
+                const cellRef =
+                  isAdded &&
+                  (c.id === 'intent' ||
+                    c.id === 'leadSentence' ||
+                    c.id === 'prompt')
+                    ? addedRowRefs[c.id]
+                    : undefined;
                 return (
                   <td
                     key={c.id}
+                    ref={cellRef}
                     onClick={() => canEdit && startEdit(sheetId, row.id, c.id)}
                     className={`border border-[rgba(55,53,47,0.09)] px-2 py-1 align-top ${
                       canEdit
@@ -915,7 +1218,19 @@ function IntentSheetTable({
                         />
                       )
                     ) : val ? (
-                      <span className="whitespace-pre-wrap">{val}</span>
+                      c.id === 'prompt' ? (
+                        // Prompt bodies can run long — cap the read-mode
+                        // height to roughly 4 lines and let the cell scroll
+                        // vertically so the row doesn't balloon.
+                        <div
+                          className="whitespace-pre-wrap overflow-y-auto pr-1"
+                          style={{ maxHeight: '6.5em', lineHeight: 1.45 }}
+                        >
+                          {val}
+                        </div>
+                      ) : (
+                        <span className="whitespace-pre-wrap">{val}</span>
+                      )
                     ) : (
                       <span className="text-gray-300">—</span>
                     )}

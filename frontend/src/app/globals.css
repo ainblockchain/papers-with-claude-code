@@ -170,82 +170,10 @@
   animation: hearts-shake 0.4s ease-in-out;
 }
 
-/* ────────────────────────────────────────────────────────────────────
-   Course-complete celebration — Luma-inspired cosmic gradient backdrop,
-   radial-bloom blobs that drift, starfield twinkle, fireworks bursts
-   from multiple origins, and a soft glow on the headline text.
-   Used by the fix-intent-5min course-complete screen.
-   ──────────────────────────────────────────────────────────────────── */
-@keyframes cc-gradient-shift {
-  0% { transform: translate3d(-6%, -4%, 0) scale(1.05); }
-  50% { transform: translate3d(6%, 5%, 0) scale(1.15); }
-  100% { transform: translate3d(-6%, -4%, 0) scale(1.05); }
-}
-@keyframes cc-blob-drift {
-  0% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.55; }
-  50% { transform: translate3d(12%, -8%, 0) scale(1.2); opacity: 0.8; }
-  100% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.55; }
-}
-@keyframes cc-twinkle {
-  0%, 100% { opacity: 0.2; transform: scale(0.8); }
-  50% { opacity: 1; transform: scale(1.2); }
-}
-@keyframes cc-firework-burst {
-  0% {
-    transform: translate(0, 0) scale(0.5);
-    opacity: 0;
-  }
-  15% { opacity: 1; }
-  100% {
-    transform: translate(var(--fw-dx, 80px), var(--fw-dy, -80px)) scale(1.4);
-    opacity: 0;
-  }
-}
-@keyframes cc-firework-center {
-  0% { transform: scale(0); opacity: 0; }
-  30% { transform: scale(1.6); opacity: 1; }
-  100% { transform: scale(0.4); opacity: 0; }
-}
-@keyframes cc-title-glow {
-  0%, 100% {
-    text-shadow:
-      0 0 14px rgba(255, 180, 255, 0.55),
-      0 0 32px rgba(130, 120, 255, 0.45),
-      0 0 70px rgba(90, 200, 255, 0.35);
-  }
-  50% {
-    text-shadow:
-      0 0 22px rgba(255, 200, 255, 0.85),
-      0 0 48px rgba(160, 150, 255, 0.7),
-      0 0 110px rgba(120, 220, 255, 0.6);
-  }
-}
-@keyframes cc-rise-in {
-  0% { transform: translateY(20px); opacity: 0; }
-  100% { transform: translateY(0); opacity: 1; }
-}
-.cc-bg {
-  background:
-    radial-gradient(ellipse at 20% 30%, rgba(150, 90, 220, 0.55), transparent 55%),
-    radial-gradient(ellipse at 80% 20%, rgba(255, 110, 180, 0.5), transparent 55%),
-    radial-gradient(ellipse at 60% 85%, rgba(80, 170, 255, 0.55), transparent 55%),
-    linear-gradient(135deg, #0a0820 0%, #14083a 40%, #1a0a50 100%);
-}
-.cc-blob {
-  filter: blur(48px);
-  animation: cc-blob-drift 14s ease-in-out infinite;
-}
-.cc-twinkle { animation: cc-twinkle 3.2s ease-in-out infinite; }
-.cc-title-glow {
-  animation: cc-title-glow 3s ease-in-out infinite;
-}
-.cc-rise-in { animation: cc-rise-in 0.8s ease-out forwards; }
-.cc-firework-particle {
-  animation: cc-firework-burst 1.6s ease-out infinite;
-}
-.cc-firework-center {
-  animation: cc-firework-center 1.6s ease-out infinite;
-}
+/* Course-complete celebration styling moved into IntentFixCourse.tsx
+   CourseCompleteView component (inline <style> + style props) — Tailwind v4
+   build pipeline was silently dropping the .cc-* class rules from this file
+   so blobs / gradient bg / opacity transitions never landed. */
 
 /* Metabase-style thin scrollbar — opt in via .mb-scrollbar */
 .mb-scrollbar {
