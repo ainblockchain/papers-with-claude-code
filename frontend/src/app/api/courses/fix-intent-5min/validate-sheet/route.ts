@@ -78,7 +78,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         ok: true,
         pass: false,
-        hint: '검증 서버에 일시적 오류가 있어요. 다시 시도해주세요.',
+        kind: 'server-error',
+        hint: '검증 서버에 일시적 오류가 있어요. 다시 시도해 주세요.',
       });
     }
   }
@@ -119,7 +120,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         ok: true,
         pass: false,
-        hint: '검증 서버에 일시적 오류가 있어요. 다시 시도해주세요.',
+        kind: 'server-error',
+        hint: '검증 서버에 일시적 오류가 있어요. 다시 시도해 주세요.',
       });
     }
   }

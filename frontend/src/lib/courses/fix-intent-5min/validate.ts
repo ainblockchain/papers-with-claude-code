@@ -21,11 +21,15 @@ export interface ValidateContext {
   phase?: string;
 }
 
-export interface ValidateResult {
-  pass: boolean;
-  // LLM-authored hint for free-input fields; ignored for deterministic fields.
-  hint?: string;
-}
+// Discriminated union so callers can tell a real validation failure
+// (`fail`) apart from a transient server error (`server-error`). The
+// latter is rendered as a soft "try again" modal that does NOT count
+// against attempt counters, while `fail` keeps the existing red
+// FeedbackModal + hint-escalation behaviour.
+export type ValidateResult =
+  | { kind: 'pass' }
+  | { kind: 'fail'; hint?: string }
+  | { kind: 'server-error' };
 
 export async function validateNotionField(
   fieldId: NotionFieldId,
@@ -34,18 +38,20 @@ export async function validateNotionField(
 ): Promise<ValidateResult> {
   switch (fieldId) {
     case 'agent':
-      return { pass: value === agentAnswer };
+      return value === agentAnswer ? { kind: 'pass' } : { kind: 'fail' };
     case 'assignee':
       // Assignee must match the logged-in user's GitHub ID — i.e. the user
       // assigned the Task to themselves. Falls back to false if unauth'd.
-      return { pass: !!context.username && value === context.username };
+      return !!context.username && value === context.username
+        ? { kind: 'pass' }
+        : { kind: 'fail' };
     case 'season':
-      return { pass: value === seasonAnswer };
+      return value === seasonAnswer ? { kind: 'pass' } : { kind: 'fail' };
     case 'status': {
       // Stage 4 result page: the task is completed, so Done is the answer.
       const expected =
         context.phase === 'stage4-result-page' ? 'Done' : statusAnswer;
-      return { pass: value === expected };
+      return value === expected ? { kind: 'pass' } : { kind: 'fail' };
     }
     case 'workType': {
       // Multi-select: comma-separated serialization (e.g. "newIntent,add").
@@ -58,11 +64,10 @@ export async function validateNotionField(
       const selected = new Set(
         value.split(',').map((s) => s.trim()).filter(Boolean),
       );
-      return {
-        pass:
-          selected.size === workTypeAnswer.length &&
-          workTypeAnswer.every((k) => selected.has(k)),
-      };
+      const ok =
+        selected.size === workTypeAnswer.length &&
+        workTypeAnswer.every((k) => selected.has(k));
+      return ok ? { kind: 'pass' } : { kind: 'fail' };
     }
   }
   // Free-input fields → server endpoint (LLM-backed for title/problemAnalysis,
@@ -74,11 +79,22 @@ export async function validateNotionField(
       body: JSON.stringify({ fieldId, value, context }),
     });
     const data = await res.json();
+    // Server-side transient error (Azure 5xx after retries / JSON parse
+    // failure / network blip). Surface as `server-error` so the client
+    // can show a "try again" modal instead of a red wrong-answer modal.
+    if (data?.kind === 'server-error') {
+      return { kind: 'server-error' };
+    }
+    if (data?.pass === true) {
+      return { kind: 'pass' };
+    }
     return {
-      pass: !!data?.pass,
+      kind: 'fail',
       hint: typeof data?.hint === 'string' && data.hint ? data.hint : undefined,
     };
   } catch {
-    return { pass: false };
+    // Network catch (fetch threw) — also a server-error from the
+    // learner's perspective: their input may be perfectly correct.
+    return { kind: 'server-error' };
   }
 }
