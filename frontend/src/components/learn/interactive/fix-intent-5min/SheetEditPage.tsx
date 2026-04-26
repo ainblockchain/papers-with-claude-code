@@ -35,6 +35,7 @@ import {
 } from '@/data/courses/fix-intent-5min/intent-sheets';
 import { FeedbackModal } from './FeedbackModal';
 import { RelatedInfoCard } from './RelatedInfoCard';
+import { ValidationErrorModal } from './ValidationErrorModal';
 
 type Phase =
   | 'add-intent'
@@ -209,6 +210,14 @@ export function SheetEditPage({
 
   const [running, setRunning] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
+  // Soft "검증 서버 일시 오류" retry modal — captured when validate-sheet
+  // returns kind:'server-error' (or fetch throws). The retry callback
+  // re-runs the same script handler so the learner doesn't have to
+  // re-open the Confirm dialog. NOT a wrong-answer modal — the input
+  // may be perfectly correct, so we don't bump intent/trigger attempts.
+  const [serverErrorRetry, setServerErrorRetry] = useState<
+    (() => void) | null
+  >(null);
   const [confirmDialog, setConfirmDialog] = useState<
     'intent' | 'triggers' | null
   >(null);
@@ -553,6 +562,14 @@ export function SheetEditPage({
       const data = await res.json();
       await new Promise((r) => setTimeout(r, 600));
       setRunning(false);
+      // Transient server error → "try again" modal, don't bump attempts
+      // and don't reset phase (learner can retry from the same Confirm
+      // dialog state without re-opening Custom Scripts).
+      if (data?.kind === 'server-error') {
+        setPhase('add-intent');
+        setServerErrorRetry(() => runIntentScript);
+        return;
+      }
       if (data?.pass) {
         setIntentAttempts(0);
         setPhase('add-triggers');
@@ -569,7 +586,8 @@ export function SheetEditPage({
     } catch {
       setRunning(false);
       setPhase('add-intent');
-      setFeedback('검증 서버에 일시적 오류가 있어요. 다시 시도해주세요.');
+      // Network blip / fetch threw — same UX as kind:'server-error'.
+      setServerErrorRetry(() => runIntentScript);
     }
   };
 
@@ -597,6 +615,12 @@ export function SheetEditPage({
       const data = await res.json();
       await new Promise((r) => setTimeout(r, 600));
       setRunning(false);
+      // Transient server error → "try again" modal, don't bump attempts.
+      if (data?.kind === 'server-error') {
+        setPhase('add-triggers');
+        setServerErrorRetry(() => runTriggerScript);
+        return;
+      }
       if (data?.pass) {
         setTriggerAttempts(0);
         setPhase('complete');
@@ -627,7 +651,8 @@ export function SheetEditPage({
     } catch {
       setRunning(false);
       setPhase('add-triggers');
-      setFeedback('검증 서버에 일시적 오류가 있어요. 다시 시도해주세요.');
+      // Network blip / fetch threw — same UX as kind:'server-error'.
+      setServerErrorRetry(() => runTriggerScript);
     }
   };
 
@@ -962,6 +987,17 @@ export function SheetEditPage({
           correct={false}
           message={feedback}
           onClose={() => setFeedback(null)}
+        />
+      ) : null}
+
+      {serverErrorRetry ? (
+        <ValidationErrorModal
+          onRetry={() => {
+            const retry = serverErrorRetry;
+            setServerErrorRetry(null);
+            retry();
+          }}
+          onClose={() => setServerErrorRetry(null)}
         />
       ) : null}
 

@@ -35,6 +35,7 @@ import { CourseIntro } from './CourseIntro';
 import { DashboardView } from './DashboardView';
 import { FeedbackModal } from './FeedbackModal';
 import { QuestModal } from './QuestModal';
+import { ValidationErrorModal } from './ValidationErrorModal';
 import { NotionLanding } from './NotionLanding';
 import {
   NotionTaskPage,
@@ -636,6 +637,15 @@ function IntentFixCourseInner() {
   const [fieldAttempts, setFieldAttempts] = useState<
     Partial<Record<NotionFieldId, number>>
   >({});
+  // Captured field id + value when validateNotionField returns
+  // `server-error` so the learner can retry the exact same submission
+  // from the ValidationErrorModal. Crucially, hitting this branch does
+  // NOT increment fieldAttempts — a transient Azure / JSON / network
+  // blip should not count against the learner's hint-escalation budget.
+  const [serverErrorRetry, setServerErrorRetry] = useState<{
+    fieldId: NotionFieldId;
+    value: string;
+  } | null>(null);
   // Guards phase-advancing handlers while a blockchain write is in-flight,
   // so a rapid second click can't race ahead of a failed persist.
   const [persisting, setPersisting] = useState(false);
@@ -1022,6 +1032,7 @@ function IntentFixCourseInner() {
     setSetIndex(0);
     setDashboardFeedback(null);
     setNotionError(null);
+    setServerErrorRetry(null);
     setHearts(3);
     setTimerRemaining(TIMER_TOTAL);
     setActiveSets([buildStaticChatLogSet()]);
@@ -1124,7 +1135,16 @@ function IntentFixCourseInner() {
       attempt,
       phase,
     });
-    if (!result.pass) {
+    // Transient server error (Azure 5xx after retries / JSON parse fail /
+    // network blip). Show the soft "try again" modal and DO NOT count
+    // this submission against fieldAttempts — the learner's input may
+    // be perfectly correct.
+    if (result.kind === 'server-error') {
+      setValidating(false);
+      setServerErrorRetry({ fieldId, value });
+      return;
+    }
+    if (result.kind === 'fail') {
       setValidating(false);
       setFieldAttempts((prev) => ({ ...prev, [fieldId]: attempt }));
       const freeInput =
@@ -1367,6 +1387,9 @@ function IntentFixCourseInner() {
     catalogOpen ||
     !!notionError ||
     notionStrayFeedback ||
+    // Transient validation-server error modal — pause guidance while
+    // the learner decides whether to retry their submission.
+    !!serverErrorRetry ||
     // Stage 3 ConfirmDialog — blocks the Custom-Scripts tooltip while the
     // learner is confirming "Update Intent Prompts / Triggers (dev)".
     sheetConfirmDialogOpen ||
@@ -1715,6 +1738,23 @@ function IntentFixCourseInner() {
       />
     ) : null;
 
+  // Shared "validation server transient error" modal — rendered in
+  // every phase that runs through handleNotionSubmit (notion,
+  // stage2-page, stage4-result-page) plus sheet-edit / chatbot-test
+  // for completeness. Retry replays the captured submission via the
+  // existing handler; close just clears the modal so the learner can
+  // edit and retry manually.
+  const validationErrorModalEl = serverErrorRetry ? (
+    <ValidationErrorModal
+      onRetry={() => {
+        const captured = serverErrorRetry;
+        setServerErrorRetry(null);
+        handleNotionSubmit(captured.fieldId, captured.value);
+      }}
+      onClose={() => setServerErrorRetry(null)}
+    />
+  ) : null;
+
   // For the notion-landing phase only, the anchor button is chosen
   // dynamically from 5 candidates — so its position on screen varies.
   // Compute a sensible side/align based on the chosen button's rect vs
@@ -1969,6 +2009,7 @@ function IntentFixCourseInner() {
             }}
           />
           {modal}
+          {validationErrorModalEl}
         </div>
       </div>
     );
@@ -2010,6 +2051,7 @@ function IntentFixCourseInner() {
               onClose={() => setNotionError(null)}
             />
           ) : null}
+          {validationErrorModalEl}
         </div>
       </div>
     );
@@ -2069,6 +2111,7 @@ function IntentFixCourseInner() {
             sheetEditQuestSeen &&
             !notionError &&
             subPhaseQuestModal}
+          {validationErrorModalEl}
         </div>
       </div>
     );
@@ -2115,6 +2158,7 @@ function IntentFixCourseInner() {
               onClose={() => setNotionError(null)}
             />
           ) : null}
+          {validationErrorModalEl}
         </div>
       </div>
     );
@@ -2201,6 +2245,7 @@ function IntentFixCourseInner() {
               onClose={() => setNotionError(null)}
             />
           ) : null}
+          {validationErrorModalEl}
         </div>
       </div>
     );
