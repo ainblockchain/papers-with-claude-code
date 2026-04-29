@@ -4,8 +4,9 @@ import { useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { loadPasskeyInfo } from '@/lib/ain/passkey';
+import { AUTH_PROVIDERS, findAuthProvider } from '@/lib/auth/providers';
 
-const MOCK_USER = {
+const FALLBACK_MOCK_USER = {
   id: 'mock-user',
   username: 'developer',
   avatarUrl: '',
@@ -61,13 +62,10 @@ export function AuthSyncEffect() {
     setLoading(false);
 
     if (status === 'authenticated' && session?.user) {
-      // Migration: stale GitHub tokens have UUID-style IDs (pre stable-ID fix).
-      // GitHub numeric IDs are purely digits; force re-auth to get the correct ID.
-      if (
-        session.user.provider === 'github' &&
-        session.user.id &&
-        !/^\d+$/.test(session.user.id)
-      ) {
+      // Provider-specific stale detection (e.g. GitHub's pre-migration UUID
+      // tokens). Each plugin decides what "stale" means for itself.
+      const plugin = findAuthProvider(session.user.provider);
+      if (plugin?.detectStaleSession?.(session)) {
         signOut({ redirectTo: '/login' });
         return;
       }
@@ -86,7 +84,7 @@ export function AuthSyncEffect() {
   return null;
 }
 
-/** Sets mock user immediately. Used when GitHub OAuth is not configured. */
+/** Sets mock user immediately. Used when no real OAuth is configured. */
 export function MockAuthEffect() {
   const login = useAuthStore((s) => s.login);
   const setLoading = useAuthStore((s) => s.setLoading);
@@ -95,7 +93,8 @@ export function MockAuthEffect() {
 
   useEffect(() => {
     setLoading(false);
-    login(MOCK_USER);
+    const defaultPlugin = AUTH_PROVIDERS[0];
+    login(defaultPlugin?.mockUser ?? FALLBACK_MOCK_USER);
   }, [login, setLoading]);
 
   return null;

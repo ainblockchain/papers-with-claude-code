@@ -1,8 +1,10 @@
 import NextAuth from "next-auth"
-import GitHub from "next-auth/providers/github"
+import { AUTH_PROVIDERS, type AuthProviderId, findAuthProvider } from "@/lib/auth/providers"
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  providers: [GitHub],
+  providers: AUTH_PROVIDERS.map((p) =>
+    typeof p.provider === "function" ? p.provider() : p.provider
+  ),
   secret: process.env.AUTH_SECRET,
   session: {
     strategy: "jwt",
@@ -14,18 +16,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     jwt({ token, user, profile, account }) {
       if (account?.provider) {
-        token.provider = account.provider as "github"
+        token.provider = account.provider as AuthProviderId
       }
-      if (profile) {
-        if (token.provider === "github") {
-          // Use GitHub's stable numeric ID, not NextAuth's random UUID
-          token.id = String((profile as { id?: number }).id ?? user?.id ?? "")
-          token.username = (profile as { login?: string }).login ?? user?.name ?? ""
-          token.avatarUrl = (profile as { avatar_url?: string }).avatar_url ?? user?.image ?? ""
-        } else if (user?.id) {
-          token.id = user.id
-        }
+      // Provider-specific field mapping is delegated to the plugin.
+      const plugin = findAuthProvider(account?.provider ?? token.provider)
+      if (profile && plugin) {
+        plugin.mapJWT({ token, user, profile })
       } else if (user?.id && !token.id) {
+        // Fallback for callbacks where profile isn't present (e.g. session refresh).
         token.id = user.id
       }
       return token
@@ -49,7 +47,7 @@ declare module "next-auth" {
       image?: string | null
       username: string
       avatarUrl: string
-      provider?: "github"
+      provider?: AuthProviderId
     }
   }
 }
@@ -59,6 +57,6 @@ declare module "@auth/core/jwt" {
     id: string
     username: string
     avatarUrl: string
-    provider?: "github"
+    provider?: AuthProviderId
   }
 }
