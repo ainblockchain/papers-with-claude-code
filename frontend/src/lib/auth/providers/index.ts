@@ -1,5 +1,6 @@
 import type { AuthProviderPlugin } from '../provider-types';
 import githubPlugin from './github';
+import googlePlugin from './google';
 
 /**
  * Registered auth providers.
@@ -9,7 +10,7 @@ import githubPlugin from './github';
  *
  * The order here is the order login buttons appear on `/login`.
  */
-export const AUTH_PROVIDERS = [githubPlugin] as const;
+export const AUTH_PROVIDERS = [githubPlugin, googlePlugin] as const;
 
 /** Union of all registered provider ids. Auto-expands when you add a plugin. */
 export type AuthProviderId = (typeof AUTH_PROVIDERS)[number]['id'];
