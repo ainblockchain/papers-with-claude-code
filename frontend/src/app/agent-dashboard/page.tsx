@@ -7,8 +7,6 @@ import { Button } from '@/components/ui/button';
 import { AgentWalletCard } from '@/components/agent/AgentWalletCard';
 import { PaymentFlowVisualizer } from '@/components/agent/PaymentFlowVisualizer';
 import { PaymentHistory } from '@/components/agent/PaymentHistory';
-import { StandingIntentConfig } from '@/components/agent/StandingIntentConfig';
-import { KiteMcpConfig } from '@/components/agent/KiteMcpConfig';
 import { LearningAttestations } from '@/components/agent/LearningAttestations';
 import { useAgentStore } from '@/stores/useAgentStore';
 import { AinWalletInfo } from '@/components/ain/AinWalletInfo';
@@ -17,14 +15,13 @@ import { LearnerProgressView } from '@/components/ain/LearnerProgressView';
 
 export default function AgentDashboardPage() {
   const router = useRouter();
-  const { fetchWalletStatus, fetchPaymentHistory, fetchAttestations, fetchMcpStatus } = useAgentStore();
+  const { fetchWalletStatus, fetchPaymentHistory, fetchAttestations } = useAgentStore();
 
   useEffect(() => {
     fetchWalletStatus();
     fetchPaymentHistory();
     fetchAttestations();
-    fetchMcpStatus();
-  }, [fetchWalletStatus, fetchPaymentHistory, fetchAttestations, fetchMcpStatus]);
+  }, [fetchWalletStatus, fetchPaymentHistory, fetchAttestations]);
 
   return (
     <div className="min-h-screen bg-[#0f0f23] text-gray-100">
@@ -54,12 +51,10 @@ export default function AgentDashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-6">
-          {/* Left Column: Identity + MCP + Session Info */}
+          {/* Left Column: Identity + Wallet */}
           <div className="space-y-6">
             <AgentWalletCard />
-            <KiteMcpConfig />
             <AinWalletInfo />
-            <StandingIntentConfig />
           </div>
 
           {/* Right Column: Payment History + Attestations + On-chain Progress */}

@@ -1,6 +1,6 @@
 // Multi-chain payment configuration
 
-export type PaymentChainId = 'kite' | 'base';
+export type PaymentChainId = 'base';
 
 export interface PaymentChainConfig {
   id: PaymentChainId;
@@ -17,18 +17,6 @@ export interface PaymentChainConfig {
 }
 
 export const PAYMENT_CHAINS: Record<PaymentChainId, PaymentChainConfig> = {
-  kite: {
-    id: 'kite',
-    name: 'Kite Chain',
-    currency: 'USDT',
-    icon: '\u{1FA81}',
-    explorerUrl:
-      process.env.NEXT_PUBLIC_KITE_EXPLORER_URL ||
-      'https://testnet.kitescan.ai',
-    faucetUrl: 'https://faucet.gokite.ai',
-    amounts: { coursePurchase: 0.001, stageUnlock: 0.001 },
-    enabled: true,
-  },
   base: {
     id: 'base',
     name: 'Base',
@@ -45,7 +33,7 @@ export function getEnabledChains(): PaymentChainConfig[] {
 }
 
 export function getDefaultChain(): PaymentChainId {
-  return 'kite';
+  return 'base';
 }
 
 export function formatChainAmount(

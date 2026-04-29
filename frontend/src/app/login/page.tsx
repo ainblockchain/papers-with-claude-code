@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
-import { Github, Fingerprint, Loader2, ShieldCheck, ArrowRight, LogIn, KeyRound } from 'lucide-react';
+import { Github, Fingerprint, Loader2, ShieldCheck, ArrowRight, LogIn } from 'lucide-react';
 import { ClaudeMark } from '@/components/shared/ClaudeMark';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/useAuthStore';
@@ -250,15 +250,6 @@ function LoginContent() {
     }
   };
 
-  const handleKiteLogin = () => {
-    if (isRealAuth) {
-      signIn('kite-passport', { redirectTo: '/login?from=oauth' });
-    } else {
-      login({ id: 'mock-kite-user', username: 'kite-agent', avatarUrl: '', email: '', provider: 'kite-passport' });
-      setMockAuthActive(true);
-    }
-  };
-
   /** Save identity mapping to blockchain (fire-and-forget, 409 = already exists = OK) */
   const saveIdentityMapping = async (publicKey: string) => {
     if (!user) return;
@@ -370,21 +361,6 @@ function LoginContent() {
           >
             <Github className="h-5 w-5 mr-2" />
             Sign in with GitHub
-          </Button>
-
-          <div className="flex items-center gap-3 my-4">
-            <div className="flex-1 h-px bg-[#E5E7EB]" />
-            <span className="text-xs text-[#9CA3AF]">or</span>
-            <div className="flex-1 h-px bg-[#E5E7EB]" />
-          </div>
-
-          <Button
-            onClick={handleKiteLogin}
-            variant="outline"
-            className="w-full h-11 border-[#E5E7EB] hover:bg-[#F9FAFB]"
-          >
-            <KeyRound className="h-5 w-5 mr-2 text-[#6B7280]" />
-            Sign in with Kite Passport
           </Button>
 
           <p className="mt-4 text-xs text-center text-[#6B7280]">

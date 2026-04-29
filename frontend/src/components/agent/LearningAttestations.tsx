@@ -32,7 +32,7 @@ export function LearningAttestations() {
           </div>
           <div className="grid grid-cols-2 gap-2 text-[10px]">
             <div className="p-2 bg-[#1a1a2e] rounded border border-gray-700">
-              <span className="text-[#FF9D00] font-medium">KiteAI Chain</span>
+              <span className="text-blue-400 font-medium">Base Mainnet</span>
               <p className="text-gray-500 mt-0.5">x402 payment settlement</p>
             </div>
             <div className="p-2 bg-[#1a1a2e] rounded border border-gray-700">
@@ -61,12 +61,12 @@ export function LearningAttestations() {
                   <div className="flex items-center gap-1.5">
                     <Badge
                       className={
-                        a.chain === 'kite'
-                          ? 'bg-[#FF9D00]/20 text-[#FF9D00] border-[#FF9D00]/30'
+                        a.chain === 'base'
+                          ? 'bg-blue-500/20 text-blue-400 border-blue-500/30'
                           : 'bg-purple-500/20 text-purple-400 border-purple-500/30'
                       }
                     >
-                      {a.chain === 'kite' ? 'Kite' : 'AIN'}
+                      {a.chain === 'base' ? 'Base' : 'AIN'}
                     </Badge>
                     <Badge className="bg-[#FF9D00]/20 text-[#FF9D00] border-[#FF9D00]/30">
                       Stage {a.stageNum}

@@ -1,9 +1,8 @@
 import NextAuth from "next-auth"
 import GitHub from "next-auth/providers/github"
-import KitePassport from "@/lib/auth/kite-passport-provider"
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  providers: [GitHub, KitePassport()],
+  providers: [GitHub],
   secret: process.env.AUTH_SECRET,
   session: {
     strategy: "jwt",
@@ -15,7 +14,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     jwt({ token, user, profile, account }) {
       if (account?.provider) {
-        token.provider = account.provider as "github" | "kite-passport"
+        token.provider = account.provider as "github"
       }
       if (profile) {
         if (token.provider === "github") {
@@ -23,10 +22,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.id = String((profile as { id?: number }).id ?? user?.id ?? "")
           token.username = (profile as { login?: string }).login ?? user?.name ?? ""
           token.avatarUrl = (profile as { avatar_url?: string }).avatar_url ?? user?.image ?? ""
-        } else {
-          if (user?.id) token.id = user.id
-          token.username = user?.name ?? profile.name ?? "Kite User"
-          token.avatarUrl = ""
+        } else if (user?.id) {
+          token.id = user.id
         }
       } else if (user?.id && !token.id) {
         token.id = user.id
@@ -52,7 +49,7 @@ declare module "next-auth" {
       image?: string | null
       username: string
       avatarUrl: string
-      provider?: "github" | "kite-passport"
+      provider?: "github"
     }
   }
 }
@@ -62,6 +59,6 @@ declare module "@auth/core/jwt" {
     id: string
     username: string
     avatarUrl: string
-    provider?: "github" | "kite-passport"
+    provider?: "github"
   }
 }

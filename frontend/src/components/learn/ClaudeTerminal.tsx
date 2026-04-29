@@ -114,20 +114,19 @@ export function ClaudeTerminal() {
 
         const txDisplay = result.txHash ? truncateTxHash(result.txHash) : '';
         const viewLink = result.explorerUrl
-          ? `\nView on KiteScan: ${result.explorerUrl}`
+          ? `\nView on BaseScan: ${result.explorerUrl}`
           : '';
         addTerminalMessage({
           role: 'assistant',
-          content: `Confirmed! Stage unlocked! Payment: 0.001 USDT | Tx: ${txDisplay}${viewLink}`,
+          content: `Confirmed! Stage unlocked! Payment: 0.001 USDC | Tx: ${txDisplay}${viewLink}`,
           timestamp: new Date().toISOString(),
         });
       } else {
         // Handle specific error codes
         const errorMessages: Record<string, string> = {
-          insufficient_funds: `Insufficient balance. ${result.error || ''}\nGet test tokens: https://faucet.gokite.ai`,
-          payment_required: `Payment required. Connect Kite Passport MCP to enable automatic payments.\n${result.error || ''}`,
+          insufficient_funds: `Insufficient USDC balance. ${result.error || ''}`,
+          payment_required: `Payment required. Register a passkey to enable automatic payments.\n${result.error || ''}`,
           session_expired: `Session expired. Please re-authenticate to continue.\n${result.error || ''}`,
-          spending_limit_exceeded: `Daily spending limit reached. ${result.error || ''}\nUpdate your Standing Intent in the Agent Dashboard.`,
           network_error: `Payment failed after multiple retries due to a network error.\n${result.error || ''}`,
         };
         const msg = errorMessages[result.errorCode ?? '']

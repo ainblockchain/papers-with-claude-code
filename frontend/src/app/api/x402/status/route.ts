@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getChainConfig, KITE_TEST_USDT_ADDRESS, MERCHANT_WALLET_ADDRESS } from '@/lib/kite/contracts';
+
+const BASE_USDC = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+const BASE_NETWORK = 'eip155:8453';
 
 export async function GET(req: NextRequest) {
   try {
-    const chainConfig = getChainConfig();
-    const agentDID =
-      process.env.NEXT_PUBLIC_AGENT_DID || 'did:kite:learner.eth/claude-tutor/v1';
-    const merchantWallet = MERCHANT_WALLET_ADDRESS || process.env.KITE_MERCHANT_WALLET || '';
+    const agentDID = process.env.NEXT_PUBLIC_AGENT_DID || '';
+    const merchantWallet = process.env.BASE_MERCHANT_ADDRESS || '';
 
     // Try to get AIN account info for balance display
     let ainAddress: string | null = null;
@@ -25,32 +25,18 @@ export async function GET(req: NextRequest) {
       walletAddress: merchantWallet || ainAddress,
       ainAddress,
       ainBalance,
-      // Kite chain info (backward compatible)
-      chainId: chainConfig.chainId,
-      network: chainConfig.network,
+      chainId: 8453,
+      network: BASE_NETWORK,
       explorerUrl: merchantWallet
-        ? `${chainConfig.explorerUrl}address/${merchantWallet}`
-        : chainConfig.explorerUrl,
-      protocol: {
-        scheme: 'gokite-aa',
-        asset: KITE_TEST_USDT_ADDRESS,
-        assetName: 'Test USDT',
-        facilitator: process.env.X402_FACILITATOR_URL || 'https://facilitator.pieverse.io',
-      },
+        ? `https://basescan.org/address/${merchantWallet}`
+        : 'https://basescan.org',
       // Multi-chain x402 info for external agents
       x402: {
         version: '2',
         supportedChains: {
-          kite: {
-            network: `eip155:${chainConfig.chainId}`,
-            asset: KITE_TEST_USDT_ADDRESS,
-            assetName: 'Test USDT',
-            facilitator: process.env.X402_FACILITATOR_URL || 'https://facilitator.pieverse.io',
-            explorer: chainConfig.explorerUrl,
-          },
           base: {
-            network: 'eip155:8453',
-            asset: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+            network: BASE_NETWORK,
+            asset: BASE_USDC,
             assetName: 'USDC',
             facilitator: process.env.CDP_X402_URL || 'https://api.cdp.coinbase.com/platform/v2/x402',
             explorer: 'https://basescan.org',

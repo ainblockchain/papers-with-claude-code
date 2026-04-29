@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
-  buildKiteRouteConfig,
   buildBaseRouteConfig,
   createWrappedHandler,
   getExplorerUrl,
@@ -25,8 +24,6 @@ async function handleEnroll(req: NextRequest): Promise<NextResponse> {
       { status: 400 }
     );
   }
-
-  const chain = req.nextUrl.searchParams.get('chain') || 'kite';
 
   // Payment has already been verified and settled by withX402 middleware.
   // Record enrollment on AIN blockchain using per-user client (if passkey provided).
@@ -56,22 +53,12 @@ async function handleEnroll(req: NextRequest): Promise<NextResponse> {
       paperId,
       enrolledAt: new Date().toISOString(),
     },
-    explorerUrl: getExplorerUrl(chain),
+    explorerUrl: getExplorerUrl(),
     message: 'Enrollment confirmed. Payment settled via x402 protocol.',
   });
 }
 
-// Pre-create wrapped handlers for each chain at module level
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-
-const kiteHandler = createWrappedHandler(
-  handleEnroll,
-  buildKiteRouteConfig({
-    description: 'Enroll in a Papers LMS learning course',
-    resource: `${baseUrl}/api/x402/enroll`,
-  }),
-  'kite',
-);
 
 const baseHandler = createWrappedHandler(
   handleEnroll,
@@ -79,11 +66,8 @@ const baseHandler = createWrappedHandler(
     description: 'Enroll in a Papers LMS learning course',
     resource: `${baseUrl}/api/x402/enroll`,
   }),
-  'base',
 );
 
 export async function POST(req: NextRequest) {
-  const chain = req.nextUrl.searchParams.get('chain') || 'kite';
-  if (chain === 'base') return baseHandler(req);
-  return kiteHandler(req);
+  return baseHandler(req);
 }

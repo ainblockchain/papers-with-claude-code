@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { x402Adapter } from '@/lib/adapters/x402';
 
 export interface PaymentHistoryEntry {
   txHash?: string;
@@ -21,31 +20,20 @@ export interface LearningAttestation {
   attestationHash: string;
   completedAt: string;
   explorerUrl: string;
-  chain: 'kite' | 'ain';
+  chain: 'base' | 'ain';
 }
 
 export type PaymentFlowStep = 0 | 1 | 2 | 3 | 4 | 5;
-
-interface McpConnectionState {
-  connected: boolean;
-  authMode: 'user_oauth' | 'agent_self_auth' | 'none';
-  agentId: string | null;
-}
 
 interface AgentState {
   // Identity
   agentDID: string | null;
   walletAddress: string | null;
-  kitePassHash: string | null;
-  isKitePassVerified: boolean;
 
   // Wallet
   balance: string;
   balanceWei: string;
   chainId: number;
-
-  // MCP Connection
-  mcpStatus: McpConnectionState;
 
   // Payment Flow
   paymentFlowStep: PaymentFlowStep;
@@ -62,14 +50,13 @@ interface AgentState {
   fetchWalletStatus: () => Promise<void>;
   fetchPaymentHistory: () => Promise<void>;
   fetchAttestations: () => Promise<void>;
-  fetchMcpStatus: () => Promise<void>;
   advancePaymentFlow: () => void;
   resetPaymentFlow: () => void;
   simulatePaymentFlow: () => void;
   reset: () => void;
 }
 
-const EXPLORER_BASE = (process.env.NEXT_PUBLIC_KITE_EXPLORER_URL || 'https://testnet.kitescan.ai').replace(/\/+$/, '');
+const EXPLORER_BASE = 'https://basescan.org';
 
 const MOCK_PAYMENT_HISTORY: PaymentHistoryEntry[] = [
   {
@@ -78,7 +65,7 @@ const MOCK_PAYMENT_HISTORY: PaymentHistoryEntry[] = [
     paperId: 'attention-is-all-you-need--bible',
     paperTitle: 'Attention Is All You Need',
     stageNum: 3,
-    amount: '0.10',
+    amount: '0.001',
     method: 'x402',
     status: 'confirmed',
     explorerUrl: `${EXPLORER_BASE}/tx/0x7a3bf912`,
@@ -89,7 +76,7 @@ const MOCK_PAYMENT_HISTORY: PaymentHistoryEntry[] = [
     paperId: 'attention-is-all-you-need--bible',
     paperTitle: 'Attention Is All You Need',
     stageNum: 2,
-    amount: '0.10',
+    amount: '0.001',
     method: 'x402',
     status: 'confirmed',
     explorerUrl: `${EXPLORER_BASE}/tx/0x92c1d4e8`,
@@ -100,7 +87,7 @@ const MOCK_PAYMENT_HISTORY: PaymentHistoryEntry[] = [
     paperId: 'attention-is-all-you-need--bible',
     paperTitle: 'Attention Is All You Need',
     stageNum: 1,
-    amount: '0.10',
+    amount: '0.001',
     method: 'x402',
     status: 'confirmed',
     explorerUrl: `${EXPLORER_BASE}/tx/0x45dda1b3`,
@@ -116,7 +103,7 @@ const MOCK_ATTESTATIONS: LearningAttestation[] = [
     attestationHash: '0x8f2c...3d71',
     completedAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
     explorerUrl: `${EXPLORER_BASE}/tx/0x8f2c3d71`,
-    chain: 'kite',
+    chain: 'base',
   },
   {
     paperId: 'attention-is-all-you-need--bible',
@@ -130,15 +117,15 @@ const MOCK_ATTESTATIONS: LearningAttestation[] = [
   },
 ];
 
+const MOCK_AGENT_DID = process.env.NEXT_PUBLIC_AGENT_DID || 'did:ain:learner.eth/claude-tutor/v1';
+const MOCK_WALLET_ADDRESS = process.env.BASE_MERCHANT_ADDRESS || '0xc0078d495e80fd3b1e92f0803d0bc7c279165d8c';
+
 const initialState = {
   agentDID: null,
   walletAddress: null,
-  kitePassHash: null,
-  isKitePassVerified: false,
   balance: '0',
   balanceWei: '0',
-  chainId: Number(process.env.NEXT_PUBLIC_KITE_CHAIN_ID) || 2368,
-  mcpStatus: { connected: false, authMode: 'none' as const, agentId: null },
+  chainId: 8453,
   paymentFlowStep: 0 as PaymentFlowStep,
   paymentFlowActive: false,
   paymentHistory: [],
@@ -151,30 +138,26 @@ export const useAgentStore = create<AgentState>((set, get) => ({
 
   fetchWalletStatus: async () => {
     try {
-      if (!x402Adapter.getWalletStatus) {
-        // Use mock data for demo
+      const res = await fetch('/api/x402/status');
+      if (!res.ok) {
         set({
-          walletAddress: '0xc0078d495e80fd3b1e92f0803d0bc7c279165d8c',
+          walletAddress: MOCK_WALLET_ADDRESS,
           balance: '4.70',
-          agentDID: 'did:kite:learner.eth/claude-tutor/v1',
-          isKitePassVerified: true,
+          agentDID: MOCK_AGENT_DID,
         });
         return;
       }
-      const status = await x402Adapter.getWalletStatus();
+      const status = await res.json();
       set({
-        walletAddress: status.address || '0xc0078d495e80fd3b1e92f0803d0bc7c279165d8c',
+        walletAddress: status.walletAddress || MOCK_WALLET_ADDRESS,
         balance: status.balance || '4.70',
-        agentDID: status.agentDID || 'did:kite:learner.eth/claude-tutor/v1',
-        isKitePassVerified: true,
+        agentDID: status.agentDID || MOCK_AGENT_DID,
       });
     } catch {
-      // Fallback to mock data for demo
       set({
-        walletAddress: '0xc0078d495e80fd3b1e92f0803d0bc7c279165d8c',
+        walletAddress: MOCK_WALLET_ADDRESS,
         balance: '4.70',
-        agentDID: 'did:kite:learner.eth/claude-tutor/v1',
-        isKitePassVerified: true,
+        agentDID: MOCK_AGENT_DID,
       });
     }
   },
@@ -210,50 +193,6 @@ export const useAgentStore = create<AgentState>((set, get) => ({
       set({ attestations: attestations.length > 0 ? attestations : MOCK_ATTESTATIONS });
     } catch {
       set({ attestations: MOCK_ATTESTATIONS });
-    }
-  },
-
-  fetchMcpStatus: async () => {
-    try {
-      const res = await fetch('/api/kite-mcp/config');
-      if (!res.ok) {
-        // Mock connected state for demo
-        set({
-          mcpStatus: {
-            connected: true,
-            authMode: 'agent_self_auth',
-            agentId: 'claude-tutor-v1',
-          },
-        });
-        return;
-      }
-      const data = await res.json();
-      // Use mock data for demo when not actually connected
-      if (!data.connected) {
-        set({
-          mcpStatus: {
-            connected: true,
-            authMode: 'agent_self_auth',
-            agentId: 'claude-tutor-v1',
-          },
-        });
-      } else {
-        set({
-          mcpStatus: {
-            connected: data.connected,
-            authMode: data.authMode || 'none',
-            agentId: data.agentId || null,
-          },
-        });
-      }
-    } catch {
-      set({
-        mcpStatus: {
-          connected: true,
-          authMode: 'agent_self_auth',
-          agentId: 'claude-tutor-v1',
-        },
-      });
     }
   },
 

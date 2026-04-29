@@ -1,7 +1,7 @@
 // 🔌 ADAPTER — Claude Code web terminal integration
 // ⚠️ NEEDS_INPUT — Claude Code API spec needed
 import { StageContext } from '@/types/learning';
-import { x402Adapter, PaymentResult } from '@/lib/adapters/x402';
+import { multiChainAdapter, type PaymentResult } from '@/lib/payment/multi-chain-adapter';
 
 export interface TerminalMessage {
   role: 'user' | 'assistant' | 'system';
@@ -65,18 +65,17 @@ class MockClaudeTerminalAdapter implements ClaudeTerminalAdapter {
       progress('Requesting payment authorization...');
       await new Promise(resolve => setTimeout(resolve, 400));
 
-      progress('Signing with Kite Passport...');
-      const result = await x402Adapter.requestPayment({
+      progress('Signing with passkey...');
+      const result = await multiChainAdapter.unlockStage({
+        chain: 'base',
         stageId: params.nextStageId,
         paperId: params.paperId,
-        amount: 0.001,
-        currency: 'USDT',
         stageNum: params.stageNum,
         score: params.score,
       });
 
       if (result.success) {
-        progress('Settling on Kite Chain...');
+        progress('Settling on Base...');
         await new Promise(resolve => setTimeout(resolve, 300));
         return result;
       }

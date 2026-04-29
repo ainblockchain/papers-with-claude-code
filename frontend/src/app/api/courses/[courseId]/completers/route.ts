@@ -15,9 +15,6 @@ async function buildAddressProfileMap(): Promise<Map<string, string>> {
   for (const [userId, data] of Object.entries(identities as Record<string, any>)) {
     if (!data?.keys || typeof data.keys !== 'object') continue;
 
-    // Skip non-GitHub users (kite- prefix has no avatar)
-    if (userId.startsWith('kite-')) continue;
-
     const avatarUrl = `https://avatars.githubusercontent.com/u/${userId}`;
 
     for (const [, entry] of Object.entries(data.keys as Record<string, any>)) {
