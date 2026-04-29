@@ -52,20 +52,21 @@ P-256 publicKey → keccak256 → secp256k1 private key → EVM address
 ### Cross-Device Identity Recovery
 
 블록체인 `/apps/knowledge/topics/identity/{userId}`에 암호화된 publicKey 저장.
-하나의 유저에 **복수 패스키(publicKey)** 등록 가능 — 디바이스마다 다른 패스키.
+하나의 유저에 **복수 패스키(publicKey)** 등록 가능 — 디바이스마다, 그리고 OAuth provider마다 다른 패스키가 같은 userId 하에 공존.
 
 ```
 /apps/knowledge/topics/identity/{userId}
 └── keys/
-    ├── key_{timestamp1}: { encryptedPublicKey, provider, createdAt }
-    ├── key_{timestamp2}: { encryptedPublicKey, provider, createdAt }
+    ├── key_{timestamp1}: { encryptedPublicKey, provider, createdAt, avatarUrl? }
+    ├── key_{timestamp2}: { encryptedPublicKey, provider, createdAt, avatarUrl? }
     └── ...
 ```
 
-- GET: `keys/` 순회하며 현재 환경의 `AIN_PRIVATE_KEY`로 복호화 가능한 첫 번째 publicKey 반환
-- POST: 동일 publicKey 중복 방지(409), 기존 keys 보존하며 추가
-- 환경별(로컬/프로드) `AIN_PRIVATE_KEY`가 다르면 서로의 키를 복호화 불가 → 데이터 자연 분리
+- GET: `keys/` 순회하며 현재 환경의 `AIN_PRIVATE_KEY`로 복호화 가능한 첫 번째 publicKey 반환 (publicKey + avatarUrl + provider 함께)
+- POST: 동일 publicKey 중복 방지(409), 기존 keys 보존하며 추가. avatarUrl 함께 저장 가능
+- 환경별(로컬/프로드) `AIN_PRIVATE_KEY`가 다르면 서로의 키를 복호화 불가 → 데이터 자연 분리. 자세한 격리 메커니즘은 [docs/environment-isolation.md](../docs/environment-isolation.md) 참고
 - 블록체인 패스키가 항상 우선: 복구 시 블록체인 publicKey로 지갑 파생
+- avatarUrl은 provider-agnostic하게 저장 (GitHub만 아니라 Google 등 다른 provider도 자기 avatar URL 그대로 저장). `completers` 같은 화면에서 provider 무관하게 사용
 
 ### Blockchain Paths
 
