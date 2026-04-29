@@ -4,7 +4,14 @@ import { decryptPublicKey } from '@/lib/ain/identity-crypto';
 
 const IDENTITY_PATH = '/apps/knowledge/topics/identity';
 
-/** Build address → avatarUrl map from blockchain identity data */
+/**
+ * Build address → avatarUrl map from blockchain identity data.
+ *
+ * Each identity entry stores `avatarUrl` per-key (written at signup time).
+ * For legacy entries that predate avatarUrl storage, we fall back to a
+ * GitHub URL only if the entry's provider is 'github' (its userId is then
+ * a GitHub numeric id). Other providers without stored avatars are skipped.
+ */
 async function buildAddressProfileMap(): Promise<Map<string, string>> {
   const ain = getAinClient();
   const identities = await ain.db.ref(IDENTITY_PATH).getValue();
@@ -15,16 +22,20 @@ async function buildAddressProfileMap(): Promise<Map<string, string>> {
   for (const [userId, data] of Object.entries(identities as Record<string, any>)) {
     if (!data?.keys || typeof data.keys !== 'object') continue;
 
-    const avatarUrl = `https://avatars.githubusercontent.com/u/${userId}`;
-
     for (const [, entry] of Object.entries(data.keys as Record<string, any>)) {
       if (!entry?.encryptedPublicKey) continue;
       try {
         const publicKey = decryptPublicKey(entry.encryptedPublicKey);
-        // Derive the AIN wallet address the same way getUserAinClient does
         const userAin = getUserAinClient(publicKey);
         const address = userAin.wallet.defaultAccount?.address;
-        if (address) {
+        if (!address) continue;
+
+        const avatarUrl =
+          entry.avatarUrl ??
+          (entry.provider === 'github'
+            ? `https://avatars.githubusercontent.com/u/${userId}`
+            : undefined);
+        if (avatarUrl) {
           map.set(address.toLowerCase(), avatarUrl);
         }
       } catch {
