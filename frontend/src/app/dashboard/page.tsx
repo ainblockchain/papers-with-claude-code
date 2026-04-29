@@ -77,7 +77,12 @@ export default function DashboardPage() {
       {/* Profile */}
       <div className="flex items-center gap-4 mb-8">
         {user?.avatarUrl ? (
-          <img src={user.avatarUrl} alt={user.username} className="h-16 w-16 rounded-full" />
+          <img
+            src={user.avatarUrl}
+            alt={user.username}
+            referrerPolicy="no-referrer"
+            className="h-16 w-16 rounded-full"
+          />
         ) : (
           <div className="h-16 w-16 rounded-full bg-[#FF9D00] flex items-center justify-center text-white text-2xl font-bold">
             {user?.username[0].toUpperCase() || '?'}

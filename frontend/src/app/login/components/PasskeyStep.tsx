@@ -48,7 +48,12 @@ export function PasskeyStep({
           <div className="flex items-center gap-3 mb-5 pb-4 border-b border-[#E5E7EB]">
             {user.avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={user.avatarUrl} alt={user.username} className="h-10 w-10 rounded-full" />
+              <img
+                src={user.avatarUrl}
+                alt={user.username}
+                referrerPolicy="no-referrer"
+                className="h-10 w-10 rounded-full"
+              />
             ) : (
               <div className="h-10 w-10 rounded-full bg-[#FF9D00] flex items-center justify-center text-white text-sm font-bold">
                 {user.username[0]?.toUpperCase() ?? '?'}
