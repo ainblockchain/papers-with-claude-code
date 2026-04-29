@@ -27,7 +27,11 @@ function LoginContent() {
 
   const fromOAuth = searchParams.get('from') === 'oauth';
   const inLoginFlow = fromOAuth || mockAuthActive;
-  const existingPasskey = typeof window !== 'undefined' ? loadPasskeyInfo() : null;
+  // Reconstructed passkeys (from blockchain) have empty credentialId and can't
+  // be used for WebAuthn assertion. Treat them as "no usable passkey" so the
+  // user is prompted to register a new credential on this device.
+  const rawPasskey = typeof window !== 'undefined' ? loadPasskeyInfo() : null;
+  const existingPasskey = rawPasskey?.credentialId ? rawPasskey : null;
 
   // Identity sync runs when:
   //   - we just came back from OAuth or mock-login, OR
