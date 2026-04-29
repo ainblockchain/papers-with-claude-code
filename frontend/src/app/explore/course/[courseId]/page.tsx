@@ -318,7 +318,7 @@ export default function CourseDetailPage() {
                       className="flex items-center gap-3 px-4 py-3 rounded-lg border border-[#059669]/20 bg-[#059669]/5"
                     >
                       {c.avatarUrl ? (
-                        <img src={c.avatarUrl} alt="" className="h-8 w-8 rounded-full flex-shrink-0" />
+                        <img src={c.avatarUrl} alt="" referrerPolicy="no-referrer" className="h-8 w-8 rounded-full flex-shrink-0" />
                       ) : (
                         <div className="h-8 w-8 rounded-full bg-[#059669]/20 flex items-center justify-center text-xs font-medium text-[#059669] flex-shrink-0">
                           {c.address.slice(2, 4).toUpperCase()}
@@ -351,7 +351,7 @@ export default function CourseDetailPage() {
                       className="flex items-center gap-3 px-4 py-3 rounded-lg border border-[#E5E7EB] bg-[#F9FAFB]"
                     >
                       {c.avatarUrl ? (
-                        <img src={c.avatarUrl} alt="" className="h-8 w-8 rounded-full flex-shrink-0" />
+                        <img src={c.avatarUrl} alt="" referrerPolicy="no-referrer" className="h-8 w-8 rounded-full flex-shrink-0" />
                       ) : (
                         <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium text-[#6B7280] flex-shrink-0">
                           {c.address.slice(2, 4).toUpperCase()}

@@ -117,7 +117,6 @@ const baseHandler = createWrappedHandler(
     description: 'Chat with Cogito Knowledge Agent',
     resource: `${baseUrl}/api/cogito-chat`,
   }),
-  'base',
 );
 
 export async function POST(req: NextRequest) {

@@ -1,9 +1,17 @@
-// Multi-chain payment adapter — delegates to x402Adapter for Kite and client-side x402 for Base
+// Payment adapter — client-side x402 on Base via the user's passkey-derived EVM key.
 
-import { x402Adapter, type PaymentResult } from '@/lib/adapters/x402';
 import { useAuthStore } from '@/stores/useAuthStore';
-import { type PaymentChainId, PAYMENT_CHAINS } from './chains';
+import { type PaymentChainId } from './chains';
 import { createBaseX402Fetch } from './base-x402-client';
+
+export interface PaymentResult {
+  success: boolean;
+  receiptId?: string;
+  txHash?: string;
+  explorerUrl?: string;
+  error?: string;
+  errorCode?: string;
+}
 
 export interface ChainPaymentParams {
   chain: PaymentChainId;
@@ -15,111 +23,13 @@ export interface ChainPaymentParams {
 
 class MultiChainPaymentAdapter {
   async purchaseCourse(params: ChainPaymentParams): Promise<PaymentResult> {
-    switch (params.chain) {
-      case 'kite':
-        return this.kitePurchaseCourse(params);
-      case 'base':
-        return this.basePurchaseCourse(params);
-      default:
-        return {
-          success: false,
-          error: `Chain "${params.chain}" is not supported yet`,
-        };
-    }
+    return this.basePurchaseCourse(params);
   }
 
   async unlockStage(params: ChainPaymentParams): Promise<PaymentResult> {
-    switch (params.chain) {
-      case 'kite':
-        return this.kiteUnlockStage(params);
-      case 'base':
-        return this.baseUnlockStage(params);
-      default:
-        return {
-          success: false,
-          error: `Chain "${params.chain}" is not supported yet`,
-        };
-    }
+    return this.baseUnlockStage(params);
   }
 
-  // ── Kite: Course Purchase via /api/x402/enroll ──
-  private async kitePurchaseCourse(
-    params: ChainPaymentParams
-  ): Promise<PaymentResult> {
-    try {
-      const requestBody = {
-        paperId: params.paperId,
-        passkeyPublicKey: useAuthStore.getState().passkeyInfo?.publicKey || '',
-      };
-
-      let res = await fetch('/api/x402/enroll', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
-      });
-
-      if (res.status === 402) {
-        const body = await res.json().catch(() => null);
-        if (body?.error === 'insufficient_funds') {
-          return {
-            success: false,
-            error: 'Insufficient USDC balance.',
-            errorCode: 'insufficient_funds',
-          };
-        }
-
-        const mcpPayment = await this.tryKiteMcpPayment(body);
-        if (mcpPayment) {
-          res = await fetch('/api/x402/enroll', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Payment': mcpPayment,
-            },
-            body: JSON.stringify(requestBody),
-          });
-        } else {
-          return {
-            success: false,
-            error:
-              'Payment required. Connect Kite Passport to enable automatic payments.',
-            errorCode: 'payment_required',
-          };
-        }
-      }
-
-      if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        return {
-          success: false,
-          error: body?.message ?? `Request failed (${res.status})`,
-          errorCode: body?.error,
-        };
-      }
-
-      // Extract txHash from PAYMENT-RESPONSE header (base64-encoded JSON from withX402)
-      const txHash = this.extractTxHashFromResponse(res);
-      const data = await res.json();
-      const explorerUrl = txHash
-        ? `https://testnet.kitescan.ai/tx/${txHash}`
-        : data.explorerUrl;
-
-      return {
-        success: true,
-        receiptId: data.enrollment?.paperId,
-        txHash: txHash || data.txHash,
-        explorerUrl,
-      };
-    } catch (err) {
-      return {
-        success: false,
-        error: err instanceof Error ? err.message : 'Network error',
-        errorCode: 'network_error',
-      };
-    }
-  }
-
-  // ── Base: Course Purchase via client-side x402 ──
   private async basePurchaseCourse(
     params: ChainPaymentParams
   ): Promise<PaymentResult> {
@@ -128,7 +38,7 @@ class MultiChainPaymentAdapter {
       return { success: false, error: 'Register passkey first to pay on Base.', errorCode: 'no_passkey' };
     }
     try {
-      const res = await x402Fetch('/api/x402/enroll?chain=base', {
+      const res = await x402Fetch('/api/x402/enroll', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -139,7 +49,6 @@ class MultiChainPaymentAdapter {
 
       if (!res.ok) {
         const body = await res.json().catch(() => null);
-        // x402 settlement returns { error: "Settlement failed", details: "reason" }
         const errorMsg = body?.details
           ? `${body.error}: ${body.details}`
           : (body?.message ?? body?.error ?? `Request failed (${res.status})`);
@@ -172,22 +81,6 @@ class MultiChainPaymentAdapter {
     }
   }
 
-  // ── Kite: Stage Unlock — delegates to existing x402Adapter ──
-  private async kiteUnlockStage(
-    params: ChainPaymentParams
-  ): Promise<PaymentResult> {
-    const config = PAYMENT_CHAINS.kite;
-    return x402Adapter.requestPayment({
-      stageId: params.stageId!,
-      paperId: params.paperId,
-      amount: config.amounts.stageUnlock,
-      currency: config.currency,
-      stageNum: params.stageNum,
-      score: params.score,
-    });
-  }
-
-  // ── Base: Stage Unlock via client-side x402 ──
   private async baseUnlockStage(
     params: ChainPaymentParams
   ): Promise<PaymentResult> {
@@ -196,7 +89,7 @@ class MultiChainPaymentAdapter {
       return { success: false, error: 'Register passkey first to pay on Base.', errorCode: 'no_passkey' };
     }
     try {
-      const res = await x402Fetch('/api/x402/unlock-stage?chain=base', {
+      const res = await x402Fetch('/api/x402/unlock-stage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -241,7 +134,6 @@ class MultiChainPaymentAdapter {
     }
   }
 
-  // ── Shared: Extract txHash from x402 PAYMENT-RESPONSE header ──
   private extractTxHashFromResponse(res: Response): string | undefined {
     const header =
       res.headers.get('PAYMENT-RESPONSE') || res.headers.get('X-PAYMENT-RESPONSE');
@@ -251,50 +143,6 @@ class MultiChainPaymentAdapter {
       return decoded.transaction || decoded.txHash || undefined;
     } catch {
       return undefined;
-    }
-  }
-
-  // ── Shared: Kite MCP auto-payment for 402 responses ──
-  private async tryKiteMcpPayment(
-    paymentInfo: Record<string, unknown> | null
-  ): Promise<string | null> {
-    try {
-      const payerRes = await fetch('/api/kite-mcp/tools', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tool: 'get_payer_addr', params: {} }),
-      });
-      if (!payerRes.ok) return null;
-      const { payer_addr } = await payerRes.json();
-
-      const accepts = (
-        paymentInfo?.accepts as Array<Record<string, string>>
-      )?.[0];
-      const payeeAddr =
-        accepts?.payTo || (paymentInfo?.payTo as string) || '';
-      const amount =
-        accepts?.maxAmountRequired || (paymentInfo?.amount as string) || '0';
-      const tokenType = accepts?.asset || 'USDC';
-      if (!payeeAddr) return null;
-
-      const approveRes = await fetch('/api/kite-mcp/tools', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tool: 'approve_payment',
-          params: {
-            payer_addr,
-            payee_addr: payeeAddr,
-            amount,
-            token_type: tokenType,
-          },
-        }),
-      });
-      if (!approveRes.ok) return null;
-      const { x_payment } = await approveRes.json();
-      return x_payment || null;
-    } catch {
-      return null;
     }
   }
 }

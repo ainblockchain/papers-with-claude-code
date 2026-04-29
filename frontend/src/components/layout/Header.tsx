@@ -93,7 +93,12 @@ export function Header() {
           {isAuthenticated && user ? (
             <div className="flex items-center gap-2">
               {user.avatarUrl ? (
-                <img src={user.avatarUrl} alt={user.username} className="h-8 w-8 rounded-full" />
+                <img
+                  src={user.avatarUrl}
+                  alt={user.username}
+                  referrerPolicy="no-referrer"
+                  className="h-8 w-8 rounded-full"
+                />
               ) : (
                 <div className="h-8 w-8 rounded-full bg-[#FF9D00] flex items-center justify-center text-white text-sm font-medium">
                   {user.username[0].toUpperCase()}

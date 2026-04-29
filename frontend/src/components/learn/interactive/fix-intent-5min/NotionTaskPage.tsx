@@ -343,9 +343,9 @@ export function NotionTaskPage({
   // Assignee dropdown prepends the logged-in user's GitHub ID, so the
   // correct answer — "assign to yourself" — is a real selectable option
   // and gets persisted to the blockchain as that concrete ID.
-  const githubUsername = useAuthStore((s) => s.user?.username ?? null);
-  const assigneeChoices = githubUsername
-    ? [githubUsername, ...assigneeOptions]
+  const currentUsername = useAuthStore((s) => s.user?.username ?? null);
+  const assigneeChoices = currentUsername
+    ? [currentUsername, ...assigneeOptions]
     : assigneeOptions;
 
   const titleS = computeState('title', currentFieldId, notion.title);
@@ -551,15 +551,15 @@ export function NotionTaskPage({
             icon={<UserCircle size={14} className="text-[rgba(55,53,47,0.45)]" />}
             label="Reported by"
           >
-            {githubUsername ? (
+            {currentUsername ? (
               <span className="inline-flex items-center gap-1.5 text-[14px]">
                 <span
                   aria-hidden="true"
                   className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#F1F1EF] text-[11px] font-semibold text-[rgba(55,53,47,0.65)]"
                 >
-                  {githubUsername.trim().charAt(0).toUpperCase() || '?'}
+                  {currentUsername.trim().charAt(0).toUpperCase() || '?'}
                 </span>
-                <span>{githubUsername}</span>
+                <span>{currentUsername}</span>
               </span>
             ) : (
               <span className="italic text-[rgba(55,53,47,0.35)]">비어 있음</span>

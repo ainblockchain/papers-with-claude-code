@@ -34,7 +34,14 @@ export async function GET(request: NextRequest) {
       if (!entry?.encryptedPublicKey) continue;
       try {
         const publicKey = decryptPublicKey(entry.encryptedPublicKey);
-        return NextResponse.json({ ok: true, data: { publicKey } });
+        return NextResponse.json({
+          ok: true,
+          data: {
+            publicKey,
+            avatarUrl: entry.avatarUrl ?? null,
+            provider: entry.provider ?? null,
+          },
+        });
       } catch {
         // This key was encrypted with a different secret — try next
         continue;
@@ -54,7 +61,7 @@ export async function GET(request: NextRequest) {
 /** POST /api/ain/identity — add a new passkey mapping (supports multiple keys per user) */
 export async function POST(request: NextRequest) {
   try {
-    const { userId, publicKey, provider } = await request.json();
+    const { userId, publicKey, provider, avatarUrl } = await request.json();
 
     if (!userId || !publicKey || !provider) {
       return NextResponse.json(
@@ -66,23 +73,20 @@ export async function POST(request: NextRequest) {
     const ain = getAinClient();
     const stored = await ain.db.ref(`${IDENTITY_PATH}/${userId}`).getValue();
 
-    // Check if this exact publicKey is already stored (any format)
-    if (stored) {
-      // New format: check all keys
-      if (stored.keys && typeof stored.keys === 'object') {
-        for (const [, entry] of Object.entries(stored.keys as Record<string, any>)) {
-          if (!entry?.encryptedPublicKey) continue;
-          try {
-            const existing = decryptPublicKey(entry.encryptedPublicKey);
-            if (existing === publicKey) {
-              return NextResponse.json(
-                { ok: false, error: 'This passkey is already registered' },
-                { status: 409 },
-              );
-            }
-          } catch {
-            // Encrypted with different key — skip
+    // Check if this exact publicKey is already stored
+    if (stored?.keys && typeof stored.keys === 'object') {
+      for (const [, entry] of Object.entries(stored.keys as Record<string, any>)) {
+        if (!entry?.encryptedPublicKey) continue;
+        try {
+          const existing = decryptPublicKey(entry.encryptedPublicKey);
+          if (existing === publicKey) {
+            return NextResponse.json(
+              { ok: false, error: 'This passkey is already registered' },
+              { status: 409 },
+            );
           }
+        } catch {
+          // Encrypted with different key — skip
         }
       }
     }
@@ -95,10 +99,12 @@ export async function POST(request: NextRequest) {
       Object.assign(existingKeys, stored.keys);
     }
 
-    // Add new key
+    // Add new key. avatarUrl is stored per-key so it can vary across devices
+    // (in practice it's the same for a given userId+provider pair).
     existingKeys[keyId] = {
       encryptedPublicKey,
       provider,
+      ...(avatarUrl ? { avatarUrl } : {}),
       createdAt: Date.now(),
     };
 

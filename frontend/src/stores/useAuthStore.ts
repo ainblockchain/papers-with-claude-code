@@ -1,12 +1,13 @@
 import { create } from 'zustand';
 import type { PasskeyInfo } from '@/lib/ain/passkey';
+import type { AuthProviderId } from '@/lib/auth/providers';
 
 interface User {
   id: string;
   username: string;
   avatarUrl: string;
   email: string;
-  provider?: 'github' | 'kite-passport';
+  provider?: AuthProviderId;
 }
 
 interface AuthState {

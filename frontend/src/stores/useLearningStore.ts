@@ -33,7 +33,7 @@ interface LearningState {
   isDoorUnlocked: boolean;
   isPaymentModalOpen: boolean;
 
-  // Payment (Kite Chain)
+  // Payment (Base Mainnet x402)
   txHash: string | null;
   walletAddress: string | null;
   explorerUrl: string | null;

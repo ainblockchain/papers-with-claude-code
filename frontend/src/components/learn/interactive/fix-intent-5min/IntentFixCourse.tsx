@@ -595,7 +595,7 @@ export function IntentFixCourse() {
 
 function IntentFixCourseInner() {
   const passkeyPublicKey = useAuthStore((s) => s.passkeyInfo?.publicKey);
-  const githubUsername = useAuthStore((s) => s.user?.username ?? null);
+  const currentUsername = useAuthStore((s) => s.user?.username ?? null);
 
   const [loading, setLoading] = useState(true);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -1131,7 +1131,7 @@ function IntentFixCourseInner() {
     const attempt = (fieldAttempts[fieldId] ?? 0) + 1;
     const result = await validateNotionField(fieldId, value, {
       representativeIntent: representative,
-      username: githubUsername,
+      username: currentUsername,
       attempt,
       phase,
     });
@@ -1171,7 +1171,7 @@ function IntentFixCourseInner() {
       const seasonHint =
         fieldId === 'season' ? seasonHints[value] : undefined;
       const pickedOtherAssignee =
-        fieldId === 'assignee' && value !== githubUsername;
+        fieldId === 'assignee' && value !== currentUsername;
       const workTypeHint =
         fieldId === 'workType' ? computeWorkTypeHint(value) : undefined;
       setNotionError(

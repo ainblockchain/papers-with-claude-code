@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
-  buildKiteRouteConfig,
   buildBaseRouteConfig,
   createWrappedHandler,
   getExplorerUrl,
@@ -43,13 +42,8 @@ async function handleUnlockStage(req: NextRequest): Promise<NextResponse> {
     );
   }
 
-  const chain = req.nextUrl.searchParams.get('chain') || 'kite';
-
   // Payment has already been verified and settled by withX402 middleware.
-  // stage_complete is recorded at quiz pass time (QuizOverlay → /api/stage-complete),
-  // so this endpoint only handles payment verification.
-
-  // Generate attestation hash for the payment
+  // Generate attestation hash for the payment.
   const crypto = await import('crypto');
   const attestationHash = crypto
     .createHash('sha256')
@@ -65,21 +59,12 @@ async function handleUnlockStage(req: NextRequest): Promise<NextResponse> {
       attestationHash: `0x${attestationHash}`,
       completedAt: new Date().toISOString(),
     },
-    explorerUrl: getExplorerUrl(chain),
+    explorerUrl: getExplorerUrl(),
     message: 'Stage unlocked. Payment settled via x402 protocol.',
   });
 }
 
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-
-const kiteHandler = createWrappedHandler(
-  handleUnlockStage,
-  buildKiteRouteConfig({
-    description: 'Unlock a learning stage after quiz completion',
-    resource: `${baseUrl}/api/x402/unlock-stage`,
-  }),
-  'kite',
-);
 
 const baseHandler = createWrappedHandler(
   handleUnlockStage,
@@ -87,11 +72,8 @@ const baseHandler = createWrappedHandler(
     description: 'Unlock a learning stage after quiz completion',
     resource: `${baseUrl}/api/x402/unlock-stage`,
   }),
-  'base',
 );
 
 export async function POST(req: NextRequest) {
-  const chain = req.nextUrl.searchParams.get('chain') || 'kite';
-  if (chain === 'base') return baseHandler(req);
-  return kiteHandler(req);
+  return baseHandler(req);
 }

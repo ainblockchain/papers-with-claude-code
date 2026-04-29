@@ -1,9 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Copy, Check, ExternalLink, Shield, ShieldCheck, RefreshCw } from 'lucide-react';
+import { Copy, Check, ExternalLink, RefreshCw } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useAgentStore } from '@/stores/useAgentStore';
 
@@ -12,14 +11,13 @@ function truncateAddress(address: string): string {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
-const EXPLORER_BASE = (process.env.NEXT_PUBLIC_KITE_EXPLORER_URL || 'https://testnet.kitescan.ai').replace(/\/+$/, '');
+const EXPLORER_BASE = 'https://basescan.org';
 
 export function AgentWalletCard() {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const {
     agentDID,
     walletAddress,
-    isKitePassVerified,
     balance,
     chainId,
     fetchWalletStatus,
@@ -98,30 +96,8 @@ export function AgentWalletCard() {
         <div>
           <p className="text-xs text-gray-500 mb-1">Balance</p>
           <p className="text-xl font-bold text-white">
-            {balance} <span className="text-sm text-gray-400">USDT</span>
+            {balance} <span className="text-sm text-gray-400">USDC</span>
           </p>
-        </div>
-
-        {/* KitePass Status */}
-        <div>
-          <p className="text-xs text-gray-500 mb-1">KitePass</p>
-          <div className="flex items-center gap-2">
-            {isKitePassVerified ? (
-              <>
-                <ShieldCheck className="h-4 w-4 text-green-400" />
-                <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
-                  Verified
-                </Badge>
-              </>
-            ) : (
-              <>
-                <Shield className="h-4 w-4 text-gray-500" />
-                <Badge variant="outline" className="text-gray-400 border-gray-600">
-                  Not Issued
-                </Badge>
-              </>
-            )}
-          </div>
         </div>
 
         {/* Network */}
@@ -130,7 +106,7 @@ export function AgentWalletCard() {
           <div className="flex items-center gap-2">
             <div className="h-2 w-2 rounded-full bg-green-400" />
             <span className="text-sm text-gray-300">
-              KiteAI {chainId === 2366 ? 'Mainnet' : 'Testnet'} (Chain ID: {chainId})
+              Base Mainnet (Chain ID: {chainId})
             </span>
           </div>
         </div>

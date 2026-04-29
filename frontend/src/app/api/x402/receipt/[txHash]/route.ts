@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getChainConfig } from '@/lib/kite/contracts';
 
 const BASE_RPC = 'https://mainnet.base.org';
 const BASE_EXPLORER = 'https://basescan.org/';
 
 export async function GET(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: Promise<{ txHash: string }> }
 ) {
   const { txHash } = await params;
-  const chain = req.nextUrl.searchParams.get('chain') || 'kite';
 
   if (!txHash || !txHash.startsWith('0x')) {
     return NextResponse.json(
@@ -18,26 +16,10 @@ export async function GET(
     );
   }
 
-  // Select RPC and explorer based on chain
-  let rpcUrl: string;
-  let explorerBase: string;
-  let chainName: string;
-
-  if (chain === 'base') {
-    rpcUrl = BASE_RPC;
-    explorerBase = BASE_EXPLORER;
-    chainName = 'Base';
-  } else {
-    const chainConfig = getChainConfig();
-    rpcUrl = process.env.NEXT_PUBLIC_KITE_RPC_URL || chainConfig.rpcUrl;
-    explorerBase = chainConfig.explorerUrl;
-    chainName = 'Kite Chain';
-  }
-
-  const explorerUrl = `${explorerBase}tx/${txHash}`;
+  const explorerUrl = `${BASE_EXPLORER}tx/${txHash}`;
 
   try {
-    const response = await fetch(rpcUrl, {
+    const response = await fetch(BASE_RPC, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -55,9 +37,9 @@ export async function GET(
       return NextResponse.json({
         verified: false,
         txHash,
-        chain,
+        chain: 'base',
         explorerUrl,
-        message: `Transaction not found on ${chainName}. It may be pending or invalid.`,
+        message: 'Transaction not found on Base. It may be pending or invalid.',
       });
     }
 
@@ -65,23 +47,23 @@ export async function GET(
     return NextResponse.json({
       verified: success,
       txHash,
-      chain,
+      chain: 'base',
       blockNumber: parseInt(receipt.blockNumber, 16),
       from: receipt.from,
       to: receipt.to,
       gasUsed: parseInt(receipt.gasUsed, 16),
       explorerUrl,
       message: success
-        ? `Transaction confirmed on ${chainName}.`
-        : `Transaction failed on ${chainName}.`,
+        ? 'Transaction confirmed on Base.'
+        : 'Transaction failed on Base.',
     });
   } catch {
     return NextResponse.json({
       verified: null,
       txHash,
-      chain,
+      chain: 'base',
       explorerUrl,
-      message: `Could not verify on ${chainName}. Check the explorer link for confirmation.`,
+      message: 'Could not verify on Base. Check the explorer link for confirmation.',
     });
   }
 }
